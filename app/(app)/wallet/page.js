@@ -1,7 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useMined, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
-import { history as seed, DEPOSIT_ADDRESS, MIN_WITHDRAW } from '@/lib/data';
+import { history as seed, MIN_WITHDRAW } from '@/lib/data';
+import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote } from '@/lib/assets';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
@@ -34,10 +35,40 @@ function DepositQr({ value }) {
   );
 }
 
+// Coin buttons, plus a network switch for coins that live on more than one chain (USDT).
+function Picker({ asset, net, onAsset, onNet }) {
+  const nets = Object.keys(ASSETS[asset].nets);
+  return (
+    <>
+      <div className="assets" role="group" aria-label="Coin">
+        {Object.entries(ASSETS).map(([id, a]) => (
+          <button key={id} type="button" className="pct-btn" aria-pressed={asset === id} onClick={() => onAsset(id)}>
+            {a.sym}
+          </button>
+        ))}
+      </div>
+      {nets.length > 1 && (
+        <div className="netrow">
+          <span>Network</span>
+          <div className="minitabs" role="group" aria-label="Network">
+            {nets.map((n) => (
+              <button key={n} type="button" aria-pressed={net === n} onClick={() => onNet(n)}>
+                {NETWORKS[n].short}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+    </>
+  );
+}
+
 export default function Wallet() {
   const mined = useMined();
   const [withdrawn, setWithdrawn] = useState(0);
   const [tab, setTab] = useState('withdraw');
+  const [asset, setAsset] = useState('btc');
+  const [net, setNet] = useState('btc');
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [errors, setErrors] = useState({});
@@ -45,6 +76,11 @@ export default function Wallet() {
   const [open, setOpen] = useState(false);
   const [toast, show] = useToast();
   const available = Math.max(0, mined - withdrawn);
+  const A = ASSETS[asset];
+  const N = NETWORKS[net];
+  const parsed = parseFloat(amount);
+  const q = parsed > 0 ? quote(asset, net, parsed) : null;
+  const flatFee = A.nets[net];
 
   function setFraction(pct) {
     triggerHaptic('selection');
@@ -60,14 +96,33 @@ export default function Wallet() {
     }
   }
 
-  // TODO: call your withdrawal API here.
+  // A pasted address belongs to one network, so changing coin or network clears it.
+  function pickAsset(id) {
+    if (id === asset) return;
+    triggerHaptic('selection');
+    setAsset(id);
+    setNet(Object.keys(ASSETS[id].nets)[0]);
+    setAddress('');
+    setErrors({});
+  }
+
+  function pickNet(id) {
+    if (id === net) return;
+    triggerHaptic('selection');
+    setNet(id);
+    setAddress('');
+    setErrors({});
+  }
+
+  // TODO: call your withdrawal API here (coin, network, BTC amount, address).
   function withdraw() {
-    const a = parseFloat(amount);
+    const a = parsed;
     const next = {};
     if (!(a > 0)) next.amount = 'Enter an amount to withdraw.';
     else if (a < MIN_WITHDRAW) next.amount = `Minimum is ${MIN_WITHDRAW} BTC.`;
     else if (a > available) next.amount = 'More than your available balance.';
-    if (!/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,60}$/.test(address.trim())) next.address = 'Enter a valid Bitcoin address.';
+    else if (quote(asset, net, a).receive <= 0) next.amount = 'Too small to cover the fees.';
+    if (!N.pattern.test(address.trim())) next.address = `Enter a valid ${N.label} address.`;
 
     if (next.amount || next.address) {
       triggerHaptic('error');
@@ -80,7 +135,7 @@ export default function Wallet() {
     triggerHaptic('success');
     setErrors({});
     setWithdrawn(withdrawn + a);
-    setHistory([{ kind: 'withdrawal', label: 'Withdrawal', date: 'Just now', amount: `-${a.toFixed(4)}` }, ...history]);
+    setHistory([{ kind: 'withdrawal', label: `Withdrawal · ${A.sym}`, date: 'Just now', amount: `-${a.toFixed(4)}` }, ...history]);
     setAmount('');
     setAddress('');
     show('Withdrawal initiated');
@@ -89,7 +144,7 @@ export default function Wallet() {
   function copy() {
     triggerHaptic('success');
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
-      navigator.clipboard.writeText(DEPOSIT_ADDRESS);
+      navigator.clipboard.writeText(N.address);
     }
     show('Address copied');
   }
@@ -120,9 +175,11 @@ export default function Wallet() {
               </button>
             </div>
 
+            <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} />
+
             {tab === 'withdraw' ? (
               <div>
-                <label htmlFor="wa" style={{ marginTop: 4 }}>Amount (min {MIN_WITHDRAW} BTC)</label>
+                <label htmlFor="wa" style={{ marginTop: 4 }}>Amount in BTC (min {MIN_WITHDRAW})</label>
                 <input
                   id="wa"
                   inputMode="decimal"
@@ -145,13 +202,13 @@ export default function Wallet() {
                   ))}
                 </div>
 
-                <label htmlFor="wd" style={{ marginTop: 0 }}>Bitcoin address</label>
+                <label htmlFor="wd" style={{ marginTop: 0 }}>{A.sym} address{A.nets && Object.keys(A.nets).length > 1 ? ` (${N.short})` : ''}</label>
                 <input
                   id="wd"
                   className={errors.address ? 'bad' : undefined}
                   aria-invalid={!!errors.address}
                   aria-describedby={errors.address ? 'wd-err' : undefined}
-                  placeholder="bc1q…"
+                  placeholder={net === 'btc' ? 'bc1q…' : net === 'trc20' ? 'T…' : '0x…'}
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
@@ -163,15 +220,45 @@ export default function Wallet() {
                 />
                 {errors.address && <div className="ferr" id="wd-err" role="alert">{errors.address}</div>}
 
+                <div className="quote" aria-live="polite">
+                  {q ? (
+                    <>
+                      {asset !== 'btc' && (
+                        <div className="row">
+                          <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
+                          <b>${formatUsd(q.swapUsd)}</b>
+                        </div>
+                      )}
+                      <div className="row">
+                        <span className="mute">Network fee</span>
+                        <b>{q.netFee} {A.sym}</b>
+                      </div>
+                      <div className="row total">
+                        <span className="mute">You receive</span>
+                        <b>{q.receive > 0 ? `≈ ${q.receive.toFixed(A.dec)} ${A.sym}` : '—'}</b>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="row">
+                      <span className="mute">Fees</span>
+                      <span className="mute">
+                        {asset === 'btc' ? '' : `${SWAP_FEE_PCT}% swap + `}{flatFee} {A.sym} network
+                      </span>
+                    </div>
+                  )}
+                </div>
+
                 <div style={{ height: '14px' }} />
                 <button className="btn" type="button" onClick={withdraw}>Withdraw</button>
               </div>
             ) : (
               <div>
-                <DepositQr value={`bitcoin:${DEPOSIT_ADDRESS}`} />
-                <div className="addr" style={{ margin: '0 0 10px' }}>{DEPOSIT_ADDRESS}</div>
+                <DepositQr value={`${N.uri}${N.address}`} />
+                <div className="addr" style={{ margin: '0 0 10px' }}>{N.address}</div>
                 <button className="btn ghost" type="button" onClick={copy}>Copy address</button>
-                <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>BTC only · 1 confirmation</p>
+                <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>
+                  {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'}
+                </p>
               </div>
             )}
           </div>
