@@ -10,6 +10,7 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [show, setShow] = useState(false);
 
   // TODO: call your auth API here.
   function submit(e) {
@@ -47,6 +48,12 @@ export default function Login() {
         <div className="mark">O</div>
         <h1>Mine bitcoin without owning a single machine.</h1>
         <p className="mute">Rent hash power, watch earnings arrive every day, withdraw whenever you like.</p>
+
+        <div className="trust">
+          <span>Daily payouts</span>
+          <span>No hardware</span>
+          <span>Withdraw anytime</span>
+        </div>
         
         <label htmlFor="em">Email</label>
         <input
@@ -62,14 +69,27 @@ export default function Login() {
         />
         
         <label htmlFor="pw">Password</label>
-        <input
-          id="pw"
-          type="password"
-          autoComplete={signup ? 'new-password' : 'current-password'}
-          placeholder="At least 8 characters"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
+        <div className="pwrap">
+          <input
+            id="pw"
+            type={show ? 'text' : 'password'}
+            autoComplete={signup ? 'new-password' : 'current-password'}
+            placeholder="At least 8 characters"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          <button
+            type="button"
+            className="pwtoggle"
+            aria-pressed={show}
+            onClick={() => {
+              triggerHaptic('selection');
+              setShow(!show);
+            }}
+          >
+            {show ? 'Hide' : 'Show'}
+          </button>
+        </div>
         
         <div className="err" role="alert">
           {error && (
@@ -88,6 +108,8 @@ export default function Login() {
           {loading ? 'Authenticating...' : signup ? 'Create account' : 'Sign in'}
         </button>
         
+        {signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
+
         <button className="swap" type="button" onClick={handleSwap}>
           {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
