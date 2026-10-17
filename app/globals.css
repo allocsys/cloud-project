@@ -471,6 +471,111 @@ main {
   margin-top: 2px;
 }
 
+/* Overhaul: dashboard pieces */
+.cardhead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 8px;
+}
+
+.cardhead .mute { font-size: 12px; }
+
+.eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+
+.chartwrap { display: flex; flex-direction: column; justify-content: space-between; }
+
+.chartlabels {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+  padding: 0 2px;
+  font-size: 11px;
+  color: var(--mute);
+}
+
+.chartlabels .now { color: var(--gold2); font-weight: 700; }
+
+.minitabs {
+  display: inline-flex;
+  gap: 2px;
+  background: rgba(7, 6, 5, 0.85);
+  border: 1px solid var(--line-gold);
+  border-radius: 10px;
+  padding: 3px;
+}
+
+.minitabs button {
+  background: none;
+  border: 0;
+  border-radius: 7px;
+  padding: 5px 12px;
+  min-height: 30px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--mute);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+}
+
+.minitabs button[aria-pressed=true] {
+  background: rgba(212, 168, 75, 0.18);
+  color: var(--gold2);
+}
+
+.chartsum {
+  display: flex;
+  gap: 18px;
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.chartsum b { font-family: var(--serif), Georgia, serif; font-size: 20px; display: block; color: var(--text); }
+
+.contract { padding: 13px 0; border-top: 1px solid var(--line); }
+.cardhead + .contract { border-top: 0; }
+.contract .top2 { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.contract .top2 b { font-weight: 600; font-size: 14px; }
+.contract small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
+.serial { font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11.5px; color: var(--gold); }
+
+.bar {
+  height: 6px;
+  border-radius: 99px;
+  background: rgba(212, 168, 75, 0.12);
+  margin: 10px 0 6px;
+  overflow: hidden;
+}
+
+.bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #b58428, #f1d48a);
+  transform-origin: left;
+  animation: grow 1s cubic-bezier(0.16, 1, 0.3, 1) 0.5s backwards;
+}
+
+.barmeta { display: flex; justify-content: space-between; font-size: 12px; color: var(--mute); }
+
+.shareitem {
+  animation: rise 0.45s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.shareitem b { font-variant-numeric: tabular-nums; color: var(--green); font-weight: 600; }
+.empty { padding: 18px 0 6px; font-size: 13px; color: var(--mute); }
+
+@keyframes grow {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
 /* Plans */
 .plans {
   display: grid;
