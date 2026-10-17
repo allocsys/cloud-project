@@ -654,6 +654,27 @@ main {
   margin: 4px 0 2px;
 }
 
+.blurb {
+  margin: 2px 0 12px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--mute);
+}
+
+.hall {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--line-gold);
+  background: rgba(212, 168, 75, 0.05);
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.hall b { font-size: 13px; color: var(--gold2); font-weight: 600; }
+
 .plan ul {
   list-style: none;
   padding: 0;
