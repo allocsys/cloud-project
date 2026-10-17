@@ -1,6 +1,7 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { triggerHaptic } from '@/lib/haptics';
 
 const icon = (d) => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -16,18 +17,34 @@ const items = [
 
 export default function Nav() {
   const path = usePathname();
+
+  function onNavClick(href) {
+    if (path !== href) {
+      triggerHaptic('selection');
+    }
+  }
+
   return (
     <nav aria-label="Main">
       <div className="brand">
         <div className="mark">O</div>Opus
       </div>
       {items.map((i) => (
-        <Link key={i.href} href={i.href} aria-current={path === i.href ? 'page' : undefined}>
+        <Link
+          key={i.href}
+          href={i.href}
+          aria-current={path === i.href ? 'page' : undefined}
+          onClick={() => onNavClick(i.href)}
+        >
           {icon(i.d)}
           {i.label}
         </Link>
       ))}
-      <Link href="/login" className="out">
+      <Link
+        href="/login"
+        className="out"
+        onClick={() => triggerHaptic('medium')}
+      >
         {icon('M9 4H5v16h4M16 8l4 4-4 4M20 12H9')}
         Sign out
       </Link>
