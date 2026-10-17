@@ -8,23 +8,26 @@ export default function Login() {
   const [signup, setSignup] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
 
   // TODO: call your auth API here.
   function submit(e) {
     e.preventDefault();
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+    const next = {};
+    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
+    if (password.length < 8) next.password = 'Password needs at least 8 characters.';
+    if (next.email || next.password) {
       triggerHaptic('error');
-      return setError('Enter a valid email address.');
-    }
-    if (password.length < 8) {
-      triggerHaptic('error');
-      return setError('Password needs at least 8 characters.');
+      setErrors(next);
+      const el = document.getElementById(next.email ? 'em' : 'pw');
+      if (el) el.focus();
+      return;
     }
 
     triggerHaptic('success');
+    setErrors({});
     setLoading(true);
     setTimeout(() => {
       router.push('/dashboard');
@@ -34,7 +37,7 @@ export default function Login() {
   function handleSwap() {
     triggerHaptic('selection');
     setSignup(!signup);
-    setError('');
+    setErrors({});
   }
 
   function handleSkip() {
@@ -54,29 +57,42 @@ export default function Login() {
           <span>No hardware</span>
           <span>Withdraw anytime</span>
         </div>
-        
+
         <label htmlFor="em">Email</label>
         <input
           id="em"
           type="email"
+          className={errors.email ? 'bad' : undefined}
+          aria-invalid={!!errors.email}
+          aria-describedby={errors.email ? 'em-err' : undefined}
           autoComplete="email"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck="false"
           placeholder="you@example.com"
           value={email}
-          onChange={(e) => setEmail(e.target.value)}
+          onChange={(e) => {
+            setEmail(e.target.value);
+            if (errors.email) setErrors({ ...errors, email: undefined });
+          }}
         />
-        
+        {errors.email && <div className="ferr" id="em-err" role="alert">{errors.email}</div>}
+
         <label htmlFor="pw">Password</label>
         <div className="pwrap">
           <input
             id="pw"
             type={show ? 'text' : 'password'}
+            className={errors.password ? 'bad' : undefined}
+            aria-invalid={!!errors.password}
+            aria-describedby={errors.password ? 'pw-err' : undefined}
             autoComplete={signup ? 'new-password' : 'current-password'}
             placeholder="At least 8 characters"
             value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            onChange={(e) => {
+              setPassword(e.target.value);
+              if (errors.password) setErrors({ ...errors, password: undefined });
+            }}
           />
           <button
             type="button"
@@ -90,30 +106,20 @@ export default function Login() {
             {show ? 'Hide' : 'Show'}
           </button>
         </div>
-        
-        <div className="err" role="alert">
-          {error && (
-            <>
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="10" />
-                <line x1="12" y1="8" x2="12" y2="12" />
-                <line x1="12" y1="16" x2="12.01" y2="16" />
-              </svg>
-              <span>{error}</span>
-            </>
-          )}
-        </div>
-        
+        {errors.password && <div className="ferr" id="pw-err" role="alert">{errors.password}</div>}
+
+        <div style={{ height: '14px' }} />
+
         <button className="btn" type="submit" disabled={loading}>
           {loading ? 'Authenticating...' : signup ? 'Create account' : 'Sign in'}
         </button>
-        
+
         {signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
 
         <button className="swap" type="button" onClick={handleSwap}>
           {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
-        
+
         {/* TODO: remove once real auth is wired */}
         <button className="btn ghost" type="button" onClick={handleSkip}>
           Skip login for now

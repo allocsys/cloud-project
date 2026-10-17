@@ -40,7 +40,7 @@ export default function Wallet() {
   const [tab, setTab] = useState('withdraw');
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
-  const [error, setError] = useState('');
+  const [errors, setErrors] = useState({});
   const [history, setHistory] = useState(seed);
   const [open, setOpen] = useState(false);
   const [toast, show] = useToast();
@@ -49,39 +49,36 @@ export default function Wallet() {
   function setFraction(pct) {
     triggerHaptic('selection');
     setAmount((available * pct).toFixed(8));
-    setError('');
+    setErrors({ ...errors, amount: undefined });
   }
 
   function handleTabChange(nextTab) {
     if (tab !== nextTab) {
       triggerHaptic('selection');
       setTab(nextTab);
-      setError('');
+      setErrors({});
     }
   }
 
   // TODO: call your withdrawal API here.
   function withdraw() {
     const a = parseFloat(amount);
-    if (!(a > 0)) {
+    const next = {};
+    if (!(a > 0)) next.amount = 'Enter an amount to withdraw.';
+    else if (a < MIN_WITHDRAW) next.amount = `Minimum is ${MIN_WITHDRAW} BTC.`;
+    else if (a > available) next.amount = 'More than your available balance.';
+    if (!/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,60}$/.test(address.trim())) next.address = 'Enter a valid Bitcoin address.';
+
+    if (next.amount || next.address) {
       triggerHaptic('error');
-      return setError('Enter an amount to withdraw.');
-    }
-    if (a < MIN_WITHDRAW) {
-      triggerHaptic('error');
-      return setError(`Minimum withdrawal is ${MIN_WITHDRAW} BTC.`);
-    }
-    if (a > available) {
-      triggerHaptic('error');
-      return setError('Amount is more than your available balance.');
-    }
-    if (!/^(bc1|[13])[a-zA-HJ-NP-Z0-9]{25,60}$/.test(address.trim())) {
-      triggerHaptic('error');
-      return setError('Enter a valid Bitcoin address.');
+      setErrors(next);
+      const el = document.getElementById(next.amount ? 'wa' : 'wd');
+      if (el) el.focus();
+      return;
     }
 
     triggerHaptic('success');
-    setError('');
+    setErrors({});
     setWithdrawn(withdrawn + a);
     setHistory([{ kind: 'withdrawal', label: 'Withdrawal', date: 'Just now', amount: `-${a.toFixed(4)}` }, ...history]);
     setAmount('');
@@ -129,10 +126,17 @@ export default function Wallet() {
                 <input
                   id="wa"
                   inputMode="decimal"
+                  className={errors.amount ? 'bad' : undefined}
+                  aria-invalid={!!errors.amount}
+                  aria-describedby={errors.amount ? 'wa-err' : undefined}
                   placeholder="0.00000000"
                   value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
+                  onChange={(e) => {
+                    setAmount(e.target.value);
+                    if (errors.amount) setErrors({ ...errors, amount: undefined });
+                  }}
                 />
+                {errors.amount && <div className="ferr" id="wa-err" role="alert">{errors.amount}</div>}
                 <div className="pct-row">
                   {[0.25, 0.5, 0.75, 1].map((p) => (
                     <button key={p} type="button" className="pct-btn" onClick={() => setFraction(p)}>
@@ -144,18 +148,22 @@ export default function Wallet() {
                 <label htmlFor="wd" style={{ marginTop: 0 }}>Bitcoin address</label>
                 <input
                   id="wd"
+                  className={errors.address ? 'bad' : undefined}
+                  aria-invalid={!!errors.address}
+                  aria-describedby={errors.address ? 'wd-err' : undefined}
                   placeholder="bc1q…"
                   autoCapitalize="none"
                   autoCorrect="off"
                   spellCheck="false"
                   value={address}
-                  onChange={(e) => setAddress(e.target.value)}
+                  onChange={(e) => {
+                    setAddress(e.target.value);
+                    if (errors.address) setErrors({ ...errors, address: undefined });
+                  }}
                 />
+                {errors.address && <div className="ferr" id="wd-err" role="alert">{errors.address}</div>}
 
-                <div className="err" role="alert">
-                  {error && <span>{error}</span>}
-                </div>
-
+                <div style={{ height: '14px' }} />
                 <button className="btn" type="button" onClick={withdraw}>Withdraw</button>
               </div>
             ) : (

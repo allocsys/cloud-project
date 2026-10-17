@@ -11,24 +11,69 @@ function ago(now, at) {
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;
 }
 
-function Chart({ rows }) {
+// Line chart you can scrub: hover, touch-drag or arrow keys show that day's value.
+function ChartBox({ rows }) {
+  const [idx, setIdx] = useState(null);
+  const n = rows.length;
   const max = Math.max(...rows.map((d) => d.usd));
-  const pts = rows.map((d, i) => [(i * 300) / (rows.length - 1), 112 - (d.usd / max) * 96]);
-  const line = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${y.toFixed(1)}`).join(' ');
-  const last = pts.length - 1;
+  const y = (usd) => 112 - (usd / max) * 96;
+  const pts = rows.map((d, i) => [(i * 300) / (n - 1), y(d.usd)]);
+  const line = pts.map(([x, py], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${py.toFixed(1)}`).join(' ');
+  const last = n - 1;
+
+  function pick(e) {
+    const r = e.currentTarget.getBoundingClientRect();
+    const f = (e.clientX - r.left) / r.width;
+    setIdx(Math.min(last, Math.max(0, Math.round(f * last))));
+  }
+
+  function onKey(e) {
+    if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
+      e.preventDefault();
+      const step = e.key === 'ArrowRight' ? 1 : -1;
+      setIdx((i) => Math.min(last, Math.max(0, (i === null ? last : i) + step)));
+    } else if (e.key === 'Escape') {
+      setIdx(null);
+    }
+  }
+
+  const a = idx === null ? null : rows[idx];
+  const xPct = idx === null ? 0 : (idx / last) * 100;
+  const yPct = a ? (y(a.usd) / 120) * 100 : 0;
 
   return (
-    <svg className="spark" viewBox="0 0 300 120" preserveAspectRatio="none" role="img" aria-label="Daily earnings chart">
-      <defs>
-        <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stopColor="#d4a84b" stopOpacity=".4" />
-          <stop offset="100%" stopColor="#d4a84b" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${line} L300 120 L0 120Z`} fill="url(#g)" />
-      <path d={line} fill="none" stroke="#f1d48a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
-      <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="#fff" stroke="#070605" strokeWidth="2" />
-    </svg>
+    <div
+      className="chartbox"
+      tabIndex={0}
+      role="group"
+      aria-label="Daily earnings chart. Use left and right arrow keys to inspect each day."
+      onPointerDown={pick}
+      onPointerMove={pick}
+      onPointerLeave={(e) => e.pointerType === 'mouse' && setIdx(null)}
+      onKeyDown={onKey}
+      onBlur={() => setIdx(null)}
+    >
+      <svg className="spark" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="0" stopColor="#d4a84b" stopOpacity=".4" />
+            <stop offset="100%" stopColor="#d4a84b" stopOpacity="0" />
+          </linearGradient>
+        </defs>
+        <path d={`${line} L300 120 L0 120Z`} fill="url(#g)" />
+        <path d={line} fill="none" stroke="#f1d48a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
+        {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="#fff" stroke="#070605" strokeWidth="2" />}
+      </svg>
+      {a && (
+        <>
+          <div className="cur" style={{ left: `${xPct}%` }} />
+          <div className="dot" style={{ left: `${xPct}%`, top: `${yPct}%` }} />
+          <div className="tip" style={{ left: `clamp(56px, ${xPct}%, calc(100% - 56px))` }} aria-live="polite">
+            {a.day}{a.partial ? ' (so far)' : ''} · ${formatUsd(a.usd)}
+          </div>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -85,7 +130,7 @@ export default function Dashboard() {
               </div>
             </div>
             <div key={range}>
-              <Chart rows={rows} />
+              <ChartBox rows={rows} />
               <div className="chartlabels">
                 {labels.map((l, i) => (
                   <span key={l + i} className={i === labels.length - 1 ? 'now' : undefined}>{l}</span>

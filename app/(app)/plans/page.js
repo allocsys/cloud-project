@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { plans, halls, contracts } from '@/lib/data';
 import RigArt from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
@@ -20,25 +20,69 @@ const nextSerial = () => {
 
 export default function Plans() {
   const [sel, setSel] = useState(null);
+  const [dragY, setDragY] = useState(0);
   const [toast, show] = useToast();
+  const sheetRef = useRef(null);
+  const openerRef = useRef(null);
+  const startY = useRef(null);
   const hall = sel ? halls[sel.hall] : null;
 
   function selectPlan(p) {
     triggerHaptic('selection');
+    openerRef.current = document.activeElement;
     setSel(p);
+  }
+
+  // Close the sheet and give focus back to the tile that opened it.
+  function dismiss() {
+    setSel(null);
+    setDragY(0);
+    startY.current = null;
+    const el = openerRef.current;
+    if (el && el.focus) el.focus();
   }
 
   function closeModal() {
     triggerHaptic('light');
-    setSel(null);
+    dismiss();
   }
 
   // TODO: call your checkout API here.
   function pay() {
     triggerHaptic('success');
     show(`${sel.name} plan activated`);
-    setSel(null);
+    dismiss();
   }
+
+  // While the sheet is open: Escape closes, Tab stays inside, page behind does not scroll.
+  useEffect(() => {
+    if (!sel) return undefined;
+    const onKey = (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      } else if (e.key === 'Tab') {
+        const f = sheetRef.current ? sheetRef.current.querySelectorAll('button, [href], input, [tabindex]:not([tabindex="-1"])') : [];
+        if (!f.length) return;
+        const first = f[0];
+        const lastEl = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
+    document.addEventListener('keydown', onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [sel]);
 
   return (
     <>
@@ -78,7 +122,24 @@ export default function Plans() {
             if (e.target === e.currentTarget) closeModal();
           }}
         >
-          <div className="card">
+          <div
+            className="card"
+            ref={sheetRef}
+            style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
+            onTouchStart={(e) => {
+              startY.current = e.touches[0].clientY;
+            }}
+            onTouchMove={(e) => {
+              if (startY.current === null) return;
+              setDragY(Math.max(0, e.touches[0].clientY - startY.current));
+            }}
+            onTouchEnd={() => {
+              if (dragY > 90) closeModal();
+              else setDragY(0);
+              startY.current = null;
+            }}
+          >
+            <div className="grab" aria-hidden="true" />
             <h3 id="st">{sel.name} plan</h3>
             <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{sel.blurb}</p>
             <div className="sheetbody">
