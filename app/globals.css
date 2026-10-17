@@ -77,4 +77,67 @@ main{flex:1;padding:20px 16px 100px;max-width:980px;width:100%;margin:0 auto}
  .sheet{align-items:center}.sheet .card{border-radius:18px}
  #toast{bottom:32px}
 }
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+/* ---------- motion ---------- */
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes fade{from{opacity:0}to{opacity:1}}
+@keyframes slideup{from{opacity:0;transform:translateY(48px)}to{opacity:1;transform:none}}
+@keyframes sheen{0%,55%{transform:translateX(-100%)}100%{transform:translateX(100%)}}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(111,207,151,.6)}100%{box-shadow:0 0 0 9px rgba(111,207,151,0)}}
+@keyframes reveal{to{clip-path:inset(0 0 0 0)}}
+
+/* entrances (staggered by position) */
+.page .top,.page .lead,.page .card,.authbox>*{animation:rise .6s cubic-bezier(.2,.7,.2,1) backwards}
+.page .lead{animation-delay:.05s}
+.page .hero{animation-delay:.06s}
+.stats .card:nth-child(1){animation-delay:.14s}
+.stats .card:nth-child(2){animation-delay:.21s}
+.stats .card:nth-child(3){animation-delay:.28s}
+.stats .card:nth-child(4){animation-delay:.35s}
+.cols .card:nth-child(1){animation-delay:.42s}
+.cols .card:nth-child(2){animation-delay:.5s}
+.wal .card:nth-child(1){animation-delay:.16s}
+.wal .card:nth-child(2){animation-delay:.26s}
+.plans .card:nth-child(1){animation-delay:.1s}
+.plans .card:nth-child(2){animation-delay:.2s}
+.plans .card:nth-child(3){animation-delay:.3s}
+.authbox>:nth-child(2){animation-delay:.08s}
+.authbox>:nth-child(3){animation-delay:.16s}
+.authbox>:nth-child(n+4):nth-child(-n+8){animation-delay:.24s}
+.authbox>:nth-child(n+9){animation-delay:.32s}
+
+/* hero: one slow gold sheen */
+.hero{position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 35%,rgba(241,212,138,.1) 50%,transparent 65%);transform:translateX(-100%);animation:sheen 6s ease-in-out 1.2s infinite}
+
+/* live dot */
+.pill i{animation:pulse 1.8s ease-out infinite}
+
+/* chart draws in left to right */
+.spark{clip-path:inset(0 100% 0 0);animation:reveal 1.4s cubic-bezier(.4,0,.2,1) .6s forwards}
+
+/* hover and press */
+.card{transition:transform .3s cubic-bezier(.2,.7,.2,1),border-color .3s,box-shadow .3s}
+@media(hover:hover){
+ .plan:hover{transform:translateY(-5px);border-color:var(--gold);box-shadow:0 14px 34px rgba(212,168,75,.14)}
+ .stat:hover{border-color:#4a3c18}
+}
+.btn{transition:transform .15s,filter .2s,border-color .2s}
+.btn:hover{filter:brightness(1.1)}
+.btn.ghost:hover{border-color:var(--gold);filter:none}
+.btn:active{transform:scale(.97)}
+nav a{transition:color .2s,background .2s}
+.tabs button{transition:background .2s,color .2s}
+input{transition:border-color .2s,box-shadow .2s}
+input:focus{box-shadow:0 0 0 3px rgba(212,168,75,.15)}
+
+/* purchase sheet and toast */
+.sheet{animation:fade .2s ease}
+.sheet .card{animation:slideup .35s cubic-bezier(.2,.8,.2,1)}
+#toast{transform:translate(-50%,14px);transition:opacity .25s,transform .3s cubic-bezier(.2,.8,.2,1)}
+#toast.on{transform:translate(-50%,0)}
+@media(min-width:760px){.sheet .card{animation-name:rise}}
+
+@media(prefers-reduced-motion:reduce){
+ *,*::before,*::after{animation:none!important;transition:none!important}
+ .spark{clip-path:none}
+}
