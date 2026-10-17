@@ -42,6 +42,7 @@ export default function Wallet() {
   const [address, setAddress] = useState('');
   const [error, setError] = useState('');
   const [history, setHistory] = useState(seed);
+  const [open, setOpen] = useState(false);
   const [toast, show] = useToast();
   const available = Math.max(0, mined - withdrawn);
 
@@ -168,10 +169,22 @@ export default function Wallet() {
           </div>
 
           <div className="card">
-            <div className="cardhead">
-              <h3>Activity</h3>
+            <div className="cardhead" style={{ marginBottom: open ? 8 : 0 }}>
+              <button
+                type="button"
+                className="collapse"
+                aria-expanded={open}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setOpen(!open);
+                }}
+              >
+                <h3>Activity</h3>
+                <span className="mute">{history.length}</span>
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
             </div>
-            {history.slice(0, 6).map((h, i) => {
+            {open && history.slice(0, 6).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               return (
                 <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
