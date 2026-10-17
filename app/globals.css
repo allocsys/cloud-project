@@ -827,6 +827,26 @@ main {
 .art .coin { animation: floaty 3s ease-in infinite; }
 .art .glow { animation: glowpulse 2.4s ease-in-out infinite; }
 
+/* Collapsible header */
+.collapse {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 30px;
+  padding: 0;
+  background: none;
+  border: 0;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.collapse h3 { flex: 1; }
+.collapse .mute { font-size: 12px; }
+.collapse svg { width: 18px; height: 18px; stroke: var(--gold2); fill: none; stroke-width: 2; transition: transform 0.25s; }
+.collapse[aria-expanded=true] svg { transform: rotate(180deg); }
+
 /* Plans */
 .plans {
   display: grid;
