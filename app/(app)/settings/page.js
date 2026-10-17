@@ -30,7 +30,6 @@ export default function Settings() {
   function flip2fa() {
     triggerHaptic('selection');
     setTwofa(!twofa);
-    show(twofa ? 'Two-factor off' : 'Two-factor on');
   }
 
   function flipAlert(key) {
@@ -53,68 +52,45 @@ export default function Settings() {
       <div className="top">
         <h2>Settings</h2>
       </div>
-      <div className="grid wal">
-        <div className="grid" style={{ alignContent: 'start' }}>
-          <div className="card">
-            <div className="cardhead"><span className="sethead">Account</span></div>
-            <div className="row">
-              <div>
-                <div style={{ fontWeight: 500 }}>Email</div>
-                <small>{account.email}</small>
-              </div>
-              <button className="btn ghost" type="button" onClick={() => todo('Email change coming soon')}>Change</button>
+      <div className="grid wal" style={{ alignItems: 'start' }}>
+        <div className="card">
+          <div className="row" style={{ borderTop: 0 }}>
+            <div>
+              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
+              <small>{account.email}</small>
             </div>
-            <div className="row">
-              <div>
-                <div style={{ fontWeight: 500 }}>Identity verification</div>
-                <small>Raises your withdrawal limit</small>
-              </div>
-              {kyc.cta ? (
-                <button className="btn ghost" type="button" onClick={() => todo('Verification flow coming soon')}>{kyc.cta}</button>
-              ) : (
-                <span className={`badge ${kyc.cls}`}>{kyc.label}</span>
-              )}
-            </div>
+            <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
-
-          <div className="card">
-            <div className="cardhead"><span className="sethead">Security</span></div>
-            <div className="row">
-              <div>
-                <div style={{ fontWeight: 500 }}>Two-factor authentication</div>
-                <small>{twofa ? 'On' : 'Off'}</small>
-              </div>
-              <Switch on={twofa} onChange={flip2fa} label="Two-factor authentication" />
-            </div>
-            <div className="row">
-              <div style={{ fontWeight: 500 }}>Password</div>
-              <button className="btn ghost" type="button" onClick={() => todo('Password change coming soon')}>Change</button>
-            </div>
+          <div className="row">
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
+            {kyc.cta ? (
+              <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>{kyc.cta}</button>
+            ) : (
+              <span className={`badge ${kyc.cls}`}>{kyc.label}</span>
+            )}
+          </div>
+          <div className="row">
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
+            <Switch on={twofa} onChange={flip2fa} label="Two-factor authentication" />
+          </div>
+          <div className="row">
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Password</div>
+            <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
         </div>
 
-        <div className="grid" style={{ alignContent: 'start' }}>
-          <div className="card">
-            <div className="cardhead"><span className="sethead">Notifications</span></div>
-            {[
-              ['payouts', 'Daily payouts', 'When your earnings are credited'],
-              ['withdrawals', 'Withdrawals', 'Confirmations and status changes'],
-              ['news', 'Product news', 'New plans and features'],
-            ].map(([key, title, desc]) => (
-              <div key={key} className="row">
-                <div>
-                  <div style={{ fontWeight: 500 }}>{title}</div>
-                  <small>{desc}</small>
-                </div>
-                <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={title} />
-              </div>
-            ))}
-          </div>
-
-          <div className="card">
-            <button className="btn ghost" type="button" onClick={signOut}>Sign out</button>
-            <div className="version">Opus Cloud Mining</div>
-          </div>
+        <div className="card">
+          {[
+            ['payouts', 'Payout alerts'],
+            ['withdrawals', 'Withdrawal alerts'],
+            ['news', 'Product news'],
+          ].map(([key, title], i) => (
+            <div key={key} className="row" style={i === 0 ? { borderTop: 0 } : undefined}>
+              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{title}</div>
+              <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={title} />
+            </div>
+          ))}
+          <button className="btn ghost" type="button" onClick={signOut} style={{ marginTop: '8px' }}>Sign out</button>
         </div>
       </div>
       {toast}

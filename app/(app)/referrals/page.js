@@ -3,12 +3,6 @@ import { referral } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 
-const STEPS = [
-  ['Share your link', 'Send your code or link to a friend.'],
-  ['They start mining', 'They sign up and buy any plan.'],
-  ['You earn', `Get ${referral.ratePct}% of their plan price, paid in BTC.`],
-];
-
 export default function Referrals() {
   const [toast, show] = useToast();
 
@@ -27,10 +21,8 @@ export default function Referrals() {
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: 'Opus Cloud Mining', text: 'Mine bitcoin without owning a machine.', url });
-        return;
-      } catch {
-        return;
-      }
+      } catch {}
+      return;
     }
     copy(url, 'Invite link copied');
   }
@@ -40,7 +32,7 @@ export default function Referrals() {
   return (
     <>
       <div className="top">
-        <h2>Invite friends</h2>
+        <h2>Invite</h2>
       </div>
       <div className="grid">
         <div className="card hero">
@@ -49,66 +41,46 @@ export default function Referrals() {
             {referral.earnedBtc}
             <small>BTC</small>
           </div>
-          <span className="mute" style={{ fontSize: '14px' }}>
-            {referral.friends.length} invited · {active} active · {referral.ratePct}% reward
-          </span>
+          <div className="chips">
+            <span>{referral.friends.length} invited</span>
+            <span>{active} active</span>
+            <span>{referral.ratePct}% reward</span>
+          </div>
         </div>
 
         <div className="grid wal">
           <div className="card">
-            <div className="cardhead">
-              <h3>Your code</h3>
-            </div>
-            <div className="addr" style={{ textAlign: 'center', fontSize: '18px', letterSpacing: '0.12em' }}>
+            <div className="addr" style={{ textAlign: 'center', fontSize: '17px', letterSpacing: '0.12em', margin: '0 0 10px' }}>
               {referral.code}
             </div>
-            <div style={{ display: 'grid', gap: '10px' }}>
-              <button className="btn" type="button" onClick={share}>Share invite link</button>
-              <button className="btn ghost" type="button" onClick={() => copy(referral.code, 'Code copied')}>
-                Copy code
-              </button>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+              <button className="btn" type="button" onClick={share}>Share link</button>
+              <button className="btn ghost" type="button" onClick={() => copy(referral.code, 'Code copied')}>Copy code</button>
             </div>
           </div>
 
           <div className="card">
             <div className="cardhead">
-              <h3>How it works</h3>
+              <h3>Friends</h3>
             </div>
-            <ol className="steps">
-              {STEPS.map(([t, d]) => (
-                <li key={t}>
-                  <div>
-                    <b style={{ fontWeight: 600 }}>{t}</b>
-                    <small>{d}</small>
-                  </div>
-                </li>
-              ))}
-            </ol>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="cardhead">
-            <h3>Your friends</h3>
-            <span className="mute">{referral.friends.length} total</span>
-          </div>
-          {referral.friends.length === 0 && <div className="empty">No invites yet. Share your link to get started.</div>}
-          {referral.friends.map((f) => (
-            <div key={f.id} className="row">
-              <div>
-                <div style={{ fontWeight: 500 }}>{f.who}</div>
-                <small>Joined {f.joined}</small>
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <b className={f.earned === '+0' ? '' : 'up'} style={{ fontVariantNumeric: 'tabular-nums' }}>{f.earned}</b>
+            {referral.friends.length === 0 && <div className="empty">No invites yet.</div>}
+            {referral.friends.map((f) => (
+              <div key={f.id} className="row">
                 <div>
-                  <span className={`badge ${f.status === 'active' ? 'ok' : ''}`}>
-                    {f.status === 'active' ? 'Active' : 'Pending'}
-                  </span>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{f.who}</div>
+                  <small>{f.joined}</small>
+                </div>
+                <div style={{ textAlign: 'right' }}>
+                  <b className={f.earned === '+0' ? '' : 'up'} style={{ fontVariantNumeric: 'tabular-nums', fontSize: '13.5px' }}>{f.earned}</b>
+                  <div>
+                    <span className={`badge ${f.status === 'active' ? 'ok' : ''}`}>
+                      {f.status === 'active' ? 'Active' : 'Pending'}
+                    </span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </div>
       {toast}

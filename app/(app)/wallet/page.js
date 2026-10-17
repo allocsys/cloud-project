@@ -93,7 +93,7 @@ export default function Wallet() {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(DEPOSIT_ADDRESS);
     }
-    show('BTC Address copied');
+    show('Address copied');
   }
 
   return (
@@ -103,15 +103,12 @@ export default function Wallet() {
       </div>
       <div className="grid">
         <div className="card hero">
-          <span className="mute eyebrow">Available to Withdraw</span>
+          <span className="mute eyebrow">Available</span>
           <div className="big">
             {formatBtc(available)}
             <small>BTC</small>
           </div>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', flexWrap: 'wrap', gap: '8px' }}>
-            <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(available * BTC_USD)} USD</span>
-            <span className="pill" style={{ fontSize: '11.5px', padding: '3px 10px' }}>Min {MIN_WITHDRAW} BTC</span>
-          </div>
+          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(available * BTC_USD)}</span>
         </div>
 
         <div className="grid wal">
@@ -127,27 +124,23 @@ export default function Wallet() {
 
             {tab === 'withdraw' ? (
               <div>
-                <label htmlFor="wa">Amount (BTC)</label>
-                <div className="fieldrow">
-                  <input
-                    id="wa"
-                    inputMode="decimal"
-                    placeholder="0.00000000"
-                    value={amount}
-                    onChange={(e) => setAmount(e.target.value)}
-                  />
-                  <button className="btn ghost" type="button" onClick={() => setFraction(1)}>Max</button>
-                </div>
-
+                <label htmlFor="wa" style={{ marginTop: 4 }}>Amount (min {MIN_WITHDRAW} BTC)</label>
+                <input
+                  id="wa"
+                  inputMode="decimal"
+                  placeholder="0.00000000"
+                  value={amount}
+                  onChange={(e) => setAmount(e.target.value)}
+                />
                 <div className="pct-row">
                   {[0.25, 0.5, 0.75, 1].map((p) => (
                     <button key={p} type="button" className="pct-btn" onClick={() => setFraction(p)}>
-                      {p * 100}%
+                      {p === 1 ? 'Max' : `${p * 100}%`}
                     </button>
                   ))}
                 </div>
 
-                <label htmlFor="wd">Bitcoin address</label>
+                <label htmlFor="wd" style={{ marginTop: 0 }}>Bitcoin address</label>
                 <input
                   id="wd"
                   placeholder="bc1q…"
@@ -159,34 +152,17 @@ export default function Wallet() {
                 />
 
                 <div className="err" role="alert">
-                  {error && (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <line x1="12" y1="8" x2="12" y2="12" />
-                        <line x1="12" y1="16" x2="12.01" y2="16" />
-                      </svg>
-                      <span>{error}</span>
-                    </>
-                  )}
+                  {error && <span>{error}</span>}
                 </div>
 
-                <button className="btn" type="button" onClick={withdraw}>Confirm Withdrawal</button>
+                <button className="btn" type="button" onClick={withdraw}>Withdraw</button>
               </div>
             ) : (
               <div>
-                <p className="mute" style={{ fontSize: '13px', margin: '4px 0 12px' }}>
-                  Send Bitcoin (BTC) only. Balances update after 1 network confirmation.
-                </p>
                 <DepositQr value={`bitcoin:${DEPOSIT_ADDRESS}`} />
-                <div className="addr">{DEPOSIT_ADDRESS}</div>
-                <button className="btn ghost" type="button" onClick={copy}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
-                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
-                  </svg>
-                  Copy Deposit Address
-                </button>
+                <div className="addr" style={{ margin: '0 0 10px' }}>{DEPOSIT_ADDRESS}</div>
+                <button className="btn ghost" type="button" onClick={copy}>Copy address</button>
+                <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>BTC only · 1 confirmation</p>
               </div>
             )}
           </div>
@@ -194,20 +170,19 @@ export default function Wallet() {
           <div className="card">
             <div className="cardhead">
               <h3>Activity</h3>
-              <span className="mute">Recent events</span>
             </div>
-            {history.map((h, i) => {
+            {history.slice(0, 6).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               return (
                 <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
-                      <div style={{ fontWeight: 500 }}>{h.label}</div>
+                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
                       <small>{h.date}</small>
                     </div>
                   </div>
-                  <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontVariantNumeric: 'tabular-nums' }}>
+                  <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontVariantNumeric: 'tabular-nums', fontSize: '13.5px' }}>
                     {h.amount}
                   </b>
                 </div>

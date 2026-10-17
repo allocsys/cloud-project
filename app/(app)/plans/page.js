@@ -1,8 +1,16 @@
 'use client';
 import { useState } from 'react';
 import { plans, halls, contracts } from '@/lib/data';
+import RigArt from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
+
+// More rack units and faster fans for bigger plans.
+const ART = {
+  starter: { units: 1, speed: 2.2 },
+  growth: { units: 2, speed: 1.5 },
+  pro: { units: 3, speed: 0.9 },
+};
 
 // Placeholder: your backend assigns the real serial at checkout.
 const nextSerial = () => {
@@ -35,33 +43,27 @@ export default function Plans() {
   return (
     <>
       <div className="top">
-        <h2>Hash power plans</h2>
+        <h2>Plans</h2>
       </div>
-      <p className="mute lead">Pick a contract. Mining begins within 60 minutes of confirmation.</p>
 
-      <div className="plans">
-        {plans.map((p) => {
-          const h = halls[p.hall];
+      <div className="tiles">
+        {plans.map((p, i) => {
+          const a = ART[p.id] || ART.starter;
           return (
-            <div key={p.id} className={`card plan ${p.featured ? 'feat' : ''}`}>
+            <button
+              key={p.id}
+              type="button"
+              className={`card tile ${p.featured ? 'feat' : ''}`}
+              style={{ animationDelay: `${0.05 + i * 0.08}s` }}
+              onClick={() => selectPlan(p)}
+              aria-label={`${p.name}, ${p.th} terahash, $${p.price}`}
+            >
               {p.featured && <span className="tag">Most chosen</span>}
-              <h3>{p.name}</h3>
-              <div className="price">${p.price.toLocaleString()}</div>
-              <p className="blurb">{p.blurb}</p>
-              <div className="hall">
-                <b>{h.name}</b>
-                <span>{h.place} · {h.power}</span>
-              </div>
-              <ul>
-                <li><span>Hash power</span><span>{p.th} TH/s</span></li>
-                <li><span>Duration</span><span>{p.days} days</span></li>
-                <li><span>Efficiency</span><span>{h.efficiency}</span></li>
-                <li><span>Estimated per day</span><span className="up">~{p.daily}</span></li>
-              </ul>
-              <button className={`btn ${p.featured ? '' : 'ghost'}`} onClick={() => selectPlan(p)}>
-                Start {p.name}
-              </button>
-            </div>
+              <RigArt units={a.units} speed={a.speed} id={p.id} />
+              <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
+              <div className="tprice">${p.price.toLocaleString()}</div>
+              <div className="tmeta">{p.days} days · <b>~{p.daily}</b>/day</div>
+            </button>
           );
         })}
       </div>
@@ -77,32 +79,22 @@ export default function Plans() {
           }}
         >
           <div className="card">
-            <h3 id="st">Confirm {sel.name} plan</h3>
-            <p className="mute" style={{ fontSize: '13px', margin: '4px 0 12px' }}>
-              Your mining contract is provisioned automatically.
-            </p>
+            <h3 id="st">{sel.name} plan</h3>
+            <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{sel.blurb}</p>
             <div className="sheetbody">
-              <div className="row">
-                <span className="mute">Contract</span>
-                <b className="serial">{nextSerial()}</b>
-              </div>
               <div className="row">
                 <span className="mute">Hall</span>
                 <b>{hall.name}</b>
               </div>
               <div className="row">
-                <span className="mute">Hash power</span>
-                <b>{sel.th} TH/s</b>
+                <span className="mute">Power</span>
+                <b>{hall.power} · {hall.efficiency}</b>
               </div>
               <div className="row">
-                <span className="mute">Duration</span>
-                <b>{sel.days} days</b>
+                <span className="mute">Contract</span>
+                <b className="serial">{nextSerial()}</b>
               </div>
-              <div className="row">
-                <span className="mute">Est. daily output</span>
-                <b className="up">~{sel.daily}</b>
-              </div>
-              <div className="row" style={{ borderTop: '1px solid rgba(212, 168, 75, 0.25)', paddingTop: '12px' }}>
+              <div className="row" style={{ borderTop: '1px solid rgba(212, 168, 75, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${sel.price.toLocaleString()}</b>
               </div>
