@@ -32,6 +32,10 @@ export default function Login() {
         <button className="swap" type="button" onClick={() => { setSignup(!signup); setError(''); }}>
           {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
+        {/* TODO: remove once real auth is wired */}
+        <button className="btn ghost" type="button" onClick={() => router.push('/dashboard')}>
+          Skip login for now
+        </button>
       </form>
     </section>
   );
