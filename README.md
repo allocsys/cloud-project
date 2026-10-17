@@ -34,4 +34,4 @@ All data is placeholder. Replace these:
 
 - `lib/qr.js` is a small dependency-free QR encoder (byte mode, level M, up to 106 bytes), used for the deposit address.
 - `lib/haptics.js` wraps haptic feedback for Telegram WebApp and mobile browsers.
-- `prefers-reduced-motion` turns all animations off.
+- Animations always play, even when the device has reduced motion turned on.
