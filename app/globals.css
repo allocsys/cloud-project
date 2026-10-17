@@ -926,6 +926,40 @@ input.bad { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229, 119, 107, 
   transform: scale(0.95);
 }
 
+.pct-btn[aria-pressed=true] {
+  background: rgba(212, 168, 75, 0.22);
+  border-color: var(--gold);
+}
+
+.assets {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 6px;
+  margin: 0 0 10px;
+}
+
+.netrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin: 0 0 10px;
+  font-size: 12px;
+  color: var(--mute);
+}
+
+.quote {
+  margin: 12px 0 0;
+  padding: 1px 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: rgba(7, 6, 5, 0.5);
+}
+
+.quote .row { padding: 7px 0; font-size: 13px; }
+.quote .row:first-child { border-top: 0; }
+.quote .total b { color: var(--gold2); }
+
 /* Toast */
 #toast {
   position: fixed;
