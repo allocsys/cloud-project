@@ -648,6 +648,84 @@ main {
 
 .btn:disabled { opacity: 0.6; cursor: wait; filter: none; }
 
+/* Referrals and settings */
+.steps { list-style: none; margin: 8px 0 0; padding: 0; counter-reset: s; }
+
+.steps li {
+  counter-increment: s;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 0;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+
+.cardhead + .steps li:first-child { border-top: 0; }
+
+.steps li::before {
+  content: counter(s);
+  flex: none;
+  width: 26px;
+  height: 26px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  border: 1px solid var(--line-gold);
+  background: rgba(212, 168, 75, 0.08);
+  color: var(--gold2);
+  font-size: 12.5px;
+  font-weight: 700;
+}
+
+.steps small { display: block; color: var(--mute); font-size: 12px; margin-top: 2px; }
+
+.badge {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  border-radius: 99px;
+  padding: 3px 10px;
+  border: 1px solid var(--line-gold);
+  color: var(--gold2);
+  background: rgba(212, 168, 75, 0.08);
+  white-space: nowrap;
+}
+
+.badge.ok { color: var(--green); border-color: rgba(111, 207, 151, 0.3); background: rgba(111, 207, 151, 0.08); }
+.badge.warn { color: var(--red); border-color: rgba(229, 119, 107, 0.3); background: rgba(229, 119, 107, 0.08); }
+
+.switch {
+  flex: none;
+  position: relative;
+  width: 46px;
+  height: 28px;
+  border-radius: 99px;
+  border: 1px solid var(--line-gold);
+  background: rgba(7, 6, 5, 0.9);
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.25s, border-color 0.25s;
+}
+
+.switch i {
+  position: absolute;
+  top: 3px;
+  left: 3px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--mute);
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1), background 0.25s;
+}
+
+.switch[aria-checked=true] { background: rgba(212, 168, 75, 0.25); border-color: var(--gold); }
+.switch[aria-checked=true] i { transform: translateX(18px); background: var(--gold2); }
+
+.sethead { font-size: 11.5px; letter-spacing: 0.06em; text-transform: uppercase; font-weight: 600; color: var(--mute); }
+.row .btn { width: auto; min-height: 38px; padding: 0 16px; font-size: 13px; }
+.version { text-align: center; font-size: 12px; color: var(--mute); margin-top: 6px; }
+
 /* Plans */
 .plans {
   display: grid;
