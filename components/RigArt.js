@@ -3,8 +3,11 @@
 // More rack units and faster fans for bigger plans.
 export const RIG = {
   starter: { units: 1, speed: 2.2 },
+  basic: { units: 1, speed: 1.8 },
   growth: { units: 2, speed: 1.5 },
+  plus: { units: 2, speed: 1.2 },
   pro: { units: 3, speed: 0.9 },
+  elite: { units: 3, speed: 0.6 },
 };
 export const rigFor = (name) => RIG[String(name).toLowerCase()] || RIG.starter;
 
