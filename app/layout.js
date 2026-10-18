@@ -39,7 +39,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={sans.variable}>
+    <html lang="en" className={sans.variable} style={{ colorScheme: 'dark' }}>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
