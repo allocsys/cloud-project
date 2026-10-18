@@ -35,7 +35,7 @@ export const viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: '#12110d',
-  colorScheme: 'only light',
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({ children }) {
@@ -44,7 +44,7 @@ export default function RootLayout({ children }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var m=localStorage.getItem('opus-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme='only light'}catch(e){}`,
+            __html: `try{var m=localStorage.getItem('opus-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
           }}
         />
         <Script
