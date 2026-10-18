@@ -1,0 +1,9 @@
+/* Admin screen only. Builds on the app's shared styles in app/globals.css. */
+.adm-stack { display: grid; gap: 12px; }
+.adm-actions { display: flex; gap: 8px; margin-top: 12px; }
+.adm-actions .btn { flex: 1; }
+.adm-actions .danger { color: var(--red); }
+.adm-meta { margin: 4px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); }
+.adm-stack textarea { width: 100%; min-height: 96px; padding: 14px 16px; background: transparent; border: 1px solid var(--outline); border-radius: 12px; color: var(--text); font: inherit; font-size: 16px; resize: vertical; }
+.adm-stack textarea:focus { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); outline: none; }
+.adm-sub { display: block; margin: 16px 0 0; }
