@@ -14,6 +14,19 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
   const [ref, setRef] = useState('');
+  const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
+  const [tgBusy, setTgBusy] = useState(false);
+
+  // Telegram's script may load after this page does, so look a few times.
+  useEffect(() => {
+    let n = 0;
+    const look = () => {
+      if (window.Telegram?.WebApp?.initData) return setTg(true);
+      if (++n < 10) t = setTimeout(look, 300);
+    };
+    let t = setTimeout(look, 0);
+    return () => clearTimeout(t);
+  }, []);
 
   // An invite link (/login?ref=CODE) opens sign-up and keeps the code, which is sent with the sign-up request.
   useEffect(() => {
@@ -60,6 +73,25 @@ export default function Login() {
     triggerHaptic('selection');
     setSignup(!signup);
     setErrors({});
+  }
+
+  async function handleTelegram() {
+    triggerHaptic('light');
+    setErrors({});
+    setTgBusy(true);
+    try {
+      await post('/api/auth/telegram', { initData: window.Telegram?.WebApp?.initData || '', ...(ref ? { ref } : {}) });
+      clearApiCache();
+      try {
+        localStorage.removeItem('opus-ref');
+      } catch {}
+      triggerHaptic('success');
+      router.replace('/dashboard');
+    } catch (err) {
+      triggerHaptic('error');
+      setTgBusy(false);
+      setErrors({ form: err.message });
+    }
   }
 
   // Demo access: drop any real session first so the demo never opens inside someone's account.
@@ -151,6 +183,12 @@ export default function Login() {
         <button className="swap" type="button" onClick={handleSwap}>
           {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
+
+        {tg && (
+          <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
+            {tgBusy ? 'Connecting...' : 'Continue with Telegram'}
+          </button>
+        )}
 
         {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
         <button className="btn ghost" type="button" onClick={handleSkip}>
