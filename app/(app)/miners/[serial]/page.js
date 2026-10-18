@@ -70,7 +70,7 @@ export default function ContractPage() {
       </div>
       <div className="grid">
         <div className="card hero">
-          <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
+          <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={c.serial} />
           <span className="mute eyebrow">Earned so far · {c.serial}</span>
           <div className="big"><span>${formatUsd(total)}</span></div>
           <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(total / BTC_USD)} BTC</span>
