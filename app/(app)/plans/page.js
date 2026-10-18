@@ -16,7 +16,7 @@ const seedMiners = { contracts, nextSerial: formatSerial(Math.max(...contracts.m
 
 export default function Plans() {
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
-  const { data: cat } = useApi('/api/plans', { ttl: 300000 });
+  const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: md, mutate, refresh } = useApi('/api/miners', { ttl: 10000 });
   const planList = cat ? cat.plans : plans;
   const hallMap = cat ? cat.halls : halls;
@@ -35,7 +35,7 @@ export default function Plans() {
   const openerRef = useRef(null);
   const startY = useRef(null);
   // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
-  const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term) : sel) : null;
+  const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
   const hall = cur ? hallMap[cur.hall] : null;
 
   function selectPlan(p) {
@@ -147,7 +147,7 @@ export default function Plans() {
       {tab === 'buy' ? (
       <div className="tiles">
         {planList.map((p) => {
-          const a = rigFor(p.id);
+          const a = rigFor({ plan: p.id, th: p.th });
           return (
             <button
               key={p.id}
@@ -166,7 +166,7 @@ export default function Plans() {
         })}
         <button type="button" className="card tile" onClick={() => selectPlan({ id: 'custom' })} aria-label="Custom power, choose your own size and term">
           <div className="tname">Custom<span>{CUSTOM.min}–{CUSTOM.max} TH/s</span></div>
-          <div className="tprice">From ${fmtUsd(customPlan(CUSTOM.min, CUSTOM.terms[0]).price)}</div>
+          <div className="tprice">From ${fmtUsd(customPlan(CUSTOM.min, CUSTOM.terms[0], hallMap).price)}</div>
           <div className="tmeta">Choose your own power and term</div>
         </button>
       </div>
