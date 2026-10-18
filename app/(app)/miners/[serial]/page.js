@@ -2,10 +2,11 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { contracts, halls, contractDaily, BTC_USD } from '@/lib/data';
+import { contracts, halls, contractDaily, minerHash, BTC_USD } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { drillBack } from '@/lib/nav';
+import Spark from '@/components/Spark';
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -50,6 +51,7 @@ export default function ContractPage() {
   const hall = halls[c.hall];
   const rig = rigFor(c.plan);
   const daily = contractDaily(c);
+  const hash = minerHash(c);
   const total = daily.reduce((s, d) => s + d.usd, 0);
   const avg = daily.length ? total / daily.length : 0;
   const pct = Math.round((c.elapsed / c.days) * 100);
@@ -61,7 +63,7 @@ export default function ContractPage() {
     <>
       <div className="top">
         <Back title={`${c.plan} miner`} />
-        <span className="badge ok">Active</span>
+        <span className={`badge ${c.online ? 'ok' : 'warn'}`}>{c.online ? 'Online' : 'Offline'}</span>
       </div>
       <div className="grid">
         <div className="card hero">
@@ -119,6 +121,13 @@ export default function ContractPage() {
 
           <div className="card">
             <h3>Details</h3>
+            <div className="hs">
+              <div>
+                <span>Hashrate · 24h</span>
+                <b>{hash.now}<small>TH/s</small></b>
+              </div>
+              <Spark values={hash.series} />
+            </div>
             <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
             <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
             <div className="row"><span className="mute">Efficiency</span><b className="v">{hall.efficiency}</b></div>
