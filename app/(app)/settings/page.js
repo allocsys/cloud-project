@@ -110,7 +110,7 @@ export default function Settings() {
           <div className="row" style={{ borderTop: 0 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
-              <small>{me ? me.email || 'Demo account' : account.email}</small>
+              <small>{me ? me.email || (me.demo ? 'Demo account' : me.name ? `Telegram · ${me.name}` : 'Telegram account') : account.email}</small>
             </div>
             <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
