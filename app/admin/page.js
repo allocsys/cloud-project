@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useState } from 'react';
-import { halls, fmtTh } from '@/lib/data';
+import { fmtTh, fmtUsd } from '@/lib/data';
 import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
 
@@ -21,6 +21,7 @@ async function call(method, url, body) {
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
+const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
 
 function Stat({ l, v, s }) {
   return (
@@ -30,6 +31,73 @@ function Stat({ l, v, s }) {
         {v}
         {s && <small>{s}</small>}
       </b>
+    </div>
+  );
+}
+
+function Field({ id, label, value, onChange, ...rest }) {
+  return (
+    <div className="field" style={{ marginTop: 12 }}>
+      <input id={id} placeholder=" " value={value} onChange={(e) => onChange(e.target.value)} {...rest} />
+      <label htmlFor={id}>{label}</label>
+    </div>
+  );
+}
+
+function Pick({ id, label, value, onChange, children }) {
+  return (
+    <div className="field" style={{ marginTop: 12 }}>
+      <select id={id} value={value} onChange={(e) => onChange(e.target.value)}>{children}</select>
+      <label htmlFor={id}>{label}</label>
+    </div>
+  );
+}
+
+function PlanForm({ draft, set, halls, isNew, busy, onSave, onCancel, onDelete }) {
+  const net = halls[draft.hall]?.net ?? 0;
+  const daily = Number(String(draft.th).replace(',', '.')) * net;
+  return (
+    <div className="adm-form">
+      <Field id="pn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={24} />
+      <Field id="pt" label="Hash power (TH/s)" inputMode="decimal" value={draft.th} onChange={(v) => set('th', v)} />
+      <Field id="pp" label="Price (USD)" inputMode="decimal" value={draft.price} onChange={(v) => set('price', v)} />
+      <Field id="pd" label="Term (days)" inputMode="numeric" value={draft.days} onChange={(v) => set('days', v)} />
+      <Pick id="ph" label="Hall" value={draft.hall} onChange={(v) => set('hall', v)}>
+        {Object.entries(halls).map(([id, h]) => <option key={id} value={id}>{h.name}</option>)}
+      </Pick>
+      <Field id="pb" label="Description" value={draft.blurb} onChange={(v) => set('blurb', v)} maxLength={140} />
+      <Pick id="pf" label="Most chosen tag" value={draft.featured} onChange={(v) => set('featured', v)}>
+        <option value="no">No</option>
+        <option value="yes">Yes</option>
+      </Pick>
+      <p className="fine" style={{ margin: '12px 0 0' }}>
+        Daily payout ~${Number.isFinite(daily) ? daily.toFixed(2) : '0.00'}, worked out from the hall&apos;s net rate. Miners already bought keep their terms.
+      </p>
+      <div className="adm-actions">
+        <button className="btn ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn" disabled={busy} onClick={onSave}>Save</button>
+      </div>
+      {!isNew && <button className="swap danger" disabled={busy} onClick={onDelete}>Delete plan</button>}
+    </div>
+  );
+}
+
+function HallForm({ draft, set, busy, onSave, onCancel }) {
+  return (
+    <div className="adm-form">
+      <Field id="hn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={40} />
+      <Field id="hp" label="Location" value={draft.place} onChange={(v) => set('place', v)} maxLength={40} />
+      <Field id="hw" label="Power source" value={draft.power} onChange={(v) => set('power', v)} maxLength={60} />
+      <Field id="he" label="Efficiency (e.g. 17.5 J/TH)" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />
+      <Field id="hr" label="Rig model" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
+      <Field id="hx" label="Net rate (USD per TH/s per day)" inputMode="decimal" value={draft.net} onChange={(v) => set('net', v)} />
+      <p className="fine" style={{ margin: '12px 0 0' }}>
+        Changing the rate updates the daily payout of every miner in this hall and of the plans that use it.
+      </p>
+      <div className="adm-actions">
+        <button className="btn ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn" disabled={busy} onClick={onSave}>Save</button>
+      </div>
     </div>
   );
 }
@@ -88,6 +156,7 @@ export default function Admin() {
   const [to, setTo] = useState('all');
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
+  const [edit, setEdit] = useState(null); // { kind: 'plan' | 'hall', id, draft }
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -109,6 +178,7 @@ export default function Admin() {
   }, [load]);
 
   // Runs one admin action, tells the result, then refreshes. Returns true when it worked.
+  // `okText` is a string, or a function of the server's answer.
   async function run(body, okText) {
     if (busy) return false;
     setBusy(true);
@@ -120,7 +190,7 @@ export default function Admin() {
         return false;
       }
       ok = !!r.ok;
-      show(ok ? okText : r.error || 'Failed.');
+      show(ok ? (typeof okText === 'function' ? okText(r) : okText) : r.error || 'Failed.');
     } catch {
       show('No connection. Try again.');
     } finally {
@@ -157,19 +227,59 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, mode, btcUsd, serial } = data;
-  const miners = users.flatMap((u) => u.miners.map((m) => ({ ...m, userId: u.id })));
+  const { stats, users, mode, btcUsd, serial, catalog: cat } = data;
   const sendDisabled = busy || !title.trim();
+  const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
+
+  const planDraft = (p) => ({
+    name: p?.name ?? '',
+    th: p ? String(p.th) : '',
+    price: p ? String(p.price) : '',
+    days: p ? String(p.days) : '180',
+    hall: p?.hall ?? Object.keys(cat.halls)[0],
+    blurb: p?.blurb ?? '',
+    featured: p?.featured ? 'yes' : 'no',
+  });
+  const hallDraft = (h) => ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
+
+  async function savePlan() {
+    const d = edit.draft;
+    const plan = { id: edit.id === 'new' ? undefined : edit.id, name: d.name, th: d.th, price: d.price, days: d.days, hall: d.hall, blurb: d.blurb, featured: d.featured === 'yes' };
+    if (await run({ action: 'plan-save', plan }, 'Plan saved')) setEdit(null);
+  }
+
+  async function saveHall() {
+    const ok = await run(
+      { action: 'hall-save', id: edit.id, hall: edit.draft },
+      (r) => (r.updated ? `Hall saved · ${r.updated} miner${r.updated === 1 ? '' : 's'} updated` : 'Hall saved')
+    );
+    if (ok) setEdit(null);
+  }
+
+  const planForm = (isNew) => (
+    <PlanForm
+      draft={edit.draft}
+      set={setDraft}
+      halls={cat.halls}
+      isNew={isNew}
+      busy={busy}
+      onSave={savePlan}
+      onCancel={() => setEdit(null)}
+      onDelete={async () => {
+        if (window.confirm(`Delete the ${edit.draft.name} plan? Miners already bought are not affected.`) && (await run({ action: 'plan-delete', id: edit.id }, 'Plan deleted'))) setEdit(null);
+      }}
+    />
+  );
 
   return (
     <>
       <div className="top">
         <h2>Admin</h2>
-        <button className="swap" style={{ width: 'auto', margin: 0, padding: '0 16px' }} onClick={signOut}>Sign out</button>
+        <button className="swap" style={SM} onClick={signOut}>Sign out</button>
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['miners', 'Miners'], ['send', 'Send']].map(([k, l]) => (
+        {[['overview', 'Overview'], ['users', 'Users'], ['plans', 'Plans'], ['send', 'Send']].map(([k, l]) => (
           <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -203,8 +313,8 @@ export default function Admin() {
                 <h3>{u.id}</h3>
                 <span className={u.kyc.status === 'verified' ? 'up' : 'mute'}>{KYC[u.kyc.status] || u.kyc.status}</span>
               </div>
-              <div className="row"><span className="mute">Miners</span><b>{u.miners.length}</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
+
               {u.kyc.status === 'pending' && (
                 <>
                   <span className="eyebrow adm-sub" style={{ color: 'var(--gold)' }}>Verification submitted {when(u.kyc.submittedAt)}</span>
@@ -225,32 +335,102 @@ export default function Admin() {
                   </div>
                 </>
               )}
+
+              <div className="cardhead" style={{ marginTop: 16, marginBottom: 0 }}>
+                <h3 style={{ fontSize: 14 }}>Miners · {u.miners.length}</h3>
+                {u.miners.length > 0 && (
+                  <button
+                    className="swap danger"
+                    style={SM}
+                    disabled={busy}
+                    onClick={() => window.confirm(`Remove all ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} from ${u.id}? This cannot be undone.`) && run({ action: 'miners-clear', userId: u.id }, (r) => `${r.removed} removed`)}
+                  >
+                    Remove all
+                  </button>
+                )}
+              </div>
+              {u.miners.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No active miners.</p>}
+              {u.miners.map((m) => (
+                <div className="row adm-m" key={m.serial}>
+                  <div>
+                    {m.name}
+                    <small>
+                      <span className="serial">{m.serial}</span> · ${m.dailyUsd.toFixed(2)}/day · Day {m.elapsed}/{m.days}
+                      {m.online ? '' : ' · offline'}
+                    </small>
+                  </div>
+                  <div className="adm-btns">
+                    <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'miner', userId: u.id, serial: m.serial, op: m.online ? 'offline' : 'online' }, m.online ? 'Set offline' : 'Set online')}>
+                      {m.online ? 'Offline' : 'Online'}
+                    </button>
+                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Remove ${m.serial}? This cannot be undone.`) && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'delete' }, 'Miner removed')}>
+                      Remove
+                    </button>
+                  </div>
+                </div>
+              ))}
             </div>
           ))}
         </div>
       )}
 
-      {tab === 'miners' && (
+      {tab === 'plans' && (
         <div className="adm-stack">
-          {miners.length === 0 && <div className="card"><p className="empty">No miners yet.</p></div>}
-          {miners.map((m) => (
-            <div className="card" key={m.serial}>
-              <div className="cardhead">
-                <h3>{m.name}</h3>
-                <span className={m.online ? 'up' : 'mute'}>{m.online ? 'Online' : 'Offline'}</span>
-              </div>
-              <span className="serial">{m.serial}</span>
-              <p className="adm-meta">
-                {m.userId} · {halls[m.hall]?.name || m.hall} · ${m.dailyUsd.toFixed(2)}/day · Day {m.elapsed}/{m.days} · ends {m.ends}
-              </p>
-              <div className="adm-actions">
-                <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Remove ${m.serial}? This cannot be undone.`) && run({ action: 'miner', userId: m.userId, serial: m.serial, op: 'delete' }, 'Miner removed')}>Remove</button>
-                <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'miner', userId: m.userId, serial: m.serial, op: m.online ? 'offline' : 'online' }, m.online ? 'Set offline' : 'Set online')}>
-                  {m.online ? 'Set offline' : 'Set online'}
-                </button>
-              </div>
+          <div className="card">
+            <div className="cardhead">
+              <h3>Plans</h3>
+              <button className="swap" style={SM} disabled={busy} onClick={() => setEdit({ kind: 'plan', id: 'new', draft: planDraft(null) })}>Add plan</button>
             </div>
-          ))}
+            {edit?.kind === 'plan' && edit.id === 'new' && planForm(true)}
+            {cat.plans.map((p) =>
+              edit?.kind === 'plan' && edit.id === p.id ? (
+                <div key={p.id} className="adm-edit">{planForm(false)}</div>
+              ) : (
+                <button key={p.id} type="button" className="row adm-click" aria-label={`Edit ${p.name}`} onClick={() => setEdit({ kind: 'plan', id: p.id, draft: planDraft(p) })}>
+                  <div>
+                    {p.name}{p.featured ? ' ★' : ''}
+                    <small>{fmtTh(p.th)} TH/s · {p.days} days · {cat.halls[p.hall]?.name}</small>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <b>${fmtUsd(p.price)}</b>
+                    <small>~{p.daily}/day</small>
+                  </div>
+                </button>
+              )
+            )}
+          </div>
+
+          <div className="card">
+            <div className="cardhead"><h3>Halls</h3></div>
+            {Object.entries(cat.halls).map(([id, h]) =>
+              edit?.kind === 'hall' && edit.id === id ? (
+                <div key={id} className="adm-edit">
+                  <HallForm draft={edit.draft} set={setDraft} busy={busy} onSave={saveHall} onCancel={() => setEdit(null)} />
+                </div>
+              ) : (
+                <button key={id} type="button" className="row adm-click" aria-label={`Edit ${h.name}`} onClick={() => setEdit({ kind: 'hall', id, draft: hallDraft(h) })}>
+                  <div>
+                    {h.name}
+                    <small>{h.rig} · {h.efficiency} · {h.place}</small>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <b>${h.net}</b>
+                    <small>per TH/day</small>
+                  </div>
+                </button>
+              )
+            )}
+          </div>
+
+          <button
+            className="btn ghost danger"
+            disabled={busy}
+            onClick={async () => {
+              if (window.confirm('Reset all plans and halls to the built-in defaults? Hall rates of existing miners follow the defaults again.') && (await run({ action: 'catalog-reset' }, 'Reset to defaults'))) setEdit(null);
+            }}
+          >
+            Reset to defaults
+          </button>
         </div>
       )}
 
