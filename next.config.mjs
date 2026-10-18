@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Set by the Dockerfile only, so `next start` on Railway keeps working as before.
+  output: process.env.NEXT_OUTPUT === 'standalone' ? 'standalone' : undefined,
   async headers() {
     return [
       {
