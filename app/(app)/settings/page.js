@@ -5,7 +5,7 @@ import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
-import { clearApiCache, useApi } from '@/lib/api';
+import { signOut, useApi } from '@/lib/api';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
@@ -28,6 +28,7 @@ export default function Settings() {
   const [twofa, setTwofa] = useState(account.twofa);
   const [alerts, setAlerts] = useState(account.alerts);
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
+  const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
 
@@ -93,9 +94,9 @@ export default function Settings() {
     router.push('/settings/kyc');
   }
 
-  function signOut() {
+  function handleSignOut() {
     triggerHaptic('medium');
-    clearApiCache();
+    signOut();
     router.replace('/login');
   }
 
@@ -109,7 +110,7 @@ export default function Settings() {
           <div className="row" style={{ borderTop: 0 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
-              <small>{account.email}</small>
+              <small>{me ? me.email || 'Demo account' : account.email}</small>
             </div>
             <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
@@ -163,7 +164,7 @@ export default function Settings() {
               <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={title} />
             </div>
           ))}
-          <button className="btn ghost" type="button" onClick={signOut} style={{ marginTop: '8px' }}>Sign out</button>
+          <button className="btn ghost" type="button" onClick={handleSignOut} style={{ marginTop: '8px' }}>Sign out</button>
         </div>
       </div>
       {toast}
