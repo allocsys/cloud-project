@@ -27,6 +27,13 @@ export default function Plans() {
   const [pos, setPos] = useState(666); // slider position, about 100 TH/s
   const [term, setTerm] = useState(180);
   const stop = (e) => e.stopPropagation(); // keep slider drags from dragging the sheet
+  // Tiles are cards with a button role, so they look like every other card.
+  const press = (fn) => (e) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      fn();
+    }
+  };
   const [tab, setTab] = useState('buy');
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -149,11 +156,13 @@ export default function Plans() {
         {planList.map((p) => {
           const a = rigFor({ plan: p.id, th: p.th });
           return (
-            <button
+            <div
               key={p.id}
-              type="button"
+              role="button"
+              tabIndex={0}
               className={`card tile ${p.featured ? 'feat' : ''}`}
               onClick={() => selectPlan(p)}
+              onKeyDown={press(() => selectPlan(p))}
               aria-label={`${p.name}, ${p.th} terahash, $${p.price}`}
             >
               {p.featured && <span className="tag">Most chosen</span>}
@@ -161,14 +170,14 @@ export default function Plans() {
               <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
               <div className="tprice">${p.price.toLocaleString()}</div>
               <div className="tmeta">{p.days} days · <b>~{p.daily}</b>/day</div>
-            </button>
+            </div>
           );
         })}
-        <button type="button" className="card tile" onClick={() => selectPlan({ id: 'custom' })} aria-label="Custom power, choose your own size and term">
+        <div role="button" tabIndex={0} className="card tile" onClick={() => selectPlan({ id: 'custom' })} onKeyDown={press(() => selectPlan({ id: 'custom' }))} aria-label="Custom power, choose your own size and term">
           <div className="tname">Custom<span>{CUSTOM.min}–{CUSTOM.max} TH/s</span></div>
           <div className="tprice">From ${fmtUsd(customPlan(CUSTOM.min, CUSTOM.terms[0], hallMap).price)}</div>
           <div className="tmeta">Choose your own power and term</div>
-        </button>
+        </div>
       </div>
       ) : list.length ? (
         <div className="clist">
