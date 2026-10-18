@@ -1,6 +1,7 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import Field from '@/components/Field';
 import { triggerHaptic } from '@/lib/haptics';
 
 export default function Login() {
@@ -58,28 +59,45 @@ export default function Login() {
           <span>Withdraw anytime</span>
         </div>
 
-        <label htmlFor="em">Email</label>
-        <input
-          id="em"
-          type="email"
-          className={errors.email ? 'bad' : undefined}
-          aria-invalid={!!errors.email}
-          aria-describedby={errors.email ? 'em-err' : undefined}
-          autoComplete="email"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck="false"
-          placeholder="you@example.com"
-          value={email}
-          onChange={(e) => {
-            setEmail(e.target.value);
-            if (errors.email) setErrors({ ...errors, email: undefined });
-          }}
-        />
-        {errors.email && <div className="ferr" id="em-err" role="alert">{errors.email}</div>}
+        <Field id="em" label="Email" error={errors.email}>
+          <input
+            id="em"
+            type="email"
+            className={errors.email ? 'bad' : undefined}
+            aria-invalid={!!errors.email}
+            aria-describedby={errors.email ? 'em-err' : undefined}
+            autoComplete="email"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck="false"
+            placeholder="you@example.com"
+            value={email}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (errors.email) setErrors({ ...errors, email: undefined });
+            }}
+          />
+        </Field>
 
-        <label htmlFor="pw">Password</label>
-        <div className="pwrap">
+        <Field
+          id="pw"
+          label="Password"
+          error={errors.password}
+          className="pw"
+          side={
+            <button
+              type="button"
+              className="pwtoggle"
+              aria-pressed={show}
+              onClick={() => {
+                triggerHaptic('selection');
+                setShow(!show);
+              }}
+            >
+              {show ? 'Hide' : 'Show'}
+            </button>
+          }
+        >
           <input
             id="pw"
             type={show ? 'text' : 'password'}
@@ -94,19 +112,7 @@ export default function Login() {
               if (errors.password) setErrors({ ...errors, password: undefined });
             }}
           />
-          <button
-            type="button"
-            className="pwtoggle"
-            aria-pressed={show}
-            onClick={() => {
-              triggerHaptic('selection');
-              setShow(!show);
-            }}
-          >
-            {show ? 'Hide' : 'Show'}
-          </button>
-        </div>
-        {errors.password && <div className="ferr" id="pw-err" role="alert">{errors.password}</div>}
+        </Field>
 
         <div style={{ height: '14px' }} />
 

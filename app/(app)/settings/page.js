@@ -1,9 +1,10 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
+import { markDrill } from '@/lib/nav';
 
 const KYC = {
   none: { label: 'Not verified', cls: 'warn', cta: 'Verify' },
@@ -24,7 +25,44 @@ export default function Settings() {
   const [toast, show] = useToast();
   const [twofa, setTwofa] = useState(account.twofa);
   const [alerts, setAlerts] = useState(account.alerts);
-  const kyc = KYC[account.kyc];
+  const [kycState, setKycState] = useState(account.kyc);
+  const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
+  const kyc = KYC[kycState];
+
+  // The verification flow stores a placeholder flag until your API tells us the real status.
+  useEffect(() => {
+    try {
+      if (localStorage.getItem('opus-kyc') === 'pending') setKycState('pending');
+    } catch {}
+  }, []);
+
+  // Install button: only when the browser offers the prompt (or on iOS, which needs a hint).
+  useEffect(() => {
+    const read = () =>
+      setInst({
+        can: !!window.__opusInstall,
+        ios: /iphone|ipad|ipod/i.test(navigator.userAgent),
+        standalone: window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true,
+      });
+    read();
+    window.addEventListener('opus-install', read);
+    return () => window.removeEventListener('opus-install', read);
+  }, []);
+
+  async function install() {
+    triggerHaptic('light');
+    const p = window.__opusInstall;
+    if (p) {
+      p.prompt();
+      try {
+        await p.userChoice;
+      } catch {}
+      window.__opusInstall = null;
+      setInst((s) => ({ ...s, can: false }));
+    } else {
+      show('Tap Share, then Add to Home Screen');
+    }
+  }
 
   // TODO: persist these through your API.
   function flip2fa() {
@@ -40,6 +78,12 @@ export default function Settings() {
   function todo(msg) {
     triggerHaptic('light');
     show(msg);
+  }
+
+  function verify() {
+    triggerHaptic('light');
+    markDrill();
+    router.push('/settings/kyc');
   }
 
   function signOut() {
@@ -64,7 +108,7 @@ export default function Settings() {
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
             {kyc.cta ? (
-              <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>{kyc.cta}</button>
+              <button className="btn ghost" type="button" onClick={verify}>{kyc.cta}</button>
             ) : (
               <span className={`badge ${kyc.cls}`}>{kyc.label}</span>
             )}
@@ -77,6 +121,15 @@ export default function Settings() {
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Password</div>
             <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
+          {!inst.standalone && (inst.can || inst.ios) && (
+            <div className="row">
+              <div>
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Install app</div>
+                <small>Add Opus to your home screen</small>
+              </div>
+              <button className="btn ghost" type="button" onClick={install}>Install</button>
+            </div>
+          )}
         </div>
 
         <div className="card">
