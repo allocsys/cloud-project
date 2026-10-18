@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { referral } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
+import { useSheetBack } from '@/lib/nav';
 
 const ICONS = {
   share: 'M18 8a3 3 0 100-6 3 3 0 000 6zM6 15a3 3 0 100-6 3 3 0 000 6zM18 22a3 3 0 100-6 3 3 0 000 6zM8.6 13.5l6.8 4M15.4 6.5l-6.8 4',
@@ -23,6 +24,7 @@ function Icon({ d }) {
 export default function Referrals() {
   const [toast, show] = useToast();
   const [sheet, setSheet] = useState(null);
+  useSheetBack(!!sheet, () => setSheet(null));
 
   // TODO: build the link from your real referral URL.
   const link = () =>
