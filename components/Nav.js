@@ -36,6 +36,7 @@ export default function Nav() {
         <Link
           key={i.href}
           href={i.href}
+          replace
           aria-label={i.label}
           aria-current={path === i.href || (i.href === '/plans' && path.startsWith('/miners/')) ? 'page' : undefined}
           className={i.fab ? 'fab' : undefined}
@@ -47,6 +48,7 @@ export default function Nav() {
       ))}
       <Link
         href="/login"
+        replace
         className="out"
         onClick={() => triggerHaptic('medium')}
       >
