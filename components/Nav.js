@@ -38,7 +38,7 @@ export default function Nav() {
           aria-current={path === i.href ? 'page' : undefined}
           onClick={() => onNavClick(i.href)}
         >
-          {icon(i.d)}
+          <span className="ind">{icon(i.d)}</span>
           {i.label}
         </Link>
       ))}
@@ -47,7 +47,7 @@ export default function Nav() {
         className="out"
         onClick={() => triggerHaptic('medium')}
       >
-        {icon('M9 4H5v16h4M16 8l4 4-4 4M20 12H9')}
+        <span className="ind">{icon('M9 4H5v16h4M16 8l4 4-4 4M20 12H9')}</span>
         Sign out
       </Link>
     </nav>
