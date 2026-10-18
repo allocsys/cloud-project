@@ -13,6 +13,7 @@ const KIND = {
   payout: { glyph: '↓', cls: 'in' },
   deposit: { glyph: '+', cls: 'in' },
   purchase: { glyph: '◆', cls: 'buy' },
+  referral: { glyph: '+', cls: 'in' },
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 
@@ -115,7 +116,7 @@ export default function Wallet() {
   const history = wd ? wd.history : [];
   // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
   const earned = (wd ? wd.earned : 0) + mined;
-  const available = wd ? Math.max(0, earned - wd.withdrawn) : 0;
+  const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -128,7 +129,8 @@ export default function Wallet() {
   const dp = parseFloat(dep);
   const depCoin = dp > 0 ? toCoin(dp) : 0;
   const dq = depCoin > 0 ? depositQuote(asset, depCoin, prices) : null;
-  const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter);
+  // Invite income counts as a payout.
+  const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter || (filter === 'payout' && h.kind === 'referral'));
 
   // The minimum is set in BTC, shown in whatever unit the person is typing in.
   const minUsd = MIN_WITHDRAW * btcUsd;

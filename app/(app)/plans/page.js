@@ -1,8 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd } from '@/lib/data';
-import { makeContract, formatSerial, serialNumber } from '@/lib/contracts';
+import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD } from '@/lib/data';
+import { formatSerial, serialNumber } from '@/lib/contracts';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
@@ -17,7 +17,10 @@ const seedMiners = { contracts, nextSerial: formatSerial(Math.max(...contracts.m
 export default function Plans() {
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
-  const { data: md, mutate, refresh } = useApi('/api/miners', { ttl: 10000 });
+  const { data: md, refresh } = useApi('/api/miners', { ttl: 10000 });
+  const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
+  const { data: pd } = useApi('/api/prices', { ttl: 30000 });
+  const { data: ord, refresh: refreshOrders } = useApi('/api/orders', { ttl: 10000 });
   const planList = cat ? cat.plans : plans;
   const hallMap = cat ? cat.halls : halls;
   const list = md ? md.contracts : contracts;
@@ -44,6 +47,11 @@ export default function Plans() {
   // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
   const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
   const hall = cur ? hallMap[cur.hall] : null;
+  // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
+  const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
+  const canBal = !!cur && balUsd >= cur.price;
+  const crypto = !!ord?.crypto;
+  const methods = canBal ? ['balance', ...(crypto ? ['crypto'] : [])] : crypto ? ['crypto'] : ['balance'];
 
   function selectPlan(p) {
     triggerHaptic('selection');
@@ -65,31 +73,69 @@ export default function Plans() {
     dismiss();
   }
 
-  // Shows the new miner at once, then lets the server confirm. If it says no, the list rolls back.
-  async function pay() {
+  const pending = (ord?.orders || []).filter((o) => o.status === 'pending');
+  const review = (ord?.orders || []).filter((o) => o.status === 'review');
+
+  // Pays by the chosen method. Balance and the demo account activate at once; crypto leaves for the payment page.
+  async function pay(method) {
     if (busy) return;
     const plan = cur;
-    const base = md || seedMiners;
     setBusy(true);
-    mutate({
-      contracts: [...base.contracts, makeContract(plan, base.nextSerial)],
-      nextSerial: formatSerial(serialNumber(base.nextSerial) + 1),
-    });
-    triggerHaptic('success');
-    show(`${plan.name} plan activated`);
-    dismiss();
+    let leaving = false;
     try {
-      await post('/api/plans/buy', plan.id === 'custom' ? { planId: 'custom', th: plan.th, days: plan.days } : { planId: plan.id }, uid());
+      const body = plan.id === 'custom' ? { planId: 'custom', th: plan.th, days: plan.days, pay: method } : { planId: plan.id, pay: method };
+      const r = await post('/api/plans/buy', body, uid());
+      if (r.pending && r.order?.url) {
+        leaving = true;
+        window.location.assign(r.order.url);
+        return;
+      }
+      await refresh().catch(() => {});
+      triggerHaptic('success');
+      show(`${plan.name} plan activated`);
+      dismiss();
     } catch (e) {
-      mutate(base);
       triggerHaptic('error');
       show(e.status ? e.message : 'No connection. Try again.');
     } finally {
-      setBusy(false);
-      refresh().catch(() => {});
-      revalidate('/api/wallet').catch(() => {});
+      if (!leaving) {
+        setBusy(false);
+        revalidate('/api/wallet').catch(() => {});
+        refreshOrders().catch(() => {});
+      }
     }
   }
+
+  async function cancelOrder(id) {
+    triggerHaptic('light');
+    try {
+      await post('/api/orders/cancel', { id });
+    } catch (e) {
+      show(e.status ? e.message : 'No connection. Try again.');
+    }
+    refreshOrders().catch(() => {});
+  }
+
+  // While a payment is open, check for it every few seconds. When one turns paid, say so and refresh the miners.
+  const seen = useRef(new Set());
+  useEffect(() => {
+    if (!pending.length) return undefined;
+    const t = setInterval(() => refreshOrders().catch(() => {}), 5000);
+    return () => clearInterval(t);
+  }, [pending.length]);
+  useEffect(() => {
+    if (!ord) return;
+    const ids = new Set(pending.map((o) => o.id));
+    for (const id of seen.current) {
+      if (!ids.has(id) && ord.orders.find((o) => o.id === id)?.status === 'paid') {
+        triggerHaptic('success');
+        show('Payment received. Your miner is live.');
+        refresh().catch(() => {});
+        revalidate('/api/wallet').catch(() => {});
+      }
+    }
+    seen.current = ids;
+  }, [ord]);
 
   useSheetBack(!!sel, dismiss);
 
@@ -150,6 +196,23 @@ export default function Plans() {
         <button aria-pressed={tab === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
         <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My miners · {list.length}</button>
       </div>
+
+      {tab === 'buy' && [...pending, ...review].map((o) => (
+        <div key={o.id} className="card">
+          <div className="row" style={{ borderTop: 0 }}>
+            <div>
+              <b>{o.status === 'review' ? 'Payment needs a check' : 'Waiting for payment'}</b>
+              <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
+            </div>
+            {o.status === 'pending' && (
+              <div>
+                {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>Pay</a>}
+                <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
+              </div>
+            )}
+          </div>
+        </div>
+      ))}
 
       {tab === 'buy' ? (
       <div className="tiles">
@@ -303,10 +366,33 @@ export default function Plans() {
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>
             </div>
+            {!ord?.demo && (
+              <div className="sheetbody" style={{ marginTop: -4 }}>
+                <div className="row">
+                  <span className="mute">Your balance</span>
+                  <b className="v">${fmtUsd(balUsd)}</b>
+                </div>
+              </div>
+            )}
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               ~{cur.daily}/day is an estimate after electricity and maintenance. Real payouts follow BTC price and network difficulty.
+              {ord?.demo
+                ? ' Demo account: nothing is charged.'
+                : !canBal && !crypto
+                  ? ' Not enough balance, and crypto payments are not switched on yet.'
+                  : !canBal
+                    ? ` Balance is $${fmtUsd(cur.price - balUsd)} short.`
+                    : ''}
             </p>
-            <button className="btn" autoFocus onClick={pay} disabled={busy}>Confirm &amp; Pay</button>
+            {ord?.demo ? (
+              <button className="btn" autoFocus onClick={() => pay('demo')} disabled={busy}>Confirm &amp; Pay</button>
+            ) : (
+              methods.map((m, i) => (
+                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
+                  {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
+                </button>
+              ))
+            )}
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
           </div>
         </div>

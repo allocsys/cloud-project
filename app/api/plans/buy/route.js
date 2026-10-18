@@ -13,6 +13,6 @@ export async function POST(req) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400 });
   }
-  const { status, ...rest } = buyPlan(body, { userId: id, key: req.headers.get('idempotency-key') || undefined });
+  const { status, ...rest } = await buyPlan(body, { userId: id, key: req.headers.get('idempotency-key') || undefined });
   return NextResponse.json(rest, { status, headers: { 'Cache-Control': 'no-store' } });
 }

@@ -101,6 +101,7 @@ const KIND = {
   payout: { glyph: '↓', cls: 'in' },
   deposit: { glyph: '+', cls: 'in' },
   purchase: { glyph: '◆', cls: 'buy' },
+  referral: { glyph: '+', cls: 'in' },
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 const SPLIT = ['var(--gold2)', 'var(--green)', 'var(--gold)', 'var(--mute)'];

@@ -33,6 +33,7 @@ Then point `DATABASE_URL` at the new database and redeploy.
 
 - **Check:** `GET /api/health` returns `{ ok: true, store: "postgres" }` when the database is connected. `memory` means it is not.
 - **Admin:** open `/admin`. It stays off until `ADMIN_TOKEN` (12 or more characters, keep it secret) is set; you sign in with that token. Five wrong tries lock an address for 15 minutes.
+- **Paying for plans:** a plan is paid from the user's balance, or by crypto invoice once NOWPayments is set up. Set `NOWPAYMENTS_API_KEY` and `NOWPAYMENTS_IPN_SECRET` (Store settings > IPN secret). In the NOWPayments dashboard the callback is sent to `<APP_URL>/api/payments/webhook`; set `APP_URL` to the public address. Use `NOWPAYMENTS_API_URL=https://api-sandbox.nowpayments.io/v1` with sandbox keys to test. The miner starts only after a signed `finished` callback for the full amount. Without the two keys, crypto is off and only balance payments work. The demo account is not charged.
 - **Port:** reads `PORT` (default 3000). **Env:** `PRICE_FEED=static` turns off the CoinGecko feed.
 - **HTTPS:** put the container behind a proxy or the host's TLS. The PWA install and the service worker need HTTPS.
 - **Build needs internet.** `next/font` downloads Roboto during `npm run build`. If Google Fonts is briefly unreachable the build fails with a `next/font` error; the host keeps serving the previous version, so just redeploy.
