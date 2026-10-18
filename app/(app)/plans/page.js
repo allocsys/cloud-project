@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { plans, halls, contracts } from '@/lib/data';
+import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd } from '@/lib/data';
 import { makeContract, formatSerial, serialNumber } from '@/lib/contracts';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -24,6 +24,9 @@ export default function Plans() {
   const nextId = md ? md.nextSerial : seedMiners.nextSerial;
 
   const [sel, setSel] = useState(null);
+  const [pos, setPos] = useState(666); // slider position, about 100 TH/s
+  const [term, setTerm] = useState(180);
+  const stop = (e) => e.stopPropagation(); // keep slider drags from dragging the sheet
   const [tab, setTab] = useState('buy');
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -31,7 +34,9 @@ export default function Plans() {
   const sheetRef = useRef(null);
   const openerRef = useRef(null);
   const startY = useRef(null);
-  const hall = sel ? hallMap[sel.hall] : null;
+  // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
+  const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term) : sel) : null;
+  const hall = cur ? hallMap[cur.hall] : null;
 
   function selectPlan(p) {
     triggerHaptic('selection');
@@ -56,7 +61,7 @@ export default function Plans() {
   // Shows the new miner at once, then lets the server confirm. If it says no, the list rolls back.
   async function pay() {
     if (busy) return;
-    const plan = sel;
+    const plan = cur;
     const base = md || seedMiners;
     setBusy(true);
     mutate({
@@ -67,7 +72,7 @@ export default function Plans() {
     show(`${plan.name} plan activated`);
     dismiss();
     try {
-      await post('/api/plans/buy', { planId: plan.id }, uid());
+      await post('/api/plans/buy', plan.id === 'custom' ? { planId: 'custom', th: plan.th, days: plan.days } : { planId: plan.id }, uid());
     } catch (e) {
       mutate(base);
       triggerHaptic('error');
@@ -159,12 +164,17 @@ export default function Plans() {
             </button>
           );
         })}
+        <button type="button" className="card tile" onClick={() => selectPlan({ id: 'custom' })} aria-label="Custom power, choose your own size and term">
+          <div className="tname">Custom<span>{CUSTOM.min}–{CUSTOM.max} TH/s</span></div>
+          <div className="tprice">From ${fmtUsd(customPlan(CUSTOM.min, CUSTOM.terms[0]).price)}</div>
+          <div className="tmeta">Choose your own power and term</div>
+        </button>
       </div>
       ) : list.length ? (
         <div className="clist">
           {list.map((c) => {
             const pct = Math.round((c.elapsed / c.days) * 100);
-            const rig = rigFor(c.plan);
+            const rig = rigFor(c);
             return (
               <Link key={c.serial} href={`/miners/${c.serial}`} onClick={openMiner} className="card cl">
                 <div className="mrow">
@@ -229,8 +239,43 @@ export default function Plans() {
             }}
           >
             <div className="grab" aria-hidden="true" />
-            <h3 id="st">{sel.name} plan</h3>
-            <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{sel.blurb}</p>
+            <h3 id="st">{cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
+            {cur.id === 'custom' ? (
+              <div className="slide">
+                <div className="big"><b>{fmtTh(cur.th)} TH/s</b><span>~{cur.daily}/day</span></div>
+                <input
+                  type="range"
+                  min="0"
+                  max="1000"
+                  step="1"
+                  value={pos}
+                  aria-label="Hash power in terahash"
+                  aria-valuetext={`${fmtTh(cur.th)} terahash`}
+                  style={{ '--p': `${pos / 10}%` }}
+                  onChange={(e) => setPos(+e.target.value)}
+                  onTouchStart={stop}
+                  onTouchMove={stop}
+                  onTouchEnd={stop}
+                />
+                <div className="terms" role="group" aria-label="Term">
+                  {CUSTOM.terms.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={term === d}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setTerm(d);
+                      }}
+                    >
+                      {d} days
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{cur.blurb}</p>
+            )}
             <div className="sheetbody">
               <div className="row">
                 <span className="mute">Hall</span>
@@ -246,11 +291,11 @@ export default function Plans() {
               </div>
               <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
-                <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${sel.price.toLocaleString()}</b>
+                <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{sel.daily}/day is an estimate after electricity and maintenance. Real payouts follow BTC price and network difficulty.
+              ~{cur.daily}/day is an estimate after electricity and maintenance. Real payouts follow BTC price and network difficulty.
             </p>
             <button className="btn" autoFocus onClick={pay} disabled={busy}>Confirm &amp; Pay</button>
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
