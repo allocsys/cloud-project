@@ -5,7 +5,7 @@ import { plans, halls, contracts } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
-import { markDrill } from '@/lib/nav';
+import { markDrill, useSheetBack } from '@/lib/nav';
 
 // Placeholder: your backend assigns the real serial at checkout.
 const nextSerial = () => {
@@ -49,6 +49,8 @@ export default function Plans() {
     show(`${sel.name} plan activated`);
     dismiss();
   }
+
+  useSheetBack(!!sel, dismiss);
 
   // Coming back from a miner page: reopen on the My miners tab.
   useEffect(() => {
