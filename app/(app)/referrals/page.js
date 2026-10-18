@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { referral as seed } from '@/lib/data';
 import { useApi } from '@/lib/api';
 import { useToast } from '@/components/Toast';
@@ -25,8 +26,9 @@ function Icon({ d }) {
 export default function Referrals() {
   const [toast, show] = useToast();
   const [sheet, setSheet] = useState(null);
-  const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
+  const { data: rd } = useApi('/api/referrals', { ttl: 0 });
   const referral = rd || seed;
+  const locked = !!rd && rd.unlocked === false;
   useSheetBack(!!sheet, () => setSheet(null));
 
   // TODO: build the link from your real referral URL.
@@ -106,15 +108,31 @@ export default function Referrals() {
         </div>
 
         <div className="grid wal">
-          <div className="card">
-            <span className="mute eyebrow">Your invite code</span>
-            <div className="codebox" style={{ marginTop: 8 }}>
-              <b>{referral.code}</b>
-              <button className="btn" type="button" onClick={() => copy(referral.code, 'Code copied')}>Copy</button>
+          {locked ? (
+            <div className="card">
+              <span className="mute eyebrow">Invites locked</span>
+              <p style={{ margin: '8px 0 12px' }}>
+                Buy any plan, or at least ${rd.minUsd} of custom power, to get your invite code.
+              </p>
+              <div className="bar" role="progressbar" aria-valuenow={rd.spentUsd} aria-valuemin={0} aria-valuemax={rd.minUsd} aria-label="Custom power bought toward the minimum">
+                <i style={{ width: `${Math.round((rd.spentUsd / rd.minUsd) * 100)}%` }} />
+              </div>
+              <small className="mute" style={{ display: 'block', margin: '6px 0 12px' }}>
+                ${rd.spentUsd.toFixed(2)} of ${rd.minUsd} custom power
+              </small>
+              <Link href="/plans" className="btn" style={{ textDecoration: 'none' }} onClick={() => triggerHaptic('selection')}>Buy a plan</Link>
             </div>
-            <div style={{ height: 12 }} />
-            <button className="btn ghost" type="button" onClick={share}>Share link</button>
-          </div>
+          ) : (
+            <div className="card">
+              <span className="mute eyebrow">Your invite code</span>
+              <div className="codebox" style={{ marginTop: 8 }}>
+                <b>{rd ? referral.code : '········'}</b>
+                <button className="btn" type="button" disabled={!rd} onClick={() => copy(referral.code, 'Code copied')}>Copy</button>
+              </div>
+              <div style={{ height: 12 }} />
+              <button className="btn ghost" type="button" disabled={!rd} onClick={share}>Share link</button>
+            </div>
+          )}
 
           <div className="card">
             <h3>How it works</h3>
