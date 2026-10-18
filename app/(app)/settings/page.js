@@ -5,6 +5,7 @@ import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
+import { clearApiCache } from '@/lib/api';
 
 const KYC = {
   none: { label: 'Not verified', cls: 'warn', cta: 'Verify' },
@@ -88,6 +89,7 @@ export default function Settings() {
 
   function signOut() {
     triggerHaptic('medium');
+    clearApiCache();
     router.replace('/login');
   }
 
