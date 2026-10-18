@@ -910,6 +910,44 @@ main {
 .tmeta { font-size: 12px; line-height: 16px; color: var(--mute); }
 .tmeta b { color: var(--green); font-weight: 500; }
 
+/* Payout countdown */
+.payout { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
+.payout > div:first-child { display: flex; justify-content: space-between; align-items: center; font-size: 12px; line-height: 16px; color: var(--mute); }
+.payout b { font-size: 14px; font-weight: 500; letter-spacing: 0.5px; color: var(--gold2); font-variant-numeric: tabular-nums; }
+.hero .bar { background: rgba(255, 255, 255, 0.1); }
+.payout .bar { margin-top: 8px; }
+.payout .bar i { animation: none; transition: width 1s linear; }
+
+/* Stat tiles with sparklines */
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px; border-radius: 16px; background: var(--s2); }
+.stat > span { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.4px; color: var(--mute); }
+.stat b { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; margin-bottom: 8px; font-size: 16px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.stat b small { font-size: 11px; font-weight: 400; color: var(--mute); }
+.sp { display: block; width: 100%; height: 28px; margin-top: auto; }
+
+/* Contract rows */
+.ccard { display: block; color: inherit; text-decoration: none; }
+.ccard .t b { display: flex; align-items: center; gap: 8px; font-weight: 500; }
+.ccard:active .t b { color: var(--gold2); }
+.sdot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--green); animation: pulse 1.8s ease-out infinite; }
+.mchips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.mchips span { font-size: 11px; line-height: 16px; font-weight: 500; color: var(--text); background: var(--s4); border-radius: 8px; padding: 2px 8px; }
+.mchips .up { color: var(--green); background: rgba(125, 214, 160, 0.14); }
+
+/* Contract detail */
+.tl { display: flex; align-items: center; gap: 4px; min-width: 0; margin-left: -12px; }
+.tl h2 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.back { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--text); }
+.back:active { background: rgba(255, 255, 255, 0.1); }
+.back svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.cmeta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 12px; line-height: 16px; color: var(--mute); }
+.row .v { font-weight: 500; text-align: right; }
+.bars { display: flex; align-items: flex-end; gap: 4px; height: 72px; margin-top: 8px; }
+.bars i { flex: 1; border-radius: 4px 4px 0 0; background: rgba(233, 196, 106, 0.35); transform-origin: bottom; animation: growy 0.6s cubic-bezier(0.2, 0, 0, 1) backwards; }
+.bars i.last { background: var(--gold); }
+@keyframes growy { from { transform: scaleY(0); } to { transform: none; } }
+
 /* Rig art motion */
 @keyframes spin { to { transform: rotate(360deg); } }
 @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.2; } }
