@@ -2,6 +2,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { triggerHaptic } from '@/lib/haptics';
+import { clearApiCache } from '@/lib/api';
 
 const icon = (d) => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -50,7 +51,10 @@ export default function Nav() {
         href="/login"
         replace
         className="out"
-        onClick={() => triggerHaptic('medium')}
+        onClick={() => {
+          triggerHaptic('medium');
+          clearApiCache();
+        }}
       >
         <span className="ind">{icon('M9 4H5v16h4M16 8l4 4-4 4M20 12H9')}</span>
         Sign out
