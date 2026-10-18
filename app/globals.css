@@ -23,13 +23,13 @@
   --cur: rgba(246, 220, 154, 0.4);
   --ph: rgba(170, 162, 143, 0.7);
   --art: #12110d;
-  color-scheme: only light;
+  color-scheme: dark;
   accent-color: var(--gold);
 }
 
 /* The app is dark by design: tell the browser so it never auto-darkens it again */
-@media (prefers-color-scheme: dark) { :root { color-scheme: only light; } }
-@media (prefers-color-scheme: light) { :root { color-scheme: only light; } }
+@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
+@media (prefers-color-scheme: light) { :root { color-scheme: dark; } }
 
 /* Light theme (Settings > Theme). Rig pictures keep their dark panel. */
 :root[data-theme="light"] {
