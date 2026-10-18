@@ -20,6 +20,7 @@ async function call(method, url, body) {
 
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
+const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cancelled: 'Closed', expired: 'Expired', failed: 'Failed' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
 const REF_FIELDS = [
@@ -176,6 +177,7 @@ export default function Admin() {
   const [setup, setSetup] = useState(false); // first run: no admin account yet
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
   const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
+  const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -249,7 +251,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, mode, btcUsd, serial, catalog: cat } = data;
+  const { stats, users, orders = [], log = [], mode, btcUsd, serial, catalog: cat } = data;
   const sendDisabled = busy || !title.trim();
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
@@ -301,8 +303,8 @@ export default function Admin() {
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
-          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>
+        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
+          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : l}</button>
         ))}
       </div>
 
@@ -318,11 +320,35 @@ export default function Admin() {
             <Stat l="Withdrawn" v={stats.withdrawnBtc.toFixed(4)} s="BTC" />
             <Stat l="KYC pending" v={stats.kycPending} />
           </div>
+          {stats.ordersReview > 0 && (
+            <button className="card adm-click" onClick={() => setTab('orders')}>
+              <b style={{ color: 'var(--gold)' }}>{stats.ordersReview} order{stats.ordersReview === 1 ? '' : 's'} need a check</b>
+            </button>
+          )}
           <div className="card">
             <h3>System</h3>
             <div className="row"><span className="mute">Storage</span><b>{mode}</b></div>
             <div className="row"><span className="mute">BTC fallback price</span><b>${btcUsd.toLocaleString()}</b></div>
             <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{formatSerial(serial)}</b></div>
+          </div>
+          <div className="card">
+            <h3>Admin password</h3>
+            <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
+            <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
+            <div className="adm-actions">
+              <button className="btn" disabled={busy || !pw.cur || pw.next.length < 10} onClick={async () => (await run({ action: 'admin-password', current: pw.cur, next: pw.next }, 'Password changed')) && setPw({ cur: '', next: '' })}>Change password</button>
+            </div>
+            <p className="fine" style={{ margin: '8px 0 0' }}>Other signed-in browsers are signed out.</p>
+          </div>
+          <div className="card">
+            <h3>Recent changes</h3>
+            {log.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
+            {log.map((l, i) => (
+              <div className="row adm-m" key={`${l.at}-${i}`}>
+                <div>{l.action}<small>{l.detail}</small></div>
+                <span className="mute">{when(l.at)}</span>
+              </div>
+            ))}
           </div>
         </div>
       )}
@@ -391,6 +417,31 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {tab === 'orders' && (
+        <div className="adm-stack">
+          {orders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No crypto orders yet.</p>}
+          {orders.map((o) => (
+            <div className="card" key={o.id}>
+              <div className="cardhead">
+                <h3>{o.label} · ${o.usd}</h3>
+                <span className={o.status === 'paid' ? 'up' : o.status === 'review' ? '' : 'mute'} style={o.status === 'review' ? { color: 'var(--gold)' } : undefined}>{ORDER[o.status] || o.status}</span>
+              </div>
+              <div className="row"><span className="mute">User</span><b>{o.userId}</b></div>
+              <div className="row"><span className="mute">Created</span><b>{when(o.at)}</b></div>
+              {o.paidAt && <div className="row"><span className="mute">Paid</span><b>{when(o.paidAt)}</b></div>}
+              {o.serial && <div className="row"><span className="mute">Miner</span><b className="serial">{o.serial}</b></div>}
+              {o.invoiceId && <div className="row"><span className="mute">Invoice</span><b className="serial">{o.invoiceId}</b></div>}
+              {(o.status === 'review' || o.status === 'pending') && (
+                <div className="adm-actions">
+                  <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Close this order for ${o.userId}?`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Order closed')}>Close</button>
+                  <button className="btn" disabled={busy} onClick={() => window.confirm(`Start the miner for ${o.userId}? Only do this once you have checked the payment in NOWPayments.`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`)}>Start miner</button>
+                </div>
+              )}
             </div>
           ))}
         </div>

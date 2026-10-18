@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminEnabled, isAdmin, needsSetup, overview, act } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -25,6 +25,9 @@ export async function POST(req) {
   } catch {
     return json({ ok: false, error: 'Invalid request.' }, 400);
   }
-  const { status, ...rest } = act(body);
-  return json(rest, status);
+  const { status, session, ...rest } = act(body);
+  const res = json(rest, status);
+  // A new password ends the old sessions, so this browser gets a fresh one.
+  if (session) res.cookies.set(COOKIE, session, { httpOnly: true, sameSite: 'strict', secure: process.env.NODE_ENV === 'production', path: '/', maxAge: MAX_AGE });
+  return res;
 }
