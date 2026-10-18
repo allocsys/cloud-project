@@ -91,14 +91,13 @@ export default function Plans() {
       </div>
 
       <div className="tiles">
-        {plans.map((p, i) => {
+        {plans.map((p) => {
           const a = ART[p.id] || ART.starter;
           return (
             <button
               key={p.id}
               type="button"
               className={`card tile ${p.featured ? 'feat' : ''}`}
-              style={{ animationDelay: `${0.05 + i * 0.08}s` }}
               onClick={() => selectPlan(p)}
               aria-label={`${p.name}, ${p.th} terahash, $${p.price}`}
             >
