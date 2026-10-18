@@ -5,6 +5,28 @@ services:
     ports:
       - "3000:3000"
     environment:
-      # PRICE_FEED: static   # uncomment to skip the CoinGecko price feed
       PORT: 3000
+      DATABASE_URL: postgres://opus:${POSTGRES_PASSWORD:-opus}@db:5432/opus
+      # PRICE_FEED: static   # uncomment to skip the CoinGecko price feed
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
+
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: opus
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opus}
+      POSTGRES_DB: opus
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U opus -d opus"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+volumes:
+  pgdata:
