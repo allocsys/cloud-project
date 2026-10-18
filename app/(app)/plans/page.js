@@ -2,26 +2,36 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { plans, halls, contracts } from '@/lib/data';
+import { makeContract, formatSerial, serialNumber } from '@/lib/contracts';
+import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
 
-// Placeholder: your backend assigns the real serial at checkout.
-const nextSerial = () => {
-  const n = Math.max(...contracts.map((c) => parseInt(c.serial.slice(3), 10)));
-  return `OP-${String(n + 1).padStart(7, '0')}`;
-};
+const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
+
+// Used only until the server answers the first time.
+const seedMiners = { contracts, nextSerial: formatSerial(Math.max(...contracts.map((c) => serialNumber(c.serial))) + 1) };
 
 export default function Plans() {
+  // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
+  const { data: cat } = useApi('/api/plans', { ttl: 300000 });
+  const { data: md, mutate, refresh } = useApi('/api/miners', { ttl: 10000 });
+  const planList = cat ? cat.plans : plans;
+  const hallMap = cat ? cat.halls : halls;
+  const list = md ? md.contracts : contracts;
+  const nextId = md ? md.nextSerial : seedMiners.nextSerial;
+
   const [sel, setSel] = useState(null);
   const [tab, setTab] = useState('buy');
   const [dragY, setDragY] = useState(0);
+  const [busy, setBusy] = useState(false);
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
   const openerRef = useRef(null);
   const startY = useRef(null);
-  const hall = sel ? halls[sel.hall] : null;
+  const hall = sel ? hallMap[sel.hall] : null;
 
   function selectPlan(p) {
     triggerHaptic('selection');
@@ -43,11 +53,30 @@ export default function Plans() {
     dismiss();
   }
 
-  // TODO: call your checkout API here.
-  function pay() {
+  // Shows the new miner at once, then lets the server confirm. If it says no, the list rolls back.
+  async function pay() {
+    if (busy) return;
+    const plan = sel;
+    const base = md || seedMiners;
+    setBusy(true);
+    mutate({
+      contracts: [...base.contracts, makeContract(plan, base.nextSerial)],
+      nextSerial: formatSerial(serialNumber(base.nextSerial) + 1),
+    });
     triggerHaptic('success');
-    show(`${sel.name} plan activated`);
+    show(`${plan.name} plan activated`);
     dismiss();
+    try {
+      await post('/api/plans/buy', { planId: plan.id }, uid());
+    } catch (e) {
+      mutate(base);
+      triggerHaptic('error');
+      show(e.status ? e.message : 'No connection. Try again.');
+    } finally {
+      setBusy(false);
+      refresh().catch(() => {});
+      revalidate('/api/wallet').catch(() => {});
+    }
   }
 
   useSheetBack(!!sel, dismiss);
@@ -107,12 +136,12 @@ export default function Plans() {
 
       <div className="tabs" role="group" aria-label="Buy plans or your miners">
         <button aria-pressed={tab === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
-        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My miners · {contracts.length}</button>
+        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My miners · {list.length}</button>
       </div>
 
       {tab === 'buy' ? (
       <div className="tiles">
-        {plans.map((p) => {
+        {planList.map((p) => {
           const a = rigFor(p.id);
           return (
             <button
@@ -131,9 +160,9 @@ export default function Plans() {
           );
         })}
       </div>
-      ) : contracts.length ? (
+      ) : list.length ? (
         <div className="clist">
-          {contracts.map((c) => {
+          {list.map((c) => {
             const pct = Math.round((c.elapsed / c.days) * 100);
             const rig = rigFor(c.plan);
             return (
@@ -149,7 +178,7 @@ export default function Plans() {
                     <span className="serial">{c.serial}</span>
                     <div className="mchips">
                       <span>{c.th} TH/s</span>
-                      <span>{halls[c.hall].efficiency}</span>
+                      <span>{hallMap[c.hall].efficiency}</span>
                       <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
                     </div>
                   </div>
@@ -213,14 +242,14 @@ export default function Plans() {
               </div>
               <div className="row">
                 <span className="mute">Miner ID</span>
-                <b className="serial">{nextSerial()}</b>
+                <b className="serial">{nextId}</b>
               </div>
               <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${sel.price.toLocaleString()}</b>
               </div>
             </div>
-            <button className="btn" autoFocus onClick={pay}>Confirm &amp; Pay</button>
+            <button className="btn" autoFocus onClick={pay} disabled={busy}>Confirm &amp; Pay</button>
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
           </div>
         </div>
