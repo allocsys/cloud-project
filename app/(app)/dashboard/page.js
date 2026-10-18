@@ -1,9 +1,11 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
-import { contracts, earnings, stats, TODAY_BTC } from '@/lib/data';
+import { contracts, earnings, stats, notifications, TODAY_BTC } from '@/lib/data';
 
 const totalTh = contracts.reduce((s, c) => s + c.th, 0);
 
@@ -71,13 +73,13 @@ function ChartBox({ rows }) {
       <svg className="spark" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#d4a84b" stopOpacity=".4" />
-            <stop offset="100%" stopColor="#d4a84b" stopOpacity="0" />
+            <stop offset="0" stopColor="#e9c46a" stopOpacity=".4" />
+            <stop offset="100%" stopColor="#e9c46a" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={`${line} L300 120 L0 120Z`} fill="url(#g)" />
-        <path d={line} fill="none" stroke="#f1d48a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
-        {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="#fff" stroke="#070605" strokeWidth="2" />}
+        <path d={line} fill="none" stroke="#f6dc9a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
+        {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="#fff" stroke="#12110d" strokeWidth="2" />}
       </svg>
       {a && (
         <>
@@ -98,6 +100,15 @@ export default function Dashboard() {
   const now = useNow(1000);
   const [range, setRange] = useState('week');
   const [pulse, setPulse] = useState(false);
+  const [unread, setUnread] = useState(0);
+
+  // Placeholder read state: the notifications screen stores how many it has shown.
+  useEffect(() => {
+    try {
+      const seen = parseInt(localStorage.getItem('opus-notif-seen') || '0', 10) || 0;
+      setUnread(Math.max(0, notifications.length - seen));
+    } catch {}
+  }, []);
 
   const rows = earnings[range];
   const labels =
@@ -116,7 +127,20 @@ export default function Dashboard() {
     <>
       <div className="top">
         <h2>Earnings</h2>
-        <span className="pill"><i />Live</span>
+        <div className="topact">
+          <span className="pill"><i />Live</span>
+          <Link
+            href="/notifications"
+            className="bell"
+            aria-label={unread ? `Notifications, ${unread} new` : 'Notifications'}
+            onClick={() => markDrill()}
+          >
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 8a6 6 0 1112 0c0 7 3 9 3 9H3s3-2 3-9M10.3 21a1.9 1.9 0 003.4 0" />
+            </svg>
+            {unread > 0 && <i />}
+          </Link>
+        </div>
       </div>
       <div className="grid">
         <div className="card hero">
