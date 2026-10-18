@@ -737,7 +737,7 @@ main {
 
 .assets {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  grid-template-columns: repeat(6, 1fr);
   gap: 6px;
   margin: 0 0 12px;
 }
@@ -783,6 +783,26 @@ main {
 .quote .row { padding: 10px 0; font-size: 13px; }
 .quote .row:first-child { border-top: 0; }
 .quote .total b { color: var(--gold2); }
+
+/* Wallet card: one 12px rhythm between parts */
+.assets .pct-btn { font-size: 12px; padding: 0; }
+.wcard .field,
+.wcard .pct-row + .field { margin-top: 12px; }
+.wcard .pct-row { margin: 8px 0 0; }
+.wcard .pct-btn { min-height: 34px; }
+.wcard .quote { margin: 12px 0 0; padding: 0 14px; }
+.wcard .quote .row { padding: 8px 0; }
+.wcard .btn:not(.ghost) { margin-top: 16px; }
+.wcard .qr { width: 144px; height: 144px; margin: 0 auto 12px; }
+.winfo { margin: 10px 2px 0; }
+.hero.slim { padding: 14px 20px 16px; }
+.hero.slim .big { margin: 2px 0; }
+
+/* Coin/USD switch sits inside the amount field */
+.field.unit input { padding-right: 124px; }
+.field.unit label { max-width: calc(100% - 140px); }
+.uswitch { position: absolute; right: 10px; top: 50%; transform: translateY(-50%); }
+.uswitch button { padding: 0 10px; }
 
 /* Wallet bits */
 .qr {
