@@ -1021,6 +1021,7 @@ main {
 /* Snackbar */
 #toast,
 #exit-toast {
+  position: fixed;
   left: 0;
   right: 0;
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
