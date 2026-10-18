@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
+import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
-import { contracts, earnings, TODAY_BTC } from '@/lib/data';
+import { contracts, earnings, halls, stats, TODAY_BTC } from '@/lib/data';
 
 const totalTh = contracts.reduce((s, c) => s + c.th, 0);
 
@@ -9,6 +11,19 @@ function ago(now, at) {
   if (!now) return 'now';
   const s = Math.max(0, Math.floor((now - at) / 1000));
   return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;
+}
+
+// Time left until the next daily payout (00:00 UTC) and how much of the day has passed.
+function payoutIn(now) {
+  if (!now) return { text: '--:--:--', pct: 0 };
+  const d = new Date(now);
+  const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
+  const left = Math.max(0, Math.floor((next - now) / 1000));
+  const p = (n) => String(n).padStart(2, '0');
+  return {
+    text: `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`,
+    pct: 100 - (left / 86400) * 100,
+  };
 }
 
 // Line chart you can scrub: hover, touch-drag or arrow keys show that day's value.
@@ -88,6 +103,7 @@ export default function Dashboard() {
     range === 'week' ? rows.map((d) => d.label) : [rows[0].day, rows[Math.floor(rows.length / 2)].day, 'Today'];
   const avg = rows.reduce((s, d) => s + d.usd, 0) / rows.length;
   const latest = shares[0];
+  const pay = payoutIn(now);
 
   useEffect(() => {
     setPulse(true);
@@ -109,11 +125,34 @@ export default function Dashboard() {
             <small>BTC</small>
           </div>
           <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(mined * BTC_USD)}</span>
-          <div className="chips">
-            <span>{totalTh} TH/s</span>
-            <span>Today +{formatBtc(TODAY_BTC, 5)}</span>
-            <span>99.8% uptime</span>
-            {latest && <span key={latest.id} className="live">+{latest.sats} sat · {ago(now, latest.at)}</span>}
+          <div className="payout">
+            <div><span>Next payout</span><b>{pay.text}</b></div>
+            <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
+              <i style={{ width: `${pay.pct}%` }} />
+            </div>
+          </div>
+          {latest && (
+            <div className="chips">
+              <span key={latest.id} className="live">+{latest.sats} sat · {ago(now, latest.at)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="stats">
+          <div className="stat">
+            <span>Hashrate</span>
+            <b>{totalTh}<small>TH/s</small></b>
+            <Spark values={stats.hash} />
+          </div>
+          <div className="stat">
+            <span>Today</span>
+            <b>+{formatBtc(TODAY_BTC, 5)}<small>BTC</small></b>
+            <Spark values={earnings.week.map((d) => d.usd)} />
+          </div>
+          <div className="stat">
+            <span>Uptime</span>
+            <b>99.8<small>%</small></b>
+            <Spark values={stats.uptime} color="var(--green)" />
           </div>
         </div>
 
@@ -147,12 +186,20 @@ export default function Dashboard() {
             {contracts.map((c) => {
               const pct = Math.round((c.elapsed / c.days) * 100);
               return (
-                <div key={c.serial} className="mini">
-                  <div className="t">{c.name}<span>Day {c.elapsed}/{c.days}</span></div>
+                <Link key={c.serial} href={`/contracts/${c.serial}`} className="mini ccard">
+                  <div className="t">
+                    <b><i className="sdot" />{c.plan}</b>
+                    <span>Day {c.elapsed}/{c.days}</span>
+                  </div>
+                  <div className="mchips">
+                    <span>{c.th} TH/s</span>
+                    <span>{halls[c.hall].efficiency}</span>
+                    <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
+                  </div>
                   <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
                     <i style={{ width: `${pct}%` }} />
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
