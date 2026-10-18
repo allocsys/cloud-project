@@ -109,11 +109,6 @@ const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25,
 // Where the daily earnings come from. Tap a legend row to look at one slice.
 function Split({ rows }) {
   const [sel, setSel] = useState(null);
-  const [on, setOn] = useState(false);
-  useEffect(() => {
-    const t = setTimeout(() => setOn(true), 60);
-    return () => clearTimeout(t);
-  }, []);
   const total = rows.reduce((s, r) => s + r.usd, 0) || 1;
   const R = 42;
   const C = 2 * Math.PI * R;
@@ -138,7 +133,7 @@ function Split({ rows }) {
               fill="none"
               stroke={s.color}
               strokeWidth="12"
-              strokeDasharray={`${on ? Math.max(0, s.len - (segs.length > 1 ? 1.5 : 0)) : 0} ${C}`}
+              strokeDasharray={`${Math.max(0, s.len - (segs.length > 1 ? 1.5 : 0))} ${C}`}
               strokeDashoffset={-s.off}
               transform="rotate(-90 50 50)"
               style={{ opacity: sel === null || sel === i ? 1 : 0.25 }}
@@ -261,7 +256,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="grid rise">
+      <div className="grid">
         <div className="card hero">
           <span className="mute eyebrow">Total mined</span>
           <div className="big">
@@ -317,28 +312,6 @@ export default function Dashboard() {
 
         <div className="card">
           <div className="cardhead">
-            <div>
-              <h3>Daily earnings</h3>
-              <small className="mute" style={{ fontSize: '12px' }}>{hasChart ? `avg $${formatUsd(avg)}/day` : 'no earnings yet'}</small>
-            </div>
-            <div className="minitabs" role="group" aria-label="Chart range">
-              <button aria-pressed={range === 'week'} onClick={() => setRange('week')}>7d</button>
-              <button aria-pressed={range === 'all'} onClick={() => setRange('all')}>All</button>
-            </div>
-          </div>
-          {!hasChart && <p className="empty">Your daily earnings will show here once a miner is live.</p>}
-          <div key={range}>
-            {hasChart && <ChartBox rows={rows} />}
-            <div className="chartlabels">
-              {labels.map((l, i) => (
-                <span key={l + i} className={i === labels.length - 1 ? 'now' : undefined}>{l}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="card">
-          <div className="cardhead">
             <h3>Projected earnings</h3>
             <small className="mute" style={{ fontSize: '12px' }}>estimate</small>
           </div>
@@ -389,6 +362,30 @@ export default function Dashboard() {
           </div>
         )}
 
+        <div className="grid">
+          <div className="card">
+            <div className="cardhead">
+              <div>
+                <h3>Daily earnings</h3>
+                <small className="mute" style={{ fontSize: '12px' }}>{hasChart ? `avg $${formatUsd(avg)}/day` : 'no earnings yet'}</small>
+              </div>
+              <div className="minitabs" role="group" aria-label="Chart range">
+                <button aria-pressed={range === 'week'} onClick={() => setRange('week')}>7d</button>
+                <button aria-pressed={range === 'all'} onClick={() => setRange('all')}>All</button>
+              </div>
+            </div>
+            {!hasChart && <p className="empty">Your daily earnings will show here once a miner is live.</p>}
+            <div key={range}>
+              {hasChart && <ChartBox rows={rows} />}
+              <div className="chartlabels">
+                {labels.map((l, i) => (
+                  <span key={l + i} className={i === labels.length - 1 ? 'now' : undefined}>{l}</span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
         {split.length > 0 && (
           <div className="card">
             <div className="cardhead">
@@ -416,14 +413,14 @@ export default function Dashboard() {
               <i style={{ width: `${armed ? goalPct : 0}%` }} />
             </div>
             <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
-              {formatBtc(mined, 5)} of {formatBtc(goal, 5)} BTC · ≈ ${formatUsd(toGo * btc)} to go
+              {formatBtc(mined, 5)} mined · {formatBtc(toGo, 5)} BTC to go (≈ ${formatUsd(toGo * btc)})
             </small>
           </div>
         )}
 
         <div className="pair">
           <div className="stat">
-            <span>Bitcoin</span>
+            <span>BITCOIN</span>
             <b>
               ${Math.round(btc).toLocaleString('en-US')}
               {tr && <small className={`chg ${tr.change >= 0 ? 'up' : 'down'}`}>{tr.change >= 0 ? '+' : ''}{tr.change.toFixed(1)}%</small>}
@@ -431,16 +428,11 @@ export default function Dashboard() {
             {tr ? <Spark values={tr.spark} color={tr.change >= 0 ? 'var(--green)' : 'var(--red)'} /> : <small className="sub">24h change unavailable</small>}
           </div>
           <Link href="/referrals" className="stat" onClick={() => markDrill()}>
-            <span>Invite friends</span>
+            <span>INVITE FRIENDS</span>
             {rd && rd.unlocked === false ? (
               <>
                 <b>Earn BTC</b>
                 <small className="sub">Unlocks with a miner</small>
-              </>
-            ) : friends === 0 ? (
-              <>
-                <b>Earn BTC</b>
-                <small className="sub">{rd?.reward || 'Invite friends'}</small>
               </>
             ) : (
               <>
