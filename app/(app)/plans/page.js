@@ -157,7 +157,7 @@ export default function Plans() {
               aria-label={`${p.name}, ${p.th} terahash, $${p.price}`}
             >
               {p.featured && <span className="tag">Most chosen</span>}
-              <RigArt units={a.units} speed={a.speed} id={p.id} />
+              <RigArt kind={a.kind} units={a.units} speed={a.speed} id={p.id} />
               <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
               <div className="tprice">${p.price.toLocaleString()}</div>
               <div className="tmeta">{p.days} days · <b>~{p.daily}</b>/day</div>
