@@ -1,9 +1,9 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Field from '@/components/Field';
-import { drillBack } from '@/lib/nav';
+import { drillBack, markDrill, unwind } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
 
 const COUNTRIES = [
@@ -70,6 +70,23 @@ export default function Kyc() {
   const [errors, setErrors] = useState({});
   const [done, setDone] = useState(false);
 
+  // Each step after the first owns a history entry, so the system back button steps back.
+  const pushed = useRef(0);
+  const finishing = useRef(false);
+  useEffect(() => {
+    const onPop = () => {
+      if (finishing.current) {
+        finishing.current = false;
+        return;
+      }
+      pushed.current = Math.max(0, pushed.current - 1);
+      setErrors({});
+      setStep((s) => Math.max(0, s - 1));
+    };
+    window.addEventListener('popstate', onPop);
+    return () => window.removeEventListener('popstate', onPop);
+  }, []);
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [step, done]);
@@ -96,6 +113,13 @@ export default function Kyc() {
       localStorage.setItem('opus-kyc', 'pending');
     } catch {}
     triggerHaptic('success');
+    // Drop the step entries so back from the confirmation leaves the flow.
+    if (pushed.current > 0) {
+      const n = pushed.current;
+      pushed.current = 0;
+      finishing.current = true;
+      unwind(n);
+    }
     setDone(true);
   }
 
@@ -108,14 +132,17 @@ export default function Kyc() {
     }
     triggerHaptic('light');
     setErrors({});
-    if (step < 3) setStep(step + 1);
-    else submit();
+    if (step < 3) {
+      window.history.pushState({ opusStep: true }, '');
+      markDrill();
+      pushed.current += 1;
+      setStep(step + 1);
+    } else submit();
   }
 
   function prev() {
     triggerHaptic('selection');
-    setErrors({});
-    setStep(step - 1);
+    window.history.back();
   }
 
   return (
@@ -128,7 +155,8 @@ export default function Kyc() {
             aria-label="Back to settings"
             onClick={(e) => {
               e.preventDefault();
-              drillBack(router, '/settings');
+              if (step > 0 && !done) window.history.back();
+              else drillBack(router, '/settings');
             }}
           >
             {chev}
