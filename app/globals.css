@@ -1151,6 +1151,48 @@ main {
 .art .eq { transform-box: fill-box; transform-origin: bottom; animation: eq 1.2s ease-in-out infinite; }
 .art .flow { stroke-dasharray: 6 6; animation: flow 1s linear infinite; }
 
+/* Earnings: live mining strip, projection and miner rail */
+.lstrip { display: flex; align-items: center; gap: 12px; }
+.lstrip .art { flex: none; width: 112px; margin: 0; }
+.lstrip .art svg { height: 88px; }
+.lstrip .li { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.lstrip .hr { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.lstrip .hr b { font-size: 24px; line-height: 32px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
+.lstrip .hr b small { margin-left: 6px; font-size: 12px; font-weight: 400; color: var(--mute); }
+.lstrip .hr span { display: flex; align-items: center; gap: 6px; flex: none; font-size: 12px; line-height: 16px; color: var(--green); }
+.lstrip .hr span i { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1.3s ease-in-out infinite; }
+.meter { display: flex; align-items: flex-end; gap: 3px; height: 24px; }
+.meter i { flex: 1; height: 100%; border-radius: 2px; background: linear-gradient(to top, var(--gold), var(--gold2)); transform-origin: bottom; animation: meter 1.4s ease-in-out infinite; }
+.meter.off i { animation: none; transform: scaleY(0.12); opacity: 0.4; }
+@keyframes meter { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+.ticker { display: grid; gap: 2px; min-height: 48px; align-content: start; }
+.ticker > div { display: flex; justify-content: space-between; font-size: 12px; line-height: 16px; color: var(--mute); animation: tkin 0.4s ease; }
+.ticker > div:first-child { color: var(--text); }
+.ticker b { font-weight: 500; }
+@keyframes tkin { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+
+.proj { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px; }
+.proj > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.proj span { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.4px; color: var(--mute); }
+.proj b { font-size: 20px; line-height: 28px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
+.proj small { font-size: 12px; line-height: 16px; color: var(--mute); }
+.card > .bar { margin-top: 14px; }
+.card > .bar i { animation: none; transition: width 1s ease; }
+
+.mrail { display: flex; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; padding-bottom: 4px; }
+.mrail::-webkit-scrollbar { display: none; }
+.mcard { flex: none; width: 136px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 4px; padding: 10px; border-radius: 16px; background: var(--s2); color: inherit; text-decoration: none; transition: background 0.2s; }
+.mcard:active { background: var(--s3); }
+.mcard .art { margin: 0 0 4px; }
+.mcard .art svg { height: 64px; }
+.mcard b { font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mcard .row2 { display: flex; justify-content: space-between; align-items: center; font-size: 12px; line-height: 16px; color: var(--mute); }
+.mcard .row2 em { font-style: normal; color: var(--green); }
+.mcard .st { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.mcard.off { opacity: 0.6; }
+.mcard.off .st { background: var(--mute); }
+@media (hover: hover) { .mcard:hover { background: var(--s3); } }
+
 /* Modal bottom sheet */
 .sheet {
   position: fixed;
