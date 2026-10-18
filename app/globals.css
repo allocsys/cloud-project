@@ -337,6 +337,34 @@ nav a[aria-current=page] .ind { background: var(--gold-c); color: var(--on-gold-
   nav a[aria-current=page]:hover .ind { background: var(--gold-c); }
 }
 
+/* Raised centre action */
+nav a.fab {
+  align-self: flex-start;
+  min-height: 0;
+  margin-top: -24px;
+}
+
+nav a.fab .lbl { display: none; }
+nav a.fab svg { width: 26px; height: 26px; }
+
+nav a.fab .ind,
+nav a.fab:hover .ind,
+nav a.fab:active .ind,
+nav a.fab[aria-current=page] .ind,
+nav a.fab[aria-current=page]:hover .ind {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--gold);
+  color: var(--on-gold);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45);
+}
+
+nav a.fab[aria-current=page] .ind,
+nav a.fab[aria-current=page]:hover .ind {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.45), 0 0 0 3px var(--gold-c);
+}
+
 main {
   flex: 1;
   padding: 0 16px calc(96px + env(safe-area-inset-bottom, 0px));
@@ -730,6 +758,94 @@ main {
 .switch[aria-checked=true] { background: var(--gold); border-color: var(--gold); }
 .switch[aria-checked=true] i { left: 20px; width: 24px; height: 24px; margin-top: -12px; background: var(--on-gold); }
 
+/* Invite */
+.codebox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border: 1px dashed var(--gold);
+  border-radius: 12px;
+  background: rgba(233, 196, 106, 0.06);
+}
+
+.codebox b {
+  font-size: 22px;
+  line-height: 28px;
+  font-weight: 500;
+  letter-spacing: 0.14em;
+  color: var(--gold2);
+}
+
+.codebox .btn { width: auto; min-height: 36px; padding: 0 18px; font-size: 13px; }
+
+.steps3 { display: flex; margin-top: 16px; }
+
+.st {
+  flex: 1;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  min-width: 0;
+}
+
+.st + .st::before {
+  content: '';
+  position: absolute;
+  top: 19px;
+  right: 50%;
+  width: 100%;
+  border-top: 2px dotted rgba(233, 196, 106, 0.35);
+}
+
+.st b { font-size: 13px; line-height: 18px; font-weight: 500; }
+.st > span:last-child { font-size: 11px; line-height: 14px; color: var(--mute); padding: 0 4px; }
+
+.sico {
+  position: relative;
+  z-index: 1;
+  width: 40px;
+  height: 40px;
+  flex: none;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gold-c);
+  color: var(--on-gold-c);
+  margin-bottom: 6px;
+}
+
+.sico svg { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+.linkrow { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.linktile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 14px;
+  border: 0;
+  border-radius: 16px;
+  background: var(--s2);
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.linktile:active { background: var(--s3); }
+.linktile .sico { width: 36px; height: 36px; margin-bottom: 8px; }
+.linktile b { font-size: 14px; line-height: 20px; font-weight: 500; }
+.linktile .sub { font-size: 12px; line-height: 16px; color: var(--mute); }
+
+@media (hover: hover) {
+  .linktile:hover { background: var(--s3); }
+}
+
 /* Plan tiles */
 .tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .tiles .tile:last-child:nth-child(odd) { grid-column: 1 / -1; }
@@ -824,6 +940,9 @@ main {
 .sheet .card {
   width: 100%;
   max-width: 480px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
   background: var(--s3);
   border-radius: 28px 28px 0 0;
   padding: 12px 24px max(24px, env(safe-area-inset-bottom, 24px));
@@ -933,6 +1052,23 @@ main {
   nav a:hover { background: rgba(255, 255, 255, 0.06); }
   nav a[aria-current=page],
   nav a[aria-current=page]:hover { background: var(--gold-c); color: var(--on-gold-c); }
+
+  nav a.fab { align-self: auto; min-height: 56px; margin-top: 0; }
+  nav a.fab .lbl { display: inline; }
+  nav a.fab svg { width: 24px; height: 24px; }
+
+  nav a.fab .ind,
+  nav a.fab:hover .ind,
+  nav a.fab:active .ind,
+  nav a.fab[aria-current=page] .ind,
+  nav a.fab[aria-current=page]:hover .ind {
+    width: auto;
+    height: auto;
+    border-radius: 0;
+    background: none;
+    color: inherit;
+    box-shadow: none;
+  }
 
   nav .out { display: flex; margin-top: auto; }
 
