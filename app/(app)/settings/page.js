@@ -5,7 +5,8 @@ import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
-import { signOut, useApi } from '@/lib/api';
+import { post, signOut, useApi } from '@/lib/api';
+import Field from '@/components/Field';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
@@ -31,6 +32,11 @@ export default function Settings() {
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
+  const [pwOpen, setPwOpen] = useState(false);
+  const [cur, setCur] = useState('');
+  const [nw, setNw] = useState('');
+  const [pwErr, setPwErr] = useState({});
+  const [pwBusy, setPwBusy] = useState(false);
 
   useEffect(() => {
     setTheme(readTheme());
@@ -83,9 +89,42 @@ export default function Settings() {
     setAlerts({ ...alerts, [key]: !alerts[key] });
   }
 
-  function todo(msg) {
-    triggerHaptic('light');
-    show(msg);
+  function togglePw() {
+    triggerHaptic('selection');
+    setPwOpen(!pwOpen);
+    setCur('');
+    setNw('');
+    setPwErr({});
+  }
+
+  async function savePw(e) {
+    e.preventDefault();
+    if (pwBusy) return;
+    const next = {};
+    if (!cur) next.current = 'Enter your current password.';
+    if (nw.length < 8) next.password = 'New password needs at least 8 characters.';
+    if (next.current || next.password) {
+      triggerHaptic('error');
+      setPwErr(next);
+      const el = document.getElementById(next.current ? 'pc' : 'pn');
+      if (el) el.focus();
+      return;
+    }
+    setPwErr({});
+    setPwBusy(true);
+    try {
+      await post('/api/auth/password', { current: cur, password: nw });
+      triggerHaptic('success');
+      setPwOpen(false);
+      setCur('');
+      setNw('');
+      show('Password updated');
+    } catch (err) {
+      triggerHaptic('error');
+      setPwErr(err.field === 'current' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setPwBusy(false);
+    }
   }
 
   function verify() {
@@ -112,7 +151,6 @@ export default function Settings() {
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
               <small>{me ? me.email || (me.demo ? 'Demo account' : me.name ? `Telegram · ${me.name}` : 'Telegram account') : account.email}</small>
             </div>
-            <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
           </div>
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
@@ -126,10 +164,53 @@ export default function Settings() {
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
             <Switch on={twofa} onChange={flip2fa} label="Two-factor authentication" />
           </div>
-          <div className="row">
-            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Password</div>
-            <button className="btn ghost" type="button" onClick={() => todo('Coming soon')}>Change</button>
-          </div>
+          {me?.email && (
+            <>
+              <div className="row">
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Password</div>
+                <button className="btn ghost" type="button" aria-expanded={pwOpen} onClick={togglePw}>{pwOpen ? 'Cancel' : 'Change'}</button>
+              </div>
+              {pwOpen && (
+                <form onSubmit={savePw} noValidate style={{ paddingBottom: '8px' }}>
+                  <Field id="pc" label="Current password" error={pwErr.current}>
+                    <input
+                      id="pc"
+                      type="password"
+                      className={pwErr.current ? 'bad' : undefined}
+                      aria-invalid={!!pwErr.current}
+                      aria-describedby={pwErr.current ? 'pc-err' : undefined}
+                      autoComplete="current-password"
+                      value={cur}
+                      onChange={(e) => {
+                        setCur(e.target.value);
+                        if (pwErr.current) setPwErr({ ...pwErr, current: undefined });
+                      }}
+                    />
+                  </Field>
+                  <Field id="pn" label="New password" error={pwErr.password}>
+                    <input
+                      id="pn"
+                      type="password"
+                      className={pwErr.password ? 'bad' : undefined}
+                      aria-invalid={!!pwErr.password}
+                      aria-describedby={pwErr.password ? 'pn-err' : undefined}
+                      autoComplete="new-password"
+                      placeholder="At least 8 characters"
+                      value={nw}
+                      onChange={(e) => {
+                        setNw(e.target.value);
+                        if (pwErr.password) setPwErr({ ...pwErr, password: undefined });
+                      }}
+                    />
+                  </Field>
+                  {pwErr.form && <div className="ferr" role="alert">{pwErr.form}</div>}
+                  <button className="btn" type="submit" disabled={pwBusy} style={{ marginTop: '10px' }}>
+                    {pwBusy ? 'Updating...' : 'Update password'}
+                  </button>
+                </form>
+              )}
+            </>
+          )}
           {!inst.standalone && (inst.can || inst.ios) && (
             <div className="row">
               <div>
