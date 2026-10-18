@@ -1,9 +1,8 @@
 'use client';
 import { useEffect, useState } from 'react';
-import Link from 'next/link';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
-import { contracts, earnings, halls, stats, TODAY_BTC } from '@/lib/data';
+import { contracts, earnings, stats, TODAY_BTC } from '@/lib/data';
 
 const totalTh = contracts.reduce((s, c) => s + c.th, 0);
 
@@ -156,7 +155,7 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="grid cols">
+        <div className="grid">
           <div className="card">
             <div className="cardhead">
               <div>
@@ -176,32 +175,6 @@ export default function Dashboard() {
                 ))}
               </div>
             </div>
-          </div>
-
-          <div className="card ctr">
-            <div className="cardhead">
-              <h3>Contracts</h3>
-              <span className="mute">{contracts.length} running</span>
-            </div>
-            {contracts.map((c) => {
-              const pct = Math.round((c.elapsed / c.days) * 100);
-              return (
-                <Link key={c.serial} href={`/contracts/${c.serial}`} className="mini ccard">
-                  <div className="t">
-                    <b><i className="sdot" />{c.plan}</b>
-                    <span>Day {c.elapsed}/{c.days}</span>
-                  </div>
-                  <div className="mchips">
-                    <span>{c.th} TH/s</span>
-                    <span>{halls[c.hall].efficiency}</span>
-                    <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
-                  </div>
-                  <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
-                    <i style={{ width: `${pct}%` }} />
-                  </div>
-                </Link>
-              );
-            })}
           </div>
         </div>
       </div>
