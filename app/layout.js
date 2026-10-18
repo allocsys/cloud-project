@@ -11,7 +11,10 @@ export const metadata = {
   description: 'Rent hash power and mine bitcoin without owning a machine.',
   applicationName: 'Opus',
   icons: {
-    icon: [{ url: '/icons/192', sizes: '192x192', type: 'image/png' }],
+    icon: [
+      { url: '/logo.svg', type: 'image/svg+xml' },
+      { url: '/icons/192', sizes: '192x192', type: 'image/png' },
+    ],
     apple: [{ url: '/icons/apple', sizes: '180x180', type: 'image/png' }],
   },
   appleWebApp: {
