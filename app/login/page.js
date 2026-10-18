@@ -8,6 +8,9 @@ import { post, clearApiCache, signOut } from '@/lib/api';
 export default function Login() {
   const router = useRouter();
   const [signup, setSignup] = useState(false);
+  const [view, setView] = useState(null); // null: sign in or sign up. 'forgot': ask for a reset link. 'reset': choose a new password.
+  const [rtoken, setRtoken] = useState(''); // the token from the emailed link
+  const [sent, setSent] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState({});
@@ -40,12 +43,26 @@ export default function Login() {
     } catch {}
   }, []);
 
+  // A reset link (/login?reset=TOKEN&email=...) opens the new-password screen. The token is removed from the address bar.
+  useEffect(() => {
+    try {
+      const q = new URLSearchParams(window.location.search);
+      const t = (q.get('reset') || '').trim().slice(0, 100);
+      const m = (q.get('email') || '').trim().slice(0, 120);
+      if (!t || !m) return;
+      setRtoken(t);
+      setEmail(m);
+      setView('reset');
+      window.history.replaceState(null, '', '/login');
+    } catch {}
+  }, []);
+
   async function submit(e) {
     e.preventDefault();
     if (notice) return router.replace('/dashboard');
     const next = {};
-    if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
-    if (password.length < 8) next.password = 'Password needs at least 8 characters.';
+    if (view !== 'reset' && !/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
+    if (view !== 'forgot' && password.length < 8) next.password = 'Password needs at least 8 characters.';
     if (next.email || next.password) {
       triggerHaptic('error');
       setErrors(next);
@@ -57,13 +74,23 @@ export default function Login() {
     setErrors({});
     setLoading(true);
     try {
-      const res = await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
+      if (view === 'forgot') {
+        await post('/api/auth/reset', { email: email.trim() });
+        triggerHaptic('success');
+        setSent(true);
+        setLoading(false);
+        return;
+      }
+      const res =
+        view === 'reset'
+          ? await post('/api/auth/reset/confirm', { email: email.trim(), token: rtoken, password })
+          : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
       try {
-        if (signup) localStorage.removeItem('opus-ref');
+        if (signup && !view) localStorage.removeItem('opus-ref');
       } catch {}
       triggerHaptic('success');
-      if (signup && res?.ref === 'invalid') {
+      if (!view && signup && res?.ref === 'invalid') {
         setNotice(`Account created. Invite code ${ref} was not recognised.`);
         setLoading(false);
         return;
@@ -78,7 +105,19 @@ export default function Login() {
 
   function handleSwap() {
     triggerHaptic('selection');
-    setSignup(!signup);
+    if (view) {
+      setView(null);
+      setSent(false);
+      setPassword('');
+    } else setSignup(!signup);
+    setErrors({});
+  }
+
+  function handleForgot() {
+    triggerHaptic('selection');
+    setView('forgot');
+    setSent(false);
+    setPassword('');
     setErrors({});
   }
 
@@ -117,96 +156,134 @@ export default function Login() {
     <section id="auth">
       <form className="authbox" onSubmit={submit} noValidate>
         <div className="mark">O</div>
-        <h1>Mine bitcoin without owning a single machine.</h1>
-        <p className="mute">Rent hash power, watch earnings arrive every day, withdraw whenever you like.</p>
+        {view ? (
+          <>
+            <h1>{view === 'forgot' ? 'Forgot your password?' : 'Choose a new password'}</h1>
+            <p className="mute">{view === 'forgot' ? 'Enter your email and we will send you a reset link.' : `For ${email}. You will be signed in afterwards.`}</p>
+          </>
+        ) : (
+          <>
+            <h1>Mine bitcoin without owning a single machine.</h1>
+            <p className="mute">Rent hash power, watch earnings arrive every day, withdraw whenever you like.</p>
 
-        <div className="trust">
-          <span>Daily payouts</span>
-          <span>No hardware</span>
-          <span>Withdraw anytime</span>
-        </div>
+            <div className="trust">
+              <span>Daily payouts</span>
+              <span>No hardware</span>
+              <span>Withdraw anytime</span>
+            </div>
+          </>
+        )}
 
-        <Field id="em" label="Email" error={errors.email}>
-          <input
-            id="em"
-            type="email"
-            className={errors.email ? 'bad' : undefined}
-            aria-invalid={!!errors.email}
-            aria-describedby={errors.email ? 'em-err' : undefined}
-            autoComplete="email"
-            autoCapitalize="none"
-            autoCorrect="off"
-            spellCheck="false"
-            placeholder="you@example.com"
-            value={email}
-            onChange={(e) => {
-              setEmail(e.target.value);
-              if (errors.email) setErrors({ ...errors, email: undefined });
-            }}
-          />
-        </Field>
-
-        <Field
-          id="pw"
-          label="Password"
-          error={errors.password}
-          className="pw"
-          side={
-            <button
-              type="button"
-              className="pwtoggle"
-              aria-pressed={show}
-              onClick={() => {
-                triggerHaptic('selection');
-                setShow(!show);
+        {view !== 'reset' && (
+          <Field id="em" label="Email" error={errors.email}>
+            <input
+              id="em"
+              type="email"
+              className={errors.email ? 'bad' : undefined}
+              aria-invalid={!!errors.email}
+              aria-describedby={errors.email ? 'em-err' : undefined}
+              autoComplete="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              placeholder="you@example.com"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (errors.email) setErrors({ ...errors, email: undefined });
               }}
-            >
-              {show ? 'Hide' : 'Show'}
-            </button>
-          }
-        >
-          <input
+            />
+          </Field>
+        )}
+
+        {view !== 'forgot' && (
+          <Field
             id="pw"
-            type={show ? 'text' : 'password'}
-            className={errors.password ? 'bad' : undefined}
-            aria-invalid={!!errors.password}
-            aria-describedby={errors.password ? 'pw-err' : undefined}
-            autoComplete={signup ? 'new-password' : 'current-password'}
-            placeholder="At least 8 characters"
-            value={password}
-            onChange={(e) => {
-              setPassword(e.target.value);
-              if (errors.password) setErrors({ ...errors, password: undefined });
-            }}
-          />
-        </Field>
+            label={view === 'reset' ? 'New password' : 'Password'}
+            error={errors.password}
+            className="pw"
+            side={
+              <button
+                type="button"
+                className="pwtoggle"
+                aria-pressed={show}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setShow(!show);
+                }}
+              >
+                {show ? 'Hide' : 'Show'}
+              </button>
+            }
+          >
+            <input
+              id="pw"
+              type={show ? 'text' : 'password'}
+              className={errors.password ? 'bad' : undefined}
+              aria-invalid={!!errors.password}
+              aria-describedby={errors.password ? 'pw-err' : undefined}
+              autoComplete={signup || view === 'reset' ? 'new-password' : 'current-password'}
+              placeholder="At least 8 characters"
+              value={password}
+              onChange={(e) => {
+                setPassword(e.target.value);
+                if (errors.password) setErrors({ ...errors, password: undefined });
+              }}
+            />
+          </Field>
+        )}
 
         {errors.form && <div className="ferr" role="alert">{errors.form}</div>}
 
         <div style={{ height: '14px' }} />
 
         <button className="btn" type="submit" disabled={loading}>
-          {loading ? 'Authenticating...' : notice ? 'Continue' : signup ? 'Create account' : 'Sign in'}
+          {loading
+            ? view === 'forgot'
+              ? 'Sending...'
+              : 'Authenticating...'
+            : view === 'forgot'
+              ? sent
+                ? 'Send again'
+                : 'Send reset link'
+              : view === 'reset'
+                ? 'Set new password'
+                : notice
+                  ? 'Continue'
+                  : signup
+                    ? 'Create account'
+                    : 'Sign in'}
         </button>
 
+        {view === 'forgot' && sent && (
+          <p className="fine" role="status">If an account exists for that email, a reset link is on its way. It works for 30 minutes.</p>
+        )}
         {notice && <p className="fine" role="status">{notice}</p>}
-        {!notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.</p>}
-        {signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
+        {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.</p>}
+        {!view && signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
+
+        {!view && !signup && (
+          <button className="swap" type="button" onClick={handleForgot}>
+            Forgot password?
+          </button>
+        )}
 
         <button className="swap" type="button" onClick={handleSwap}>
-          {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
+          {view ? 'Back to sign in' : signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
 
-        {tg && (
+        {!view && tg && (
           <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
             {tgBusy ? 'Connecting...' : 'Continue with Telegram'}
           </button>
         )}
 
         {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
-        <button className="btn ghost" type="button" onClick={handleSkip}>
-          Skip login for now
-        </button>
+        {!view && (
+          <button className="btn ghost" type="button" onClick={handleSkip}>
+            Skip login for now
+          </button>
+        )}
       </form>
     </section>
   );
