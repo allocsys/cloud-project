@@ -930,11 +930,15 @@ main {
 .clist { display: grid; gap: 12px; }
 .cl { display: flex; flex-direction: column; gap: 10px; color: inherit; text-decoration: none; transition: background 0.2s; }
 .cl:active { background: var(--s3); }
-.cl .hd { display: flex; align-items: center; gap: 12px; }
-.cl .hd div { flex: 1; display: flex; flex-direction: column; min-width: 0; }
-.cl .hd b { font-size: 16px; line-height: 24px; font-weight: 500; }
+.cl .mrow { display: flex; align-items: center; gap: 12px; }
+.cl .art { flex: none; width: 112px; margin: 0; }
+.cl .art svg { height: 88px; }
+.cl .mi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.cl .mt { display: flex; align-items: center; gap: 8px; }
+.cl .mt b { flex: 1; font-size: 16px; line-height: 24px; font-weight: 500; }
 .cl .go { width: 24px; height: 24px; flex: none; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
-.cl .mchips, .cl .bar, .cl .cmeta { margin: 0; }
+.cl .mchips { margin: 0; }
+.cl .bar, .cl .cmeta { margin: 0; }
 @media (hover: hover) { .cl:hover { background: var(--s3); } }
 @media (min-width: 760px) { .clist { grid-template-columns: repeat(2, 1fr); } }
 .sdot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--green); animation: pulse 1.8s ease-out infinite; }
