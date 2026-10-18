@@ -22,6 +22,16 @@ const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
+const REF_FIELDS = [
+  ['firstPct', 'Referrer: first purchase (%)'],
+  ['dailyPct', 'Referrer: friend daily payouts (%)'],
+  ['dailyDays', 'Referrer: daily reward days'],
+  ['capPct', 'Cap (% of friend spend)'],
+  ['refereeTh', 'Friend gift (TH/s, 0 = off)'],
+  ['refereeDays', 'Friend gift term (days)'],
+  ['refereeMinUsd', 'Min first purchase (USD)'],
+  ['monthlyLimit', 'Rewarded friends per month'],
+];
 
 function Stat({ l, v, s }) {
   return (
@@ -157,6 +167,8 @@ export default function Admin() {
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
   const [edit, setEdit] = useState(null); // { kind: 'plan' | 'hall', id, draft }
+  const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
+  const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -279,7 +291,7 @@ export default function Admin() {
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['plans', 'Plans'], ['send', 'Send']].map(([k, l]) => (
+        {[['overview', 'Overview'], ['users', 'Users'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
           <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{l}</button>
         ))}
       </div>
@@ -433,6 +445,61 @@ export default function Admin() {
           </button>
         </div>
       )}
+
+      {tab === 'referrals' && (() => {
+        const R = data.referrals;
+        const d = refDraft || Object.fromEntries(Object.entries(R.settings).map(([k, v]) => [k, String(v)]));
+        const put = (k, v) => setRefDraft({ ...d, [k]: v });
+        const code = tf.code || R.codes[0]?.code || '';
+        const planId = tf.planId || cat.plans[0]?.id || '';
+        return (
+          <div className="adm-stack">
+            <div className="card">
+              <h3>Rewards</h3>
+              {REF_FIELDS.map(([k, l]) => (
+                <Field key={k} id={`rf-${k}`} label={l} inputMode="decimal" value={d[k]} onChange={(v) => put(k, v)} />
+              ))}
+              <p className="fine" style={{ margin: '12px 0 0' }}>
+                The referrer&apos;s total is capped at the cap share of what the friend spends, minus the cost of the friend&apos;s gift miner. Changes apply to rewards from now on.
+              </p>
+              <div className="adm-actions">
+                <button className="btn ghost" disabled={busy} onClick={async () => { if (await run({ action: 'ref-reset' }, 'Reset to defaults')) setRefDraft(null); }}>Defaults</button>
+                <button className="btn" disabled={busy} onClick={async () => { if (await run({ action: 'ref-settings', settings: d }, 'Saved')) setRefDraft(null); }}>Save</button>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3>Try it</h3>
+              <p className="fine" style={{ margin: '0 0 4px' }}>Creates a test friend who signs up with the code and buys the plan.</p>
+              <Pick id="tfc" label="Inviter code" value={code} onChange={(v) => setTf({ ...tf, code: v })}>
+                {R.codes.map((c) => <option key={c.code} value={c.code}>{c.id} · {c.code}</option>)}
+              </Pick>
+              <Pick id="tfp" label="Plan bought" value={planId} onChange={(v) => setTf({ ...tf, planId: v })}>
+                {cat.plans.map((p) => <option key={p.id} value={p.id}>{p.name} · ${fmtUsd(p.price)}</option>)}
+              </Pick>
+              <div style={{ height: 12 }} />
+              <button className="btn" disabled={busy || !code} onClick={() => run({ action: 'ref-test', code, planId }, (r) => `Created ${r.friend}`)}>Create test friend</button>
+            </div>
+
+            <div className="card">
+              <h3>Friends · {R.links.length}</h3>
+              {R.links.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No invited friends yet.</p>}
+              {R.links.map((l) => (
+                <div className="row" key={l.friend}>
+                  <div>
+                    {l.friend}
+                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}</small>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <b>${l.rewardUsd.toFixed(2)}</b>
+                    <small>{l.rewarded ? 'rewarded' : 'pending'}</small>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
 
       {tab === 'send' && (
         <div className="card adm-stack">
