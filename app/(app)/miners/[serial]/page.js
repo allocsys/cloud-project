@@ -1,10 +1,11 @@
 'use client';
 import { useState } from 'react';
 import Link from 'next/link';
-import { useParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls, contractDaily, BTC_USD } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
 import RigArt, { rigFor } from '@/components/RigArt';
+import { drillBack } from '@/lib/nav';
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -13,9 +14,20 @@ const chev = (
 );
 
 function Back({ title }) {
+  const router = useRouter();
   return (
     <div className="tl">
-      <Link href="/plans" replace className="back" aria-label="Back to plans">{chev}</Link>
+      <Link
+        href="/plans"
+        className="back"
+        aria-label="Back to plans"
+        onClick={(e) => {
+          e.preventDefault();
+          drillBack(router, '/plans');
+        }}
+      >
+        {chev}
+      </Link>
       <h2>{title}</h2>
     </div>
   );
