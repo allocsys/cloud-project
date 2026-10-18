@@ -82,7 +82,7 @@ function ChartBox({ rows }) {
         </defs>
         <path d={`${line} L300 120 L0 120Z`} fill="url(#g)" />
         <path d={line} fill="none" stroke="#f6dc9a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
-        {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="#fff" stroke="#12110d" strokeWidth="2" />}
+        {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="var(--gold2)" stroke="var(--bg)" strokeWidth="2" />}
       </svg>
       {a && (
         <>
