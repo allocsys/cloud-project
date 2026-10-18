@@ -6,6 +6,7 @@ import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote } from '@/lib/assets';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
+import Field from '@/components/Field';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -179,21 +180,21 @@ export default function Wallet() {
 
             {tab === 'withdraw' ? (
               <div>
-                <label htmlFor="wa" style={{ marginTop: 4 }}>Amount in BTC (min {MIN_WITHDRAW})</label>
-                <input
-                  id="wa"
-                  inputMode="decimal"
-                  className={errors.amount ? 'bad' : undefined}
-                  aria-invalid={!!errors.amount}
-                  aria-describedby={errors.amount ? 'wa-err' : undefined}
-                  placeholder="0.00000000"
-                  value={amount}
-                  onChange={(e) => {
-                    setAmount(e.target.value);
-                    if (errors.amount) setErrors({ ...errors, amount: undefined });
-                  }}
-                />
-                {errors.amount && <div className="ferr" id="wa-err" role="alert">{errors.amount}</div>}
+                <Field id="wa" label={`Amount in BTC · min ${MIN_WITHDRAW}`} error={errors.amount}>
+                  <input
+                    id="wa"
+                    inputMode="decimal"
+                    className={errors.amount ? 'bad' : undefined}
+                    aria-invalid={!!errors.amount}
+                    aria-describedby={errors.amount ? 'wa-err' : undefined}
+                    placeholder="0.00000000"
+                    value={amount}
+                    onChange={(e) => {
+                      setAmount(e.target.value);
+                      if (errors.amount) setErrors({ ...errors, amount: undefined });
+                    }}
+                  />
+                </Field>
                 <div className="pct-row">
                   {[0.25, 0.5, 0.75, 1].map((p) => (
                     <button key={p} type="button" className="pct-btn" onClick={() => setFraction(p)}>
@@ -202,23 +203,23 @@ export default function Wallet() {
                   ))}
                 </div>
 
-                <label htmlFor="wd" style={{ marginTop: 0 }}>{A.sym} address{A.nets && Object.keys(A.nets).length > 1 ? ` (${N.short})` : ''}</label>
-                <input
-                  id="wd"
-                  className={errors.address ? 'bad' : undefined}
-                  aria-invalid={!!errors.address}
-                  aria-describedby={errors.address ? 'wd-err' : undefined}
-                  placeholder={net === 'btc' ? 'bc1q…' : net === 'trc20' ? 'T…' : '0x…'}
-                  autoCapitalize="none"
-                  autoCorrect="off"
-                  spellCheck="false"
-                  value={address}
-                  onChange={(e) => {
-                    setAddress(e.target.value);
-                    if (errors.address) setErrors({ ...errors, address: undefined });
-                  }}
-                />
-                {errors.address && <div className="ferr" id="wd-err" role="alert">{errors.address}</div>}
+                <Field id="wd" label={`${A.sym} address${A.nets && Object.keys(A.nets).length > 1 ? ` (${N.short})` : ''}`} error={errors.address}>
+                  <input
+                    id="wd"
+                    className={errors.address ? 'bad' : undefined}
+                    aria-invalid={!!errors.address}
+                    aria-describedby={errors.address ? 'wd-err' : undefined}
+                    placeholder={net === 'btc' ? 'bc1q…' : net === 'trc20' ? 'T…' : '0x…'}
+                    autoCapitalize="none"
+                    autoCorrect="off"
+                    spellCheck="false"
+                    value={address}
+                    onChange={(e) => {
+                      setAddress(e.target.value);
+                      if (errors.address) setErrors({ ...errors, address: undefined });
+                    }}
+                  />
+                </Field>
 
                 <div className="quote" aria-live="polite">
                   {q ? (
