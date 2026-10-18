@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@/lib/data';
+import { useApi, post } from '@/lib/api';
 import { drillBack } from '@/lib/nav';
 
 const KIND = {
@@ -19,18 +20,25 @@ const chev = (
   </svg>
 );
 
+// Shown until the server answers the first time.
+const seedItems = notifications.map((n) => ({ ...n, read: false }));
+
 export default function Notifications() {
   const router = useRouter();
-  const [fresh, setFresh] = useState(0);
+  const { data: nd, mutate } = useApi('/api/notifications', { ttl: 5000 });
+  const items = nd ? nd.items : seedItems;
+  // Ids that were new when the screen opened. They keep their dot while you read, then count as read.
+  const [fresh, setFresh] = useState(null);
 
-  // Placeholder read state. Your API should say which notifications are new.
   useEffect(() => {
-    try {
-      const seen = parseInt(localStorage.getItem('opus-notif-seen') || '0', 10) || 0;
-      setFresh(Math.max(0, notifications.length - seen));
-      localStorage.setItem('opus-notif-seen', String(notifications.length));
-    } catch {}
-  }, []);
+    if (!nd || fresh) return;
+    const ids = new Set(nd.items.filter((n) => !n.read).map((n) => n.id));
+    setFresh(ids);
+    if (ids.size) {
+      mutate({ ...nd, items: nd.items.map((n) => ({ ...n, read: true })), unread: 0 });
+      post('/api/notifications/read', {}).catch(() => {});
+    }
+  }, [nd, fresh, mutate]);
 
   return (
     <>
@@ -52,8 +60,8 @@ export default function Notifications() {
       </div>
 
       <div className="card">
-        {notifications.length ? (
-          notifications.map((n, i) => {
+        {items.length ? (
+          items.map((n, i) => {
             const k = KIND[n.kind] || KIND.news;
             return (
               <div key={n.id} className="row" style={i === 0 ? { borderTop: 0, alignItems: 'flex-start' } : { alignItems: 'flex-start' }}>
@@ -65,7 +73,7 @@ export default function Notifications() {
                   </div>
                 </div>
                 <div className="nmeta">
-                  {i < fresh && <i className="ndot" aria-label="New" />}
+                  {fresh && fresh.has(n.id) && <i className="ndot" aria-label="New" />}
                   <small>{n.when}</small>
                 </div>
               </div>

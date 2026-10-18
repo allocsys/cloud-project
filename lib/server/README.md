@@ -11,11 +11,17 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | `POST /api/plans/buy` | `{ planId }`, header `Idempotency-Key`; returns the new contract and a history entry | `no-store` |
 | `GET /api/wallet` | `{ earned, withdrawn, history, asOf }` | `no-store`; browser stale-while-revalidate copy |
 | `POST /api/wallet/withdraw` | `{ asset, net, amount, address }`, `amount` in the coin; header `Idempotency-Key` | `no-store` |
+| `GET /api/dashboard` | `{ totalTh, todayBtc, earnings, stats }` | `no-store`; browser copy |
+| `GET /api/notifications` | `{ items, unread }` | `no-store`; browser copy |
+| `POST /api/notifications/read` | marks everything read | `no-store` |
+| `GET /api/referrals` | `{ code, ratePct, rules, earnedBtc, friends }` | `no-store`; browser copy |
 
 Why the app stays fast: screens render from the cached copy (`lib/api.js`) immediately and refresh quietly.
 Quote previews are computed in the browser from the cached prices (`lib/assets.js`, shared with the server), so typing
 never waits on the network. Buying a plan and withdrawing update the screen first and roll back if the server says no.
 The server recomputes everything on submit and is the authority.
+
+Buying a plan and withdrawing also add a notification, and `totalTh` on the dashboard follows the miners you own.
 
 Prices come from CoinGecko, falling back to the static prices in `lib/assets.js`. `PRICE_FEED=static` turns the feed off.
 
@@ -23,6 +29,7 @@ To replace before launch:
 - `lib/server/db.js`: the in-memory store (use Postgres) and the single demo user (pass the signed-in user id).
 - `lib/server/wallet.js`: the accrual maths (`SATS_PER_SEC`) and the payout of withdrawals.
 - `lib/server/miners.js`: take payment before activating a plan (see the TODO).
+- `lib/server/account.js`: real earnings, uptime and hashrate series, and the referral code and friends per user.
 - Auth on every route. Sign out already calls `clearApiCache()`.
 - Deposit addresses (`NETWORKS` in `lib/assets.js`).
-- Still on local data: dashboard, notifications, referrals and KYC (`lib/data.js`).
+- Still on local data: KYC (`lib/data.js`) and the Earnings total mined counter, which is a simulated feed.
