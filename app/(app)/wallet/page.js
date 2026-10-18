@@ -237,7 +237,7 @@ export default function Wallet() {
                     className={errors.address ? 'bad' : undefined}
                     aria-invalid={!!errors.address}
                     aria-describedby={errors.address ? 'wd-err' : undefined}
-                    placeholder={net === 'btc' ? 'bc1q…' : net === 'trc20' ? 'T…' : '0x…'}
+                    placeholder={net === 'btc' ? 'bc1q…' : net === 'trc20' ? 'T…' : net === 'ton' ? 'UQ…' : '0x…'}
                     autoCapitalize="none"
                     autoCorrect="off"
                     spellCheck="false"
