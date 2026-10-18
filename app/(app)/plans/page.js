@@ -234,11 +234,11 @@ export default function Plans() {
             <div className="sheetbody">
               <div className="row">
                 <span className="mute">Hall</span>
-                <b>{hall.name}</b>
+                <b className="v">{hall.name}<small>{hall.power}</small></b>
               </div>
               <div className="row">
-                <span className="mute">Power</span>
-                <b>{hall.power} · {hall.efficiency}</b>
+                <span className="mute">Rig</span>
+                <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
               </div>
               <div className="row">
                 <span className="mute">Miner ID</span>
@@ -249,6 +249,9 @@ export default function Plans() {
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${sel.price.toLocaleString()}</b>
               </div>
             </div>
+            <p className="fine" style={{ margin: '-8px 0 12px' }}>
+              ~{sel.daily}/day is an estimate after electricity and maintenance. Real payouts follow BTC price and network difficulty.
+            </p>
             <button className="btn" autoFocus onClick={pay} disabled={busy}>Confirm &amp; Pay</button>
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
           </div>
