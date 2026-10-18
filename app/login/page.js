@@ -17,6 +17,7 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
   const [ref, setRef] = useState('');
+  const [offer, setOffer] = useState(0); // rebate % the invite code gives, shown before sign-up
   const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
   const [tgBusy, setTgBusy] = useState(false);
   const [notice, setNotice] = useState(''); // set after sign-up when the invite code was not recognised; the page then waits for Continue
@@ -31,6 +32,19 @@ export default function Login() {
     let t = setTimeout(look, 0);
     return () => clearTimeout(t);
   }, []);
+
+  // What the invite code offers (its rebate), so the friend sees it before joining.
+  useEffect(() => {
+    if (!ref) return undefined;
+    let live = true;
+    fetch(`/api/referrals/code?c=${encodeURIComponent(ref)}`)
+      .then((r) => r.json())
+      .then((j) => live && setOffer(j.valid ? j.rebate : 0))
+      .catch(() => {});
+    return () => {
+      live = false;
+    };
+  }, [ref]);
 
   // An invite link (/login?ref=CODE) opens sign-up and keeps the code, which is sent with the sign-up request.
   useEffect(() => {
@@ -259,7 +273,7 @@ export default function Login() {
           <p className="fine" role="status">If an account exists for that email, a reset link is on its way. It works for 30 minutes.</p>
         )}
         {notice && <p className="fine" role="status">{notice}</p>}
-        {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.</p>}
+        {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
         {!view && signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
 
         {!view && !signup && (

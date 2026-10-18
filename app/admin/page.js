@@ -31,6 +31,8 @@ const REF_FIELDS = [
   ['refereeDays', 'Friend gift term (days)'],
   ['refereeMinUsd', 'Min first purchase (USD)'],
   ['monthlyLimit', 'Rewarded friends per month'],
+  ['maxRebate', 'Largest rebate a code can give (%)'],
+  ['maxCodes', 'Codes per user (with the default)'],
 ];
 
 function Stat({ l, v, s }) {
@@ -496,7 +498,7 @@ export default function Admin() {
                 <div className="row" key={l.friend}>
                   <div>
                     {l.friend}
-                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}</small>
+                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${l.rewardUsd.toFixed(2)}</b>

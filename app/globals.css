@@ -1517,3 +1517,17 @@ a.stat:active { background: var(--s3); }
 .page { animation: rise 0.3s cubic-bezier(0.2, 0, 0, 1); }
 
 /* Animations always play, including on devices with reduced motion enabled. */
+
+/* Invite codes and rebate */
+.icode { margin-top: 14px; }
+.icode:first-of-type { margin-top: 10px; }
+.itop { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+.itop b { font-size: 14px; font-weight: 500; }
+.iact { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
+.iact small { font-size: 12px; color: var(--mute); }
+.iact span { display: flex; gap: 4px; }
+.linkbtn { min-height: 36px; padding: 0 12px; border: 0; background: none; color: var(--gold); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.linkbtn:disabled { color: var(--mute); }
+.irebate { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
+.irebate b { font-size: 28px; line-height: 36px; font-weight: 500; color: var(--gold2); }
+.irebate span { font-size: 13px; line-height: 18px; color: var(--mute); }

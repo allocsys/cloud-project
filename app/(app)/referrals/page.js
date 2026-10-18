@@ -2,7 +2,8 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { referral as seed } from '@/lib/data';
-import { useApi } from '@/lib/api';
+import { useApi, post } from '@/lib/api';
+import Field from '@/components/Field';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { useSheetBack } from '@/lib/nav';
@@ -26,14 +27,23 @@ function Icon({ d }) {
 export default function Referrals() {
   const [toast, show] = useToast();
   const [sheet, setSheet] = useState(null);
-  const { data: rd } = useApi('/api/referrals', { ttl: 0 });
+  const { data: rd, mutate } = useApi('/api/referrals', { ttl: 0 });
   const referral = rd || seed;
+  const [name, setName] = useState('');
+  const [pct, setPct] = useState(10);
+  const [edit, setEdit] = useState(null); // the code being edited
+  const [err, setErr] = useState('');
+  const [busy, setBusy] = useState(false);
+  const maxPct = referral.limits?.maxRebate ?? 50;
+  const codes = referral.codes || [{ code: referral.code, name: 'Default', rebate: 0, default: true, friends: referral.friends.length, earnedBtc: referral.earnedBtc }];
+  const canAdd = codes.length < (referral.limits?.maxCodes ?? 5);
+  const presets = [0, 5, 10, 20].filter((p) => p <= maxPct);
   const locked = !!rd && rd.unlocked === false;
   useSheetBack(!!sheet, () => setSheet(null));
 
   // TODO: build the link from your real referral URL.
-  const link = () =>
-    `${typeof window !== 'undefined' ? window.location.origin : ''}/login?ref=${referral.code}`;
+  const link = (code) =>
+    `${typeof window !== 'undefined' ? window.location.origin : ''}/login?ref=${code}`;
 
   function copy(text, msg) {
     triggerHaptic('success');
@@ -41,8 +51,8 @@ export default function Referrals() {
     show(msg);
   }
 
-  async function share() {
-    const url = link();
+  async function share(code) {
+    const url = link(code);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
         await navigator.share({ title: 'Opus Cloud Mining', text: 'Mine bitcoin without owning a machine.', url });
@@ -54,7 +64,37 @@ export default function Referrals() {
 
   function openSheet(name) {
     triggerHaptic('selection');
+    setErr('');
     setSheet(name);
+  }
+
+  function openNew() {
+    setName('');
+    setPct(Math.min(10, maxPct));
+    openSheet('new');
+  }
+
+  function openEdit(c) {
+    setEdit(c);
+    setPct(c.rebate);
+    openSheet('edit');
+  }
+
+  // Create, raise or remove a code. The server answers with the refreshed referral data.
+  async function manage(body, msg) {
+    setBusy(true);
+    setErr('');
+    try {
+      const res = await post('/api/referrals', body);
+      mutate(res);
+      triggerHaptic('success');
+      setSheet(null);
+      show(msg);
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setBusy(false);
+    }
   }
 
   function closeSheet() {
@@ -124,13 +164,37 @@ export default function Referrals() {
             </div>
           ) : (
             <div className="card">
-              <span className="mute eyebrow">Your invite code</span>
-              <div className="codebox" style={{ marginTop: 8 }}>
-                <b>{rd ? referral.code : '········'}</b>
-                <button className="btn" type="button" disabled={!rd} onClick={() => copy(referral.code, 'Code copied')}>Copy</button>
+              <span className="mute eyebrow">Your invite codes</span>
+              {codes.map((c) => (
+                <div key={c.code} className="icode">
+                  <div className="itop">
+                    <b>{c.name}</b>
+                    <span className={`badge ${c.rebate ? 'ok' : ''}`}>{c.rebate ? `${c.rebate}% rebate` : 'No rebate'}</span>
+                  </div>
+                  <div className="codebox">
+                    <b>{rd ? c.code : '········'}</b>
+                    <button className="btn" type="button" disabled={!rd} onClick={() => copy(c.code, 'Code copied')}>Copy</button>
+                  </div>
+                  <div className="iact">
+                    <small>{c.friends} {c.friends === 1 ? 'friend' : 'friends'}</small>
+                    <span>
+                      <button className="linkbtn" type="button" disabled={!rd} onClick={() => share(c.code)}>Share</button>
+                      {!c.default && <button className="linkbtn" type="button" onClick={() => openEdit(c)}>Edit</button>}
+                    </span>
+                  </div>
+                </div>
+              ))}
+              {canAdd && rd && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>New code</button>}
+            </div>
+          )}
+
+          {referral.rebate && (
+            <div className="card">
+              <span className="mute eyebrow">Your rebate</span>
+              <div className="irebate">
+                <b>{referral.rebate.pct}%</b>
+                <span>of what your inviter earns from you comes back to you: +{referral.rebate.btc} BTC so far</span>
               </div>
-              <div style={{ height: 12 }} />
-              <button className="btn ghost" type="button" disabled={!rd} onClick={share}>Share link</button>
             </div>
           )}
 
@@ -174,7 +238,7 @@ export default function Referrals() {
         >
           <div className="card">
             <div className="grab" aria-hidden="true" />
-            <h3 id="rs">{sheet === 'rules' ? 'Invitation rules' : 'Reward history'}</h3>
+            <h3 id="rs">{sheet === 'rules' ? 'Invitation rules' : sheet === 'history' ? 'Reward history' : sheet === 'new' ? 'New code' : edit?.name}</h3>
             <div className="sheetbody">
               {sheet === 'rules' &&
                 referral.rules.map((r) => (
@@ -188,7 +252,7 @@ export default function Referrals() {
                   <div key={f.id} className="row">
                     <div>
                       <div style={{ fontWeight: 500 }}>{f.who}</div>
-                      <small>{f.joined}</small>
+                      <small>{f.joined}{f.rebate > 0 ? ` · ${f.rebate}% rebate` : ''}</small>
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <b className={f.earned === '+0' ? '' : 'up'} style={{ fontVariantNumeric: 'tabular-nums' }}>{f.earned}</b>
@@ -201,7 +265,56 @@ export default function Referrals() {
                   </div>
                 ))}
             </div>
-            <button className="btn" type="button" autoFocus onClick={closeSheet}>Done</button>
+            {(sheet === 'new' || sheet === 'edit') && (() => {
+              const min = sheet === 'edit' ? edit.rebate : 0;
+              return (
+                <div className="sheetbody">
+                  {sheet === 'new' && (
+                    <Field id="cname" label="Name" error={err && !name.trim() ? err : ''}>
+                      <input id="cname" value={name} maxLength={20} placeholder="Name" autoComplete="off" onChange={(e) => setName(e.target.value)} />
+                    </Field>
+                  )}
+                  <div className="slide">
+                    <div className="big"><b>{pct}% rebate</b><span>you keep {100 - pct}%</span></div>
+                    {min < maxPct && (
+                      <>
+                        <input
+                          type="range"
+                          min={min}
+                          max={maxPct}
+                          step="1"
+                          value={pct}
+                          aria-label="Rebate percent"
+                          style={{ '--p': `${((pct - min) / (maxPct - min)) * 100}%` }}
+                          onChange={(e) => setPct(+e.target.value)}
+                        />
+                        <div className="terms" role="group" aria-label="Quick rebate">
+                          {presets.filter((p) => p >= min).map((p) => (
+                            <button key={p} type="button" aria-pressed={pct === p} onClick={() => { triggerHaptic('selection'); setPct(p); }}>{p}%</button>
+                          ))}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                  <p className="fine" style={{ margin: '12px 0' }}>
+                    Friends who join with this code get {pct}% of what you earn from them. They keep their rate, and you can only raise it later.
+                  </p>
+                  {err && (sheet === 'edit' || name.trim()) && <div className="ferr" role="alert">{err}</div>}
+                  <button
+                    className="btn"
+                    type="button"
+                    disabled={busy || (sheet === 'new' && !name.trim()) || (sheet === 'edit' && pct === min)}
+                    onClick={() => (sheet === 'new' ? manage({ action: 'create', name, rebate: pct }, 'Code created') : manage({ action: 'raise', code: edit.code, rebate: pct }, 'Rebate raised'))}
+                  >
+                    {sheet === 'new' ? 'Create code' : 'Raise rebate'}
+                  </button>
+                  {sheet === 'edit' && edit.friends === 0 && (
+                    <button className="btn ghost" type="button" style={{ marginTop: 8 }} disabled={busy} onClick={() => manage({ action: 'delete', code: edit.code }, 'Code removed')}>Remove code</button>
+                  )}
+                </div>
+              );
+            })()}
+            <button className="btn ghost" type="button" autoFocus onClick={closeSheet} style={{ marginTop: 8 }}>{sheet === 'new' || sheet === 'edit' ? 'Cancel' : 'Done'}</button>
           </div>
         </div>
       )}
