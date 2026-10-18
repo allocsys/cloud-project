@@ -2,6 +2,7 @@ import Script from 'next/script';
 import { Roboto } from 'next/font/google';
 import './globals.css';
 import PWA from '@/components/PWA';
+import Ripple from '@/components/Ripple';
 
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 
@@ -62,6 +63,7 @@ export default function RootLayout({ children }) {
       <body>
         {children}
         <PWA />
+        <Ripple />
       </body>
     </html>
   );
