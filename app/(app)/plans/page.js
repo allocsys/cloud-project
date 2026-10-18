@@ -5,6 +5,7 @@ import { plans, halls, contracts } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
+import { markDrill } from '@/lib/nav';
 
 // Placeholder: your backend assigns the real serial at checkout.
 const nextSerial = () => {
@@ -47,6 +48,23 @@ export default function Plans() {
     triggerHaptic('success');
     show(`${sel.name} plan activated`);
     dismiss();
+  }
+
+  // Coming back from a miner page: reopen on the My miners tab.
+  useEffect(() => {
+    try {
+      if (sessionStorage.getItem('opus-plans-tab') === 'mine') {
+        sessionStorage.removeItem('opus-plans-tab');
+        setTab('mine');
+      }
+    } catch {}
+  }, []);
+
+  function openMiner() {
+    try {
+      sessionStorage.setItem('opus-plans-tab', 'mine');
+    } catch {}
+    markDrill();
   }
 
   // While the sheet is open: Escape closes, Tab stays inside, page behind does not scroll.
@@ -117,7 +135,7 @@ export default function Plans() {
             const pct = Math.round((c.elapsed / c.days) * 100);
             const rig = rigFor(c.plan);
             return (
-              <Link key={c.serial} href={`/miners/${c.serial}`} replace className="card cl">
+              <Link key={c.serial} href={`/miners/${c.serial}`} onClick={openMiner} className="card cl">
                 <div className="mrow">
                   <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
                   <div className="mi">
