@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
-import { history as seed, MIN_WITHDRAW, CREDIT_BTC, SEED_WITHDRAWN } from '@/lib/data';
+import { MIN_WITHDRAW } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
@@ -93,7 +93,7 @@ function UnitSwitch({ sym, unit, onUnit }) {
 export default function Wallet() {
   const mined = useMined();
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
-  // Until the first response arrives the static prices and the seed history are used.
+  // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
   const prices = pd?.prices;
@@ -111,10 +111,11 @@ export default function Wallet() {
   const [toast, show] = useToast();
 
   const btcUsd = priceOf('btc', prices);
-  const history = wd ? wd.history : seed;
+  const ready = !!wd;
+  const history = wd ? wd.history : [];
   // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
-  const earned = (wd ? wd.earned : CREDIT_BTC) + mined;
-  const available = Math.max(0, earned - (wd ? wd.withdrawn : SEED_WITHDRAWN));
+  const earned = (wd ? wd.earned : 0) + mined;
+  const available = wd ? Math.max(0, earned - wd.withdrawn) : 0;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -187,7 +188,7 @@ export default function Wallet() {
   // Checks locally for instant feedback, shows the withdrawal at once, then lets the server decide.
   // If the server says no, the screen rolls back and shows its message.
   async function withdraw() {
-    if (busy) return;
+    if (busy || !wd) return;
     const next = {};
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices) : null;
     if (!wq) next.amount = 'Enter an amount to withdraw.';
@@ -206,7 +207,7 @@ export default function Wallet() {
 
     setErrors({});
     setBusy(true);
-    const base = wd || { earned: START, withdrawn: 0, history: seed, asOf: Date.now() };
+    const base = wd;
     mutate({
       ...base,
       withdrawn: base.withdrawn + wq.btc,
@@ -259,10 +260,10 @@ export default function Wallet() {
         <div className="card hero slim">
           <span className="mute eyebrow">Available</span>
           <div className="big">
-            {formatBtc(available)}
+            {ready ? formatBtc(available) : '—'}
             <small>BTC</small>
           </div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(available * btcUsd)}</span>
+          <span className="mute" style={{ fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
         </div>
 
         <div className="grid wal">
@@ -351,7 +352,7 @@ export default function Wallet() {
                   )}
                 </div>
 
-                <button className="btn" type="button" onClick={withdraw} disabled={busy}>
+                <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? 'Sending…' : 'Withdraw'}
                 </button>
               </div>
@@ -414,7 +415,7 @@ export default function Wallet() {
                 }}
               >
                 <h3>Activity</h3>
-                <span className="mute">{history.length}</span>
+                <span className="mute">{ready ? history.length : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
@@ -446,7 +447,7 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && <p className="empty">Nothing here yet.</p>}
+            {open && shown.length === 0 && <p className="empty">{ready ? 'Nothing here yet.' : 'Loading…'}</p>}
           </div>
         </div>
       </div>
