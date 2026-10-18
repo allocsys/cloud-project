@@ -51,7 +51,7 @@ export default function ContractPage() {
   }
 
   const hall = halls[c.hall];
-  const rig = rigFor(c.plan);
+  const rig = rigFor(c);
   const daily = contractDaily(c);
   const hash = minerHash(c);
   const total = daily.reduce((s, d) => s + d.usd, 0);
