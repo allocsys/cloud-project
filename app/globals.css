@@ -301,6 +301,33 @@ input::placeholder { color: rgba(170, 162, 143, 0.7); }
 .hs .sp { flex: 1; min-width: 0; height: 44px; margin: 0; }
 .sdot.off { background: var(--outline); animation: none; }
 
+/* Press ripple (see components/Ripple.js) */
+.swap, .pct-btn, .tabs button, .minitabs button, .linktile, .cl, nav a .ind, .back, .upload, .collapse, .bell { position: relative; overflow: hidden; }
+.pwtoggle { overflow: hidden; }
+
+.rip {
+  position: absolute;
+  border-radius: 50%;
+  background: currentColor;
+  pointer-events: none;
+  transform: scale(0);
+  opacity: 0.2;
+  animation: ripple 0.55s cubic-bezier(0.2, 0, 0, 1) forwards;
+}
+
+@keyframes ripple { to { transform: scale(1); opacity: 0; } }
+
+/* Top bar actions and notifications */
+.topact { display: flex; align-items: center; gap: 8px; }
+.bell { width: 40px; height: 40px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--text); }
+.bell svg { width: 24px; height: 24px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.bell i { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); box-sizing: content-box; margin: -2px -2px 0 0; }
+.nmeta { display: flex; align-items: center; gap: 8px; flex: none; }
+.nmeta small { margin: 0; white-space: nowrap; }
+.ndot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: var(--gold); }
+.minitabs.fill { display: flex; width: 100%; margin: 4px 0 4px; }
+.minitabs.fill button { flex: 1; padding: 0 4px; }
+
 /* Login */
 #auth {
   min-height: 100vh;
