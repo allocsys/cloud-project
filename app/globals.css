@@ -927,6 +927,7 @@ main {
 .sp { display: block; width: 100%; height: 28px; margin-top: auto; }
 
 /* Contract rows */
+@media (max-width: 759px) { .cols > .ctr { order: -1; } }
 .ccard { display: block; color: inherit; text-decoration: none; }
 .ccard .t b { display: flex; align-items: center; gap: 8px; font-weight: 500; }
 .ccard:active .t b { color: var(--gold2); }
