@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { useCountUp } from '@/lib/useCountUp';
 import { contracts, earnings, stats, TODAY_BTC } from '@/lib/data';
 
 const totalTh = contracts.reduce((s, c) => s + c.th, 0);
@@ -93,6 +94,7 @@ function ChartBox({ rows }) {
 
 export default function Dashboard() {
   const { mined, shares } = useMinedFeed();
+  const shown = useCountUp(mined);
   const now = useNow(1000);
   const [range, setRange] = useState('week');
   const [pulse, setPulse] = useState(false);
@@ -120,10 +122,10 @@ export default function Dashboard() {
         <div className="card hero">
           <span className="mute eyebrow">Total mined</span>
           <div className="big">
-            <span style={{ transition: 'color 0.2s', color: pulse ? '#fff' : 'var(--gold2)' }}>{formatBtc(mined)}</span>
+            <span style={{ transition: 'color 0.2s', color: pulse ? '#fff' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
             <small>BTC</small>
           </div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(mined * BTC_USD)}</span>
+          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(shown * BTC_USD)}</span>
           <div className="payout">
             <div><span>Next payout</span><b>{pay.text}</b></div>
             <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
