@@ -1019,8 +1019,8 @@ main {
 .sheetbody .row:first-child { border-top: 0; }
 
 /* Snackbar */
-#toast {
-  position: fixed;
+#toast,
+#exit-toast {
   left: 0;
   right: 0;
   bottom: calc(96px + env(safe-area-inset-bottom, 0px));
@@ -1040,7 +1040,8 @@ main {
   transition: opacity 0.2s, transform 0.25s cubic-bezier(0.2, 0, 0, 1);
 }
 
-#toast.on {
+#toast.on,
+#exit-toast.on {
   opacity: 1;
   transform: none;
 }
