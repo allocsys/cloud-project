@@ -1142,6 +1142,15 @@ main {
 .art .coin { animation: floaty 3s ease-in infinite; }
 .art .glow { animation: glowpulse 2.4s ease-in-out infinite; }
 
+@keyframes rise { 0% { transform: translateY(0); opacity: 0; } 20% { opacity: 0.9; } 100% { transform: translateY(-30px); opacity: 0; } }
+@keyframes sweep { 0% { transform: translateY(0); opacity: 0; } 10%, 90% { opacity: 0.8; } 100% { transform: translateY(56px); opacity: 0; } }
+@keyframes eq { 0%, 100% { transform: scaleY(0.25); } 50% { transform: scaleY(1); } }
+@keyframes flow { to { stroke-dashoffset: -24; } }
+.art .bubble { animation: rise 2.6s ease-in infinite; }
+.art .scan { animation: sweep 3s linear infinite; }
+.art .eq { transform-box: fill-box; transform-origin: bottom; animation: eq 1.2s ease-in-out infinite; }
+.art .flow { stroke-dasharray: 6 6; animation: flow 1s linear infinite; }
+
 /* Modal bottom sheet */
 .sheet {
   position: fixed;
