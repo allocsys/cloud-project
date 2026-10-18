@@ -21,6 +21,10 @@
   accent-color: var(--gold);
 }
 
+/* The app is dark by design: tell the browser so it never auto-darkens it again */
+@media (prefers-color-scheme: dark) { :root { color-scheme: dark; } }
+@media (prefers-color-scheme: light) { :root { color-scheme: dark; } }
+
 /* Higher contrast when the device asks for it */
 @media (prefers-contrast: more) {
   :root {
