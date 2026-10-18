@@ -1,8 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
-import { CREDIT_BTC, SEED_WITHDRAWN } from '@/lib/data';
-import { history as seed, MIN_WITHDRAW } from '@/lib/data';
+import { history as seed, MIN_WITHDRAW, CREDIT_BTC, SEED_WITHDRAWN } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
