@@ -14,6 +14,7 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | `GET /api/dashboard` | `{ totalTh, todayBtc, earnings, stats }` | `no-store`; browser copy |
 | `GET /api/notifications` | `{ items, unread }` | `no-store`; browser copy |
 | `POST /api/notifications/read` | marks everything read | `no-store` |
+| `POST /api/notifications/clear` | deletes all notifications | `no-store` |
 | `GET /api/referrals` | `{ code, ratePct, rules, earnedBtc, friends }` | `no-store`; browser copy |
 | `GET /api/kyc` | `{ status: 'none' \| 'pending' \| 'verified', submittedAt }` | `no-store`; browser copy |
 | `POST /api/kyc` | multipart: `name`, `dob` (YYYY-MM-DD), `country`, `doc`, photos `front` and `selfie` (images, max 12 MB each); header `Idempotency-Key`; 409 if already submitted | `no-store` |
