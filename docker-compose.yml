@@ -1,0 +1,10 @@
+services:
+  app:
+    build: .
+    image: opus-cloud-mining
+    ports:
+      - "3000:3000"
+    environment:
+      # PRICE_FEED: static   # uncomment to skip the CoinGecko price feed
+      PORT: 3000
+    restart: unless-stopped
