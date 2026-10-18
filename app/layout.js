@@ -34,6 +34,7 @@ export const viewport = {
   userScalable: false,
   viewportFit: 'cover',
   themeColor: '#12110d',
+  colorScheme: 'dark',
 };
 
 export default function RootLayout({ children }) {
