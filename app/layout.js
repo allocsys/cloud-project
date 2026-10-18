@@ -1,9 +1,8 @@
 import Script from 'next/script';
-import { Fraunces, Manrope } from 'next/font/google';
+import { Roboto } from 'next/font/google';
 import './globals.css';
 
-const serif = Fraunces({ subsets: ['latin'], variable: '--serif' });
-const sans = Manrope({ subsets: ['latin'], variable: '--sans' });
+const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 
 export const metadata = {
   title: 'Opus Cloud Mining',
@@ -25,12 +24,12 @@ export const viewport = {
   maximumScale: 1,
   userScalable: false,
   viewportFit: 'cover',
-  themeColor: '#070605',
+  themeColor: '#12110d',
 };
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={`${serif.variable} ${sans.variable}`}>
+    <html lang="en" className={sans.variable}>
       <head>
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
@@ -44,10 +43,10 @@ export default function RootLayout({ children }) {
                   window.Telegram.WebApp.ready();
                   window.Telegram.WebApp.expand();
                   if (window.Telegram.WebApp.setHeaderColor) {
-                    window.Telegram.WebApp.setHeaderColor('#070605');
+                    window.Telegram.WebApp.setHeaderColor('#12110d');
                   }
                   if (window.Telegram.WebApp.setBackgroundColor) {
-                    window.Telegram.WebApp.setBackgroundColor('#070605');
+                    window.Telegram.WebApp.setBackgroundColor('#12110d');
                   }
                 }
               } catch (e) {}
