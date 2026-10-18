@@ -5,7 +5,7 @@ import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
-import { notifications } from '@/lib/data';
+import { notifications, halls, MIN_WITHDRAW } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 
@@ -97,6 +97,67 @@ function ChartBox({ rows }) {
   );
 }
 
+const KIND = {
+  payout: { glyph: '↓', cls: 'in' },
+  deposit: { glyph: '+', cls: 'in' },
+  purchase: { glyph: '◆', cls: 'buy' },
+  withdrawal: { glyph: '↑', cls: 'out' },
+};
+const SPLIT = ['var(--gold2)', 'var(--green)', 'var(--gold)', 'var(--mute)'];
+const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
+
+// Where the daily earnings come from. Tap a legend row to look at one slice.
+function Split({ rows }) {
+  const [sel, setSel] = useState(null);
+  const total = rows.reduce((s, r) => s + r.usd, 0) || 1;
+  const R = 42;
+  const C = 2 * Math.PI * R;
+  let acc = 0;
+  const segs = rows.map((r, i) => {
+    const seg = { ...r, color: SPLIT[i % SPLIT.length], len: (r.usd / total) * C, off: acc };
+    acc += seg.len;
+    return seg;
+  });
+  const cur = sel === null ? null : segs[sel];
+  return (
+    <div className="split">
+      <div className="donut">
+        <svg viewBox="0 0 100 100" aria-hidden="true">
+          <circle cx="50" cy="50" r={R} fill="none" stroke="var(--s4)" strokeWidth="12" />
+          {segs.map((s, i) => (
+            <circle
+              key={s.name}
+              cx="50"
+              cy="50"
+              r={R}
+              fill="none"
+              stroke={s.color}
+              strokeWidth="12"
+              strokeDasharray={`${Math.max(0, s.len - (segs.length > 1 ? 1.5 : 0))} ${C}`}
+              strokeDashoffset={-s.off}
+              transform="rotate(-90 50 50)"
+              style={{ opacity: sel === null || sel === i ? 1 : 0.25 }}
+            />
+          ))}
+        </svg>
+        <div className="mid">
+          <b>${formatUsd(cur ? cur.usd : total)}</b>
+          <small>{cur ? cur.name : 'per day'}</small>
+        </div>
+      </div>
+      <div className="legend" role="group" aria-label="Earnings split">
+        {segs.map((s, i) => (
+          <button key={s.name} type="button" aria-pressed={sel === i} onClick={() => setSel(sel === i ? null : i)}>
+            <i style={{ background: s.color }} />
+            <span>{s.name}</span>
+            <b>{Math.round((s.usd / total) * 100)}%</b>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   // The user's miners drive the live strip, the projection, the miner row and the live feed.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
@@ -112,6 +173,18 @@ export default function Dashboard() {
   const now = useNow(1000);
   const [range, setRange] = useState('week');
   const [pulse, setPulse] = useState(false);
+  const [by, setBy] = useState('hall');
+  const [armed, setArmed] = useState(false);
+  const { data: cat } = useApi('/api/plans', { ttl: 20000 });
+  const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
+  const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
+  const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
+
+  // Lets the goal bar grow from empty once the page is on screen.
+  useEffect(() => {
+    const t = setTimeout(() => setArmed(true), 60);
+    return () => clearTimeout(t);
+  }, []);
 
   // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
   const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
@@ -134,6 +207,29 @@ export default function Dashboard() {
   const monthUsd = dailyUsd * dim;
   const yearUsd = dailyUsd * 365;
   const pay = payoutIn(now);
+
+  // Split of the daily earnings, by hall or by plan.
+  const hallName = (id) => ((cat && cat.halls[id]) || halls[id])?.name || id;
+  const split = Object.values(
+    online.reduce((m, c) => {
+      const k = by === 'hall' ? hallName(c.hall) : c.plan;
+      (m[k] ||= { name: k, usd: 0 }).usd += c.dailyUsd;
+      return m;
+    }, {})
+  ).sort((a, b) => b.usd - a.usd);
+
+  // Days in a row with earnings, counting back from today, and the next BTC goal.
+  const all = dash.earnings.all;
+  let streak = 0;
+  for (let i = all.length - 1; i >= 0 && all[i].usd > 0; i--) streak += 1;
+  const goal = GOALS.find((g) => g > mined) || GOALS[GOALS.length - 1];
+  const goalPct = Math.min(100, (mined / goal) * 100);
+  const toGo = Math.max(0, goal - mined);
+
+  const btc = pd?.prices?.btc ?? BTC_USD;
+  const tr = pd?.trend;
+  const friends = rd?.friends?.length ?? 0;
+  const history = wd?.history ?? [];
 
   useEffect(() => {
     setPulse(true);
@@ -289,6 +385,90 @@ export default function Dashboard() {
             </div>
           </div>
         </div>
+
+        {split.length > 0 && (
+          <div className="card">
+            <div className="cardhead">
+              <h3>Earnings split</h3>
+              <div className="minitabs" role="group" aria-label="Split by">
+                <button aria-pressed={by === 'hall'} onClick={() => setBy('hall')}>Hall</button>
+                <button aria-pressed={by === 'plan'} onClick={() => setBy('plan')}>Plan</button>
+              </div>
+            </div>
+            <Split key={by} rows={split} />
+          </div>
+        )}
+
+        {dash.hasMiners && (
+          <div className="card">
+            <div className="cardhead">
+              <h3>Next goal</h3>
+              {streak > 1 && <span className="streak">{streak}-day streak</span>}
+            </div>
+            <div className="goal">
+              <b>{formatBtc(goal, 4)}<small>BTC</small></b>
+              <span>{goal === MIN_WITHDRAW ? 'Minimum withdrawal' : 'Milestone'}</span>
+            </div>
+            <div className="bar goalbar" role="progressbar" aria-label="Progress to the next goal" aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
+              <i style={{ width: `${armed ? goalPct : 0}%` }} />
+            </div>
+            <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
+              {formatBtc(mined, 5)} mined · {formatBtc(toGo, 5)} BTC to go (≈ ${formatUsd(toGo * btc)})
+            </small>
+          </div>
+        )}
+
+        <div className="pair">
+          <div className="stat">
+            <span>BITCOIN</span>
+            <b>
+              ${Math.round(btc).toLocaleString('en-US')}
+              {tr && <small className={`chg ${tr.change >= 0 ? 'up' : 'down'}`}>{tr.change >= 0 ? '+' : ''}{tr.change.toFixed(1)}%</small>}
+            </b>
+            {tr ? <Spark values={tr.spark} color={tr.change >= 0 ? 'var(--green)' : 'var(--red)'} /> : <small className="sub">24h change unavailable</small>}
+          </div>
+          <Link href="/referrals" className="stat" onClick={() => markDrill()}>
+            <span>INVITE FRIENDS</span>
+            {rd && rd.unlocked === false ? (
+              <>
+                <b>Earn BTC</b>
+                <small className="sub">Unlocks with a miner</small>
+              </>
+            ) : (
+              <>
+                <b>+{formatBtc(rd ? parseFloat(rd.earnedBtc) : 0, 5)}<small>BTC</small></b>
+                <small className="sub">{friends} {friends === 1 ? 'friend' : 'friends'}</small>
+              </>
+            )}
+            <span className="invite">{rd && rd.unlocked === false ? 'Learn more' : 'Invite'}</span>
+          </Link>
+        </div>
+
+        {history.length > 0 && (
+          <div className="card act">
+            <div className="cardhead">
+              <h3>Recent activity</h3>
+              <Link href="/wallet" className="mute" style={{ fontSize: '12px' }}>See all</Link>
+            </div>
+            {history.slice(0, 4).map((h, i) => {
+              const k = KIND[h.kind] || KIND.payout;
+              return (
+                <div key={`${h.date}-${i}`} className="row" style={{ animationDelay: `${i * 60}ms` }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
+                    <div>
+                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
+                      <small>{h.date}</small>
+                    </div>
+                  </div>
+                  <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
+                    {h.amount}{h.coin ? ` ${h.coin}` : ''}
+                  </b>
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     </>
   );
