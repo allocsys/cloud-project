@@ -3,8 +3,9 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { notifications } from '@/lib/data';
-import { useApi, post } from '@/lib/api';
+import { useApi, post, revalidate } from '@/lib/api';
 import { drillBack } from '@/lib/nav';
+import { triggerHaptic } from '@/lib/haptics';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -40,6 +41,21 @@ export default function Notifications() {
     }
   }, [nd, fresh, mutate]);
 
+  // Empties the list at once, then tells the server. Puts the list back if the server says no.
+  async function clearAll() {
+    if (!items.length) return;
+    triggerHaptic('medium');
+    const before = nd;
+    mutate({ items: [], unread: 0 });
+    try {
+      await post('/api/notifications/clear', {});
+    } catch {
+      triggerHaptic('error');
+      if (before) mutate(before);
+      revalidate('/api/notifications').catch(() => {});
+    }
+  }
+
   return (
     <>
       <div className="top">
@@ -57,6 +73,16 @@ export default function Notifications() {
           </Link>
           <h2>Notifications</h2>
         </div>
+        {items.length > 0 && (
+          <button
+            className="swap"
+            type="button"
+            onClick={clearAll}
+            style={{ width: 'auto', minHeight: 40, margin: 0, padding: '0 12px' }}
+          >
+            Clear all
+          </button>
+        )}
       </div>
 
       <div className="card">
