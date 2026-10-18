@@ -83,12 +83,9 @@ function Picker({ asset, net, onAsset, onNet }) {
 // Enter the amount in the coin itself or in dollars.
 function UnitSwitch({ sym, unit, onUnit }) {
   return (
-    <div className="netrow">
-      <span>Amount in</span>
-      <div className="minitabs" role="group" aria-label="Amount unit">
-        <button type="button" aria-pressed={unit === 'coin'} onClick={() => onUnit('coin')}>{sym}</button>
-        <button type="button" aria-pressed={unit === 'usd'} onClick={() => onUnit('usd')}>USD</button>
-      </div>
+    <div className="minitabs uswitch" role="group" aria-label="Amount unit">
+      <button type="button" aria-pressed={unit === 'coin'} onClick={() => onUnit('coin')}>{sym}</button>
+      <button type="button" aria-pressed={unit === 'usd'} onClick={() => onUnit('usd')}>USD</button>
     </div>
   );
 }
@@ -259,7 +256,7 @@ export default function Wallet() {
         <h2>Wallet</h2>
       </div>
       <div className="grid">
-        <div className="card hero">
+        <div className="card hero slim">
           <span className="mute eyebrow">Available</span>
           <div className="big">
             {formatBtc(available)}
@@ -269,7 +266,7 @@ export default function Wallet() {
         </div>
 
         <div className="grid wal">
-          <div className="card">
+          <div className="card wcard">
             <div className="tabs" role="group" aria-label="Wallet action">
               <button type="button" aria-pressed={tab === 'withdraw'} onClick={() => handleTabChange('withdraw')}>
                 Withdraw
@@ -283,8 +280,7 @@ export default function Wallet() {
 
             {tab === 'withdraw' ? (
               <div>
-                <UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />
-                <Field id="wa" label={`Amount · min ${minText}`} error={errors.amount}>
+                <Field id="wa" label="Amount" className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />} error={errors.amount}>
                   <input
                     id="wa"
                     inputMode="decimal"
@@ -325,7 +321,7 @@ export default function Wallet() {
                   />
                 </Field>
 
-                <div className="quote" aria-live="polite">
+                <div className={q ? 'quote' : 'fine winfo'} aria-live="polite">
                   {q ? (
                     <>
                       <div className="row">
@@ -351,16 +347,10 @@ export default function Wallet() {
                       </div>
                     </>
                   ) : (
-                    <div className="row">
-                      <span className="mute">Fees</span>
-                      <span className="mute">
-                        {asset === 'btc' ? '' : `${SWAP_FEE_PCT}% swap + `}{flatFee} {A.sym} network
-                      </span>
-                    </div>
+                    `Min ${minText} · fee ${asset === 'btc' ? '' : `${SWAP_FEE_PCT}% swap + `}${flatFee} ${A.sym}`
                   )}
                 </div>
 
-                <div style={{ height: '14px' }} />
                 <button className="btn" type="button" onClick={withdraw} disabled={busy}>
                   {busy ? 'Sending…' : 'Withdraw'}
                 </button>
@@ -374,8 +364,7 @@ export default function Wallet() {
                   {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'}
                 </p>
 
-                <UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />
-                <Field id="da" label="Amount you send">
+                <Field id="da" label="Amount you send" className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />}>
                   <input
                     id="da"
                     inputMode="decimal"
@@ -384,7 +373,7 @@ export default function Wallet() {
                     onChange={(e) => setDep(e.target.value)}
                   />
                 </Field>
-                <div className="quote" aria-live="polite">
+                <div className={dq ? 'quote' : 'fine winfo'} aria-live="polite">
                   {dq ? (
                     <>
                       <div className="row">
@@ -406,10 +395,7 @@ export default function Wallet() {
                       </div>
                     </>
                   ) : (
-                    <div className="row">
-                      <span className="mute">Credited as BTC</span>
-                      <span className="mute">{asset === 'btc' ? 'No fee' : `${SWAP_FEE_PCT}% swap fee`}</span>
-                    </div>
+                    `Credited as BTC · ${asset === 'btc' ? 'no fee' : `${SWAP_FEE_PCT}% swap fee`}`
                   )}
                 </div>
               </div>
