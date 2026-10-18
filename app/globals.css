@@ -1269,7 +1269,7 @@ main {
 .mcard b { font-size: 14px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mcard .row2 { display: flex; justify-content: space-between; align-items: center; font-size: 12px; line-height: 16px; color: var(--mute); }
 .mcard .row2 em { font-style: normal; color: var(--green); }
-.mcard .st { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+.mcard .st { flex: none; width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
 .mcard.off { opacity: 0.6; }
 .mcard.off .st { background: var(--mute); }
 @media (hover: hover) { .mcard:hover { background: var(--s3); } }
