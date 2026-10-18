@@ -15,7 +15,7 @@ const chev = (
 function Back({ title }) {
   return (
     <div className="tl">
-      <Link href="/plans" className="back" aria-label="Back to plans">{chev}</Link>
+      <Link href="/plans" replace className="back" aria-label="Back to plans">{chev}</Link>
       <h2>{title}</h2>
     </div>
   );
