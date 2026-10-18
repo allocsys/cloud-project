@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { contracts, halls, contractDaily, BTC_USD } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
+import RigArt, { rigFor } from '@/components/RigArt';
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -28,13 +29,14 @@ export default function ContractPage() {
   if (!c) {
     return (
       <>
-        <div className="top"><Back title="Contract" /></div>
-        <div className="card"><p className="empty">Contract not found.</p></div>
+        <div className="top"><Back title="Miner" /></div>
+        <div className="card"><p className="empty">Miner not found.</p></div>
       </>
     );
   }
 
   const hall = halls[c.hall];
+  const rig = rigFor(c.plan);
   const daily = contractDaily(c);
   const total = daily.reduce((s, d) => s + d.usd, 0);
   const avg = daily.length ? total / daily.length : 0;
@@ -46,11 +48,12 @@ export default function ContractPage() {
   return (
     <>
       <div className="top">
-        <Back title={c.plan} />
+        <Back title={`${c.plan} miner`} />
         <span className="badge ok">Active</span>
       </div>
       <div className="grid">
         <div className="card hero">
+          <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
           <span className="mute eyebrow">Earned so far · {c.serial}</span>
           <div className="big"><span>${formatUsd(total)}</span></div>
           <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(total / BTC_USD)} BTC</span>
