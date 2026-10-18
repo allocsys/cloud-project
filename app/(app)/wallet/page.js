@@ -1,8 +1,9 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useMined, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { useMined, formatBtc, formatUsd, START } from '@/lib/useMined';
 import { history as seed, MIN_WITHDRAW } from '@/lib/data';
-import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote } from '@/lib/assets';
+import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
+import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
@@ -19,13 +20,14 @@ const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw
 
 const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
 const ceilTo = (n, d) => Math.ceil(n * 10 ** d - 1e-9) / 10 ** d;
+const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 // USD value of an activity row. Amounts are in the row's own coin; purchases are already dollars.
-function usdOf(h) {
+function usdOf(h, prices) {
   if (h.kind === 'purchase' || !h.coin) return null;
-  const a = ASSETS[h.coin.toLowerCase()];
+  const id = h.coin.toLowerCase();
   const v = Math.abs(parseFloat(h.amount));
-  return a && v > 0 ? v * a.usd : null;
+  return ASSETS[id] && v > 0 ? v * priceOf(id, prices) : null;
 }
 
 function DepositQr({ value }) {
@@ -93,7 +95,11 @@ function UnitSwitch({ sym, unit, onUnit }) {
 
 export default function Wallet() {
   const mined = useMined();
-  const [withdrawn, setWithdrawn] = useState(0);
+  // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
+  // Until the first response arrives the static prices and the seed history are used.
+  const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
+  const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
+  const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
   const [net, setNet] = useState('btc');
@@ -101,34 +107,40 @@ export default function Wallet() {
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [errors, setErrors] = useState({});
-  const [history, setHistory] = useState(seed);
+  const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
   const [filter, setFilter] = useState('all');
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
-  const available = Math.max(0, mined - withdrawn);
+
+  const btcUsd = priceOf('btc', prices);
+  const history = wd ? wd.history : seed;
+  // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
+  const earned = wd ? wd.earned + (mined - START) : mined;
+  const available = Math.max(0, earned - (wd ? wd.withdrawn : 0));
   const A = ASSETS[asset];
   const N = NETWORKS[net];
+  const price = priceOf(asset, prices);
   const usdMode = unit === 'usd';
-  const toCoin = (v) => (usdMode ? v / A.usd : v);
+  const toCoin = (v) => (usdMode ? v / price : v);
   const parsed = parseFloat(amount);
   const coinAmt = parsed > 0 ? toCoin(parsed) : 0;
-  const q = coinAmt > 0 ? quote(asset, net, coinAmt) : null;
+  const q = coinAmt > 0 ? quote(asset, net, coinAmt, prices) : null;
   const flatFee = A.nets[net];
   const dp = parseFloat(dep);
   const depCoin = dp > 0 ? toCoin(dp) : 0;
-  const dq = depCoin > 0 ? depositQuote(asset, depCoin) : null;
+  const dq = depCoin > 0 ? depositQuote(asset, depCoin, prices) : null;
   const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter);
 
   // The minimum is set in BTC, shown in whatever unit the person is typing in.
-  const minUsd = MIN_WITHDRAW * BTC_USD;
-  const minText = usdMode ? `$${formatUsd(ceilTo(minUsd, 2))}` : `${ceilTo(minUsd / A.usd, A.dec).toFixed(A.dec)} ${A.sym}`;
+  const minUsd = MIN_WITHDRAW * btcUsd;
+  const minText = usdMode ? `$${formatUsd(ceilTo(minUsd, 2))}` : `${ceilTo(minUsd / price, A.dec).toFixed(A.dec)} ${A.sym}`;
   const dec = usdMode ? 2 : A.dec;
 
   function setFraction(pct) {
     triggerHaptic('selection');
-    const usd = available * pct * BTC_USD;
-    setAmount(floorTo(usdMode ? usd : usd / A.usd, dec).toFixed(dec));
+    const usd = available * pct * btcUsd;
+    setAmount(floorTo(usdMode ? usd : usd / price, dec).toFixed(dec));
     setErrors({ ...errors, amount: undefined });
   }
 
@@ -147,7 +159,7 @@ export default function Wallet() {
     const conv = (s) => {
       const v = parseFloat(s);
       if (!(v > 0)) return s;
-      return next === 'usd' ? (v * A.usd).toFixed(2) : (v / A.usd).toFixed(A.dec);
+      return next === 'usd' ? (v * price).toFixed(2) : (v / price).toFixed(A.dec);
     };
     setAmount(conv(amount));
     setDep(conv(dep));
@@ -175,10 +187,12 @@ export default function Wallet() {
     setErrors({});
   }
 
-  // TODO: call your withdrawal API here (coin, network, coin amount, address).
-  function withdraw() {
+  // Checks locally for instant feedback, shows the withdrawal at once, then lets the server decide.
+  // If the server says no, the screen rolls back and shows its message.
+  async function withdraw() {
+    if (busy) return;
     const next = {};
-    const wq = coinAmt > 0 ? quote(asset, net, coinAmt) : null;
+    const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices) : null;
     if (!wq) next.amount = 'Enter an amount to withdraw.';
     else if (wq.btc < MIN_WITHDRAW) next.amount = `Minimum is ${minText}.`;
     else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = 'More than your available balance.';
@@ -193,24 +207,42 @@ export default function Wallet() {
       return;
     }
 
-    triggerHaptic('success');
     setErrors({});
-    setWithdrawn(withdrawn + Math.min(wq.btc, available));
-    setHistory([
-      {
-        kind: 'withdrawal',
-        label: `Withdrawal · ${A.sym}`,
-        date: 'Just now',
-        amount: `-${coinAmt.toFixed(A.dec)}`,
-        coin: A.sym,
-        net: N.short,
-        fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}`,
-      },
-      ...history,
-    ]);
-    setAmount('');
-    setAddress('');
-    show('Withdrawal initiated');
+    setBusy(true);
+    const base = wd || { earned: START, withdrawn: 0, history: seed, asOf: Date.now() };
+    mutate({
+      ...base,
+      withdrawn: base.withdrawn + wq.btc,
+      history: [
+        {
+          kind: 'withdrawal',
+          label: `Withdrawal · ${A.sym}`,
+          date: 'Just now',
+          amount: `-${coinAmt.toFixed(A.dec)}`,
+          coin: A.sym,
+          net: N.short,
+          fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}`,
+        },
+        ...base.history,
+      ],
+    });
+
+    try {
+      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim() }, uid());
+      refresh().catch(() => {});
+      triggerHaptic('success');
+      setAmount('');
+      setAddress('');
+      show('Withdrawal initiated');
+    } catch (e) {
+      mutate(base);
+      refresh().catch(() => {});
+      triggerHaptic('error');
+      const msg = e.status ? e.message : 'No connection. Try again.';
+      setErrors({ [e.field === 'address' ? 'address' : 'amount']: msg });
+    } finally {
+      setBusy(false);
+    }
   }
 
   function copy() {
@@ -233,7 +265,7 @@ export default function Wallet() {
             {formatBtc(available)}
             <small>BTC</small>
           </div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(available * BTC_USD)}</span>
+          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(available * btcUsd)}</span>
         </div>
 
         <div className="grid wal">
@@ -329,7 +361,9 @@ export default function Wallet() {
                 </div>
 
                 <div style={{ height: '14px' }} />
-                <button className="btn" type="button" onClick={withdraw}>Withdraw</button>
+                <button className="btn" type="button" onClick={withdraw} disabled={busy}>
+                  {busy ? 'Sending…' : 'Withdraw'}
+                </button>
               </div>
             ) : (
               <div>
@@ -407,7 +441,7 @@ export default function Wallet() {
             )}
             {open && shown.slice(0, 8).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
-              const hu = usdOf(h);
+              const hu = usdOf(h, prices);
               return (
                 <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
