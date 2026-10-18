@@ -1,5 +1,13 @@
 // Animated mining-rig illustration. `units` is the number of stacked rack units,
 // `speed` is the fan rotation time in seconds (lower is faster). Pure SVG + CSS, no images.
+// More rack units and faster fans for bigger plans.
+export const RIG = {
+  starter: { units: 1, speed: 2.2 },
+  growth: { units: 2, speed: 1.5 },
+  pro: { units: 3, speed: 0.9 },
+};
+export const rigFor = (name) => RIG[String(name).toLowerCase()] || RIG.starter;
+
 export default function RigArt({ units = 1, speed = 1.4, id = 'a' }) {
   const h = units * 24 - 4;
   const top = (100 - h) / 2 - 2;
