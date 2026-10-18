@@ -39,6 +39,7 @@ export default function ContractPage() {
   const { serial } = useParams();
   const [all, setAll] = useState(false);
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
 
   if (!c) {
@@ -50,7 +51,7 @@ export default function ContractPage() {
     );
   }
 
-  const hall = halls[c.hall];
+  const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
   const daily = contractDaily(c);
   const hash = minerHash(c);
