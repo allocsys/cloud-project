@@ -2,16 +2,9 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { plans, halls, contracts } from '@/lib/data';
-import RigArt from '@/components/RigArt';
+import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
-
-// More rack units and faster fans for bigger plans.
-const ART = {
-  starter: { units: 1, speed: 2.2 },
-  growth: { units: 2, speed: 1.5 },
-  pro: { units: 3, speed: 0.9 },
-};
 
 // Placeholder: your backend assigns the real serial at checkout.
 const nextSerial = () => {
@@ -92,15 +85,15 @@ export default function Plans() {
         <h2>Plans</h2>
       </div>
 
-      <div className="tabs" role="group" aria-label="Plans or contracts">
+      <div className="tabs" role="group" aria-label="Buy plans or your miners">
         <button aria-pressed={tab === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
-        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My contracts · {contracts.length}</button>
+        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My miners · {contracts.length}</button>
       </div>
 
       {tab === 'buy' ? (
       <div className="tiles">
         {plans.map((p) => {
-          const a = ART[p.id] || ART.starter;
+          const a = rigFor(p.id);
           return (
             <button
               key={p.id}
@@ -122,20 +115,24 @@ export default function Plans() {
         <div className="clist">
           {contracts.map((c) => {
             const pct = Math.round((c.elapsed / c.days) * 100);
+            const rig = rigFor(c.plan);
             return (
-              <Link key={c.serial} href={`/contracts/${c.serial}`} className="card cl">
-                <div className="hd">
-                  <i className="sdot" />
-                  <div>
-                    <b>{c.plan}</b>
+              <Link key={c.serial} href={`/miners/${c.serial}`} className="card cl">
+                <div className="mrow">
+                  <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
+                  <div className="mi">
+                    <div className="mt">
+                      <i className="sdot" />
+                      <b>{c.plan}</b>
+                      <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+                    </div>
                     <span className="serial">{c.serial}</span>
+                    <div className="mchips">
+                      <span>{c.th} TH/s</span>
+                      <span>{halls[c.hall].efficiency}</span>
+                      <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
+                    </div>
                   </div>
-                  <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
-                </div>
-                <div className="mchips">
-                  <span>{c.th} TH/s</span>
-                  <span>{halls[c.hall].efficiency}</span>
-                  <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
                 </div>
                 <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
                   <i style={{ width: `${pct}%` }} />
@@ -150,7 +147,7 @@ export default function Plans() {
         </div>
       ) : (
         <div className="card">
-          <p className="empty">No contracts yet.</p>
+          <p className="empty">No miners yet.</p>
           <button className="swap" onClick={() => setTab('buy')}>Buy a plan</button>
         </div>
       )}
@@ -195,7 +192,7 @@ export default function Plans() {
                 <b>{hall.power} · {hall.efficiency}</b>
               </div>
               <div className="row">
-                <span className="mute">Contract</span>
+                <span className="mute">Miner ID</span>
                 <b className="serial">{nextSerial()}</b>
               </div>
               <div className="row" style={{ borderTop: '1px solid rgba(212, 168, 75, 0.25)' }}>
