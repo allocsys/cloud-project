@@ -15,6 +15,8 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | `GET /api/notifications` | `{ items, unread }` | `no-store`; browser copy |
 | `POST /api/notifications/read` | marks everything read | `no-store` |
 | `GET /api/referrals` | `{ code, ratePct, rules, earnedBtc, friends }` | `no-store`; browser copy |
+| `GET /api/kyc` | `{ status: 'none' \| 'pending' \| 'verified', submittedAt }` | `no-store`; browser copy |
+| `POST /api/kyc` | multipart: `name`, `dob` (YYYY-MM-DD), `country`, `doc`, photos `front` and `selfie` (images, max 12 MB each); header `Idempotency-Key`; 409 if already submitted | `no-store` |
 
 Why the app stays fast: screens render from the cached copy (`lib/api.js`) immediately and refresh quietly.
 Quote previews are computed in the browser from the cached prices (`lib/assets.js`, shared with the server), so typing
@@ -32,4 +34,5 @@ To replace before launch:
 - `lib/server/account.js`: real earnings, uptime and hashrate series, and the referral code and friends per user.
 - Auth on every route. Sign out already calls `clearApiCache()`.
 - Deposit addresses (`NETWORKS` in `lib/assets.js`).
-- Still on local data: KYC (`lib/data.js`) and the Earnings total mined counter, which is a simulated feed.
+- `lib/server/kyc.js`: the photos are validated and dropped. Store them in private object storage (S3 or R2), queue them for review, and set `status` to `verified` or back to `none` with a reason. Rules live in `lib/kyc.js`, shared with the form.
+- Still on local data: the Earnings total mined counter, which is a simulated feed.
