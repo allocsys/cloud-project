@@ -6,6 +6,7 @@ import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
 import { contracts, earnings, stats, notifications, TODAY_BTC } from '@/lib/data';
+import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 
 // Shown until the server answers the first time.
@@ -109,11 +110,23 @@ export default function Dashboard() {
   const dash = dd || { totalTh: seedTh, todayBtc: TODAY_BTC, earnings, stats };
   const unread = nd ? nd.unread : notifications.length;
 
+  // The user's miners drive the live strip, the projection and the miner row.
+  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const miners = md ? md.contracts : [];
+  const online = miners.filter((c) => c.online);
+  const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
+  const biggest = [...online].sort((a, b) => b.th - a.th)[0];
+  const rig = rigFor(biggest || 'starter');
+
   const rows = dash.earnings[range];
   const labels =
     range === 'week' ? rows.map((d) => d.label) : [rows[0].day, rows[Math.floor(rows.length / 2)].day, 'Today'];
   const avg = rows.reduce((s, d) => s + d.usd, 0) / rows.length;
-  const latest = shares[0];
+  const d = now ? new Date(now) : null;
+  const dim = d ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : 30;
+  const dom = d ? d.getDate() : 1;
+  const monthUsd = dailyUsd * dim;
+  const yearUsd = dailyUsd * 365;
   const pay = payoutIn(now);
 
   useEffect(() => {
@@ -155,11 +168,26 @@ export default function Dashboard() {
               <i style={{ width: `${pay.pct}%` }} />
             </div>
           </div>
-          {latest && (
-            <div className="chips">
-              <span key={latest.id} className="live">+{latest.sats} sat · {ago(now, latest.at)}</span>
+        </div>
+
+        <div className="card lstrip">
+          <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="live" />
+          <div className="li">
+            <div className="hr">
+              <b>{online.length}<small>of {miners.length} miners online</small></b>
+              <span><i />{online.length ? 'Mining' : 'Idle'}</span>
             </div>
-          )}
+            <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
+              {Array.from({ length: 14 }).map((_, i) => (
+                <i key={i} style={{ animationDelay: `${(i * 0.13) % 1.4}s`, animationDuration: `${1 + (i % 4) * 0.2}s` }} />
+              ))}
+            </div>
+            <div className="ticker">
+              {shares.slice(0, 3).map((s) => (
+                <div key={s.id}><b>+{s.sats} sat</b><span>{ago(now, s.at)}</span></div>
+              ))}
+            </div>
+          </div>
         </div>
 
         <div className="stats">
@@ -179,6 +207,58 @@ export default function Dashboard() {
             <Spark values={dash.stats.uptime} color="var(--green)" />
           </div>
         </div>
+
+        <div className="card">
+          <div className="cardhead">
+            <h3>Projected earnings</h3>
+            <small className="mute" style={{ fontSize: '12px' }}>estimate</small>
+          </div>
+          {online.length ? (
+            <>
+              <div className="proj">
+                <div>
+                  <span>THIS MONTH</span>
+                  <b>${formatUsd(monthUsd)}</b>
+                  <small>≈ {formatBtc(monthUsd / BTC_USD, 5)} BTC</small>
+                </div>
+                <div>
+                  <span>NEXT 12 MONTHS</span>
+                  <b>${formatUsd(yearUsd)}</b>
+                  <small>≈ {formatBtc(yearUsd / BTC_USD, 4)} BTC</small>
+                </div>
+              </div>
+              <div className="bar" role="progressbar" aria-label="Days of the month passed" aria-valuenow={Math.round((dom / dim) * 100)} aria-valuemin={0} aria-valuemax={100}>
+                <i style={{ width: `${(dom / dim) * 100}%` }} />
+              </div>
+              <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>Day {dom} of {dim} · from your online miners at today&apos;s rates</small>
+            </>
+          ) : (
+            <p className="empty">No online miners yet. Buy a plan to see projections.</p>
+          )}
+        </div>
+
+        {miners.length > 0 && (
+          <div>
+            <div className="cardhead">
+              <h3>My miners · {miners.length}</h3>
+            </div>
+            <div className="mrail">
+              {miners.map((c) => {
+                const r = rigFor(c);
+                return (
+                  <Link key={c.serial} href={`/miners/${c.serial}`} className={`mcard ${c.online ? '' : 'off'}`} onClick={() => markDrill()}>
+                    <RigArt kind={r.kind} units={r.units} speed={r.speed} id={`m${c.serial}`} />
+                    <b>{c.name}</b>
+                    <div className="row2">
+                      <em>${formatUsd(c.dailyUsd)}/day</em>
+                      <i className="st" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         <div className="grid">
           <div className="card">
