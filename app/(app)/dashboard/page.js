@@ -35,7 +35,7 @@ function payoutIn(now) {
 function ChartBox({ rows }) {
   const [idx, setIdx] = useState(null);
   const n = rows.length;
-  const max = Math.max(...rows.map((d) => d.usd));
+  const max = Math.max(...rows.map((d) => d.usd)) || 1;
   const y = (usd) => 112 - (usd / max) * 96;
   const pts = rows.map((d, i) => [(i * 300) / (n - 1), y(d.usd)]);
   const line = pts.map(([x, py], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)} ${py.toFixed(1)}`).join(' ');
