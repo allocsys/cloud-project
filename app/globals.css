@@ -1096,6 +1096,11 @@ main {
 .tile:active { background: var(--s3); }
 .tile.feat { box-shadow: inset 0 0 0 1px var(--gold); }
 
+/* Dark theme: warm brown surface. Forced dark mode lifts dark colours, and this keeps the lift brown instead of grey. */
+:root:not([data-theme="light"]) .tile { background: #1d1100; }
+:root:not([data-theme="light"]) .tile:active { background: #2a1a08; }
+@media (hover: hover) { :root:not([data-theme="light"]) .tile:hover { background: #2a1a08; } }
+
 @media (hover: hover) {
   .tile:hover { background: var(--s3); }
 }
