@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Field from '@/components/Field';
 import { triggerHaptic } from '@/lib/haptics';
+import { post, clearApiCache, signOut } from '@/lib/api';
 
 export default function Login() {
   const router = useRouter();
@@ -14,7 +15,7 @@ export default function Login() {
   const [show, setShow] = useState(false);
   const [ref, setRef] = useState('');
 
-  // An invite link (/login?ref=CODE) opens sign-up and keeps the code. Link it to the new account here once real signup exists.
+  // An invite link (/login?ref=CODE) opens sign-up and keeps the code, which is sent with the sign-up request.
   useEffect(() => {
     try {
       const r = (new URLSearchParams(window.location.search).get('ref') || localStorage.getItem('opus-ref') || '').trim().slice(0, 24);
@@ -25,8 +26,7 @@ export default function Login() {
     } catch {}
   }, []);
 
-  // TODO: call your auth API here.
-  function submit(e) {
+  async function submit(e) {
     e.preventDefault();
     const next = {};
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
@@ -39,12 +39,21 @@ export default function Login() {
       return;
     }
 
-    triggerHaptic('success');
     setErrors({});
     setLoading(true);
-    setTimeout(() => {
+    try {
+      await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
+      clearApiCache(); // nothing from a previous account (or the demo) may show for this one
+      try {
+        if (signup) localStorage.removeItem('opus-ref');
+      } catch {}
+      triggerHaptic('success');
       router.replace('/dashboard');
-    }, 150);
+    } catch (err) {
+      triggerHaptic('error');
+      setLoading(false);
+      setErrors(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.message });
+    }
   }
 
   function handleSwap() {
@@ -53,8 +62,10 @@ export default function Login() {
     setErrors({});
   }
 
-  function handleSkip() {
+  // Demo access: drop any real session first so the demo never opens inside someone's account.
+  async function handleSkip() {
     triggerHaptic('light');
+    await signOut();
     router.replace('/dashboard');
   }
 
@@ -126,6 +137,8 @@ export default function Login() {
           />
         </Field>
 
+        {errors.form && <div className="ferr" role="alert">{errors.form}</div>}
+
         <div style={{ height: '14px' }} />
 
         <button className="btn" type="submit" disabled={loading}>
@@ -139,7 +152,7 @@ export default function Login() {
           {signup ? 'Have an account? Sign in' : 'New here? Create an account'}
         </button>
 
-        {/* TODO: remove once real auth is wired */}
+        {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
         <button className="btn ghost" type="button" onClick={handleSkip}>
           Skip login for now
         </button>
