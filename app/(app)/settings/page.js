@@ -44,7 +44,7 @@ export default function Settings() {
 
   function signOut() {
     triggerHaptic('medium');
-    router.push('/login');
+    router.replace('/login');
   }
 
   return (
