@@ -17,7 +17,7 @@ npm run dev
 | `/dashboard` | Live balance with hash rate, today, uptime and latest share chips, scrubbable 7-day and all-time earnings chart, contract progress |
 | `/plans` | Plan tiles with animated rig art. Tap one for a confirm sheet (hall, power, contract serial, total) |
 | `/wallet` | Withdraw and deposit in BTC, ETH, BNB, TRX or USDT (TRC20, ERC20, BEP20). Withdrawals show a swap fee and network fee quote. QR deposit address, collapsible activity |
-| `/referrals` | Referral earnings, invite code with share and copy, friends list |
+| `/referrals` | Referral earnings, invite code with copy and share, how-it-works steps, rules and reward history sheets |
 | `/settings` | Email, verification status, two-factor and alert switches, sign out |
 
 Logged-in pages live in the `app/(app)/` route group. The parentheses keep the folder out of the URL and give those pages the shared nav and page transitions.
@@ -39,4 +39,6 @@ All data is placeholder. Replace these:
 
 - `lib/qr.js` is a small dependency-free QR encoder (byte mode, level M, up to 106 bytes), used for the deposit address.
 - `lib/haptics.js` wraps haptic feedback for Telegram WebApp and mobile browsers.
+- The raised centre button in the bottom bar opens Plans. On wide screens the bar becomes a side drawer.
+- `referral.rules` in `lib/data.js` is placeholder wording for the invitation rules sheet.
 - Animations always play, even when the device has reduced motion turned on.
