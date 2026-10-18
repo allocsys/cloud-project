@@ -178,7 +178,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          <div className="card">
+          <div className="card ctr">
             <div className="cardhead">
               <h3>Contracts</h3>
               <span className="mute">{contracts.length} running</span>
