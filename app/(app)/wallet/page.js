@@ -17,6 +17,13 @@ const KIND = {
 
 const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
 
+// USD value of an activity row. Payouts, deposits and withdrawals are BTC amounts here.
+function usdOf(h) {
+  if (h.kind === 'purchase' || !h.coin) return null;
+  const v = Math.abs(parseFloat(h.amount));
+  return v > 0 ? v * BTC_USD : null;
+}
+
 function DepositQr({ value }) {
   const qr = useMemo(() => {
     try {
@@ -245,6 +252,10 @@ export default function Wallet() {
                 <div className="quote" aria-live="polite">
                   {q ? (
                     <>
+                      <div className="row">
+                        <span className="mute">Value</span>
+                        <b>≈ ${formatUsd(q.usd)}</b>
+                      </div>
                       {asset !== 'btc' && (
                         <div className="row">
                           <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
@@ -253,11 +264,14 @@ export default function Wallet() {
                       )}
                       <div className="row">
                         <span className="mute">Network fee</span>
-                        <b>{q.netFee} {A.sym}</b>
+                        <b>{q.netFee} {A.sym} · ${formatUsd(q.netFeeUsd)}</b>
                       </div>
                       <div className="row total">
                         <span className="mute">You receive</span>
-                        <b>{q.receive > 0 ? `≈ ${q.receive.toFixed(A.dec)} ${A.sym}` : '—'}</b>
+                        <b style={{ textAlign: 'right' }}>
+                          {q.receive > 0 ? `≈ ${q.receive.toFixed(A.dec)} ${A.sym}` : '—'}
+                          {q.receive > 0 && <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(q.receiveUsd)}</small>}
+                        </b>
                       </div>
                     </>
                   ) : (
@@ -294,6 +308,10 @@ export default function Wallet() {
                 <div className="quote" aria-live="polite">
                   {dq ? (
                     <>
+                      <div className="row">
+                        <span className="mute">You send</span>
+                        <b>≈ ${formatUsd(dq.usd)}</b>
+                      </div>
                       {asset !== 'btc' && (
                         <div className="row">
                           <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
@@ -302,7 +320,10 @@ export default function Wallet() {
                       )}
                       <div className="row total">
                         <span className="mute">Credited</span>
-                        <b>≈ {formatBtc(dq.creditedBtc)} BTC</b>
+                        <b style={{ textAlign: 'right' }}>
+                          ≈ {formatBtc(dq.creditedBtc)} BTC
+                          <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(dq.creditedUsd)}</small>
+                        </b>
                       </div>
                     </>
                   ) : (
@@ -350,9 +371,10 @@ export default function Wallet() {
                       <small>{[h.date, h.coin, h.net].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
                     </div>
                   </div>
-                  <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontVariantNumeric: 'tabular-nums', fontSize: '13.5px' }}>
-                    {h.amount}
-                  </b>
+                  <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                    <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px' }}>{h.amount}</b>
+                    {usdOf(h) != null && <small style={{ display: 'block' }}>≈ ${formatUsd(usdOf(h))}</small>}
+                  </div>
                 </div>
               );
             })}
