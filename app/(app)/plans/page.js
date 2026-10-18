@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import Link from 'next/link';
 import { plans, halls, contracts } from '@/lib/data';
 import RigArt from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
@@ -20,6 +21,7 @@ const nextSerial = () => {
 
 export default function Plans() {
   const [sel, setSel] = useState(null);
+  const [tab, setTab] = useState('buy');
   const [dragY, setDragY] = useState(0);
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
@@ -90,6 +92,12 @@ export default function Plans() {
         <h2>Plans</h2>
       </div>
 
+      <div className="tabs" role="group" aria-label="Plans or contracts">
+        <button aria-pressed={tab === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
+        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My contracts · {contracts.length}</button>
+      </div>
+
+      {tab === 'buy' ? (
       <div className="tiles">
         {plans.map((p) => {
           const a = ART[p.id] || ART.starter;
@@ -110,6 +118,42 @@ export default function Plans() {
           );
         })}
       </div>
+      ) : contracts.length ? (
+        <div className="clist">
+          {contracts.map((c) => {
+            const pct = Math.round((c.elapsed / c.days) * 100);
+            return (
+              <Link key={c.serial} href={`/contracts/${c.serial}`} className="card cl">
+                <div className="hd">
+                  <i className="sdot" />
+                  <div>
+                    <b>{c.plan}</b>
+                    <span className="serial">{c.serial}</span>
+                  </div>
+                  <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
+                </div>
+                <div className="mchips">
+                  <span>{c.th} TH/s</span>
+                  <span>{halls[c.hall].efficiency}</span>
+                  <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
+                </div>
+                <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
+                  <i style={{ width: `${pct}%` }} />
+                </div>
+                <div className="cmeta">
+                  <span>Day {c.elapsed}/{c.days}</span>
+                  <span>Ends {c.ends}</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      ) : (
+        <div className="card">
+          <p className="empty">No contracts yet.</p>
+          <button className="swap" onClick={() => setTab('buy')}>Buy a plan</button>
+        </div>
+      )}
 
       {sel && (
         <div
