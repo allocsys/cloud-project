@@ -5,7 +5,7 @@ import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
-import { clearApiCache } from '@/lib/api';
+import { clearApiCache, useApi } from '@/lib/api';
 
 const KYC = {
   none: { label: 'Not verified', cls: 'warn', cta: 'Verify' },
@@ -26,16 +26,10 @@ export default function Settings() {
   const [toast, show] = useToast();
   const [twofa, setTwofa] = useState(account.twofa);
   const [alerts, setAlerts] = useState(account.alerts);
-  const [kycState, setKycState] = useState(account.kyc);
+  const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
-  const kyc = KYC[kycState];
+  const kyc = KYC[kd ? kd.status : account.kyc] || KYC.none;
 
-  // The verification flow stores a placeholder flag until your API tells us the real status.
-  useEffect(() => {
-    try {
-      if (localStorage.getItem('opus-kyc') === 'pending') setKycState('pending');
-    } catch {}
-  }, []);
 
   // Install button: only when the browser offers the prompt (or on iOS, which needs a hint).
   useEffect(() => {
