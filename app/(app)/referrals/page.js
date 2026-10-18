@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { referral } from '@/lib/data';
+import { referral as seed } from '@/lib/data';
+import { useApi } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { useSheetBack } from '@/lib/nav';
@@ -24,6 +25,8 @@ function Icon({ d }) {
 export default function Referrals() {
   const [toast, show] = useToast();
   const [sheet, setSheet] = useState(null);
+  const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
+  const referral = rd || seed;
   useSheetBack(!!sheet, () => setSheet(null));
 
   // TODO: build the link from your real referral URL.
