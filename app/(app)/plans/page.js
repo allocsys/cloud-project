@@ -117,7 +117,7 @@ export default function Plans() {
             const pct = Math.round((c.elapsed / c.days) * 100);
             const rig = rigFor(c.plan);
             return (
-              <Link key={c.serial} href={`/miners/${c.serial}`} className="card cl">
+              <Link key={c.serial} href={`/miners/${c.serial}`} replace className="card cl">
                 <div className="mrow">
                   <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
                   <div className="mi">
