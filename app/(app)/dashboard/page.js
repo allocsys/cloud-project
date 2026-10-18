@@ -380,7 +380,7 @@ export default function Dashboard() {
                     <b>{c.name}</b>
                     <div className="row2">
                       <em>${formatUsd(c.dailyUsd)}/day</em>
-                      <i className="st" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
+                      <i className="mdot" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
                     </div>
                   </Link>
                 );
