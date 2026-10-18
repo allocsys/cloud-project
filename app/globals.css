@@ -1061,6 +1061,23 @@ main {
 .tmeta { font-size: 12px; line-height: 16px; color: var(--mute); }
 .tmeta b { color: var(--green); font-weight: 500; }
 
+/* Custom power slider */
+.slide { margin: 14px 0 4px; }
+.slide .big { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.slide .big b { font-size: 28px; line-height: 36px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
+.slide .big span { font-size: 12px; line-height: 16px; color: var(--green); }
+.slide input[type=range] { -webkit-appearance: none; appearance: none; width: 100%; min-height: 32px; height: 32px; margin: 4px 0 0; padding: 0; border: 0; border-radius: 0; background: transparent; cursor: pointer; }
+.slide input[type=range]:focus { border: 0; box-shadow: none; }
+.slide input[type=range]::-webkit-slider-runnable-track { height: 4px; border-radius: 2px; background: linear-gradient(to right, var(--gold) var(--p, 50%), var(--s4) var(--p, 50%)); }
+.slide input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 24px; height: 24px; margin-top: -10px; border: 0; border-radius: 50%; background: var(--gold); box-shadow: 0 1px 4px rgba(0, 0, 0, 0.5); }
+.slide input[type=range]::-moz-range-track { height: 4px; border-radius: 2px; background: var(--s4); }
+.slide input[type=range]::-moz-range-progress { height: 4px; border-radius: 2px; background: var(--gold); }
+.slide input[type=range]::-moz-range-thumb { width: 24px; height: 24px; border: 0; border-radius: 50%; background: var(--gold); }
+.slide input[type=range]:focus-visible::-webkit-slider-thumb { outline: 2px solid var(--gold2); outline-offset: 2px; }
+.terms { display: flex; gap: 8px; margin-top: 10px; }
+.terms button { flex: 1; min-height: 40px; border: 0; border-radius: 20px; background: var(--s4); color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+.terms button[aria-pressed=true] { background: var(--gold); color: var(--on-gold); }
+
 /* Payout countdown */
 .payout { margin-top: 14px; padding-top: 12px; border-top: 1px solid rgba(255, 255, 255, 0.1); }
 .payout > div:first-child { display: flex; justify-content: space-between; align-items: center; font-size: 12px; line-height: 16px; color: var(--mute); }
