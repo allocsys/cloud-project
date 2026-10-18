@@ -112,18 +112,20 @@ function HallForm({ draft, set, busy, onSave, onCancel }) {
   );
 }
 
-function Login({ onDone }) {
+function Login({ onDone, setup }) {
   const [token, setToken] = useState('');
+  const [user, setUser] = useState('');
+  const [pass, setPass] = useState('');
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
 
   async function submit(e) {
     e.preventDefault();
-    if (busy || !token) return;
+    if (busy || !user || !pass || (setup && !token)) return;
     setBusy(true);
     setErr('');
     try {
-      const r = await call('POST', '/api/admin/login', { token });
+      const r = await call('POST', '/api/admin/login', { token, user, pass });
       if (r.ok) onDone();
       else setErr(r.error || 'Could not sign in.');
     } catch {
@@ -138,21 +140,23 @@ function Login({ onDone }) {
       <form className="authbox" onSubmit={submit}>
         <div className="mark">O</div>
         <h1>Admin</h1>
-        <p className="mute">Enter the admin token to continue.</p>
-        <div className="field">
-          <input
-            id="tk"
-            type="password"
-            autoComplete="current-password"
-            placeholder=" "
-            className={err ? 'bad' : ''}
-            value={token}
-            onChange={(e) => setToken(e.target.value)}
-          />
-          <label htmlFor="tk">Admin token</label>
+        <p className="mute">{setup ? 'First time here. Enter the setup token, then choose the username and password you will use from now on.' : 'Sign in to continue.'}</p>
+        {setup && (
+          <div className="field">
+            <input id="tk" type="password" autoComplete="off" placeholder=" " className={err ? 'bad' : ''} value={token} onChange={(e) => setToken(e.target.value)} />
+            <label htmlFor="tk">Setup token</label>
+          </div>
+        )}
+        <div className="field" style={{ marginTop: setup ? 12 : 0 }}>
+          <input id="un" autoComplete="username" autoCapitalize="none" spellCheck="false" placeholder=" " className={err ? 'bad' : ''} value={user} onChange={(e) => setUser(e.target.value)} />
+          <label htmlFor="un">Username</label>
+        </div>
+        <div className="field" style={{ marginTop: 12 }}>
+          <input id="pw2" type="password" autoComplete={setup ? 'new-password' : 'current-password'} placeholder=" " className={err ? 'bad' : ''} value={pass} onChange={(e) => setPass(e.target.value)} />
+          <label htmlFor="pw2">{setup ? 'Password (10+ characters)' : 'Password'}</label>
         </div>
         {err && <div className="ferr" role="alert">{err}</div>}
-        <button className="btn" style={{ marginTop: 16 }} disabled={busy || !token}>Sign in</button>
+        <button className="btn" style={{ marginTop: 16 }} disabled={busy || !user || !pass || (setup && !token)}>{setup ? 'Create admin account' : 'Sign in'}</button>
       </form>
     </div>
   );
@@ -167,6 +171,7 @@ export default function Admin() {
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
   const [edit, setEdit] = useState(null); // { kind: 'plan' | 'hall', id, draft }
+  const [setup, setSetup] = useState(false); // first run: no admin account yet
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
   const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
   const [toast, show] = useToast();
@@ -177,7 +182,10 @@ export default function Admin() {
       if (r.status === 200) {
         setData(r);
         setState('ready');
-      } else if (r.status === 401) setState('login');
+      } else if (r.status === 401) {
+        setSetup(!!r.setup);
+        setState('login');
+      }
       else if (r.status === 503) setState('off');
       else setState('error');
     } catch {
@@ -221,7 +229,7 @@ export default function Admin() {
   }
 
   if (state === 'loading') return <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>;
-  if (state === 'login') return <Login onDone={() => { setState('loading'); load(); }} />;
+  if (state === 'login') return <Login setup={setup} onDone={() => { setState('loading'); load(); }} />;
   if (state === 'off' || state === 'error') {
     return (
       <div id="auth">
