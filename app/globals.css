@@ -197,6 +197,110 @@ input::placeholder { color: rgba(170, 162, 143, 0.7); }
 
 .fine { margin: 0 0 12px; font-size: 12px; line-height: 16px; color: var(--mute); }
 
+/* Floating-label fields: the label sits in the box and moves onto the border */
+.field { position: relative; margin-top: 16px; --fb: var(--bg); }
+.card .field { --fb: var(--s2); }
+.sheet .card .field { --fb: var(--s3); }
+.pct-row + .field { margin-top: 4px; }
+
+.field label {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  max-width: calc(100% - 24px);
+  margin: 0;
+  padding: 0 4px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-size: 16px;
+  line-height: 24px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--mute);
+  background: transparent;
+  pointer-events: none;
+  transition: top 0.15s, font-size 0.15s, line-height 0.15s, color 0.15s;
+}
+
+.field input:focus ~ label,
+.field input:not(:placeholder-shown) ~ label,
+.field input[type=date] ~ label,
+.field select ~ label {
+  top: -9px;
+  font-size: 12px;
+  line-height: 16px;
+  font-weight: 500;
+  letter-spacing: 0.4px;
+  background: var(--fb);
+}
+
+.field input:focus ~ label,
+.field select:focus ~ label { color: var(--gold); }
+.field input.bad ~ label,
+.field select.bad ~ label { color: var(--red); }
+
+.field input::placeholder { color: transparent; }
+.field input:focus::placeholder { color: rgba(170, 162, 143, 0.7); }
+.field input[type=date] { color-scheme: dark; }
+.field.pw input { padding-right: 72px; }
+
+.field select {
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 44px 14px 16px;
+  border: 1px solid var(--outline);
+  border-radius: 12px;
+  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23aaa28f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
+  color: var(--text);
+  font-size: 16px;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.field select:focus { border-color: var(--gold); box-shadow: 0 0 0 1px var(--gold); outline: none; }
+.field select.bad, .field select.bad:focus { border-color: var(--red); box-shadow: 0 0 0 1px var(--red); }
+.field select option { background: #27241c; color: #ebe6da; }
+
+/* Verification flow */
+.steps { display: flex; gap: 6px; margin: 0 0 12px; }
+.steps i { flex: 1; height: 4px; border-radius: 2px; background: rgba(233, 196, 106, 0.16); transition: background 0.2s; }
+.steps i.on { background: var(--gold); }
+
+.upload {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 0;
+  padding: 16px;
+  border: 1px dashed var(--outline);
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
+  letter-spacing: 0;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.upload:active { background: var(--s3); }
+.upload:focus-within { outline: 2px solid var(--gold); outline-offset: 2px; }
+.upload.has { border-style: solid; border-color: var(--gold); }
+.upload input { position: absolute; opacity: 0; width: 1px; height: 1px; min-height: 0; padding: 0; border: 0; pointer-events: none; }
+.upload .thumb { width: 48px; height: 48px; flex: none; border-radius: 8px; background: var(--s4) center / cover no-repeat; }
+.upload b { display: block; font-weight: 500; word-break: break-all; }
+.upload small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+
+/* Miner hashrate */
+.hs { display: flex; align-items: center; gap: 16px; margin: 4px 0 8px; }
+.hs > div { flex: none; }
+.hs span { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+.hs b { font-size: 20px; line-height: 28px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.hs small { margin-left: 4px; font-size: 12px; font-weight: 400; color: var(--mute); }
+.hs .sp { flex: 1; min-width: 0; height: 44px; margin: 0; }
+.sdot.off { background: var(--outline); animation: none; }
+
 /* Login */
 #auth {
   min-height: 100vh;
