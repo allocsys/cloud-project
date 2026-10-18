@@ -16,6 +16,7 @@ export default function Login() {
   const [ref, setRef] = useState('');
   const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
   const [tgBusy, setTgBusy] = useState(false);
+  const [notice, setNotice] = useState(''); // set after sign-up when the invite code was not recognised; the page then waits for Continue
 
   // Telegram's script may load after this page does, so look a few times.
   useEffect(() => {
@@ -41,6 +42,7 @@ export default function Login() {
 
   async function submit(e) {
     e.preventDefault();
+    if (notice) return router.replace('/dashboard');
     const next = {};
     if (!/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
     if (password.length < 8) next.password = 'Password needs at least 8 characters.';
@@ -55,12 +57,17 @@ export default function Login() {
     setErrors({});
     setLoading(true);
     try {
-      await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
+      const res = await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
       try {
         if (signup) localStorage.removeItem('opus-ref');
       } catch {}
       triggerHaptic('success');
+      if (signup && res?.ref === 'invalid') {
+        setNotice(`Account created. Invite code ${ref} was not recognised.`);
+        setLoading(false);
+        return;
+      }
       router.replace('/dashboard');
     } catch (err) {
       triggerHaptic('error');
@@ -80,12 +87,17 @@ export default function Login() {
     setErrors({});
     setTgBusy(true);
     try {
-      await post('/api/auth/telegram', { initData: window.Telegram?.WebApp?.initData || '', ...(ref ? { ref } : {}) });
+      const res = await post('/api/auth/telegram', { initData: window.Telegram?.WebApp?.initData || '', ...(ref ? { ref } : {}) });
       clearApiCache();
       try {
         localStorage.removeItem('opus-ref');
       } catch {}
       triggerHaptic('success');
+      if (res?.ref === 'invalid') {
+        setNotice(`Account created. Invite code ${ref} was not recognised.`);
+        setTgBusy(false);
+        return;
+      }
       router.replace('/dashboard');
     } catch (err) {
       triggerHaptic('error');
@@ -174,10 +186,11 @@ export default function Login() {
         <div style={{ height: '14px' }} />
 
         <button className="btn" type="submit" disabled={loading}>
-          {loading ? 'Authenticating...' : signup ? 'Create account' : 'Sign in'}
+          {loading ? 'Authenticating...' : notice ? 'Continue' : signup ? 'Create account' : 'Sign in'}
         </button>
 
-        {signup && ref && <p className="fine">Invite code {ref} applied.</p>}
+        {notice && <p className="fine" role="status">{notice}</p>}
+        {!notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.</p>}
         {signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
 
         <button className="swap" type="button" onClick={handleSwap}>
