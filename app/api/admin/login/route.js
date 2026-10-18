@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { COOKIE, MAX_AGE, adminEnabled, checkToken, newSession, clientIp, throttled, noteFail, clearFails } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, throttled, noteFail, clearFails } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -19,9 +19,15 @@ export async function POST(req) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  if (!checkToken(body?.token)) {
+  if (needsSetup()) {
+    const r = setupAdmin(body?.token, body?.user, body?.pass);
+    if (!r.ok) {
+      if (r.bad) noteFail(ip);
+      return NextResponse.json({ ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
+    }
+  } else if (!checkLogin(body?.user, body?.pass)) {
     noteFail(ip);
-    return NextResponse.json({ ok: false, error: 'Wrong token.' }, { status: 401, headers: NO_STORE });
+    return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
   }
   clearFails(ip);
   const res = NextResponse.json({ ok: true }, { headers: NO_STORE });
