@@ -4,12 +4,14 @@ import { usePathname } from 'next/navigation';
 
 const HOME = '/dashboard';
 
-// Android back button: from any screen it lands on Earnings (the entry the app opened on),
-// and from Earnings it asks once more, then closes the app.
+// Android back button.
+// - Detail screens opened from a list (lib/nav.js) add a history entry, so back goes one step.
+// - Tab screens replace their entry, so back from any tab lands on Earnings.
+// - On Earnings, back asks once more, then closes the app.
 //
 // Chrome skips history entries that a page adds without a tap, so the spare entry
 // under the current screen is added on the person's first tap (pointerup / key press),
-// not on load. Screen changes replace the entry, so history never grows.
+// not on load.
 export default function BackGuard() {
   const path = usePathname();
   const pathRef = useRef(path);
@@ -29,6 +31,11 @@ export default function BackGuard() {
     };
 
     const onPop = () => {
+      // Stepping out of a detail screen: the spare entry is still underneath.
+      if ((window.__opusDepth || 0) > 0) {
+        window.__opusDepth -= 1;
+        return;
+      }
       if (!guarded.current) return;
       guarded.current = false;
       // Already on Earnings: the page does not change, so say what the next press does.
