@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Field from '@/components/Field';
 import { triggerHaptic } from '@/lib/haptics';
@@ -12,6 +12,18 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
+  const [ref, setRef] = useState('');
+
+  // An invite link (/login?ref=CODE) opens sign-up and keeps the code. Link it to the new account here once real signup exists.
+  useEffect(() => {
+    try {
+      const r = (new URLSearchParams(window.location.search).get('ref') || localStorage.getItem('opus-ref') || '').trim().slice(0, 24);
+      if (!r) return;
+      localStorage.setItem('opus-ref', r);
+      setRef(r);
+      if (new URLSearchParams(window.location.search).get('ref')) setSignup(true);
+    } catch {}
+  }, []);
 
   // TODO: call your auth API here.
   function submit(e) {
@@ -120,6 +132,7 @@ export default function Login() {
           {loading ? 'Authenticating...' : signup ? 'Create account' : 'Sign in'}
         </button>
 
+        {signup && ref && <p className="fine">Invite code {ref} applied.</p>}
         {signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
 
         <button className="swap" type="button" onClick={handleSwap}>
