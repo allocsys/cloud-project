@@ -5,12 +5,12 @@ import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
-import { contracts, earnings, stats, notifications, TODAY_BTC } from '@/lib/data';
+import { notifications } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 
 // Shown until the server answers the first time.
-const seedTh = contracts.reduce((s, c) => s + c.th, 0);
+const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
 
 function ago(now, at) {
   if (!now) return 'now';
@@ -98,7 +98,13 @@ function ChartBox({ rows }) {
 }
 
 export default function Dashboard() {
-  const { mined, shares } = useMinedFeed();
+  // The user's miners drive the live strip, the projection, the miner row and the live feed.
+  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const miners = md ? md.contracts : [];
+  const online = miners.filter((c) => c.online);
+  const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
+
+  const { mined, shares } = useMinedFeed(dailyUsd);
   const shown = useCountUp(mined);
   const now = useNow(1000);
   const [range, setRange] = useState('week');
@@ -107,21 +113,20 @@ export default function Dashboard() {
   // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
   const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
   const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
-  const dash = dd || { totalTh: seedTh, todayBtc: TODAY_BTC, earnings, stats };
+  const dash = dd || EMPTY;
   const unread = nd ? nd.unread : notifications.length;
 
-  // The user's miners drive the live strip, the projection and the miner row.
-  const { data: md } = useApi('/api/miners', { ttl: 10000 });
-  const miners = md ? md.contracts : [];
-  const online = miners.filter((c) => c.online);
-  const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
   const biggest = [...online].sort((a, b) => b.th - a.th)[0];
   const rig = rigFor(biggest || 'starter');
 
   const rows = dash.earnings[range];
-  const labels =
-    range === 'week' ? rows.map((d) => d.label) : [rows[0].day, rows[Math.floor(rows.length / 2)].day, 'Today'];
-  const avg = rows.reduce((s, d) => s + d.usd, 0) / rows.length;
+  const hasChart = dash.hasMiners && rows.length > 1;
+  const labels = !hasChart
+    ? []
+    : range === 'week'
+      ? rows.map((d) => d.label)
+      : [rows[0].day, rows[Math.floor(rows.length / 2)].day, 'Today'];
+  const avg = hasChart ? rows.reduce((s, d) => s + d.usd, 0) / rows.length : 0;
   const d = now ? new Date(now) : null;
   const dim = d ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : 30;
   const dom = d ? d.getDate() : 1;
@@ -158,7 +163,7 @@ export default function Dashboard() {
         <div className="card hero">
           <span className="mute eyebrow">Total mined</span>
           <div className="big">
-            <span style={{ transition: 'color 0.2s', color: pulse ? '#fff' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
+            <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
             <small>BTC</small>
           </div>
           <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(shown * BTC_USD)}</span>
@@ -203,7 +208,7 @@ export default function Dashboard() {
           </div>
           <div className="stat">
             <span>Uptime</span>
-            <b>99.8<small>%</small></b>
+            <b>{dash.uptime == null ? '–' : <>{dash.uptime.toFixed(1)}<small>%</small></>}</b>
             <Spark values={dash.stats.uptime} color="var(--green)" />
           </div>
         </div>
@@ -265,15 +270,16 @@ export default function Dashboard() {
             <div className="cardhead">
               <div>
                 <h3>Daily earnings</h3>
-                <small className="mute" style={{ fontSize: '12px' }}>avg ${formatUsd(avg)}/day</small>
+                <small className="mute" style={{ fontSize: '12px' }}>{hasChart ? `avg $${formatUsd(avg)}/day` : 'no earnings yet'}</small>
               </div>
               <div className="minitabs" role="group" aria-label="Chart range">
                 <button aria-pressed={range === 'week'} onClick={() => setRange('week')}>7d</button>
                 <button aria-pressed={range === 'all'} onClick={() => setRange('all')}>All</button>
               </div>
             </div>
+            {!hasChart && <p className="empty">Your daily earnings will show here once a miner is live.</p>}
             <div key={range}>
-              <ChartBox rows={rows} />
+              {hasChart && <ChartBox rows={rows} />}
               <div className="chartlabels">
                 {labels.map((l, i) => (
                   <span key={l + i} className={i === labels.length - 1 ? 'now' : undefined}>{l}</span>
