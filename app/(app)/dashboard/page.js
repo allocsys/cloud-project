@@ -76,12 +76,12 @@ function ChartBox({ rows }) {
       <svg className="spark" viewBox="0 0 300 120" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="g" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#e9c46a" stopOpacity=".4" />
-            <stop offset="100%" stopColor="#e9c46a" stopOpacity="0" />
+            <stop offset="0" stopColor="var(--gold)" stopOpacity=".4" />
+            <stop offset="100%" stopColor="var(--gold)" stopOpacity="0" />
           </linearGradient>
         </defs>
         <path d={`${line} L300 120 L0 120Z`} fill="url(#g)" />
-        <path d={line} fill="none" stroke="#f6dc9a" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
+        <path d={line} fill="none" stroke="var(--gold2)" strokeWidth="2.2" vectorEffect="non-scaling-stroke" />
         {!a && <circle cx={pts[last][0]} cy={pts[last][1]} r="4.5" fill="var(--gold2)" stroke="var(--bg)" strokeWidth="2" />}
       </svg>
       {a && (
