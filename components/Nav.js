@@ -37,7 +37,7 @@ export default function Nav() {
           key={i.href}
           href={i.href}
           aria-label={i.label}
-          aria-current={path === i.href ? 'page' : undefined}
+          aria-current={path === i.href || (i.href === '/dashboard' && path.startsWith('/contracts/')) ? 'page' : undefined}
           className={i.fab ? 'fab' : undefined}
           onClick={() => onNavClick(i.href)}
         >
