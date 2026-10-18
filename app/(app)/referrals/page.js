@@ -84,8 +84,8 @@ export default function Referrals() {
 
   const steps = [
     { icon: ICONS.share, title: 'Share', sub: 'Send your code' },
-    { icon: ICONS.join, title: 'Friend joins', sub: 'They sign up with it' },
-    { icon: ICONS.gift, title: 'You earn', sub: `${referral.ratePct}% reward` },
+    { icon: ICONS.join, title: 'Friend joins', sub: referral.gift ? `Gets ${referral.gift}` : 'They sign up with it' },
+    { icon: ICONS.gift, title: 'You earn', sub: referral.reward },
   ];
 
   return (
@@ -103,7 +103,7 @@ export default function Referrals() {
           <div className="chips">
             <span>{referral.friends.length} invited</span>
             <span>{active} active</span>
-            <span>{referral.ratePct}% reward</span>
+            <span>{referral.reward}</span>
           </div>
         </div>
 
