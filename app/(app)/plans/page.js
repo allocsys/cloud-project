@@ -215,7 +215,7 @@ export default function Plans() {
                 <span className="mute">Miner ID</span>
                 <b className="serial">{nextSerial()}</b>
               </div>
-              <div className="row" style={{ borderTop: '1px solid rgba(212, 168, 75, 0.25)' }}>
+              <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${sel.price.toLocaleString()}</b>
               </div>
