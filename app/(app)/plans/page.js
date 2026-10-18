@@ -142,7 +142,7 @@ export default function Plans() {
                   <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
                   <div className="mi">
                     <div className="mt">
-                      <i className="sdot" />
+                      <i className={`sdot${c.online ? '' : ' off'}`} />
                       <b>{c.plan}</b>
                       <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
                     </div>
