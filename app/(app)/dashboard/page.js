@@ -6,8 +6,10 @@ import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
 import { contracts, earnings, stats, notifications, TODAY_BTC } from '@/lib/data';
+import { useApi } from '@/lib/api';
 
-const totalTh = contracts.reduce((s, c) => s + c.th, 0);
+// Shown until the server answers the first time.
+const seedTh = contracts.reduce((s, c) => s + c.th, 0);
 
 function ago(now, at) {
   if (!now) return 'now';
@@ -100,17 +102,14 @@ export default function Dashboard() {
   const now = useNow(1000);
   const [range, setRange] = useState('week');
   const [pulse, setPulse] = useState(false);
-  const [unread, setUnread] = useState(0);
 
-  // Placeholder read state: the notifications screen stores how many it has shown.
-  useEffect(() => {
-    try {
-      const seen = parseInt(localStorage.getItem('opus-notif-seen') || '0', 10) || 0;
-      setUnread(Math.max(0, notifications.length - seen));
-    } catch {}
-  }, []);
+  // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
+  const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
+  const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
+  const dash = dd || { totalTh: seedTh, todayBtc: TODAY_BTC, earnings, stats };
+  const unread = nd ? nd.unread : notifications.length;
 
-  const rows = earnings[range];
+  const rows = dash.earnings[range];
   const labels =
     range === 'week' ? rows.map((d) => d.label) : [rows[0].day, rows[Math.floor(rows.length / 2)].day, 'Today'];
   const avg = rows.reduce((s, d) => s + d.usd, 0) / rows.length;
@@ -166,18 +165,18 @@ export default function Dashboard() {
         <div className="stats">
           <div className="stat">
             <span>Hashrate</span>
-            <b>{totalTh}<small>TH/s</small></b>
-            <Spark values={stats.hash} />
+            <b>{dash.totalTh}<small>TH/s</small></b>
+            <Spark values={dash.stats.hash} />
           </div>
           <div className="stat">
             <span>Today</span>
-            <b>+{formatBtc(TODAY_BTC, 5)}<small>BTC</small></b>
-            <Spark values={earnings.week.map((d) => d.usd)} />
+            <b>+{formatBtc(dash.todayBtc, 5)}<small>BTC</small></b>
+            <Spark values={dash.earnings.week.map((d) => d.usd)} />
           </div>
           <div className="stat">
             <span>Uptime</span>
             <b>99.8<small>%</small></b>
-            <Spark values={stats.uptime} color="var(--green)" />
+            <Spark values={dash.stats.uptime} color="var(--green)" />
           </div>
         </div>
 
