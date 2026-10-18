@@ -34,5 +34,6 @@ Then point `DATABASE_URL` at the new database and redeploy.
 - **Check:** `GET /api/health` returns `{ ok: true, store: "postgres" }` when the database is connected. `memory` means it is not.
 - **Port:** reads `PORT` (default 3000). **Env:** `PRICE_FEED=static` turns off the CoinGecko feed.
 - **HTTPS:** put the container behind a proxy or the host's TLS. The PWA install and the service worker need HTTPS.
+- **Build needs internet.** `next/font` downloads Roboto during `npm run build`. If Google Fonts is briefly unreachable the build fails with a `next/font` error; the host keeps serving the previous version, so just redeploy.
 - **One instance only.** Each instance keeps its own working copy and saves every 2 seconds, so a crash can lose the last couple of seconds. Move to per-request queries before scaling out.
 - **Railway:** unchanged. It builds with `npm run build` and starts with `next start`.
