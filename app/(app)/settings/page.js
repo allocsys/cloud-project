@@ -6,6 +6,7 @@ import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
 import { clearApiCache, useApi } from '@/lib/api';
+import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
   none: { label: 'Not verified', cls: 'warn', cta: 'Verify' },
@@ -28,6 +29,17 @@ export default function Settings() {
   const [alerts, setAlerts] = useState(account.alerts);
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
+  const [theme, setTheme] = useState('dark');
+
+  useEffect(() => {
+    setTheme(readTheme());
+  }, []);
+
+  function pickTheme(v) {
+    triggerHaptic('selection');
+    setTheme(v);
+    applyTheme(v, true);
+  }
   const kyc = KYC[kd ? kd.status : account.kyc] || KYC.none;
 
 
@@ -129,12 +141,24 @@ export default function Settings() {
         </div>
 
         <div className="card">
+          <div className="row" style={{ borderTop: 0 }}>
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Theme</div>
+            <div className="minitabs" role="group" aria-label="Theme">
+              {[
+                ['dark', 'Dark'],
+                ['light', 'Light'],
+                ['system', 'Auto'],
+              ].map(([v, label]) => (
+                <button key={v} type="button" aria-pressed={theme === v} onClick={() => pickTheme(v)}>{label}</button>
+              ))}
+            </div>
+          </div>
           {[
             ['payouts', 'Payout alerts'],
             ['withdrawals', 'Withdrawal alerts'],
             ['news', 'Product news'],
-          ].map(([key, title], i) => (
-            <div key={key} className="row" style={i === 0 ? { borderTop: 0 } : undefined}>
+          ].map(([key, title]) => (
+            <div key={key} className="row">
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{title}</div>
               <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={title} />
             </div>
