@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import { useMined, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { history as seed, MIN_WITHDRAW } from '@/lib/data';
-import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote } from '@/lib/assets';
+import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote } from '@/lib/assets';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
@@ -10,9 +10,12 @@ import Field from '@/components/Field';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
+  deposit: { glyph: '+', cls: 'in' },
   purchase: { glyph: '◆', cls: 'buy' },
   withdrawal: { glyph: '↑', cls: 'out' },
 };
+
+const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
 
 function DepositQr({ value }) {
   const qr = useMemo(() => {
@@ -75,6 +78,8 @@ export default function Wallet() {
   const [errors, setErrors] = useState({});
   const [history, setHistory] = useState(seed);
   const [open, setOpen] = useState(false);
+  const [filter, setFilter] = useState('all');
+  const [dep, setDep] = useState('');
   const [toast, show] = useToast();
   const available = Math.max(0, mined - withdrawn);
   const A = ASSETS[asset];
@@ -82,6 +87,9 @@ export default function Wallet() {
   const parsed = parseFloat(amount);
   const q = parsed > 0 ? quote(asset, net, parsed) : null;
   const flatFee = A.nets[net];
+  const dp = parseFloat(dep);
+  const dq = dp > 0 ? depositQuote(asset, dp) : null;
+  const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter);
 
   function setFraction(pct) {
     triggerHaptic('selection');
@@ -103,6 +111,7 @@ export default function Wallet() {
     triggerHaptic('selection');
     setAsset(id);
     setNet(Object.keys(ASSETS[id].nets)[0]);
+    setDep('');
     setAddress('');
     setErrors({});
   }
@@ -136,7 +145,19 @@ export default function Wallet() {
     triggerHaptic('success');
     setErrors({});
     setWithdrawn(withdrawn + a);
-    setHistory([{ kind: 'withdrawal', label: `Withdrawal · ${A.sym}`, date: 'Just now', amount: `-${a.toFixed(4)}` }, ...history]);
+    const wq = quote(asset, net, a);
+    setHistory([
+      {
+        kind: 'withdrawal',
+        label: `Withdrawal · ${A.sym}`,
+        date: 'Just now',
+        amount: `-${a.toFixed(4)}`,
+        coin: A.sym,
+        net: N.short,
+        fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}`,
+      },
+      ...history,
+    ]);
     setAmount('');
     setAddress('');
     show('Withdrawal initiated');
@@ -260,6 +281,37 @@ export default function Wallet() {
                 <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>
                   {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'}
                 </p>
+
+                <Field id="da" label={`Amount you send · ${A.sym}`}>
+                  <input
+                    id="da"
+                    inputMode="decimal"
+                    placeholder="0.00"
+                    value={dep}
+                    onChange={(e) => setDep(e.target.value)}
+                  />
+                </Field>
+                <div className="quote" aria-live="polite">
+                  {dq ? (
+                    <>
+                      {asset !== 'btc' && (
+                        <div className="row">
+                          <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
+                          <b>${formatUsd(dq.swapUsd)}</b>
+                        </div>
+                      )}
+                      <div className="row total">
+                        <span className="mute">Credited</span>
+                        <b>≈ {formatBtc(dq.creditedBtc)} BTC</b>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="row">
+                      <span className="mute">Credited as BTC</span>
+                      <span className="mute">{asset === 'btc' ? 'No fee' : `${SWAP_FEE_PCT}% swap fee`}</span>
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>
@@ -280,7 +332,14 @@ export default function Wallet() {
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
-            {open && history.slice(0, 6).map((h, i) => {
+            {open && (
+              <div className="minitabs fill" role="group" aria-label="Filter activity">
+                {FILTERS.map(([id, label]) => (
+                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>
+                ))}
+              </div>
+            )}
+            {open && shown.slice(0, 8).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               return (
                 <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
@@ -288,7 +347,7 @@ export default function Wallet() {
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
                       <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{h.date}</small>
+                      <small>{[h.date, h.coin, h.net].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
                     </div>
                   </div>
                   <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontVariantNumeric: 'tabular-nums', fontSize: '13.5px' }}>
@@ -297,6 +356,7 @@ export default function Wallet() {
                 </div>
               );
             })}
+            {open && shown.length === 0 && <p className="empty">Nothing here yet.</p>}
           </div>
         </div>
       </div>
