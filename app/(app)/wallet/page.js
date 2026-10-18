@@ -1,6 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
-import { useMined, formatBtc, formatUsd, START } from '@/lib/useMined';
+import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
+import { CREDIT_BTC, SEED_WITHDRAWN } from '@/lib/data';
 import { history as seed, MIN_WITHDRAW } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
@@ -113,8 +114,8 @@ export default function Wallet() {
   const btcUsd = priceOf('btc', prices);
   const history = wd ? wd.history : seed;
   // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
-  const earned = wd ? wd.earned + (mined - START) : mined;
-  const available = Math.max(0, earned - (wd ? wd.withdrawn : 0));
+  const earned = (wd ? wd.earned : CREDIT_BTC) + mined;
+  const available = Math.max(0, earned - (wd ? wd.withdrawn : SEED_WITHDRAWN));
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
