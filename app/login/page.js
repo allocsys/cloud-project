@@ -30,7 +30,7 @@ export default function Login() {
     setErrors({});
     setLoading(true);
     setTimeout(() => {
-      router.push('/dashboard');
+      router.replace('/dashboard');
     }, 150);
   }
 
@@ -42,7 +42,7 @@ export default function Login() {
 
   function handleSkip() {
     triggerHaptic('light');
-    router.push('/dashboard');
+    router.replace('/dashboard');
   }
 
   return (
