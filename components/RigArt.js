@@ -9,7 +9,13 @@ export const RIG = {
   pro: { units: 3, speed: 0.9 },
   elite: { units: 3, speed: 0.6 },
 };
-export const rigFor = (name) => RIG[String(name).toLowerCase()] || RIG.starter;
+// Takes a plan name or id, or a miner: custom miners get a rig that fits their size.
+export const rigFor = (x) => {
+  const key = String(x && typeof x === 'object' ? x.plan : x).toLowerCase();
+  if (RIG[key]) return RIG[key];
+  const th = x && typeof x === 'object' ? x.th : 0;
+  return th >= 1000 ? RIG.elite : th >= 500 ? RIG.pro : th >= 250 ? RIG.plus : th >= 100 ? RIG.growth : th >= 30 ? RIG.basic : RIG.starter;
+};
 
 const GOLD = '#e9c46a';
 const GOLD_LIGHT = '#f6dc9a';
