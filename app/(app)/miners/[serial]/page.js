@@ -132,7 +132,7 @@ export default function ContractPage() {
             </div>
             <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
             <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
-            <div className="row"><span className="mute">Efficiency</span><b className="v">{hall.efficiency}</b></div>
+            <div className="row"><span className="mute">Rig</span><b className="v">{hall.rig}<small>{hall.efficiency}</small></b></div>
             <div className="row"><span className="mute">Power</span><b className="v">{hall.power}</b></div>
             <div className="row"><span className="mute">Term</span><b className="v">{c.started} – {c.ends}</b></div>
           </div>
