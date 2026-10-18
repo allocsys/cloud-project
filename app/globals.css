@@ -1137,7 +1137,7 @@ main {
   .sheet .card { border-radius: 28px; padding-top: 24px; animation-name: rise; }
   .grab { display: none; }
 
-  #toast { bottom: 32px; }
+  #toast, #exit-toast { bottom: 32px; }
 }
 
 /* Motion */
