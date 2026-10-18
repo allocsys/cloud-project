@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512" role="img" aria-label="Opus Cloud Mining">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#f6dc9a"/>
+      <stop offset="0.55" stop-color="#e9c46a"/>
+      <stop offset="1" stop-color="#c99a3a"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#12110d"/>
+  <path d="M256 56L429 156L429 356L256 456L83 356L83 156Z" fill="none" stroke="url(#g)" stroke-width="5" stroke-linejoin="round" opacity="0.4"/>
+  <path d="M256 96L395 176L395 336L256 416L117 336L117 176Z" fill="url(#g)" stroke="url(#g)" stroke-width="28" stroke-linejoin="round"/>
+  <g fill="#12110d">
+    <rect x="196" y="272" width="28" height="56" rx="8"/>
+    <rect x="242" y="232" width="28" height="96" rx="8"/>
+    <rect x="288" y="192" width="28" height="136" rx="8"/>
+  </g>
+</svg>
