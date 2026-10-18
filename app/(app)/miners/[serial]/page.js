@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls, contractDaily, minerHash, BTC_USD } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
+import { useApi } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { drillBack } from '@/lib/nav';
 import Spark from '@/components/Spark';
@@ -37,7 +38,8 @@ function Back({ title }) {
 export default function ContractPage() {
   const { serial } = useParams();
   const [all, setAll] = useState(false);
-  const c = contracts.find((x) => x.serial === serial);
+  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
 
   if (!c) {
     return (
