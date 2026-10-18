@@ -17,11 +17,15 @@ const KIND = {
 
 const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
 
-// USD value of an activity row. Payouts, deposits and withdrawals are BTC amounts here.
+const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
+const ceilTo = (n, d) => Math.ceil(n * 10 ** d - 1e-9) / 10 ** d;
+
+// USD value of an activity row. Amounts are in the row's own coin; purchases are already dollars.
 function usdOf(h) {
   if (h.kind === 'purchase' || !h.coin) return null;
+  const a = ASSETS[h.coin.toLowerCase()];
   const v = Math.abs(parseFloat(h.amount));
-  return v > 0 ? v * BTC_USD : null;
+  return a && v > 0 ? v * a.usd : null;
 }
 
 function DepositQr({ value }) {
@@ -74,12 +78,26 @@ function Picker({ asset, net, onAsset, onNet }) {
   );
 }
 
+// Enter the amount in the coin itself or in dollars.
+function UnitSwitch({ sym, unit, onUnit }) {
+  return (
+    <div className="netrow">
+      <span>Amount in</span>
+      <div className="minitabs" role="group" aria-label="Amount unit">
+        <button type="button" aria-pressed={unit === 'coin'} onClick={() => onUnit('coin')}>{sym}</button>
+        <button type="button" aria-pressed={unit === 'usd'} onClick={() => onUnit('usd')}>USD</button>
+      </div>
+    </div>
+  );
+}
+
 export default function Wallet() {
   const mined = useMined();
   const [withdrawn, setWithdrawn] = useState(0);
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
   const [net, setNet] = useState('btc');
+  const [unit, setUnit] = useState('coin');
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [errors, setErrors] = useState({});
@@ -91,16 +109,26 @@ export default function Wallet() {
   const available = Math.max(0, mined - withdrawn);
   const A = ASSETS[asset];
   const N = NETWORKS[net];
+  const usdMode = unit === 'usd';
+  const toCoin = (v) => (usdMode ? v / A.usd : v);
   const parsed = parseFloat(amount);
-  const q = parsed > 0 ? quote(asset, net, parsed) : null;
+  const coinAmt = parsed > 0 ? toCoin(parsed) : 0;
+  const q = coinAmt > 0 ? quote(asset, net, coinAmt) : null;
   const flatFee = A.nets[net];
   const dp = parseFloat(dep);
-  const dq = dp > 0 ? depositQuote(asset, dp) : null;
+  const depCoin = dp > 0 ? toCoin(dp) : 0;
+  const dq = depCoin > 0 ? depositQuote(asset, depCoin) : null;
   const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter);
+
+  // The minimum is set in BTC, shown in whatever unit the person is typing in.
+  const minUsd = MIN_WITHDRAW * BTC_USD;
+  const minText = usdMode ? `$${formatUsd(ceilTo(minUsd, 2))}` : `${ceilTo(minUsd / A.usd, A.dec).toFixed(A.dec)} ${A.sym}`;
+  const dec = usdMode ? 2 : A.dec;
 
   function setFraction(pct) {
     triggerHaptic('selection');
-    setAmount((available * pct).toFixed(8));
+    const usd = available * pct * BTC_USD;
+    setAmount(floorTo(usdMode ? usd : usd / A.usd, dec).toFixed(dec));
     setErrors({ ...errors, amount: undefined });
   }
 
@@ -112,12 +140,28 @@ export default function Wallet() {
     }
   }
 
-  // A pasted address belongs to one network, so changing coin or network clears it.
+  // Switching unit keeps the same value, just restated in the other unit.
+  function pickUnit(next) {
+    if (next === unit) return;
+    triggerHaptic('selection');
+    const conv = (s) => {
+      const v = parseFloat(s);
+      if (!(v > 0)) return s;
+      return next === 'usd' ? (v * A.usd).toFixed(2) : (v / A.usd).toFixed(A.dec);
+    };
+    setAmount(conv(amount));
+    setDep(conv(dep));
+    setUnit(next);
+    setErrors({});
+  }
+
+  // A pasted address belongs to one network and amounts belong to one coin, so changing coin clears them.
   function pickAsset(id) {
     if (id === asset) return;
     triggerHaptic('selection');
     setAsset(id);
     setNet(Object.keys(ASSETS[id].nets)[0]);
+    setAmount('');
     setDep('');
     setAddress('');
     setErrors({});
@@ -131,14 +175,14 @@ export default function Wallet() {
     setErrors({});
   }
 
-  // TODO: call your withdrawal API here (coin, network, BTC amount, address).
+  // TODO: call your withdrawal API here (coin, network, coin amount, address).
   function withdraw() {
-    const a = parsed;
     const next = {};
-    if (!(a > 0)) next.amount = 'Enter an amount to withdraw.';
-    else if (a < MIN_WITHDRAW) next.amount = `Minimum is ${MIN_WITHDRAW} BTC.`;
-    else if (a > available) next.amount = 'More than your available balance.';
-    else if (quote(asset, net, a).receive <= 0) next.amount = 'Too small to cover the fees.';
+    const wq = coinAmt > 0 ? quote(asset, net, coinAmt) : null;
+    if (!wq) next.amount = 'Enter an amount to withdraw.';
+    else if (wq.btc < MIN_WITHDRAW) next.amount = `Minimum is ${minText}.`;
+    else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = 'More than your available balance.';
+    else if (wq.receive <= 0) next.amount = 'Too small to cover the fees.';
     if (!N.pattern.test(address.trim())) next.address = `Enter a valid ${N.label} address.`;
 
     if (next.amount || next.address) {
@@ -151,14 +195,13 @@ export default function Wallet() {
 
     triggerHaptic('success');
     setErrors({});
-    setWithdrawn(withdrawn + a);
-    const wq = quote(asset, net, a);
+    setWithdrawn(withdrawn + Math.min(wq.btc, available));
     setHistory([
       {
         kind: 'withdrawal',
         label: `Withdrawal · ${A.sym}`,
         date: 'Just now',
-        amount: `-${a.toFixed(4)}`,
+        amount: `-${coinAmt.toFixed(A.dec)}`,
         coin: A.sym,
         net: N.short,
         fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}`,
@@ -208,14 +251,15 @@ export default function Wallet() {
 
             {tab === 'withdraw' ? (
               <div>
-                <Field id="wa" label={`Amount in BTC · min ${MIN_WITHDRAW}`} error={errors.amount}>
+                <UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />
+                <Field id="wa" label={`Amount · min ${minText}`} error={errors.amount}>
                   <input
                     id="wa"
                     inputMode="decimal"
                     className={errors.amount ? 'bad' : undefined}
                     aria-invalid={!!errors.amount}
                     aria-describedby={errors.amount ? 'wa-err' : undefined}
-                    placeholder="0.00000000"
+                    placeholder={(0).toFixed(dec)}
                     value={amount}
                     onChange={(e) => {
                       setAmount(e.target.value);
@@ -253,8 +297,8 @@ export default function Wallet() {
                   {q ? (
                     <>
                       <div className="row">
-                        <span className="mute">Value</span>
-                        <b>≈ ${formatUsd(q.usd)}</b>
+                        <span className="mute">Amount</span>
+                        <b>{usdMode ? `≈ ${coinAmt.toFixed(A.dec)} ${A.sym}` : `≈ $${formatUsd(q.usd)}`}</b>
                       </div>
                       {asset !== 'btc' && (
                         <div className="row">
@@ -296,11 +340,12 @@ export default function Wallet() {
                   {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'}
                 </p>
 
-                <Field id="da" label={`Amount you send · ${A.sym}`}>
+                <UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />
+                <Field id="da" label="Amount you send">
                   <input
                     id="da"
                     inputMode="decimal"
-                    placeholder="0.00"
+                    placeholder={(0).toFixed(dec)}
                     value={dep}
                     onChange={(e) => setDep(e.target.value)}
                   />
@@ -310,7 +355,7 @@ export default function Wallet() {
                     <>
                       <div className="row">
                         <span className="mute">You send</span>
-                        <b>≈ ${formatUsd(dq.usd)}</b>
+                        <b>{usdMode ? `≈ ${depCoin.toFixed(A.dec)} ${A.sym}` : `≈ $${formatUsd(dq.usd)}`}</b>
                       </div>
                       {asset !== 'btc' && (
                         <div className="row">
@@ -362,18 +407,21 @@ export default function Wallet() {
             )}
             {open && shown.slice(0, 8).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
+              const hu = usdOf(h);
               return (
                 <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
                       <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{[h.date, h.coin, h.net].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
+                      <small>{[h.date, h.net !== h.coin ? h.net : null].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
-                    <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px' }}>{h.amount}</b>
-                    {usdOf(h) != null && <small style={{ display: 'block' }}>≈ ${formatUsd(usdOf(h))}</small>}
+                    <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px' }}>
+                      {h.amount}{h.coin ? ` ${h.coin}` : ''}
+                    </b>
+                    {hu != null && <small style={{ display: 'block' }}>≈ ${formatUsd(hu)}</small>}
                   </div>
                 </div>
               );
