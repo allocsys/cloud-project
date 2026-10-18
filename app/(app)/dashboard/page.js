@@ -10,7 +10,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 
 // Shown until the server answers the first time.
-const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
+const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
 
 function ago(now, at) {
   if (!now) return 'now';
@@ -104,16 +104,17 @@ export default function Dashboard() {
   const online = miners.filter((c) => c.online);
   const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
 
-  const { mined, shares } = useMinedFeed(dailyUsd);
+  const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
+  const dash = dd || EMPTY;
+
+  const { mined, shares } = useMinedFeed(dailyUsd, dash.totalBtc);
   const shown = useCountUp(mined);
   const now = useNow(1000);
   const [range, setRange] = useState('week');
   const [pulse, setPulse] = useState(false);
 
   // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
-  const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
   const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
-  const dash = dd || EMPTY;
   const unread = nd ? nd.unread : notifications.length;
 
   const biggest = [...online].sort((a, b) => b.th - a.th)[0];
