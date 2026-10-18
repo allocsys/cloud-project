@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminEnabled, isAdmin, overview, act } from '@/lib/server/admin';
+import { adminEnabled, isAdmin, needsSetup, overview, act } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -8,7 +8,7 @@ const json = (body, status = 200) => NextResponse.json(body, { status, headers: 
 
 function gate(req) {
   if (!adminEnabled()) return json({ ok: false, off: true, error: 'Admin is off. Set ADMIN_TOKEN (12 or more characters) and redeploy.' }, 503);
-  if (!isAdmin(req)) return json({ ok: false, error: 'Sign in required.' }, 401);
+  if (!isAdmin(req)) return json({ ok: false, error: 'Sign in required.', setup: needsSetup() }, 401);
   return null;
 }
 
