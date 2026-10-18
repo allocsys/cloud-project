@@ -3,6 +3,7 @@ import { Roboto } from 'next/font/google';
 import './globals.css';
 import PWA from '@/components/PWA';
 import Ripple from '@/components/Ripple';
+import ThemeSync from '@/components/ThemeSync';
 
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 
@@ -39,8 +40,13 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className={sans.variable} style={{ colorScheme: 'dark' }}>
+    <html lang="en" className={sans.variable} suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var m=localStorage.getItem('opus-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
+          }}
+        />
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
@@ -68,6 +74,7 @@ export default function RootLayout({ children }) {
         {children}
         <PWA />
         <Ripple />
+        <ThemeSync />
       </body>
     </html>
   );
