@@ -1532,3 +1532,22 @@ a.stat:active { background: var(--s3); }
 .irebate { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
 .irebate b { font-size: 28px; line-height: 36px; font-weight: 500; color: var(--gold2); }
 .irebate span { font-size: 13px; line-height: 18px; color: var(--mute); }
+
+/* Total mined card: chart and stats grid */
+.hhead { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.hchip { flex: none; padding: 4px 10px; border-radius: 999px; background: var(--ov-l); color: var(--green); font-size: 12px; line-height: 16px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.hsub { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; font-size: 14px; }
+.hwk { font-size: 12px; font-weight: 500; color: var(--green); }
+.hchart { position: relative; margin-top: 12px; }
+.hchart svg { display: block; width: 100%; height: 84px; }
+.hgrid { stroke: var(--ov-l); stroke-width: 1; stroke-dasharray: 3 5; }
+.harea { fill: var(--gold); fill-opacity: 0.14; }
+.hline { fill: none; stroke: var(--gold); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.hdot { position: absolute; right: -4px; width: 9px; height: 9px; margin-top: -4px; border-radius: 50%; background: var(--gold2); }
+.hdays { display: flex; justify-content: space-between; margin-top: 6px; font-size: 11px; line-height: 16px; color: var(--mute); }
+.hstats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1px; margin-top: 14px; border-radius: 16px; overflow: hidden; background: var(--ov-l); }
+.hcell { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 12px 14px; background: var(--s2); }
+.hcell > span { font-size: 11px; line-height: 16px; font-weight: 500; letter-spacing: 0.4px; color: var(--mute); }
+.hcell b { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; font-size: 17px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.hcell b small { font-size: 11px; font-weight: 400; color: var(--mute); }
+.hcell.ok b { color: var(--green); }

@@ -165,6 +165,28 @@ function Split({ rows }) {
   );
 }
 
+// Week area chart inside the Total mined card.
+function HeroChart({ rows }) {
+  const n = rows.length;
+  const max = Math.max(...rows.map((d) => d.usd)) || 1;
+  const y = (usd) => 74 - (usd / max) * 64;
+  const line = rows.map((d, i) => `${i === 0 ? 'M' : 'L'}${((i * 300) / (n - 1)).toFixed(1)} ${y(d.usd).toFixed(1)}`).join(' ');
+  return (
+    <div className="hchart">
+      <svg viewBox="0 0 300 80" preserveAspectRatio="none" role="img" aria-label="Earnings over the last 7 days">
+        <line x1="0" y1="26" x2="300" y2="26" className="hgrid" vectorEffect="non-scaling-stroke" />
+        <line x1="0" y1="52" x2="300" y2="52" className="hgrid" vectorEffect="non-scaling-stroke" />
+        <path d={`${line} L300 80 L0 80 Z`} className="harea" />
+        <path d={line} className="hline" vectorEffect="non-scaling-stroke" />
+      </svg>
+      <i className="hdot" style={{ top: `${(y(rows[n - 1].usd) / 80) * 100}%` }} />
+      <div className="hdays" aria-hidden="true">
+        {rows.map((d, i) => <span key={i}>{d.label}</span>)}
+      </div>
+    </div>
+  );
+}
+
 export default function Dashboard() {
   // The user's miners drive the live strip, the projection, the miner row and the live feed.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
@@ -215,6 +237,10 @@ export default function Dashboard() {
   const monthUsd = dailyUsd * dim;
   const yearUsd = dailyUsd * 365;
   const pay = payoutIn(now);
+  const week = dash.earnings.week;
+  const hasWeek = dash.hasMiners && week.length > 1;
+  const weekUsd = week.reduce((t, w) => t + w.usd, 0);
+  const weekAvg = week.length ? weekUsd / week.length : 0;
 
   // Split of the daily earnings, by hall or by plan.
   const hallName = (id) => ((cat && cat.halls[id]) || halls[id])?.name || id;
@@ -268,12 +294,25 @@ export default function Dashboard() {
       </div>
       <div className="grid rise">
         <div className="card hero">
-          <span className="mute eyebrow">Total mined</span>
+          <div className="hhead">
+            <span className="mute eyebrow">Total mined</span>
+            {shares[0] && <span className="hchip">+{shares[0].sats} sat · {ago(now, shares[0].at)}</span>}
+          </div>
           <div className="big">
             <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
             <small>BTC</small>
           </div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ ${formatUsd(shown * BTC_USD)}</span>
+          <div className="hsub">
+            <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
+            {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} this week</span>}
+          </div>
+          {hasWeek && <HeroChart rows={week} />}
+          <div className="hstats">
+            <div className="hcell"><span>Hashrate</span><b>{dash.totalTh}<small>TH/s</small></b></div>
+            <div className="hcell ok"><span>Uptime</span><b>{dash.uptime == null ? '–' : <>{dash.uptime.toFixed(1)}<small>%</small></>}</b></div>
+            <div className="hcell"><span>Today</span><b>+{formatBtc(dash.todayBtc, 5)}<small>BTC</small></b></div>
+            <div className="hcell"><span>Avg / day</span><b>${formatUsd(weekAvg)}</b></div>
+          </div>
           <div className="payout">
             <div><span>Next payout</span><b>{pay.text}</b></div>
             <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
@@ -299,24 +338,6 @@ export default function Dashboard() {
                 <div key={s.id}><b>+{s.sats} sat</b><span>{ago(now, s.at)}</span></div>
               ))}
             </div>
-          </div>
-        </div>
-
-        <div className="stats">
-          <div className="stat">
-            <span>Hashrate</span>
-            <b>{dash.totalTh}<small>TH/s</small></b>
-            <Spark values={dash.stats.hash} />
-          </div>
-          <div className="stat">
-            <span>Today</span>
-            <b>+{formatBtc(dash.todayBtc, 5)}<small>BTC</small></b>
-            <Spark values={dash.earnings.week.map((d) => d.usd)} />
-          </div>
-          <div className="stat">
-            <span>Uptime</span>
-            <b>{dash.uptime == null ? '–' : <>{dash.uptime.toFixed(1)}<small>%</small></>}</b>
-            <Spark values={dash.stats.uptime} color="var(--green)" />
           </div>
         </div>
 
