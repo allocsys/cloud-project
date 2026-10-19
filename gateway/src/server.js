@@ -3,6 +3,7 @@
 import { createServer } from 'node:http';
 import { hasDb, q, closeDb } from './db.js';
 import { migrate } from './migrate.js';
+import { ensureDatabase } from './ensure-db.js';
 import { json } from './http.js';
 import { handleApi } from './api.js';
 import { config } from './config.js';
@@ -39,6 +40,11 @@ const server = createServer((req, res) => {
 });
 
 async function main() {
+  // Shared server: DATABASE_URL points at the server, GATEWAY_DB_NAME is the gateway's own database on it.
+  // Fails to boot on a bad name or an unreachable server, before anything else starts.
+  if (hasDb() && process.env.GATEWAY_DB_NAME) {
+    process.env.DATABASE_URL = await ensureDatabase(process.env.DATABASE_URL, process.env.GATEWAY_DB_NAME);
+  }
   if (hasDb()) await migrate();
   else console.warn('[gateway] DATABASE_URL is not set: running without a database');
 
