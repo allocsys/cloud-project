@@ -17,6 +17,8 @@ const KIND = {
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 
+const STATUS = { pending: 'Pending approval', approved: 'Approved', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
+
 const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
 
 const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
@@ -216,6 +218,7 @@ export default function Wallet() {
       history: [
         {
           kind: 'withdrawal',
+          status: 'pending',
           label: `Withdrawal · ${A.sym}`,
           date: 'Just now',
           amount: `-${coinAmt.toFixed(A.dec)}`,
@@ -233,7 +236,7 @@ export default function Wallet() {
       triggerHaptic('success');
       setAmount('');
       setAddress('');
-      show('Withdrawal initiated');
+      show('Withdrawal requested. It is paid after approval.');
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
@@ -437,7 +440,7 @@ export default function Wallet() {
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
                       <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{[h.date, h.net !== h.coin ? h.net : null].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
+                      <small>{[h.date, h.net !== h.coin ? h.net : null, h.status ? STATUS[h.status] || h.status : null].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
                     </div>
                   </div>
                   <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
