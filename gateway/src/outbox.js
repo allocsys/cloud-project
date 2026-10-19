@@ -103,7 +103,7 @@ export async function deliverDue({ target, fetchImpl = fetch, limit = 20, timeou
       );
       if (park) {
         out.parked++;
-        await q("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('gateway', 'webhook.gave_up', $1, $2::jsonb)", [row.invoice_id, JSON.stringify({ outbox: row.id, event: row.event, attempts, error: e.message })]);
+        await q("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('gateway', 'webhook.gave_up', $1, $2::jsonb)", [row.invoice_id, JSON.stringify({ outbox: Number(row.id), event: row.event, attempts, error: e.message })]);
         note(log, 'error', 'outbox.gave_up', { id: row.id, invoice: row.invoice_id, event: row.event, attempts, error: e.message });
       } else {
         out.failed++;
