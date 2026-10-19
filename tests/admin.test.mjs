@@ -50,7 +50,8 @@ test('a hall is removed only when nothing uses it', async () => {
   assert.equal((await act({ action: 'hall-delete', id: 'nope' })).status, 404);
 
   assert.ok((await act({ action: 'hall-save', hall: hall('use') })).ok);
-  const id = Object.keys((await catalog()).halls).find((k) => (await_name(k)) === `T${run}use`);
+  const halls = (await catalog()).halls;
+  const id = Object.keys(halls).find((k) => halls[k].name === `T${run}use`);
   assert.ok(id);
   assert.ok((await act({ action: 'plan-save', plan: { name: `U${run}`, th: 5, price: 9, days: 30, hall: id } })).ok);
   assert.equal((await act({ action: 'hall-delete', id })).status, 409); // a plan still uses it
@@ -61,12 +62,7 @@ test('a hall is removed only when nothing uses it', async () => {
   assert.equal(Object.hasOwn((await catalog()).halls, id), false);
 });
 
-test('unknown actions and users are refused', async () => {
-  assert.equal((await act({ action: 'nothing' })).status, 404 === 0 ? 0 : (await act({ action: 'nothing' })).status);
+test('actions on an unknown user are refused', async () => {
   assert.equal((await act({ action: 'miners-clear', userId: `nobody-${run}@test.dev` })).status, 404);
+  assert.equal((await act({ action: 'notify', userId: `nobody-${run}@test.dev`, title: 'Hi' })).status, 404);
 });
-
-let names = null;
-function await_name(key) {
-  return names?.[key];
-}
