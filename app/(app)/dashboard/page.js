@@ -8,6 +8,7 @@ import { useCountUp } from '@/lib/useCountUp';
 import { notifications, halls, MIN_WITHDRAW } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
+import { triggerHaptic } from '@/lib/haptics';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -181,6 +182,7 @@ export default function Dashboard() {
   const [pulse, setPulse] = useState(false);
   const [by, setBy] = useState('hall');
   const [armed, setArmed] = useState(false);
+  const [actOpen, setActOpen] = useState(false);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
@@ -235,7 +237,9 @@ export default function Dashboard() {
   const btc = pd?.prices?.btc ?? BTC_USD;
   const tr = pd?.trend;
   const friends = rd?.friends?.length ?? 0;
-  const history = wd?.history ?? [];
+  // Newest first. Rows without a timestamp (the demo's samples) keep their order, after the dated ones.
+  const history = [...(wd?.history ?? [])].sort((a, b) => (b.at || 0) - (a.at || 0));
+  const latest = history[0];
 
   useEffect(() => {
     setPulse(true);
@@ -455,11 +459,30 @@ export default function Dashboard() {
 
         {history.length > 0 && (
           <div className="card act">
-            <div className="cardhead">
-              <h3>Recent activity</h3>
-              <Link href="/wallet" className="mute" style={{ fontSize: '12px' }}>See all</Link>
+            <div className="cardhead" style={{ marginBottom: actOpen ? 8 : 0 }}>
+              <button
+                type="button"
+                className="collapse"
+                aria-expanded={actOpen}
+                onClick={() => {
+                  triggerHaptic('selection');
+                  setActOpen(!actOpen);
+                }}
+              >
+                <h3>Recent activity</h3>
+                {!actOpen && latest && <span className="mute">{latest.date}</span>}
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+              </button>
             </div>
-            {history.slice(0, 4).map((h, i) => {
+            {!actOpen && latest && (
+              <div className="row" style={{ paddingTop: 4 }}>
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{latest.label}</div>
+                <b className={latest.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
+                  {latest.amount}{latest.coin ? ` ${latest.coin}` : ''}
+                </b>
+              </div>
+            )}
+            {actOpen && history.slice(0, 5).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               return (
                 <div key={`${h.date}-${i}`} className="row" style={{ animationDelay: `${i * 60}ms` }}>
@@ -476,6 +499,9 @@ export default function Dashboard() {
                 </div>
               );
             })}
+            {actOpen && (
+              <Link href="/wallet" className="mute" style={{ display: 'block', textAlign: 'center', fontSize: '12px', padding: '12px 0 4px' }}>See all activity</Link>
+            )}
           </div>
         )}
       </div>
