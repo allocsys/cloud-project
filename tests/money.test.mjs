@@ -25,6 +25,7 @@ const credit = (id, btc) =>
   withUser(id, (u) => {
     u.withdrawn = (u.withdrawn || 0) - btc;
   });
+const ledgerSum = async (id, kind) => Number((await q('SELECT COALESCE(sum(btc), 0) AS s FROM ledger WHERE user_id = $1 AND kind = $2', [id, kind])).rows[0].s);
 const starter = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
 const costOf = async (plan) => Math.ceil((plan.price / (await getPrices()).prices.btc) * 1e8) / 1e8;
 
@@ -46,6 +47,8 @@ test('concurrent buys never spend more than the balance', async () => {
   const u = await getUser(id);
   assert.equal(u.contracts.length, 3);
   assert.ok(Math.abs(u.spent - cost * 3) < 1e-9, `spent ${u.spent}`);
+  assert.ok(Math.abs((await ledgerSum(id, 'spend')) - u.spent) < 1e-8, 'ledger spend matches the account');
+  assert.equal((await q("SELECT count(*)::int AS n FROM ledger WHERE user_id = $1 AND kind = 'spend'", [id])).rows[0].n, 3);
 });
 
 test('the same buy key twice buys once', async () => {
@@ -65,6 +68,7 @@ test('concurrent withdrawals never overdraw', async () => {
   assert.equal(rs.filter((r) => r.ok).length, 3);
   assert.deepEqual([...new Set(rs.filter((r) => !r.ok).map((r) => r.status))], [409]);
   assert.ok(Math.abs((await getUser(id)).withdrawn - -0.0005) < 1e-9);
+  assert.ok(Math.abs((await ledgerSum(id, 'withdrawal')) - 0.003) < 1e-8, 'ledger withdrawals match the account');
 });
 
 test('a payment callback received many times starts one miner', async () => {
