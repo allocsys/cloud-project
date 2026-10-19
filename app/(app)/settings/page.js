@@ -37,6 +37,7 @@ export default function Settings() {
   const [nw, setNw] = useState('');
   const [pwErr, setPwErr] = useState({});
   const [pwBusy, setPwBusy] = useState(false);
+  const [vbusy, setVbusy] = useState(false);
 
   useEffect(() => {
     setTheme(readTheme());
@@ -127,6 +128,22 @@ export default function Settings() {
     }
   }
 
+  async function sendVerify() {
+    if (vbusy) return;
+    triggerHaptic('light');
+    setVbusy(true);
+    try {
+      await post('/api/auth/verify/resend', {});
+      triggerHaptic('success');
+      show('Check your inbox for the link');
+    } catch (err) {
+      triggerHaptic('error');
+      show(err.status ? err.message : 'No connection. Try again.');
+    } finally {
+      setVbusy(false);
+    }
+  }
+
   function verify() {
     triggerHaptic('light');
     markDrill();
@@ -151,6 +168,14 @@ export default function Settings() {
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
               <small>{me ? me.email || (me.demo ? 'Demo account' : me.name ? `Telegram · ${me.name}` : 'Telegram account') : account.email}</small>
             </div>
+            {me?.email &&
+              (me.verified ? (
+                <span className="badge ok">Verified</span>
+              ) : me.mail ? (
+                <button className="btn ghost" type="button" disabled={vbusy} onClick={sendVerify}>{vbusy ? 'Sending...' : 'Verify email'}</button>
+              ) : (
+                <span className="badge warn">Not verified</span>
+              ))}
           </div>
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
