@@ -27,5 +27,5 @@ export async function POST(req) {
     : a === 'raise' ? await raiseCode(id, body.code, body.rebate)
     : a === 'delete' ? await deleteCode(id, body.code)
     : { ok: false, status: 400, error: 'Unknown action.' };
-  return NextResponse.json(r.ok ? { ok: true, ...getReferral(id) } : { ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
+  return NextResponse.json(r.ok ? { ok: true, ...(await getReferral(id)) } : { ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
 }
