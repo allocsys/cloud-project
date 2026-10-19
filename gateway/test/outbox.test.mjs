@@ -161,7 +161,7 @@ test('after the last allowed attempt the row is parked and audited, not dropped'
   const parked = await row(o.id);
   assert.equal(parked.attempts, MAX_ATTEMPTS);
   assert.equal(parked.delivered_at, null);
-  assert.equal(String(parked.next_try_at), 'Invalid Date', 'next_try_at is infinity');
+  assert.equal((await q("SELECT next_try_at = 'infinity' AS inf FROM webhook_outbox WHERE id = $1", [o.id])).rows[0].inf, true, 'next_try_at is infinity');
   const audit = (await q("SELECT detail FROM audit_log WHERE action = 'webhook.gave_up' AND subject = $1", [o.invoice])).rows;
   assert.equal(audit.length, 1);
   assert.equal(audit[0].detail.outbox, o.id);
