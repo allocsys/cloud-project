@@ -5,6 +5,10 @@ import { hasDb, q, closeDb } from './db.js';
 import { migrate } from './migrate.js';
 import { json } from './http.js';
 import { handleApi } from './api.js';
+import { config } from './config.js';
+import { CHAINS } from './chains/index.js';
+import { btcExplorer } from './explorer.js';
+import { startWatcher } from './watcher.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -36,8 +40,21 @@ const server = createServer((req, res) => {
 async function main() {
   if (hasDb()) await migrate();
   else console.warn('[gateway] DATABASE_URL is not set: running without a database');
+
+  let stopWatcher = async () => {};
+  const c = config();
+  if (hasDb() && c.watcherEnabled && CHAINS.btc.configured()) {
+    // Throws at boot if BTC_EXPLORER_URL is not https: better to refuse to start than to watch nothing.
+    const explorers = { btc: btcExplorer({ baseUrl: c.btcExplorerUrl }) };
+    stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs });
+    console.log(`[gateway] watching BTC invoices every ${c.pollIntervalMs / 1000}s`);
+  } else {
+    console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, BTC_XPUB, and WATCHER not off)');
+  }
+
   server.listen(PORT, '0.0.0.0', () => console.log(`[gateway] listening on ${PORT}`));
   const stop = () => server.close(async () => {
+    await stopWatcher();
     await closeDb();
     process.exit(0);
   });
