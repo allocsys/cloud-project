@@ -1551,3 +1551,18 @@ a.stat:active { background: var(--s3); }
 .hcell b { display: flex; align-items: baseline; flex-wrap: wrap; gap: 0 4px; font-size: 17px; line-height: 24px; font-weight: 500; font-variant-numeric: tabular-nums; }
 .hcell b small { font-size: 11px; font-weight: 400; color: var(--mute); }
 .hcell.ok b { color: var(--green); }
+
+/* Earnings card: month ring and projections */
+.eprj { display: flex; align-items: center; gap: 18px; margin-top: 14px; }
+.eprj svg { flex: none; width: 120px; height: 120px; }
+.erg-track { fill: none; stroke: var(--ov-l); stroke-width: 10; }
+.erg-fill { fill: none; stroke: var(--gold); stroke-width: 10; stroke-linecap: round; }
+.erg-mute { fill: var(--mute); font-size: 11px; text-anchor: middle; }
+.erg-num { fill: var(--text); font-size: 28px; font-weight: 500; text-anchor: middle; }
+.eprj-t { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 12px; }
+.eprj-t > div { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.eprj-t span { font-size: 12px; line-height: 16px; color: var(--mute); }
+.eprj-t b { font-size: 24px; line-height: 30px; font-weight: 500; font-variant-numeric: tabular-nums; overflow-wrap: anywhere; }
+.eprj-t small { font-size: 12px; line-height: 16px; color: var(--mute); }
+.esep { height: 1px; background: var(--ov-l); }
+.egrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 16px; border-radius: 16px; overflow: hidden; background: var(--ov-l); }
