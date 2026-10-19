@@ -47,9 +47,9 @@ export function webhookTarget(c = config()) {
   return { url: u.toString(), secret: c.webhookSecret };
 }
 
-async function send(row, { url, secret }, fetchImpl) {
+async function send(row, { url, secret }, fetchImpl, timeoutMs) {
   const ctl = new AbortController();
-  const timer = setTimeout(() => ctl.abort(), TIMEOUT_MS); // a real timer: it is cleared below, and never leaves the loop hanging
+  const timer = setTimeout(() => ctl.abort(), timeoutMs); // a real timer: it is cleared below, and never leaves the loop hanging
   try {
     const res = await fetchImpl(url, {
       method: 'POST',
@@ -75,7 +75,7 @@ async function send(row, { url, secret }, fetchImpl) {
 }
 
 // Sends every row that is due (at most `limit`). Returns { claimed, delivered, failed, parked }.
-export async function deliverDue({ target, fetchImpl = fetch, limit = 20, log = console } = {}) {
+export async function deliverDue({ target, fetchImpl = fetch, limit = 20, timeoutMs = TIMEOUT_MS, log = console } = {}) {
   const t = target || webhookTarget();
   const out = { claimed: 0, delivered: 0, failed: 0, parked: 0 };
   if (!t) return out;
@@ -90,7 +90,7 @@ export async function deliverDue({ target, fetchImpl = fetch, limit = 20, log = 
   out.claimed = rows.length;
   for (const row of rows) {
     try {
-      await send(row, t, fetchImpl);
+      await send(row, t, fetchImpl, timeoutMs);
       await q('UPDATE webhook_outbox SET delivered_at = now(), attempts = attempts + 1, last_error = NULL WHERE id = $1 AND delivered_at IS NULL', [row.id]);
       out.delivered++;
       note(log, 'info', 'outbox.delivered', { id: row.id, invoice: row.invoice_id, event: row.event });
