@@ -11,7 +11,7 @@ const BASE_URL = (process.env.APP_URL || 'https://opus-cloud-mining-production.u
 
 export async function POST(req) {
   const key = `r:${clientIp(req)}`;
-  if (throttled(key)) {
+  if (await throttled(key)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
@@ -20,7 +20,7 @@ export async function POST(req) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  noteFail(key); // counts every request from this address
-  const { status, ...rest } = requestReset(body, BASE_URL);
+  await noteFail(key); // counts every request from this address
+  const { status, ...rest } = await requestReset(body, BASE_URL);
   return NextResponse.json(rest, { status, headers: NO_STORE });
 }
