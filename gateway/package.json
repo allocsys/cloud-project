@@ -1,0 +1,12 @@
+{
+  "name": "opus-gateway",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Opus payment gateway: deposits, withdrawals, swaps. Separate service, shares nothing with the app except a signed webhook.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test test/"
+  }
+}
