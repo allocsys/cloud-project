@@ -1566,3 +1566,27 @@ a.stat:active { background: var(--s3); }
 .eprj-t small { font-size: 12px; line-height: 16px; color: var(--mute); }
 .esep { height: 1px; background: var(--ov-l); }
 .egrid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1px; margin-top: 16px; border-radius: 16px; overflow: hidden; background: var(--ov-l); }
+
+/* Swipeable top cards */
+.crlwrap { min-width: 0; display: flex; flex-direction: column; gap: 4px; }
+.crl { display: flex; gap: 10px; align-items: stretch; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; -webkit-overflow-scrolling: touch; overscroll-behavior-x: contain; }
+.crl::-webkit-scrollbar { display: none; }
+.crl > .card { flex: 0 0 calc(100% - 28px); min-width: 0; box-sizing: border-box; margin: 0; padding: 18px; scroll-snap-align: start; display: flex; flex-direction: column; gap: 10px; }
+.crl .big { margin: 0; font-size: clamp(30px, 8.6vw, 38px); }
+.crl .hsub { margin-top: -4px; }
+.crl .hchart { margin-top: 0; }
+.crl .hchart svg { height: 52px; }
+.crl .payout { margin-top: 0; padding-top: 0; border-top: 0; }
+.crl .payout b { font-size: 18px; }
+.crl .eprj { margin: 8px 0; }
+.crl .egrid { margin-top: auto; }
+.hrow { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 10px 0; border-radius: 14px; background: var(--s2); }
+.hk { display: flex; flex-direction: column; align-items: center; gap: 1px; min-width: 0; }
+.hk + .hk { border-left: 1px solid var(--ov-l); }
+.hk b { font-size: 16px; line-height: 22px; font-weight: 500; font-variant-numeric: tabular-nums; }
+.hk span { font-size: 11px; line-height: 16px; color: var(--mute); }
+.hk.ok b { color: var(--green); }
+.cdots { display: flex; justify-content: center; }
+.cdots button { position: relative; width: 28px; height: 24px; padding: 0; border: 0; background: none; appearance: none; }
+.cdots button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 999px; background: var(--s4); transform: translate(-50%, -50%); transition: width 0.2s, background 0.2s; }
+.cdots button[aria-current='true']::after { width: 18px; background: var(--gold); }

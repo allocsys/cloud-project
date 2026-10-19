@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
@@ -138,6 +138,19 @@ export default function Dashboard() {
   const [by, setBy] = useState('hall');
   const [armed, setArmed] = useState(false);
   const [actOpen, setActOpen] = useState(false);
+  const [slide, setSlide] = useState(0);
+  const railRef = useRef(null);
+  const onRail = (e) => {
+    const el = e.currentTarget;
+    const first = el.firstElementChild;
+    if (!first) return;
+    setSlide(Math.min(1, Math.max(0, Math.round(el.scrollLeft / (first.offsetWidth + 10)))));
+  };
+  const goSlide = (i) => {
+    const el = railRef.current;
+    if (!el || !el.children[i]) return;
+    el.scrollTo({ left: el.children[i].offsetLeft - el.children[0].offsetLeft, behavior: 'smooth' });
+  };
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
@@ -218,31 +231,78 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid rise">
-        <div className="card hero">
-          <div className="hhead">
-            <span className="mute eyebrow">Total mined</span>
-            {shares[0] && <span className="hchip">+{shares[0].sats} sat · {ago(now, shares[0].at)}</span>}
-          </div>
-          <div className="big">
-            <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
-            <small>BTC</small>
-          </div>
-          <div className="hsub">
-            <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
-            {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} this week</span>}
-          </div>
-          {hasWeek && <HeroChart rows={week} />}
-          <div className="hstats">
-            <div className="hcell"><span>Hashrate</span><b>{dash.totalTh}<small>TH/s</small></b></div>
-            <div className="hcell ok"><span>Uptime</span><b>{dash.uptime == null ? '–' : <>{dash.uptime.toFixed(1)}<small>%</small></>}</b></div>
-            <div className="hcell"><span>Today</span><b>+{formatBtc(dash.todayBtc, 5)}<small>BTC</small></b></div>
-            <div className="hcell"><span>Avg / day</span><b>${formatUsd(weekAvg)}</b></div>
-          </div>
-          <div className="payout">
-            <div><span>Next payout</span><b>{pay.text}</b></div>
-            <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
-              <i style={{ width: `${pay.pct}%` }} />
+        <div className="crlwrap">
+          <div className="crl" ref={railRef} onScroll={onRail}>
+            <div className="card hero">
+              <div className="hhead">
+                <span className="mute eyebrow">Total mined</span>
+                {shares[0] && <span className="hchip">+{shares[0].sats} sat · {ago(now, shares[0].at)}</span>}
+              </div>
+              <div className="big">
+                <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
+                <small>BTC</small>
+              </div>
+              <div className="hsub">
+                <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
+                {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} this week</span>}
+              </div>
+              {hasWeek && <HeroChart rows={week} />}
+              <div className="hrow">
+                <div className="hk"><b>{dash.totalTh}</b><span>TH/s</span></div>
+                <div className="hk ok"><b>{dash.uptime == null ? '–' : `${dash.uptime.toFixed(1)}%`}</b><span>Uptime</span></div>
+                <div className="hk"><b>+{Math.round(dash.todayBtc * 1e8)}</b><span>Sat today</span></div>
+                <div className="hk"><b>${formatUsd(weekAvg)}</b><span>Avg/day</span></div>
+              </div>
+              <div className="payout">
+                <div><span>Next payout</span><b>{pay.text}</b></div>
+                <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
+                  <i style={{ width: `${pay.pct}%` }} />
+                </div>
+              </div>
             </div>
+            <div className="card">
+              <div className="cardhead">
+                <h3>Earnings</h3>
+                <small className="mute" style={{ fontSize: '12px' }}>estimate</small>
+              </div>
+              {online.length ? (
+                <>
+                  <div className="eprj">
+                    <svg viewBox="0 0 120 120" role="img" aria-label={`Day ${dom} of ${dim}`}>
+                      <circle className="erg-track" cx="60" cy="60" r="51" />
+                      <circle className="erg-fill" cx="60" cy="60" r="51" strokeDasharray={`${((dom / dim) * 320.4).toFixed(1)} 320.4`} transform="rotate(-90 60 60)" />
+                      <text className="erg-mute" x="60" y="53">Day</text>
+                      <text className="erg-num" x="60" y="77">{dom}</text>
+                      <text className="erg-mute" x="60" y="92">of {dim}</text>
+                    </svg>
+                    <div className="eprj-t">
+                      <div>
+                        <span>Projected this month</span>
+                        <b>${formatUsd(monthUsd)}</b>
+                        <small>≈ {formatBtc(monthUsd / BTC_USD, 5)} BTC</small>
+                      </div>
+                      <i className="esep" />
+                      <div>
+                        <span>Next 12 months</span>
+                        <b>${formatUsd(yearUsd)}</b>
+                        <small>≈ {formatBtc(yearUsd / BTC_USD, 4)} BTC</small>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="egrid">
+                    <div className="hcell"><span>Per day</span><b>${formatUsd(dailyUsd)}</b></div>
+                    <div className="hcell"><span>Per week</span><b>${formatUsd(dailyUsd * 7)}</b></div>
+                    <div className="hcell ok"><span>Miners</span><b>{online.length} online</b></div>
+                  </div>
+                </>
+              ) : (
+                <p className="empty">No online miners yet. Buy a plan to see projections.</p>
+              )}
+            </div>
+          </div>
+          <div className="cdots">
+            <button type="button" aria-label="Total mined" aria-current={slide === 0} onClick={() => goSlide(0)} />
+            <button type="button" aria-label="Earnings projection" aria-current={slide === 1} onClick={() => goSlide(1)} />
           </div>
         </div>
 
@@ -264,46 +324,6 @@ export default function Dashboard() {
               ))}
             </div>
           </div>
-        </div>
-
-        <div className="card">
-          <div className="cardhead">
-            <h3>Earnings</h3>
-            <small className="mute" style={{ fontSize: '12px' }}>estimate</small>
-          </div>
-          {online.length ? (
-            <>
-              <div className="eprj">
-                <svg viewBox="0 0 120 120" role="img" aria-label={`Day ${dom} of ${dim}`}>
-                  <circle className="erg-track" cx="60" cy="60" r="51" />
-                  <circle className="erg-fill" cx="60" cy="60" r="51" strokeDasharray={`${((dom / dim) * 320.4).toFixed(1)} 320.4`} transform="rotate(-90 60 60)" />
-                  <text className="erg-mute" x="60" y="53">Day</text>
-                  <text className="erg-num" x="60" y="77">{dom}</text>
-                  <text className="erg-mute" x="60" y="92">of {dim}</text>
-                </svg>
-                <div className="eprj-t">
-                  <div>
-                    <span>Projected this month</span>
-                    <b>${formatUsd(monthUsd)}</b>
-                    <small>≈ {formatBtc(monthUsd / BTC_USD, 5)} BTC</small>
-                  </div>
-                  <i className="esep" />
-                  <div>
-                    <span>Next 12 months</span>
-                    <b>${formatUsd(yearUsd)}</b>
-                    <small>≈ {formatBtc(yearUsd / BTC_USD, 4)} BTC</small>
-                  </div>
-                </div>
-              </div>
-              <div className="egrid">
-                <div className="hcell"><span>Per day</span><b>${formatUsd(dailyUsd)}</b></div>
-                <div className="hcell"><span>Per week</span><b>${formatUsd(dailyUsd * 7)}</b></div>
-                <div className="hcell ok"><span>Miners</span><b>{online.length} online</b></div>
-              </div>
-            </>
-          ) : (
-            <p className="empty">No online miners yet. Buy a plan to see projections.</p>
-          )}
         </div>
 
         {miners.length > 0 && (
