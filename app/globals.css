@@ -623,7 +623,7 @@ main {
 }
 
 /* Layout helpers */
-.grid { display: grid; gap: 12px; }
+.grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
 .big {
   font-size: clamp(32px, 9vw, 45px);
