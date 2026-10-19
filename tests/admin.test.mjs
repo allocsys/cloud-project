@@ -7,7 +7,8 @@ const { migrate } = await import('@/lib/server/migrate');
 const { act } = await import('@/lib/server/admin');
 
 const run = `a${Date.now().toString(36)}`;
-const many = (n, fn) => Promise.all(Array.from({ length: n }, (_, i) => fn(i)));
+const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
+const many = (n, fn) => Promise.all(each(n, fn));
 const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data;
 const logLen = async () => ((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || []).length;
 const hall = (i) => ({ name: `T${run}${i}`, place: 'Test', power: 'Grid', efficiency: '30 J/TH', rig: 'S21', net: 0.02 });
@@ -26,8 +27,8 @@ test('halls and plans added at the same moment are all kept, and each is logged'
   const before = await catalog();
   const logBefore = await logLen();
   const rs = await Promise.all([
-    ...many(4, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })),
-    ...many(4, (i) => act({ action: 'plan-save', plan: { name: `P${run}${i}`, th: 10 + i, price: 20 + i, days: 30, hall: 'tx-1' } })),
+    ...each(4, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })),
+    ...each(4, (i) => act({ action: 'plan-save', plan: { name: `P${run}${i}`, th: 10 + i, price: 20 + i, days: 30, hall: 'tx-1' } })),
   ]);
   const okCount = rs.filter((r) => r.ok).length;
   assert.equal(okCount, 8, JSON.stringify(rs.filter((r) => !r.ok)));
