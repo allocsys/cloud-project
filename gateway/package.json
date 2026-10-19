@@ -1,6 +1,6 @@
 {
   "name": "opus-gateway",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "description": "Opus payment gateway: deposits, withdrawals, swaps. Separate service, shares nothing with the app except a signed webhook.",
@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node src/server.js",
     "migrate": "node -e \"import('./src/migrate.js').then((m) => m.migrate()).then(() => process.exit(0))\"",
-    "test": "node --test test/"
+    "test": "node --test \"test/**/*.test.mjs\""
   },
   "dependencies": {
     "pg": "8.16.3"
