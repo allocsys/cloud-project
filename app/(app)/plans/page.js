@@ -90,6 +90,12 @@ export default function Plans() {
         window.location.assign(r.order.url);
         return;
       }
+      if (r.pending && r.order?.address) {
+        await refreshOrders().catch(() => {});
+        show('Send the exact BTC amount to the address shown.');
+        dismiss();
+        return;
+      }
       await refresh().catch(() => {});
       triggerHaptic('success');
       show(`${plan.name} plan activated`);
@@ -203,10 +209,17 @@ export default function Plans() {
             <div>
               <b>{o.status === 'review' ? 'Payment needs a check' : 'Waiting for payment'}</b>
               <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
+              {o.status === 'pending' && o.address && (
+                <>
+                  <small style={{ display: 'block' }}>Send exactly <b>{o.amount} BTC</b> to</small>
+                  <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{o.address}</small>
+                </>
+              )}
             </div>
             {o.status === 'pending' && (
               <div>
                 {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>Pay</a>}
+                {o.uri && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>Open wallet</a>}
                 <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
               </div>
             )}
