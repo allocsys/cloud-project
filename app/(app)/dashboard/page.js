@@ -138,6 +138,7 @@ export default function Dashboard() {
   const [by, setBy] = useState('hall');
   const [armed, setArmed] = useState(false);
   const [actOpen, setActOpen] = useState(false);
+  const [minersOpen, setMinersOpen] = useState(false);
   const [slide, setSlide] = useState(0);
   const railRef = useRef(null);
   const onRail = (e) => {
@@ -306,48 +307,61 @@ export default function Dashboard() {
           </div>
         </div>
 
-        <div className="card lstrip">
-          <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="live" />
-          <div className="li">
-            <div className="hr">
-              <b>{online.length}<small>of {miners.length} miners online</small></b>
-              <span><i />{online.length ? 'Mining' : 'Idle'}</span>
+        <div className="card mstrip">
+          <button
+            type="button"
+            className="lstrip"
+            aria-expanded={minersOpen}
+            aria-controls="miner-list"
+            disabled={!miners.length}
+            onClick={() => {
+              triggerHaptic('selection');
+              setMinersOpen(!minersOpen);
+            }}
+          >
+            <div className="lrow">
+              <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="live" />
+              <div className="li">
+                <div className="hr">
+                  <b>{online.length}<small>of {miners.length} miners online</small></b>
+                  <span><i />{online.length ? 'Mining' : 'Idle'}</span>
+                </div>
+                <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
+                  {Array.from({ length: 14 }).map((_, i) => (
+                    <i key={i} style={{ animationDelay: `${(i * 0.13) % 1.4}s`, animationDuration: `${1 + (i % 4) * 0.2}s` }} />
+                  ))}
+                </div>
+                <div className="ticker">
+                  {shares.slice(0, 3).map((s) => (
+                    <div key={s.id}><b>+{s.sats} sat</b><span>{ago(now, s.at)}</span></div>
+                  ))}
+                </div>
+              </div>
             </div>
-            <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
-              {Array.from({ length: 14 }).map((_, i) => (
-                <i key={i} style={{ animationDelay: `${(i * 0.13) % 1.4}s`, animationDuration: `${1 + (i % 4) * 0.2}s` }} />
-              ))}
-            </div>
-            <div className="ticker">
-              {shares.slice(0, 3).map((s) => (
-                <div key={s.id}><b>+{s.sats} sat</b><span>{ago(now, s.at)}</span></div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {miners.length > 0 && (
-          <div>
-            <div className="cardhead">
-              <h3>My miners · {miners.length}</h3>
-            </div>
-            <div className="mrail">
+            {miners.length > 0 && (
+              <svg className={`mchev ${minersOpen ? 'up' : ''}`} viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
+            )}
+          </button>
+          {minersOpen && miners.length > 0 && (
+            <div className="mlist" id="miner-list">
               {miners.map((c) => {
                 const r = rigFor(c);
                 return (
-                  <Link key={c.serial} href={`/miners/${c.serial}`} className={`mcard ${c.online ? '' : 'off'}`} onClick={() => markDrill()}>
+                  <Link key={c.serial} href={`/miners/${c.serial}`} className={`mrow ${c.online ? '' : 'off'}`} onClick={() => markDrill()}>
                     <RigArt kind={r.kind} units={r.units} speed={r.speed} id={`m${c.serial}`} />
-                    <b>{c.name}</b>
-                    <div className="row2">
+                    <div className="mt">
+                      <b>{c.name}</b>
                       <em>${formatUsd(c.dailyUsd)}/day</em>
-                      <i className="mdot" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
                     </div>
+                    <i className="mdot" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
                   </Link>
                 );
               })}
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {split.length > 0 && (
           <div className="card">

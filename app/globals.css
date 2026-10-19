@@ -1590,3 +1590,25 @@ a.stat:active { background: var(--s3); }
 .cdots button { position: relative; width: 28px; height: 24px; padding: 0; border: 0; background: none; appearance: none; }
 .cdots button::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; border-radius: 999px; background: var(--s4); transform: translate(-50%, -50%); transition: width 0.2s, background 0.2s; }
 .cdots button[aria-current='true']::after { width: 18px; background: var(--gold); }
+
+/* Miners card: tap to expand the list */
+.mstrip { display: flex; flex-direction: column; gap: 0; }
+.mstrip .lstrip { display: flex; flex-direction: column; align-items: stretch; gap: 2px; width: 100%; padding: 0; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.mstrip .lstrip:disabled { cursor: default; }
+.lrow { display: flex; align-items: center; gap: 12px; }
+.lrow .art { flex: none; width: 112px; margin: 0; }
+.lrow .art svg { height: 88px; }
+.lrow .li { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.mchev { align-self: center; width: 22px; height: 22px; fill: none; stroke: var(--mute); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.2s; }
+.mchev.up { transform: rotate(180deg); }
+.mlist { display: flex; flex-direction: column; gap: 8px; margin-top: 8px; padding-top: 12px; border-top: 1px solid var(--ov-l); animation: mopen 0.2s ease-out; }
+@keyframes mopen { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+.mrow { display: flex; align-items: center; gap: 12px; padding: 8px 14px 8px 8px; border-radius: 16px; background: var(--s2); color: inherit; text-decoration: none; transition: background 0.2s; }
+.mrow:active { background: var(--s3); }
+.mrow.off { opacity: 0.6; }
+.mrow .art { flex: none; width: 52px; margin: 0; border-radius: 12px; }
+.mrow .art svg { height: 40px; }
+.mrow .mt { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
+.mrow .mt b { font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mrow .mt em { font-style: normal; font-size: 13px; line-height: 18px; color: var(--green); }
+.mrow .mdot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
