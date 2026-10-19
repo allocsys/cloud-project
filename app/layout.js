@@ -4,6 +4,7 @@ import './globals.css';
 import PWA from '@/components/PWA';
 import Ripple from '@/components/Ripple';
 import ThemeSync from '@/components/ThemeSync';
+import TelegramInit from '@/components/TelegramInit';
 
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 
@@ -51,30 +52,13 @@ export default function RootLayout({ children }) {
           src="https://telegram.org/js/telegram-web-app.js"
           strategy="beforeInteractive"
         />
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              try {
-                if (window.Telegram && window.Telegram.WebApp) {
-                  window.Telegram.WebApp.ready();
-                  window.Telegram.WebApp.expand();
-                  if (window.Telegram.WebApp.setHeaderColor) {
-                    window.Telegram.WebApp.setHeaderColor('#12110d');
-                  }
-                  if (window.Telegram.WebApp.setBackgroundColor) {
-                    window.Telegram.WebApp.setBackgroundColor('#12110d');
-                  }
-                }
-              } catch (e) {}
-            `,
-          }}
-        />
       </head>
       <body>
         {children}
         <PWA />
         <Ripple />
         <ThemeSync />
+        <TelegramInit />
       </body>
     </html>
   );
