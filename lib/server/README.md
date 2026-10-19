@@ -1,6 +1,6 @@
 # Server scaffold
 
-Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/db.js`. With `DATABASE_URL` set, `lib/server/persist.js` (started from `instrumentation.js`) loads the store from Postgres on boot, creates its tables, and saves changes every 2 seconds. Without it, data is in memory and resets on deploy. See `DEPLOY.md`.
+Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/db.js`. Postgres is the only source of truth (`DATABASE_URL` is required). `instrumentation.js` runs the migrations in `lib/server/migrations.js` on boot, and any number of servers can run against one database. Money and miner changes go through `withUser` / `withUsers` in `db.js`, which lock the account rows in one transaction. See `DEPLOY.md`.
 
 | Endpoint | What | Caching |
 | --- | --- | --- |
@@ -29,7 +29,6 @@ Buying a plan and withdrawing also add a notification, and `totalTh` on the dash
 Prices come from CoinGecko, falling back to the static prices in `lib/assets.js`. `PRICE_FEED=static` turns the feed off.
 
 To replace before launch:
-- `lib/server/db.js` and `persist.js`: the whole store is saved as one JSON document per user and works on a single instance. Move to real tables and per-request queries before scaling out, and pass the signed-in user id instead of the single demo user.
 - `lib/server/wallet.js`: the accrual maths (`SATS_PER_SEC`) and the payout of withdrawals.
 - `lib/server/miners.js`: take payment before activating a plan (see the TODO).
 - `lib/server/account.js`: real earnings, uptime and hashrate series, and the referral code and friends per user.
