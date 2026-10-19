@@ -5,7 +5,7 @@ import { userId, unauthorized } from '@/lib/server/auth';
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
-  const id = userId(req);
+  const id = await userId(req);
   if (!id) return unauthorized();
   let body;
   try {

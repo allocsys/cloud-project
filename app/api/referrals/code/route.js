@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic';
 // Public: what a code offers, for the sign-up screen. Rate limited per IP, because it confirms whether a code exists.
 const hits = (globalThis.__opusCodeHits ||= new Map());
 
-export function GET(req) {
+export async function GET(req) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
   const now = Date.now();
   const recent = (hits.get(ip) || []).filter((t) => now - t < 60_000);
@@ -15,5 +15,5 @@ export function GET(req) {
   hits.set(ip, recent);
   if (hits.size > 2000) hits.delete(hits.keys().next().value);
   const code = new URL(req.url).searchParams.get('c') || '';
-  return NextResponse.json(publicCode(code.slice(0, 24)), { headers: { 'Cache-Control': 'no-store' } });
+  return NextResponse.json(await publicCode(code.slice(0, 24)), { headers: { 'Cache-Control': 'no-store' } });
 }

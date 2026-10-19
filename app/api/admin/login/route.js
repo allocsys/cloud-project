@@ -10,7 +10,7 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, off: true, error: 'Admin is off. Set ADMIN_TOKEN (12 or more characters) and redeploy.' }, { status: 503, headers: NO_STORE });
   }
   const ip = clientIp(req);
-  if (throttled(ip)) {
+  if (await throttled(ip)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
@@ -19,17 +19,17 @@ export async function POST(req) {
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  if (needsSetup()) {
-    const r = setupAdmin(body?.token, body?.user, body?.pass);
+  if (await needsSetup()) {
+    const r = await setupAdmin(body?.token, body?.user, body?.pass);
     if (!r.ok) {
-      if (r.bad) noteFail(ip);
+      if (r.bad) await noteFail(ip);
       return NextResponse.json({ ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
     }
-  } else if (!checkLogin(body?.user, body?.pass)) {
-    noteFail(ip);
+  } else if (!(await checkLogin(body?.user, body?.pass))) {
+    await noteFail(ip);
     return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
   }
-  clearFails(ip);
+  await clearFails(ip);
   const res = NextResponse.json({ ok: true }, { headers: NO_STORE });
   res.cookies.set(COOKIE, newSession(), {
     httpOnly: true,

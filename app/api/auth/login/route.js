@@ -13,14 +13,14 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
   const key = `l:${clientIp(req)}:${String(body?.email ?? '').trim().toLowerCase().slice(0, 120)}`;
-  if (throttled(key)) {
+  if (await throttled(key)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
-  const { status, ...rest } = login(body);
+  const { status, ...rest } = await login(body);
   if (!rest.ok) {
-    noteFail(key);
+    await noteFail(key);
     return NextResponse.json(rest, { status, headers: NO_STORE });
   }
-  clearFails(key);
-  return setSession(NextResponse.json(rest, { headers: NO_STORE }), rest.id);
+  await clearFails(key);
+  return await setSession(NextResponse.json(rest, { headers: NO_STORE }), rest.id);
 }

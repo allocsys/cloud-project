@@ -11,6 +11,6 @@ export async function POST(req) {
   if (raw.length > 50_000) return NextResponse.json({ ok: false }, { status: 413 });
   const body = verifySig(raw, req.headers.get('x-nowpayments-sig'));
   if (!body) return NextResponse.json({ ok: false, error: 'Bad signature.' }, { status: 401 });
-  const { status, ...rest } = settleOrder(body);
+  const { status, ...rest } = await settleOrder(body);
   return NextResponse.json(rest, { status });
 }
