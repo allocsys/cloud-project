@@ -623,6 +623,7 @@ main {
 }
 
 /* Layout helpers */
+/* minmax(0, 1fr): a wide child (the miner rail) must scroll, not stretch the page */
 .grid { display: grid; grid-template-columns: minmax(0, 1fr); gap: 12px; }
 
 .big {
