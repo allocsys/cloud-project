@@ -179,7 +179,7 @@ export default function Dashboard() {
   const week = dash.earnings.week;
   const hasWeek = dash.hasMiners && week.length > 1;
   const weekUsd = week.reduce((t, w) => t + w.usd, 0);
-  const weekAvg = week.length ? weekUsd / week.length : 0;
+  const weekAvg = dash.avgUsd || 0;
 
   // Split of the daily earnings, by hall or by plan.
   const hallName = (id) => ((cat && cat.halls[id]) || halls[id])?.name || id;
