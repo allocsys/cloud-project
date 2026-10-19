@@ -3,13 +3,10 @@
 import { createServer } from 'node:http';
 import { hasDb, q, closeDb } from './db.js';
 import { migrate } from './migrate.js';
+import { json } from './http.js';
+import { handleApi } from './api.js';
 
 const PORT = Number(process.env.PORT) || 4000;
-
-const json = (res, status, body) => {
-  res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' });
-  res.end(JSON.stringify(body));
-};
 
 export async function handler(req, res) {
   const url = new URL(req.url, 'http://x');
@@ -25,6 +22,7 @@ export async function handler(req, res) {
     }
     return json(res, 200, { ok: true, service: 'opus-gateway', db: dbState });
   }
+  if (url.pathname.startsWith('/v1/')) return handleApi(req, res, url);
   return json(res, 404, { ok: false, error: 'Not found.' });
 }
 
