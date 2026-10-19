@@ -1,44 +1,51 @@
 # Opus Cloud Mining
 
-Front end for a cloud mining app. Black and gold, responsive (bottom tabs on mobile, sidebar on desktop). Built with Next.js App Router, plain JavaScript, no UI libraries.
+Cloud mining app. Black and gold, responsive (bottom tabs on mobile, sidebar on desktop). Next.js 15 App Router, React 19, plain JavaScript, Postgres. Installable as a PWA.
 
 ## Run
 
 ```bash
 npm install
-npm run dev
+DATABASE_URL=postgres://user:password@host:5432/dbname npm run dev
 ```
+
+`DATABASE_URL` is required. Tables are created on boot by numbered migrations. See `DEPLOY.md` for Docker, hosting, environment variables and running several servers.
+
+## Test
+
+```bash
+npm test
+```
+
+Runs `node --test` against a real Postgres (set `DATABASE_URL`, `PRICE_FEED=static`, `SESSION_SECRET`). CI runs the same on Postgres 16 for every push and pull request (`.github/workflows/db-test.yml`). Tests cover concurrent signups, logins, buys, withdrawals, payment settlement, serial numbers, idempotency keys, sign-in throttling, and admin actions.
 
 ## Screens
 
 | Route | What it does |
 | --- | --- |
-| `/login` | Sign in or create account, with inline field errors |
-| `/dashboard` | Live balance with hash rate, today, uptime and latest share chips, scrubbable 7-day and all-time earnings chart, contract progress |
-| `/plans` | Plan tiles with animated rig art. Tap one for a confirm sheet (hall, power, contract serial, total) |
-| `/wallet` | Withdraw and deposit in BTC, ETH, BNB, TRX or USDT (TRC20, ERC20, BEP20). Withdrawals show a swap fee and network fee quote. QR deposit address, collapsible activity |
-| `/referrals` | Referral earnings, invite code with copy and share, how-it-works steps, rules and reward history sheets |
-| `/settings` | Email, verification status, two-factor and alert switches, sign out |
+| `/login` | Sign in, sign up (with referral code), password reset, Telegram Mini App login |
+| `/dashboard` | Balance and total mined, earnings chart, miners, recent activity |
+| `/plans` | Plans and custom power. Buy from balance or by crypto invoice |
+| `/wallet` | Withdraw, deposit, history |
+| `/referrals` | Invite codes with rebates, rewards, rules |
+| `/settings` | Email, password, theme (Dark, Light, Auto), sign out |
+| `/admin` | Overview, users, orders, plans, referrals, send. Needs `ADMIN_TOKEN` |
 
-Logged-in pages live in the `app/(app)/` route group. The parentheses keep the folder out of the URL and give those pages the shared nav and page transitions.
+Logged-in pages live in the `app/(app)/` route group.
 
-## Wiring the backend
+## Backend
 
-All data is placeholder. Replace these:
+Code is in `lib/server/`:
 
-- `lib/data.js`: halls, plans, contracts (with serials), activity, earnings series, referral data, account (email, KYC status, 2FA, alerts), minimum withdrawal
-- `lib/assets.js`: coins, networks, prices, flat network fees, swap fee percent, deposit addresses, and `quote()` which turns a BTC amount into what the user receives. Withdrawals in anything but BTC pay the swap fee on top of the network fee
-- `lib/useMined.js`: `useMinedFeed()` simulates the balance and share feed (swap for your API or websocket)
-- `app/login/page.js`: `submit()` should call your auth. Remove the "Skip login for now" button once auth works
-- `app/(app)/plans/page.js`: `pay()` should call your checkout. The contract serial shown in the sheet is a placeholder, your backend assigns the real one
-- `app/(app)/wallet/page.js`: `withdraw()` should call your withdrawal endpoint with coin, network, BTC amount and address. Recompute the quote server side
-- `app/(app)/referrals/page.js`: build the invite link from your real referral URL
-- `app/(app)/settings/page.js`: persist the 2FA and alert switches, and wire the "Coming soon" actions (email, password, verification)
+- `db.js`: connection pool, row-locked transactions with retry, idempotency keys, sign-in throttle, serial numbers
+- `migrations.js`, `migrate.js`: schema, applied under an advisory lock
+- `auth.js`, `account.js`, `kyc.js`: accounts, sessions, passwords, reset
+- `wallet.js`, `miners.js`, `referrals.js`: balances, purchases, miners, rewards
+- `admin.js`: admin actions and audit log
+- `pay-provider.js`: NOWPayments invoices and signed webhook (`/api/payments/webhook`)
 
-## Notes
+Health check: `GET /api/health`.
 
-- `lib/qr.js` is a small dependency-free QR encoder (byte mode, level M, up to 106 bytes), used for the deposit address.
-- `lib/haptics.js` wraps haptic feedback for Telegram WebApp and mobile browsers.
-- The raised centre button in the bottom bar opens Plans. On wide screens the bar becomes a side drawer.
-- `referral.rules` in `lib/data.js` is placeholder wording for the invitation rules sheet.
-- Animations always play, even when the device has reduced motion turned on.
+## Not built yet
+
+Real deposit addresses, KYC photo storage, email verification, native app (the site can be wrapped as a TWA).
