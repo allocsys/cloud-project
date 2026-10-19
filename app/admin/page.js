@@ -22,6 +22,7 @@ const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cancelled: 'Closed', expired: 'Expired', failed: 'Failed' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
+const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
 const REF_FIELDS = [
   ['firstPct', 'Referrer: first purchase (%)'],
@@ -95,7 +96,7 @@ function PlanForm({ draft, set, halls, isNew, busy, onSave, onCancel, onDelete }
   );
 }
 
-function HallForm({ draft, set, busy, onSave, onCancel }) {
+function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDelete }) {
   return (
     <div className="adm-form">
       <Field id="hn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={40} />
@@ -105,12 +106,13 @@ function HallForm({ draft, set, busy, onSave, onCancel }) {
       <Field id="hr" label="Rig model" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
       <Field id="hx" label="Net rate (USD per TH/s per day)" inputMode="decimal" value={draft.net} onChange={(v) => set('net', v)} />
       <p className="fine" style={{ margin: '12px 0 0' }}>
-        Changing the rate updates the daily payout of every miner in this hall and of the plans that use it.
+        {isNew ? 'A new hall can be picked for plans once saved.' : 'Changing the rate updates the daily payout of every miner in this hall and of the plans that use it.'}
       </p>
       <div className="adm-actions">
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
         <button className="btn" disabled={busy} onClick={onSave}>Save</button>
       </div>
+      {canDelete && <button className="swap danger" disabled={busy} onClick={onDelete}>Delete hall</button>}
     </div>
   );
 }
@@ -264,7 +266,7 @@ export default function Admin() {
     blurb: p?.blurb ?? '',
     featured: p?.featured ? 'yes' : 'no',
   });
-  const hallDraft = (h) => ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
+  const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
 
   async function savePlan() {
     const d = edit.draft;
@@ -274,7 +276,7 @@ export default function Admin() {
 
   async function saveHall() {
     const ok = await run(
-      { action: 'hall-save', id: edit.id, hall: edit.draft },
+      { action: 'hall-save', id: edit.id === 'new' ? undefined : edit.id, hall: edit.draft },
       (r) => (r.updated ? `Hall saved · ${r.updated} miner${r.updated === 1 ? '' : 's'} updated` : 'Hall saved')
     );
     if (ok) setEdit(null);
@@ -455,30 +457,54 @@ export default function Admin() {
               <button className="swap" style={SM} disabled={busy} onClick={() => setEdit({ kind: 'plan', id: 'new', draft: planDraft(null) })}>Add plan</button>
             </div>
             {edit?.kind === 'plan' && edit.id === 'new' && planForm(true)}
-            {cat.plans.map((p) =>
+            {cat.plans.map((p, i) =>
               edit?.kind === 'plan' && edit.id === p.id ? (
                 <div key={p.id} className="adm-edit">{planForm(false)}</div>
               ) : (
-                <button key={p.id} type="button" className="row adm-click" aria-label={`Edit ${p.name}`} onClick={() => setEdit({ kind: 'plan', id: p.id, draft: planDraft(p) })}>
-                  <div>
-                    {p.name}{p.featured ? ' ★' : ''}
-                    <small>{fmtTh(p.th)} TH/s · {p.days} days · {cat.halls[p.hall]?.name}</small>
+                <div key={p.id} style={{ display: 'flex', alignItems: 'center' }}>
+                  <button type="button" className="row adm-click" style={{ flex: 1, minWidth: 0 }} aria-label={`Edit ${p.name}`} onClick={() => setEdit({ kind: 'plan', id: p.id, draft: planDraft(p) })}>
+                    <div>
+                      {p.name}{p.featured ? ' ★' : ''}
+                      <small>{fmtTh(p.th)} TH/s · {p.days} days · {cat.halls[p.hall]?.name}</small>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <b>${fmtUsd(p.price)}</b>
+                      <small>~{p.daily}/day</small>
+                    </div>
+                  </button>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
+                    <button className="swap" style={{ ...SM, minHeight: 32, padding: '0 10px' }} aria-label={`Move ${p.name} up`} disabled={busy || i === 0} onClick={() => run({ action: 'plan-move', id: p.id, dir: 'up' }, 'Moved')}>▲</button>
+                    <button className="swap" style={{ ...SM, minHeight: 32, padding: '0 10px' }} aria-label={`Move ${p.name} down`} disabled={busy || i === cat.plans.length - 1} onClick={() => run({ action: 'plan-move', id: p.id, dir: 'down' }, 'Moved')}>▼</button>
                   </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <b>${fmtUsd(p.price)}</b>
-                    <small>~{p.daily}/day</small>
-                  </div>
-                </button>
+                </div>
               )
             )}
           </div>
 
           <div className="card">
-            <div className="cardhead"><h3>Halls</h3></div>
+            <div className="cardhead">
+              <h3>Halls</h3>
+              <button className="swap" style={SM} disabled={busy} onClick={() => setEdit({ kind: 'hall', id: 'new', draft: hallDraft(null) })}>Add hall</button>
+            </div>
+            {edit?.kind === 'hall' && edit.id === 'new' && (
+              <div className="adm-edit">
+                <HallForm draft={edit.draft} set={setDraft} busy={busy} isNew onSave={saveHall} onCancel={() => setEdit(null)} />
+              </div>
+            )}
             {Object.entries(cat.halls).map(([id, h]) =>
               edit?.kind === 'hall' && edit.id === id ? (
                 <div key={id} className="adm-edit">
-                  <HallForm draft={edit.draft} set={setDraft} busy={busy} onSave={saveHall} onCancel={() => setEdit(null)} />
+                  <HallForm
+                    draft={edit.draft}
+                    set={setDraft}
+                    busy={busy}
+                    canDelete={!CORE_HALLS.includes(id)}
+                    onSave={saveHall}
+                    onCancel={() => setEdit(null)}
+                    onDelete={async () => {
+                      if (window.confirm(`Delete ${h.name}? This only works when no plan or miner uses it.`) && (await run({ action: 'hall-delete', id }, 'Hall deleted'))) setEdit(null);
+                    }}
+                  />
                 </div>
               ) : (
                 <button key={id} type="button" className="row adm-click" aria-label={`Edit ${h.name}`} onClick={() => setEdit({ kind: 'hall', id, draft: hallDraft(h) })}>
