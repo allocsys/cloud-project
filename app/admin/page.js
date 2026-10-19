@@ -21,6 +21,7 @@ async function call(method, url, body) {
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cancelled: 'Closed', expired: 'Expired', failed: 'Failed' };
+const WD = { pending: 'Needs approval', approved: 'Approved, pay it', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
@@ -253,7 +254,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, orders = [], log = [], mode, btcUsd, serial, catalog: cat } = data;
+  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, serial, catalog: cat } = data;
   const sendDisabled = busy || !title.trim();
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
@@ -305,8 +306,8 @@ export default function Admin() {
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
-          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : l}</button>
+        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
+          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : k === 'withdrawals' && stats.withdrawalsOpen > 0 ? `${l} · ${stats.withdrawalsOpen}` : l}</button>
         ))}
       </div>
 
@@ -322,6 +323,11 @@ export default function Admin() {
             <Stat l="Withdrawn" v={stats.withdrawnBtc.toFixed(4)} s="BTC" />
             <Stat l="KYC pending" v={stats.kycPending} />
           </div>
+          {stats.withdrawalsOpen > 0 && (
+            <button className="card adm-click" onClick={() => setTab('withdrawals')}>
+              <b style={{ color: 'var(--gold)' }}>{stats.withdrawalsOpen} withdrawal{stats.withdrawalsOpen === 1 ? '' : 's'} to handle</b>
+            </button>
+          )}
           {stats.ordersReview > 0 && (
             <button className="card adm-click" onClick={() => setTab('orders')}>
               <b style={{ color: 'var(--gold)' }}>{stats.ordersReview} order{stats.ordersReview === 1 ? '' : 's'} need a check</b>
@@ -446,6 +452,51 @@ export default function Admin() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'withdrawals' && (
+        <div className="adm-stack">
+          {withdrawals.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No withdrawals yet.</p>}
+          {withdrawals.map((w) => {
+            const act = (decision, okText, txid) => run({ action: 'withdrawal', userId: w.userId, withdrawalId: w.id, decision, txid }, okText);
+            const open = w.status === 'pending' || w.status === 'approved';
+            return (
+              <div className="card" key={w.id}>
+                <div className="cardhead">
+                  <h3>{w.amount} {String(w.asset).toUpperCase()}</h3>
+                  <span className={w.status === 'sent' ? 'up' : open ? '' : 'mute'} style={open ? { color: 'var(--gold)' } : undefined}>{WD[w.status] || w.status}</span>
+                </div>
+                <div className="row"><span className="mute">User</span><b>{w.userId}</b></div>
+                <div className="row"><span className="mute">Network</span><b>{String(w.net).toUpperCase()}</b></div>
+                <div className="row"><span className="mute">Pay out</span><b>{w.receive} {String(w.asset).toUpperCase()}</b></div>
+                <div className="row"><span className="mute">Address</span><b className="serial" style={{ wordBreak: 'break-all', userSelect: 'all', textAlign: 'right' }}>{w.address}</b></div>
+                <div className="row"><span className="mute">Asked</span><b>{when(w.at)}</b></div>
+                {w.txid && <div className="row"><span className="mute">Transaction</span><b className="serial" style={{ wordBreak: 'break-all', textAlign: 'right' }}>{w.txid}</b></div>}
+                {w.status === 'pending' && (
+                  <div className="adm-actions">
+                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Reject this withdrawal for ${w.userId}? The amount goes back to their balance.`) && act('reject', 'Rejected and refunded')}>Reject</button>
+                    <button className="btn" disabled={busy} onClick={() => window.confirm(`Approve ${w.amount} ${String(w.asset).toUpperCase()} to ${w.address}?`) && act('approve', 'Approved')}>Approve</button>
+                  </div>
+                )}
+                {w.status === 'approved' && (
+                  <div className="adm-actions">
+                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Mark as failed? The amount goes back to ${w.userId}'s balance.`) && act('fail', 'Marked failed and refunded')}>Failed</button>
+                    <button
+                      className="btn"
+                      disabled={busy}
+                      onClick={() => {
+                        const txid = window.prompt('Paste the transaction id of the payout you made:');
+                        if (txid && txid.trim()) act('sent', 'Marked as sent', txid.trim());
+                      }}
+                    >
+                      Mark sent
+                    </button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 
