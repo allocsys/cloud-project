@@ -9,6 +9,7 @@ import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { btcExplorer } from './explorer.js';
 import { startWatcher } from './watcher.js';
+import { startOutbox, webhookTarget } from './outbox.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -52,9 +53,20 @@ async function main() {
     console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, BTC_XPUB, and WATCHER not off)');
   }
 
+  let stopOutbox = async () => {};
+  // Throws at boot when APP_WEBHOOK_URL is not https or the secret is too short: better to refuse to start than to send unsigned or exposed callbacks.
+  const target = webhookTarget(c);
+  if (hasDb() && target) {
+    stopOutbox = startOutbox({ target, intervalMs: c.outboxIntervalMs });
+    console.log(`[gateway] sending payment callbacks to the app every ${c.outboxIntervalMs / 1000}s`);
+  } else {
+    console.warn('[gateway] callbacks to the app are NOT being sent (needs DATABASE_URL, APP_WEBHOOK_URL and GATEWAY_WEBHOOK_SECRET)');
+  }
+
   server.listen(PORT, '0.0.0.0', () => console.log(`[gateway] listening on ${PORT}`));
   const stop = () => server.close(async () => {
     await stopWatcher();
+    await stopOutbox();
     await closeDb();
     process.exit(0);
   });
