@@ -17,14 +17,18 @@ export function btcExplorer({ baseUrl, fetchImpl = fetch, timeoutMs = 10_000 }) 
   if (!/^https:\/\/[^\s/]+/.test(base)) throw new Error('BTC_EXPLORER_URL must be an https URL.');
 
   async function getText(path) {
+    const ctl = new AbortController();
+    const timer = setTimeout(() => ctl.abort(new DOMException('timed out', 'TimeoutError')), timeoutMs);
     try {
-      const res = await fetchImpl(base + path, { signal: AbortSignal.timeout(timeoutMs) });
+      const res = await fetchImpl(base + path, { signal: ctl.signal });
       if (!res.ok) throw new ExplorerError(`explorer answered ${res.status}`);
-      return await res.text();
+      return await res.text(); // the timer still covers reading the body
     } catch (e) {
       if (e instanceof ExplorerError) throw e;
       const msg = e?.name === 'TimeoutError' ? `explorer timed out after ${timeoutMs} ms` : `explorer unreachable: ${e?.message}`;
       throw new ExplorerError(msg, { cause: e });
+    } finally {
+      clearTimeout(timer);
     }
   }
 
