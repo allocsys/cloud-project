@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import { signup, setSession, clientIp, throttled, noteFail } from '@/lib/server/auth';
+import { signup, sendVerification, setSession, clientIp, throttled, noteFail } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
+
+// Links in emails use a fixed address, never the request's Host header. Set APP_URL once the app has its own domain.
+const BASE_URL = (process.env.APP_URL || 'https://opus-cloud-mining-production.up.railway.app').replace(/\/+$/, '');
 
 export async function POST(req) {
   const ip = clientIp(req);
@@ -19,5 +22,9 @@ export async function POST(req) {
   await noteFail(`s:${ip}`); // counts every sign-up from this address, so one address cannot mass-create accounts
   const { status, ...rest } = await signup(body);
   const res = NextResponse.json(rest, { status, headers: NO_STORE });
-  return rest.ok ? await setSession(res, rest.id) : res;
+  if (rest.ok) {
+    sendVerification(rest.id, BASE_URL).catch(() => {}); // not awaited: sign-up never waits for the mail
+    return await setSession(res, rest.id);
+  }
+  return res;
 }
