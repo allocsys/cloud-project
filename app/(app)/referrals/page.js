@@ -41,9 +41,9 @@ export default function Referrals() {
   const locked = !!rd && rd.unlocked === false;
   useSheetBack(!!sheet, () => setSheet(null));
 
-  // TODO: build the link from your real referral URL.
+  // Links use the public address the server reports (APP_URL); the current origin is only a fallback.
   const link = (code) =>
-    `${typeof window !== 'undefined' ? window.location.origin : ''}/login?ref=${code}`;
+    `${referral.linkBase || (typeof window !== 'undefined' ? window.location.origin : '')}/login?ref=${encodeURIComponent(code)}`;
 
   function copy(text, msg) {
     triggerHaptic('success');
