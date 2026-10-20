@@ -215,9 +215,8 @@ export default function Dashboard() {
   return (
     <>
       <div className="top">
-        <h2>Earnings</h2>
+        <h2>Earnings<i className="ldot" role="img" aria-label="Live" /></h2>
         <div className="topact">
-          <span className="pill"><i />Live</span>
           <Link
             href="/notifications"
             className="bell"
