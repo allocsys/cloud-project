@@ -1,7 +1,8 @@
 'use client';
 import { useMemo, useState } from 'react';
+import Link from 'next/link';
 import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
-import { MIN_WITHDRAW } from '@/lib/data';
+import { MIN_WITHDRAW, plans } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
@@ -99,6 +100,7 @@ export default function Wallet() {
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
+  const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
@@ -119,6 +121,9 @@ export default function Wallet() {
   // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
   const earned = (wd ? wd.earned : 0) + mined;
   const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
+  // The Reinvest card shows once the balance covers at least one plan.
+  const balUsd = available * btcUsd;
+  const canBuy = ready ? (cat ? cat.plans : plans).filter((p) => p.price <= balUsd).length : 0;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -270,6 +275,16 @@ export default function Wallet() {
           </div>
           <span className="mute" style={{ fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
         </div>
+
+        {canBuy > 0 && (
+          <Link href="/plans" className="card rein">
+            <div>
+              <b>Reinvest</b>
+              <small>{canBuy} {canBuy === 1 ? 'plan' : 'plans'} within your balance</small>
+            </div>
+            <span className="rgo">Choose plan</span>
+          </Link>
+        )}
 
         <div className="grid wal">
           <div className="card wcard">
