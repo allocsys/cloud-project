@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
+import { useMinedFeed, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, plans } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
@@ -96,7 +96,11 @@ function UnitSwitch({ sym, unit, onUnit }) {
 }
 
 export default function Wallet() {
-  const mined = useMined();
+  // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
+  // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
+  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
+  const { gain: mined } = useMinedFeed(dailyUsd);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
