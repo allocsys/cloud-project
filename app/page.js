@@ -64,8 +64,9 @@ export default async function Home() {
   const signedIn = jar.has(COOKIE);
 
   return (
-    <main className="lp">
+    <>
       <Splash />
+      <main className="lp">
       <div className="lp-in">
         <header className="lp-top">
           <Link href="/" className="lp-brand" aria-label="Miner Opus">
@@ -164,6 +165,7 @@ export default async function Home() {
         <p className="lp-foot">&copy; 2026 Miner Opus</p>
       </div>
       {!signedIn && <StickyCta />}
-    </main>
+      </main>
+    </>
   );
 }
