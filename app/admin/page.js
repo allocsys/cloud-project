@@ -447,7 +447,7 @@ export default function Admin() {
               {(o.status === 'review' || o.status === 'pending') && (
                 <div className="adm-actions">
                   <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Close this order for ${o.userId}?`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Order closed')}>Close</button>
-                  <button className="btn" disabled={busy} onClick={() => window.confirm(`Start the miner for ${o.userId}? Only do this once you have checked the payment in NOWPayments.`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`)}>Start miner</button>
+                  <button className="btn" disabled={busy} onClick={() => window.confirm(`Start the miner for ${o.userId}? Only do this once you have checked the payment with the payment provider (or on the blockchain).`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`)}>Start miner</button>
                 </div>
               )}
             </div>
