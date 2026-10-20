@@ -26,8 +26,8 @@ function Switch({ on, onChange, label }) {
 export default function Settings() {
   const router = useRouter();
   const [toast, show] = useToast();
-  const [twofa, setTwofa] = useState(account.twofa);
-  const [alerts, setAlerts] = useState(account.alerts);
+  const { data: sd, mutate: mutateSettings } = useApi('/api/settings', { ttl: 0 });
+  const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
@@ -79,15 +79,18 @@ export default function Settings() {
     }
   }
 
-  // TODO: persist these through your API.
-  function flip2fa() {
+  // The switch moves at once; if saving fails it goes back and says so.
+  async function flipAlert(key) {
     triggerHaptic('selection');
-    setTwofa(!twofa);
-  }
-
-  function flipAlert(key) {
-    triggerHaptic('selection');
-    setAlerts({ ...alerts, [key]: !alerts[key] });
+    const before = alerts;
+    mutateSettings({ ...(sd || {}), alerts: { ...before, [key]: !before[key] } });
+    try {
+      mutateSettings(await post('/api/settings', { alerts: { [key]: !before[key] } }));
+    } catch (err) {
+      triggerHaptic('error');
+      mutateSettings({ ...(sd || {}), alerts: before });
+      show(err.status ? err.message : 'No connection. Try again.');
+    }
   }
 
   function togglePw() {
@@ -187,7 +190,7 @@ export default function Settings() {
           </div>
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
-            <Switch on={twofa} onChange={flip2fa} label="Two-factor authentication" />
+            <span className="badge">Coming soon</span>
           </div>
           {me?.email && (
             <>
