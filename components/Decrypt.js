@@ -27,24 +27,25 @@ export default function Decrypt({ text, when = 'load', delay = 0 }) {
 
     const run = () => {
       const t0 = performance.now() + delay;
-      const dur = Math.min(1500, 500 + els.length * 22);
-      const at = els.map((_, i) => (i / els.length) * dur + Math.random() * 260);
+      const n = els.length;
+      const dur = Math.min(1000, 350 + n * 14);
+      const at = els.map((_, i) => (i / n) * dur + Math.random() * 160);
+      const order = at.map((_, i) => i).sort((a, b) => at[a] - at[b]);
+      let p = 0;
       let last = 0;
       const tick = (t) => {
         if (dead) return;
         const elapsed = t - t0;
-        const flick = t - last > 50;
-        if (flick) last = t;
-        let left = 0;
-        els.forEach((e, i) => {
-          if (!e.classList.contains('dc-s')) return;
-          if (elapsed >= at[i]) e.classList.remove('dc-s');
-          else {
-            left += 1;
-            if (flick) e.dataset.g = glyph();
-          }
-        });
-        if (left) raf = requestAnimationFrame(tick);
+        while (p < n && elapsed >= at[order[p]]) {
+          els[order[p]].classList.remove('dc-s');
+          p += 1;
+        }
+        if (t - last > 70) {
+          last = t;
+          const end = Math.min(n, p + 16);
+          for (let k = p; k < end; k += 1) els[order[k]].dataset.g = glyph();
+        }
+        if (p < n) raf = requestAnimationFrame(tick);
       };
       raf = requestAnimationFrame(tick);
     };
