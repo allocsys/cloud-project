@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useState } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import Field from '@/components/Field';
 import { triggerHaptic } from '@/lib/haptics';
@@ -331,7 +332,7 @@ export default function Login() {
         )}
         {notice && <p className="fine" role="status">{notice}</p>}
         {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
-        {!view && signup && <p className="fine">By creating an account you agree to the Terms and Privacy Policy.</p>}
+        {!view && signup && <p className="fine">By creating an account you agree to the <Link href="/terms">Terms</Link> and Privacy Policy. No hidden fees: see what is charged and what comes out of your mining.</p>}
 
         {!view && !signup && (
           <button className="swap" type="button" onClick={handleForgot}>
