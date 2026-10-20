@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { contracts, halls, contractDaily, minerHash, BTC_USD } from '@/lib/data';
+import { contracts, halls, minerHash } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
 import { useApi } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -41,6 +41,8 @@ export default function ContractPage() {
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
+  // The finished payout days and what they came to in BTC, from the server (each day at its own market).
+  const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
 
   if (!c) {
     return (
@@ -53,9 +55,9 @@ export default function ContractPage() {
 
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
-  const daily = contractDaily(c);
+  const daily = det?.contract?.daily || [];
   const hash = minerHash(c);
-  const total = daily.reduce((s, d) => s + d.usd, 0);
+  const total = det?.contract?.earnedUsd ?? 0;
   const avg = daily.length ? total / daily.length : 0;
   const pct = Math.round((c.elapsed / c.days) * 100);
   const bars = daily.slice(0, 14).reverse();
@@ -73,7 +75,7 @@ export default function ContractPage() {
           <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={c.serial} />
           <span className="mute eyebrow">Earned so far · {c.serial}</span>
           <div className="big"><span>${formatUsd(total)}</span></div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(total / BTC_USD)} BTC</span>
+          <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
           <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <i style={{ width: `${pct}%` }} />
           </div>
@@ -118,7 +120,7 @@ export default function ContractPage() {
                 )}
               </>
             ) : (
-              <p className="empty">No payouts yet. The first one lands after 24 hours.</p>
+              <p className="empty">{det ? 'No payouts yet. The first one lands after 24 hours.' : 'Loading…'}</p>
             )}
           </div>
 
