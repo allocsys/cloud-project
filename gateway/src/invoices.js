@@ -9,6 +9,9 @@ import { ApiError } from './http.js';
 
 const REF = /^[A-Za-z0-9_-]{1,64}$/;
 
+// Smallest wallet top-up. Keep in step with MIN_DEPOSIT_USD in the app's lib/data.js. Plan orders are not deposits.
+export const MIN_DEPOSIT_USD = 30;
+
 export function fmtAtomic(atomic, dec) {
   const s = BigInt(atomic).toString().padStart(dec + 1, '0');
   return `${s.slice(0, s.length - dec)}.${s.slice(s.length - dec)}`;
@@ -56,6 +59,7 @@ function parse(input) {
   if (kind === 'order' && usd === null) throw new ApiError(400, 'usd is required for an order.');
   const userRef = input.user_ref === undefined || input.user_ref === null ? null : String(input.user_ref).slice(0, 100);
   if (kind === 'deposit' && !userRef) throw new ApiError(400, 'user_ref is required for a deposit.');
+  if (kind === 'deposit' && usd !== null && usd < MIN_DEPOSIT_USD) throw new ApiError(400, `The minimum deposit is $${MIN_DEPOSIT_USD}.`);
   return { ref, kind, network, asset, usd, userRef, chain };
 }
 
