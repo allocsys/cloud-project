@@ -155,6 +155,27 @@ export default function Plans() {
     } catch {}
   }, []);
 
+  // Coming from a Reinvest card: /plans?plan=<id> opens that plan's sheet once the catalogue has loaded.
+  const deepPlan = useRef(null);
+  useEffect(() => {
+    try {
+      const id = new URLSearchParams(window.location.search).get('plan');
+      if (id) {
+        deepPlan.current = id;
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+    } catch {}
+  }, []);
+  useEffect(() => {
+    if (!deepPlan.current || !cat) return;
+    const p = cat.plans.find((x) => x.id === deepPlan.current);
+    deepPlan.current = null;
+    if (p) {
+      setTab('buy');
+      setSel(p);
+    }
+  }, [cat]);
+
   function openMiner() {
     try {
       sessionStorage.setItem('opus-plans-tab', 'mine');
