@@ -132,7 +132,7 @@ export default function Dashboard() {
   const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
   const dash = dd || EMPTY;
 
-  const { mined, shares } = useMinedFeed(dailyUsd, dash.totalBtc);
+  const { mined, gain, shares } = useMinedFeed(dailyUsd, dash.totalBtc);
   const shown = useCountUp(mined);
   const now = useNow(1000);
   const [pulse, setPulse] = useState(false);
@@ -196,9 +196,12 @@ export default function Dashboard() {
   const all = dash.earnings.all;
   let streak = 0;
   for (let i = all.length - 1; i >= 0 && all[i].usd > 0; i--) streak += 1;
-  const goal = GOALS.find((g) => g > mined) || GOALS[GOALS.length - 1];
-  const goalPct = Math.min(100, (mined / goal) * 100);
-  const toGo = Math.max(0, goal - mined);
+  // The goal follows the balance you can actually withdraw (mined + deposits + invite rewards - withdrawn - spent),
+  // the same number as the Wallet screen, plus what the live feed added since this page opened.
+  const avail = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) + gain : 0;
+  const goal = GOALS.find((g) => g > avail) || GOALS[GOALS.length - 1];
+  const goalPct = Math.min(100, (avail / goal) * 100);
+  const toGo = Math.max(0, goal - avail);
 
   const btc = pd?.prices?.btc ?? BTC_USD;
   const tr = pd?.trend;
@@ -393,7 +396,7 @@ export default function Dashboard() {
               <i style={{ width: `${armed ? goalPct : 0}%` }} />
             </div>
             <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
-              {formatBtc(mined, 5)} of {formatBtc(goal, 5)} BTC · ≈ ${formatUsd(toGo * btc)} to go
+              {formatBtc(avail, 5)} of {formatBtc(goal, 5)} BTC available · ≈ ${formatUsd(toGo * btc)} to go
             </small>
           </div>
         )}
