@@ -273,7 +273,7 @@ export default function Wallet() {
       </div>
       <div className="grid">
         <div className="card hero slim">
-          <span className="mute eyebrow">Available</span>
+          <span className="mute eyebrow">Available balance</span>
           <div className="big">
             {ready ? formatBtc(available) : '—'}
             <small>BTC</small>
