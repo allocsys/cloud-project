@@ -87,9 +87,7 @@ export default async function Home() {
                 <Decrypt text="without the machines." delay={450} />
               </span>
             </h1>
-            <p className="lp-sub">
-              <Decrypt text="Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise." delay={800} />
-            </p>
+            <p className="lp-sub">Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise.</p>
             <div className="lp-cta">
               <Link href={signedIn ? '/dashboard' : '/login?mode=signup'} className="btn">
                 {signedIn ? 'Open my dashboard' : 'Get started'}
@@ -142,9 +140,7 @@ export default async function Home() {
                     <h3>
                       <Decrypt when="view" text={w.t} />
                     </h3>
-                    <p>
-                      <Decrypt when="view" text={w.d} />
-                    </p>
+                    <p>{w.d}</p>
                   </div>
                 </div>
               ))}
