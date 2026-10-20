@@ -332,7 +332,7 @@ export default function Login() {
         )}
         {notice && <p className="fine" role="status">{notice}</p>}
         {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
-        {!view && signup && <p className="fine">By creating an account you agree to the <Link href="/terms">Terms</Link> and Privacy Policy. No hidden fees: see what is charged and what comes out of your mining.</p>}
+        {!view && signup && <p className="fine">By creating an account you agree to the <Link href="/terms">Terms</Link> and <Link href="/privacy">Privacy Policy</Link>. No hidden fees: see what is charged and what comes out of your mining.</p>}
 
         {!view && !signup && (
           <button className="swap" type="button" onClick={handleForgot}>
