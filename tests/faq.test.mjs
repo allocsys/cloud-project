@@ -43,6 +43,9 @@ const CASES = [
   ['what is the minimum withdrawal', 'withdraw_min'],
   ['what is the minimum deposit', 'deposit_min'],
   ['can I withdraw small amounts', 'low_min'],
+  ['what is the lowest deposit', 'deposit_min'],
+  ['lowest deposit', 'deposit_min'],
+  ['smallest withdrawal', 'withdraw_min'],
 ];
 
 for (const [q, id] of CASES) {
