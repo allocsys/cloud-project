@@ -16,6 +16,8 @@ export default function Login() {
   const [errors, setErrors] = useState({});
   const [loading, setLoading] = useState(false);
   const [show, setShow] = useState(false);
+  const [needCode, setNeedCode] = useState(false); // the account has two-factor on: ask for the code
+  const [code, setCode] = useState('');
   const [ref, setRef] = useState('');
   const [offer, setOffer] = useState(0); // rebate % the invite code gives, shown before sign-up
   const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
@@ -92,6 +94,14 @@ export default function Login() {
       return;
     }
 
+    if (needCode && view !== 'forgot' && !signup && !code.trim()) {
+      triggerHaptic('error');
+      setErrors({ code: 'Enter the 6-digit code from your authenticator app.' });
+      const el = document.getElementById('tc');
+      if (el) el.focus();
+      return;
+    }
+
     setErrors({});
     setLoading(true);
     try {
@@ -104,8 +114,8 @@ export default function Login() {
       }
       const res =
         view === 'reset'
-          ? await post('/api/auth/reset/confirm', { email: email.trim(), token: rtoken, password })
-          : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}) });
+          ? await post('/api/auth/reset/confirm', { email: email.trim(), token: rtoken, password, ...(needCode ? { code: code.trim() } : {}) })
+          : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}), ...(!signup && needCode ? { code: code.trim() } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
       try {
         if (signup && !view) localStorage.removeItem('opus-ref');
@@ -120,12 +130,21 @@ export default function Login() {
     } catch (err) {
       triggerHaptic('error');
       setLoading(false);
+      if (err.field === 'code') {
+        // The password was right and the account asks for a second step (or the code was wrong).
+        setNeedCode(true);
+        setErrors({ code: err.message });
+        setTimeout(() => document.getElementById('tc')?.focus(), 0);
+        return;
+      }
       setErrors(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.message });
     }
   }
 
   function handleSwap() {
     triggerHaptic('selection');
+    setNeedCode(false);
+    setCode('');
     if (view) {
       setView(null);
       setSent(false);
@@ -136,6 +155,8 @@ export default function Login() {
 
   function handleForgot() {
     triggerHaptic('selection');
+    setNeedCode(false);
+    setCode('');
     setView('forgot');
     setSent(false);
     setPassword('');
@@ -249,6 +270,28 @@ export default function Login() {
               onChange={(e) => {
                 setPassword(e.target.value);
                 if (errors.password) setErrors({ ...errors, password: undefined });
+              }}
+            />
+          </Field>
+        )}
+
+        {needCode && view !== 'forgot' && !signup && (
+          <Field id="tc" label="Authentication code" error={errors.code}>
+            <input
+              id="tc"
+              className={errors.code ? 'bad' : undefined}
+              aria-invalid={!!errors.code}
+              aria-describedby={errors.code ? 'tc-err' : undefined}
+              inputMode="numeric"
+              autoComplete="one-time-code"
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck="false"
+              placeholder="6-digit code, or a recovery code"
+              value={code}
+              onChange={(e) => {
+                setCode(e.target.value);
+                if (errors.code) setErrors({ ...errors, code: undefined });
               }}
             />
           </Field>
