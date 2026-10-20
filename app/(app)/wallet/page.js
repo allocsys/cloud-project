@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
-import { MIN_WITHDRAW, plans } from '@/lib/data';
+import { MIN_WITHDRAW, MIN_WITHDRAW_USD, plans } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
@@ -146,8 +146,8 @@ export default function Wallet() {
   // Invite income counts as a payout.
   const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter || (filter === 'payout' && h.kind === 'referral'));
 
-  // The minimum is set in BTC, shown in whatever unit the person is typing in.
-  const minUsd = MIN_WITHDRAW * btcUsd;
+  // The minimum is $15 worth of coin, shown in whatever unit the person is typing in.
+  const minUsd = MIN_WITHDRAW_USD;
   const minText = usdMode ? `$${formatUsd(ceilTo(minUsd, 2))}` : `${ceilTo(minUsd / price, A.dec).toFixed(A.dec)} ${A.sym}`;
   const dec = usdMode ? 2 : A.dec;
 
