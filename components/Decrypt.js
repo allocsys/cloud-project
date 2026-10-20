@@ -18,6 +18,7 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
     if (!els.length) return undefined;
     let raf = 0;
     let io = null;
+    let onDone = null;
     let dead = false;
 
     els.forEach((e) => {
@@ -25,8 +26,8 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
       e.classList.add('dc-s');
     });
 
-    const run = () => {
-      const t0 = performance.now() + delay + (when === 'load' ? 700 : 300);
+    const run = (lead = 300) => {
+      const t0 = performance.now() + delay + lead;
       const n = els.length;
       const dur = Math.min(3000, 800 + n * 90) * pace;
       const at = els.map((_, i) => (i / n) * dur + Math.random() * 260);
@@ -60,13 +61,20 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
         { rootMargin: '0px 0px -12% 0px' },
       );
       io.observe(root);
+    } else if (when === 'load' && window.__opusSplash === 'on') {
+      // The welcome screen is up: start once it lifts (components/Splash.js).
+      onDone = () => {
+        if (!dead) run(300);
+      };
+      window.addEventListener('opus-splash-done', onDone, { once: true });
     } else {
-      run();
+      run(when === 'load' ? 700 : 300);
     }
 
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
+      if (onDone) window.removeEventListener('opus-splash-done', onDone);
       if (io) io.disconnect();
       els.forEach((e) => e.classList.remove('dc-s'));
     };
