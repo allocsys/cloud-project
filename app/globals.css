@@ -140,8 +140,8 @@ h1, h2, h3 {
 }
 
 h3 {
-  font-size: 16px;
-  line-height: 24px;
+  font-size: 15px;
+  line-height: 22px;
   font-weight: 500;
   letter-spacing: 0.15px;
 }
@@ -158,10 +158,10 @@ h3 {
   justify-content: center;
   gap: 8px;
   width: 100%;
-  min-height: 48px;
-  padding: 0 24px;
+  min-height: 44px;
+  padding: 0 20px;
   border: 0;
-  border-radius: 24px;
+  border-radius: 22px;
   background: var(--gold);
   color: var(--on-gold);
   font-weight: 500;
@@ -206,7 +206,7 @@ h3 {
   cursor: pointer;
   margin-top: 4px;
   width: 100%;
-  min-height: 48px;
+  min-height: 44px;
   font-size: 14px;
   font-weight: 500;
   letter-spacing: 0.1px;
@@ -218,12 +218,12 @@ h3 {
 .card {
   background: var(--s2);
   border-radius: 16px;
-  padding: 16px;
+  padding: 14px;
 }
 
 .hero {
   background: var(--hero);
-  padding: 16px 20px 18px;
+  padding: 14px 16px 16px;
 }
 
 /* Text fields: outlined */
@@ -239,8 +239,8 @@ label {
 
 input {
   width: 100%;
-  min-height: 52px;
-  padding: 14px 16px;
+  min-height: 46px;
+  padding: 11px 14px;
   background: transparent;
   border: 1px solid var(--outline);
   border-radius: 12px;
@@ -282,7 +282,7 @@ input::placeholder { color: var(--ph); }
 .field label {
   position: absolute;
   left: 12px;
-  top: 14px;
+  top: 11px;
   max-width: calc(100% - 24px);
   margin: 0;
   padding: 0 4px;
@@ -323,8 +323,8 @@ input::placeholder { color: var(--ph); }
 
 .field select {
   width: 100%;
-  min-height: 52px;
-  padding: 14px 44px 14px 16px;
+  min-height: 46px;
+  padding: 11px 40px 11px 14px;
   border: 1px solid var(--outline);
   border-radius: 12px;
   background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23aaa28f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 14px center;
