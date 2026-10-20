@@ -434,13 +434,9 @@ export default function Plans() {
                 </div>
               </div>
             )}
-            <details className="fine" style={{ margin: '-8px 0 12px' }}>
-              <summary style={{ cursor: 'pointer' }}>~{cur.daily}/day estimate · details</summary>
-              <p className="fine" style={{ margin: '6px 0 0' }}>
-                ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty. You can withdraw from just ${MIN_WITHDRAW_USD}; the fees are shown before you confirm.
-                {ord?.demo ? ' Demo account: nothing is charged.' : ''}
-              </p>
-            </details>
+            <p className="fine" style={{ margin: '-8px 0 12px' }}>
+              ~{cur.daily}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).{ord?.demo ? ' Demo: nothing is charged.' : ''}
+            </p>
             {!ord?.demo && (!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
                 {!crypto
