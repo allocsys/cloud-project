@@ -520,7 +520,8 @@ input::placeholder { color: var(--ph); }
 .dc-s { position: relative; color: transparent; }
 .dc-s::after { content: attr(data-g); position: absolute; left: 0; right: 0; top: 0; text-align: center; color: var(--gold); opacity: 0.85; font-family: ui-monospace, 'Roboto Mono', Menlo, monospace; }
 
-/* Login */
+.btn:not(.ghost) .dc-s::after { color: var(--on-gold); opacity: 0.8; }
+
 #auth {
   min-height: 100vh;
   min-height: 100dvh;
