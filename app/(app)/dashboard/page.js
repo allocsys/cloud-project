@@ -9,6 +9,7 @@ import { notifications, halls, plans, MIN_WITHDRAW } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
+import { reinvestPick } from '@/lib/reinvest';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -207,7 +208,7 @@ export default function Dashboard() {
   const latest = history[0];
   // Balance that can pay for a plan, in USD at the live rate. The Reinvest card shows once it covers a plan.
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * btc : 0;
-  const canBuy = (cat ? cat.plans : plans).filter((p) => p.price <= balUsd).length;
+  const rein = reinvestPick(cat ? cat.plans : plans, balUsd);
 
   useEffect(() => {
     setPulse(true);
@@ -397,13 +398,16 @@ export default function Dashboard() {
           </div>
         )}
 
-        {canBuy > 0 && (
-          <Link href="/plans" className="card rein">
+        {rein && (
+          <Link href={`/plans?plan=${rein.plan.id}`} className="card rein">
             <div>
-              <b>Reinvest</b>
-              <small>${formatUsd(balUsd)} available · {canBuy} {canBuy === 1 ? 'plan' : 'plans'} within balance</small>
+              <b>Reinvest in {rein.plan.name} · {rein.plan.th} TH/s</b>
+              <small>
+                ${formatUsd(rein.plan.price)} · {rein.plan.days} days · ~{rein.plan.daily}/day
+                {rein.left >= 1 ? ` · $${formatUsd(rein.left)} left` : ''}
+              </small>
             </div>
-            <span className="rgo">Choose plan</span>
+            <span className="rgo">Review</span>
           </Link>
         )}
 
