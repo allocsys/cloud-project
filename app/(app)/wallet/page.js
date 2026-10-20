@@ -16,6 +16,7 @@ const KIND = {
   deposit: { glyph: '+', cls: 'in' },
   purchase: { glyph: '◆', cls: 'buy' },
   referral: { glyph: '+', cls: 'in' },
+  adjustment: { glyph: '±', cls: 'in' },
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 
