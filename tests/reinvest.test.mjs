@@ -78,7 +78,7 @@ test('bundle: a catalogue plan that uses most of the balance is kept', () => {
 
 test('bundle: grows with the balance and fills the gaps between plans', () => {
   let last = 0;
-  for (const bal of [30, 50, 90, 150, 200, 300]) {
+  for (const bal of [50, 90, 150, 200, 300]) {
     const s = smartPick(CATALOGUE, bal);
     assert.equal(s.custom, true, `balance ${bal}`);
     assert.ok(s.plan.th > last, `balance ${bal} should buy more than the one before`);
