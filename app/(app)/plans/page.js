@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD } from '@/lib/data';
+import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { formatSerial, serialNumber } from '@/lib/contracts';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -437,7 +437,7 @@ export default function Plans() {
             <details className="fine" style={{ margin: '-8px 0 12px' }}>
               <summary style={{ cursor: 'pointer' }}>~{cur.daily}/day estimate · details</summary>
               <p className="fine" style={{ margin: '6px 0 0' }}>
-                ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty.
+                ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty. You can withdraw from just ${MIN_WITHDRAW_USD}; the fees are shown before you confirm.
                 {ord?.demo ? ' Demo account: nothing is charged.' : ''}
               </p>
             </details>
