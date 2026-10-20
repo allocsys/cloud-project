@@ -4,6 +4,7 @@ import { createServer } from 'node:http';
 import { hasDb, q, closeDb } from './db.js';
 import { migrate } from './migrate.js';
 import { ensureDatabase } from './ensure-db.js';
+import { provisionRole } from './provision-role.js';
 import { json } from './http.js';
 import { handleApi } from './api.js';
 import { config } from './config.js';
@@ -43,7 +44,18 @@ async function main() {
   // Shared server: DATABASE_URL points at the server, GATEWAY_DB_NAME is the gateway's own database on it.
   // Fails to boot on a bad name or an unreachable server, before anything else starts.
   if (hasDb() && process.env.GATEWAY_DB_NAME) {
-    process.env.DATABASE_URL = await ensureDatabase(process.env.DATABASE_URL, process.env.GATEWAY_DB_NAME);
+    const adminUrl = process.env.DATABASE_URL;
+    process.env.DATABASE_URL = await ensureDatabase(adminUrl, process.env.GATEWAY_DB_NAME);
+    // One-time setup with the admin URL: create a limited login that owns only this database and run as it from then on.
+    // After that, point DATABASE_URL at the limited login and remove GATEWAY_DB_NAME, GATEWAY_DB_USER and GATEWAY_DB_PASSWORD.
+    if (process.env.GATEWAY_DB_USER) {
+      process.env.DATABASE_URL = await provisionRole(adminUrl, {
+        db: process.env.GATEWAY_DB_NAME,
+        role: process.env.GATEWAY_DB_USER,
+        password: process.env.GATEWAY_DB_PASSWORD,
+      });
+      console.log(`[gateway] running as limited login ${process.env.GATEWAY_DB_USER}`);
+    }
   }
   if (hasDb()) await migrate();
   else console.warn('[gateway] DATABASE_URL is not set: running without a database');
