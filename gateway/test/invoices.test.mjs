@@ -125,6 +125,12 @@ test('a wallet top-up needs no amount', { skip }, async () => {
   assert.equal(res.body.invoice.uri, `bitcoin:${res.body.invoice.address}`);
 });
 
+test('a wallet top-up under the $30 minimum is refused, orders are not affected', { skip }, async () => {
+  assert.equal((await call('POST', '/v1/invoices', { ref: ref(), kind: 'deposit', user_ref: 'u_1', usd: 29.99 })).status, 400);
+  assert.equal((await call('POST', '/v1/invoices', { ref: ref(), kind: 'deposit', user_ref: 'u_1', usd: 30 })).status, 201);
+  assert.equal((await call('POST', '/v1/invoices', { ref: ref(), kind: 'order', usd: 5 })).status, 201);
+});
+
 test('an invoice can be read back, and an unknown one is 404', { skip }, async () => {
   const a = await call('POST', '/v1/invoices', { ref: ref(), usd: 12 });
   const got = await call('GET', `/v1/invoices/${a.body.invoice.ref}`);
