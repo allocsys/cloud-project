@@ -1352,7 +1352,7 @@ main {
 .clist { display: grid; gap: 12px; }
 .cl { display: flex; flex-direction: column; gap: 10px; color: inherit; text-decoration: none; transition: background 0.2s; }
 .cl:active { background: var(--s3); }
-.cl .mrow { display: flex; align-items: center; gap: 12px; }
+.cl .crow { display: flex; align-items: center; gap: 12px; }
 .cl .art { flex: none; width: 96px; margin: 0; }
 .cl .art svg { height: 76px; }
 .cl .mi { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 4px; }
