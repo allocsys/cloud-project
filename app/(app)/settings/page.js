@@ -47,6 +47,14 @@ export default function Settings() {
   const [tfBusy, setTfBusy] = useState(false);
   const [tfCodes, setTfCodes] = useState([]);
   const tfOn = !!me?.twofa;
+  // Close-account panel: null (closed), or what the server says closing would do.
+  const [cl, setCl] = useState(null);
+  const [clPw, setClPw] = useState('');
+  const [clCode, setClCode] = useState('');
+  const [clText, setClText] = useState('');
+  const [clForfeit, setClForfeit] = useState(false);
+  const [clErr, setClErr] = useState({});
+  const [clBusy, setClBusy] = useState(false);
 
   useEffect(() => {
     setTheme(readTheme());
@@ -245,6 +253,60 @@ export default function Settings() {
     }
   }
 
+  function resetClose() {
+    setCl(null);
+    setClPw('');
+    setClCode('');
+    setClText('');
+    setClForfeit(false);
+    setClErr({});
+  }
+
+  async function openClose() {
+    triggerHaptic('selection');
+    if (cl) return resetClose();
+    let r;
+    try {
+      r = await fetch('/api/account', { headers: { accept: 'application/json' } });
+    } catch {
+      triggerHaptic('error');
+      return show('No connection. Try again.');
+    }
+    const j = await r.json().catch(() => null);
+    if (!r.ok || !j) {
+      triggerHaptic('error');
+      return show(j?.error || 'Something went wrong.');
+    }
+    setCl(j);
+  }
+
+  async function submitClose(e) {
+    e.preventDefault();
+    if (clBusy || !cl || cl.blocked) return;
+    const next = {};
+    if (cl.password && !clPw) next.password = 'Enter your password.';
+    if (cl.twofa && !clCode.trim()) next.code = 'Enter a code from the app, or a recovery code.';
+    if (clText.trim().toUpperCase() !== 'DELETE') next.confirm = 'Type DELETE to confirm.';
+    if (cl.miners > 0 && !clForfeit) next.forfeit = 'Tick the box to continue.';
+    if (Object.keys(next).length) {
+      triggerHaptic('error');
+      return setClErr(next);
+    }
+    setClErr({});
+    setClBusy(true);
+    try {
+      await post('/api/account', { password: clPw, code: clCode.trim(), confirm: clText.trim(), forfeit: clForfeit });
+      triggerHaptic('success');
+      signOut();
+      router.replace('/login');
+    } catch (err) {
+      triggerHaptic('error');
+      setClErr(err.field === 'password' || err.field === 'code' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setClBusy(false);
+    }
+  }
+
   function verify() {
     triggerHaptic('light');
     markDrill();
@@ -417,6 +479,92 @@ export default function Settings() {
                   <button className="btn" type="submit" disabled={pwBusy} style={{ marginTop: '10px' }}>
                     {pwBusy ? 'Updating...' : 'Update password'}
                   </button>
+                </form>
+              )}
+            </>
+          )}
+          {me && !me.demo && (
+            <>
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Close account</div>
+                  <small>Erases your sign-in details and personal data</small>
+                </div>
+                <button className="btn ghost" type="button" aria-expanded={!!cl} onClick={openClose}>{cl ? 'Cancel' : 'Close'}</button>
+              </div>
+              {cl && (
+                <form onSubmit={submitClose} noValidate style={{ paddingBottom: '8px' }}>
+                  {cl.blocked ? (
+                    <div className="ferr" role="alert">{cl.blocked}</div>
+                  ) : (
+                    <>
+                      <small style={{ display: 'block', marginBottom: '8px' }}>
+                        This cannot be undone. Your email, password, name and verification details are erased and you are signed out everywhere. Payment and withdrawal records are kept without your email, as the Privacy Policy explains. Any balance below the withdrawal minimum is lost. You can sign up again later, but you start from nothing.
+                      </small>
+                      {cl.miners > 0 && (
+                        <>
+                          <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', margin: '8px 0' }}>
+                            <input type="checkbox" checked={clForfeit} onChange={(e) => { setClForfeit(e.target.checked); if (clErr.forfeit) setClErr({ ...clErr, forfeit: undefined }); }} style={{ marginTop: '3px' }} />
+                            <span>My {cl.miners} running miner{cl.miners === 1 ? '' : 's'} will end with no refund.</span>
+                          </label>
+                          {clErr.forfeit && <div className="ferr" role="alert">{clErr.forfeit}</div>}
+                        </>
+                      )}
+                      {cl.password && (
+                        <Field id="cp" label="Password" error={clErr.password}>
+                          <input
+                            id="cp"
+                            type="password"
+                            className={clErr.password ? 'bad' : undefined}
+                            aria-invalid={!!clErr.password}
+                            aria-describedby={clErr.password ? 'cp-err' : undefined}
+                            autoComplete="current-password"
+                            value={clPw}
+                            onChange={(e) => {
+                              setClPw(e.target.value);
+                              if (clErr.password) setClErr({ ...clErr, password: undefined });
+                            }}
+                          />
+                        </Field>
+                      )}
+                      {cl.twofa && (
+                        <Field id="ck" label="Code" error={clErr.code}>
+                          <input
+                            id="ck"
+                            className={clErr.code ? 'bad' : undefined}
+                            aria-invalid={!!clErr.code}
+                            aria-describedby={clErr.code ? 'ck-err' : undefined}
+                            inputMode="numeric"
+                            autoComplete="one-time-code"
+                            autoCapitalize="none"
+                            placeholder="6-digit code, or a recovery code"
+                            value={clCode}
+                            onChange={(e) => {
+                              setClCode(e.target.value);
+                              if (clErr.code) setClErr({ ...clErr, code: undefined });
+                            }}
+                          />
+                        </Field>
+                      )}
+                      <Field id="cd" label="Type DELETE to confirm" error={clErr.confirm}>
+                        <input
+                          id="cd"
+                          className={clErr.confirm ? 'bad' : undefined}
+                          aria-invalid={!!clErr.confirm}
+                          aria-describedby={clErr.confirm ? 'cd-err' : undefined}
+                          autoCapitalize="characters"
+                          autoComplete="off"
+                          value={clText}
+                          onChange={(e) => {
+                            setClText(e.target.value);
+                            if (clErr.confirm) setClErr({ ...clErr, confirm: undefined });
+                          }}
+                        />
+                      </Field>
+                      {clErr.form && <div className="ferr" role="alert">{clErr.form}</div>}
+                      <button className="btn" type="submit" disabled={clBusy} style={{ marginTop: '10px' }}>{clBusy ? 'Closing...' : 'Close my account'}</button>
+                    </>
+                  )}
                 </form>
               )}
             </>
