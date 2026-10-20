@@ -246,6 +246,7 @@ export default function Plans() {
               <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
               <div className="tprice">${p.price.toLocaleString()}</div>
               <div className="tmeta">{p.days} days · <b>~{p.daily}</b>/day</div>
+              {balUsd >= p.price && <div className="tcan">✓ Within your balance</div>}
             </div>
           );
         })}
