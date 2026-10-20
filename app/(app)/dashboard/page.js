@@ -39,6 +39,7 @@ const KIND = {
   purchase: { glyph: '◆', cls: 'buy' },
   referral: { glyph: '+', cls: 'in' },
   withdrawal: { glyph: '↑', cls: 'out' },
+  adjustment: { glyph: '±', cls: 'in' },
 };
 const SPLIT = ['var(--gold2)', 'var(--green)', 'var(--gold)', 'var(--mute)'];
 const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
