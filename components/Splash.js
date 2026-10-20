@@ -1,15 +1,40 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 // Welcome screen for the landing page. The server renders it visible, so it covers the very first paint (no flash of
-// plain text). It lifts once the fonts are ready and a short minimum time has passed; after the first visit in a
-// session the minimum is much shorter.
+// plain text). While it shows, the page does real work: fonts, the logo and the window load event are awaited, and
+// the sign-in routes are prefetched. It lifts when all of that is ready (never later than CAP) and a short minimum
+// time has passed; after the first visit in a session the minimum is much shorter.
 const FIRST = 1100;
 const REPEAT = 250;
+const CAP = 2500;
+
+const ready = (p) => p.then(() => {}, () => {});
+
+function loaded() {
+  if (document.readyState === 'complete') return Promise.resolve();
+  return new Promise((r) => window.addEventListener('load', r, { once: true }));
+}
+
+function image(src) {
+  return new Promise((r) => {
+    const img = new Image();
+    img.onload = r;
+    img.onerror = r;
+    img.src = src;
+    if (img.decode) img.decode().then(r, r);
+  });
+}
+
+function idle() {
+  return new Promise((r) => (window.requestIdleCallback ? window.requestIdleCallback(r, { timeout: 600 }) : setTimeout(r, 120)));
+}
 
 export default function Splash() {
   const ref = useRef(null);
   const [gone, setGone] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     let seen = false;
@@ -20,9 +45,13 @@ export default function Splash() {
     const t0 = performance.now();
     window.__opusSplash = 'on';
     const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+    try {
+      router.prefetch('/login');
+    } catch {}
+    const work = Promise.all([ready(fonts), ready(loaded()), ready(image('/logo.svg'))]).then(() => idle());
     let t1 = 0;
     let t2 = 0;
-    Promise.race([fonts, new Promise((r) => setTimeout(r, 2500))]).then(() => {
+    Promise.race([work, new Promise((r) => setTimeout(r, CAP))]).then(() => {
       const wait = Math.max(0, (seen ? REPEAT : FIRST) - (performance.now() - t0));
       t1 = setTimeout(() => {
         if (ref.current) ref.current.classList.add('sp-out');
@@ -36,6 +65,7 @@ export default function Splash() {
       clearTimeout(t1);
       clearTimeout(t2);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   if (gone) return null;
