@@ -30,14 +30,23 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+// Pages: network first, so signed-in state is always right. If the network takes longer than SLOW and a saved copy
+// exists, the saved copy is shown instead, so a weak connection never leaves the person staring at a blank screen.
+const SLOW = 3000;
+
 async function networkFirst(req) {
   try {
-    const res = await fetch(req);
-    if (res.ok) {
-      const copy = res.clone();
-      caches.open(PAGES).then((c) => c.put(req, copy));
-    }
-    return res;
+    const live = fetch(req).then((res) => {
+      if (res.ok) {
+        const copy = res.clone();
+        caches.open(PAGES).then((c) => c.put(req, copy));
+      }
+      return res;
+    });
+    const hit = await caches.match(req);
+    if (!hit) return await live;
+    live.catch(() => {});
+    return await Promise.race([live, new Promise((r) => setTimeout(() => r(hit), SLOW))]);
   } catch (err) {
     const hit = await caches.match(req);
     return hit || new Response(OFFLINE, { status: 503, headers: { 'Content-Type': 'text/html; charset=utf-8' } });
@@ -67,6 +76,7 @@ self.addEventListener('fetch', (event) => {
   } else if (
     url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
+    url.pathname === '/logo.svg' ||
     url.pathname === '/manifest.webmanifest'
   ) {
     event.respondWith(staleWhileRevalidate(req));
