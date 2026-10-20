@@ -57,16 +57,21 @@ export default function ChainSteps({ steps }) {
     <ol className="ch" ref={ref}>
       {steps.map((s, i) => (
         <li className="ch-b" data-i={i} key={s.t}>
-          <div className="ch-h">
-            <span>Block {i + 1}</span>
-            <code className="ch-hash" aria-hidden="true">
-              {HASHES[i % HASHES.length]}
-            </code>
+          <div className="ch-n" aria-hidden="true">
+            {i + 1}
           </div>
-          <h3>
-            <Decrypt when="view" text={s.t} />
-          </h3>
-          <p>{s.d}</p>
+          <div className="ch-t">
+            <div className="ch-h">
+              <span>Block {i + 1}</span>
+              <code className="ch-hash" aria-hidden="true">
+                {HASHES[i % HASHES.length]}
+              </code>
+            </div>
+            <h3>
+              <Decrypt when="view" text={s.t} />
+            </h3>
+            <p>{s.d}</p>
+          </div>
         </li>
       ))}
     </ol>
