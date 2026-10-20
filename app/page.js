@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import ChainSteps from '@/components/ChainSteps';
 import DemoButton from '@/components/DemoButton';
+import Decrypt from '@/components/Decrypt';
 import HeroVisual from '@/components/HeroVisual';
 import Reveal from '@/components/Reveal';
 import StickyCta from '@/components/StickyCta';
@@ -77,11 +78,18 @@ export default async function Home() {
 
         <section className="lp-hero2">
           <div className="lp-hero">
-            <span className="lp-eyebrow">Cloud mining, made simple</span>
+            <span className="lp-eyebrow">
+              <Decrypt text="Cloud mining, made simple" />
+            </span>
             <h1>
-              Bitcoin mining <span>without the machines.</span>
+              <Decrypt text="Bitcoin mining" delay={150} />{' '}
+              <span>
+                <Decrypt text="without the machines." delay={450} />
+              </span>
             </h1>
-            <p className="lp-sub">Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise.</p>
+            <p className="lp-sub">
+              <Decrypt text="Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise." delay={800} />
+            </p>
             <div className="lp-cta">
               <Link href={signedIn ? '/dashboard' : '/login?mode=signup'} className="btn">
                 {signedIn ? 'Open my dashboard' : 'Get started'}
@@ -110,14 +118,18 @@ export default async function Home() {
 
         <section className="lp-sec" aria-labelledby="how">
           <Reveal>
-            <h2 id="how">How it works</h2>
+            <h2 id="how">
+              <Decrypt when="view" text="How it works" />
+            </h2>
             <ChainSteps steps={STEPS} />
           </Reveal>
         </section>
 
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
-            <h2 id="why">Why Miner Opus</h2>
+            <h2 id="why">
+              <Decrypt when="view" text="Why Miner Opus" />
+            </h2>
             <div className="lp-snap c4">
               {WHY.map((w) => (
                 <div className="lp-card" key={w.t}>
@@ -126,8 +138,12 @@ export default async function Home() {
                       {ICONS[w.i]}
                     </svg>
                   </div>
-                  <h3>{w.t}</h3>
-                  <p>{w.d}</p>
+                  <h3>
+                    <Decrypt when="view" text={w.t} />
+                  </h3>
+                  <p>
+                    <Decrypt when="view" text={w.d} />
+                  </p>
                 </div>
               ))}
             </div>
