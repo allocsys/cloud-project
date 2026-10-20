@@ -29,7 +29,7 @@ export default function Settings() {
   const { data: sd, mutate: mutateSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
-  const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
+  const { data: me, refresh: refreshMe } = useApi('/api/auth/me', { ttl: 60000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
   const [pwOpen, setPwOpen] = useState(false);
@@ -38,6 +38,15 @@ export default function Settings() {
   const [pwErr, setPwErr] = useState({});
   const [pwBusy, setPwBusy] = useState(false);
   const [vbusy, setVbusy] = useState(false);
+  // Two-factor panel: null (closed), 'setup' (key shown, waiting for the first code), 'codes' (recovery codes, shown once), 'off'.
+  const [tf, setTf] = useState(null);
+  const [tfKey, setTfKey] = useState({ secret: '', uri: '' });
+  const [tfCode, setTfCode] = useState('');
+  const [tfPw, setTfPw] = useState('');
+  const [tfErr, setTfErr] = useState({});
+  const [tfBusy, setTfBusy] = useState(false);
+  const [tfCodes, setTfCodes] = useState([]);
+  const tfOn = !!me?.twofa;
 
   useEffect(() => {
     setTheme(readTheme());
@@ -147,6 +156,95 @@ export default function Settings() {
     }
   }
 
+  function closeTf() {
+    setTf(null);
+    setTfKey({ secret: '', uri: '' });
+    setTfCode('');
+    setTfPw('');
+    setTfErr({});
+    setTfCodes([]);
+  }
+
+  // Asks the server for a new key; nothing is on until the first code from the app is accepted.
+  async function startTf() {
+    if (tfBusy) return;
+    triggerHaptic('selection');
+    if (tf) return closeTf();
+    setTfBusy(true);
+    try {
+      const r = await post('/api/auth/2fa', { action: 'start' });
+      setTfKey({ secret: r.secret, uri: r.uri });
+      setTf('setup');
+    } catch (err) {
+      triggerHaptic('error');
+      show(err.status ? err.message : 'No connection. Try again.');
+    } finally {
+      setTfBusy(false);
+    }
+  }
+
+  function openOff() {
+    triggerHaptic('selection');
+    const was = tf === 'off';
+    closeTf();
+    if (!was) setTf('off');
+  }
+
+  async function enableTf(e) {
+    e.preventDefault();
+    if (tfBusy) return;
+    if (!tfCode.trim()) return setTfErr({ code: 'Enter the 6-digit code from the app.' });
+    setTfErr({});
+    setTfBusy(true);
+    try {
+      const r = await post('/api/auth/2fa', { action: 'enable', code: tfCode.trim() });
+      triggerHaptic('success');
+      setTfCodes(r.codes || []);
+      setTfCode('');
+      setTfKey({ secret: '', uri: '' });
+      setTf('codes');
+      refreshMe();
+    } catch (err) {
+      triggerHaptic('error');
+      setTfErr(err.field === 'code' ? { code: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setTfBusy(false);
+    }
+  }
+
+  async function disableTf(e) {
+    e.preventDefault();
+    if (tfBusy) return;
+    const next = {};
+    if (!tfPw) next.password = 'Enter your password.';
+    if (!tfCode.trim()) next.code = 'Enter a code from the app, or a recovery code.';
+    if (next.password || next.code) return setTfErr(next);
+    setTfErr({});
+    setTfBusy(true);
+    try {
+      await post('/api/auth/2fa', { action: 'disable', password: tfPw, code: tfCode.trim() });
+      triggerHaptic('success');
+      closeTf();
+      refreshMe();
+      show('Two-factor is off');
+    } catch (err) {
+      triggerHaptic('error');
+      setTfErr(err.field === 'code' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setTfBusy(false);
+    }
+  }
+
+  async function copyCodes() {
+    triggerHaptic('light');
+    try {
+      await navigator.clipboard.writeText(tfCodes.join('\n'));
+      show('Copied');
+    } catch {
+      show('Could not copy. Select the codes and copy them by hand.');
+    }
+  }
+
   function verify() {
     triggerHaptic('light');
     markDrill();
@@ -188,10 +286,98 @@ export default function Settings() {
               <span className={`badge ${kyc.cls}`}>{kyc.label}</span>
             )}
           </div>
-          <div className="row">
-            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
-            <span className="badge">Coming soon</span>
-          </div>
+          {me?.email && (
+            <>
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
+                  <small>{tfOn ? 'On. Sign-in asks for a code.' : 'A code from an authenticator app at sign-in'}</small>
+                </div>
+                {tfOn ? (
+                  <button className="btn ghost" type="button" aria-expanded={tf === 'off'} onClick={openOff}>{tf === 'off' ? 'Cancel' : 'Turn off'}</button>
+                ) : (
+                  <button className="btn ghost" type="button" aria-expanded={tf === 'setup'} disabled={tfBusy} onClick={startTf}>{tf === 'setup' ? 'Cancel' : 'Set up'}</button>
+                )}
+              </div>
+              {tf === 'setup' && (
+                <form onSubmit={enableTf} noValidate style={{ paddingBottom: '8px' }}>
+                  <small style={{ display: 'block', marginBottom: '8px' }}>Add this key to an authenticator app (Google Authenticator, Authy, 1Password), then type the 6-digit code it shows.</small>
+                  <div style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all', userSelect: 'all', padding: '10px 12px', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>
+                    {tfKey.secret.replace(/(.{4})/g, '$1 ').trim()}
+                  </div>
+                  <a className="btn ghost" href={tfKey.uri} style={{ display: 'inline-block', marginTop: '8px', textDecoration: 'none', textAlign: 'center' }}>Open in authenticator app</a>
+                  <Field id="tf" label="6-digit code" error={tfErr.code}>
+                    <input
+                      id="tf"
+                      className={tfErr.code ? 'bad' : undefined}
+                      aria-invalid={!!tfErr.code}
+                      aria-describedby={tfErr.code ? 'tf-err' : undefined}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="123456"
+                      value={tfCode}
+                      onChange={(e) => {
+                        setTfCode(e.target.value);
+                        if (tfErr.code) setTfErr({ ...tfErr, code: undefined });
+                      }}
+                    />
+                  </Field>
+                  {tfErr.form && <div className="ferr" role="alert">{tfErr.form}</div>}
+                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? 'Checking...' : 'Turn on'}</button>
+                </form>
+              )}
+              {tf === 'codes' && (
+                <div style={{ paddingBottom: '8px' }}>
+                  <small style={{ display: 'block' }}>Two-factor is on. Save these recovery codes somewhere safe. Each works once if you lose your phone, and they are not shown again.</small>
+                  <div style={{ fontFamily: 'monospace', fontSize: '13px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', margin: '10px 0', userSelect: 'all' }}>
+                    {tfCodes.map((c) => (
+                      <span key={c}>{c}</span>
+                    ))}
+                  </div>
+                  <button className="btn ghost" type="button" onClick={copyCodes}>Copy codes</button>
+                  <button className="btn" type="button" onClick={() => { triggerHaptic('light'); closeTf(); }} style={{ marginTop: '10px' }}>I saved them</button>
+                </div>
+              )}
+              {tf === 'off' && (
+                <form onSubmit={disableTf} noValidate style={{ paddingBottom: '8px' }}>
+                  <Field id="tp" label="Password" error={tfErr.password}>
+                    <input
+                      id="tp"
+                      type="password"
+                      className={tfErr.password ? 'bad' : undefined}
+                      aria-invalid={!!tfErr.password}
+                      aria-describedby={tfErr.password ? 'tp-err' : undefined}
+                      autoComplete="current-password"
+                      value={tfPw}
+                      onChange={(e) => {
+                        setTfPw(e.target.value);
+                        if (tfErr.password) setTfErr({ ...tfErr, password: undefined });
+                      }}
+                    />
+                  </Field>
+                  <Field id="tk" label="Code" error={tfErr.code}>
+                    <input
+                      id="tk"
+                      className={tfErr.code ? 'bad' : undefined}
+                      aria-invalid={!!tfErr.code}
+                      aria-describedby={tfErr.code ? 'tk-err' : undefined}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      autoCapitalize="none"
+                      placeholder="6-digit code, or a recovery code"
+                      value={tfCode}
+                      onChange={(e) => {
+                        setTfCode(e.target.value);
+                        if (tfErr.code) setTfErr({ ...tfErr, code: undefined });
+                      }}
+                    />
+                  </Field>
+                  {tfErr.form && <div className="ferr" role="alert">{tfErr.form}</div>}
+                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? 'Turning off...' : 'Turn off two-factor'}</button>
+                </form>
+              )}
+            </>
+          )}
           {me?.email && (
             <>
               <div className="row">
