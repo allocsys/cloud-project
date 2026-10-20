@@ -8,6 +8,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
+import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -156,20 +157,30 @@ export default function Plans() {
   }, []);
 
   // Coming from a Reinvest card: /plans?plan=<id> opens that plan's sheet once the catalogue has loaded.
+  // /plans?plan=custom&th=24&days=180 opens the Custom sheet on that size and term.
   const deepPlan = useRef(null);
   useEffect(() => {
     try {
-      const id = new URLSearchParams(window.location.search).get('plan');
+      const q = new URLSearchParams(window.location.search);
+      const id = q.get('plan');
       if (id) {
-        deepPlan.current = id;
+        deepPlan.current = { id, th: parseFloat(q.get('th')), days: parseInt(q.get('days'), 10) };
         window.history.replaceState(null, '', window.location.pathname);
       }
     } catch {}
   }, []);
   useEffect(() => {
     if (!deepPlan.current || !cat) return;
-    const p = cat.plans.find((x) => x.id === deepPlan.current);
+    const { id, th, days } = deepPlan.current;
     deepPlan.current = null;
+    if (id === 'custom') {
+      setTab('buy');
+      if (SLIDER_SIZES.includes(th)) setPos(posFromTh(th));
+      if (CUSTOM.terms.includes(days)) setTerm(days);
+      setSel({ id: 'custom' });
+      return;
+    }
+    const p = cat.plans.find((x) => x.id === id);
     if (p) {
       setTab('buy');
       setSel(p);
