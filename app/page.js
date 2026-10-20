@@ -4,7 +4,6 @@ import ChainSteps from '@/components/ChainSteps';
 import DemoButton from '@/components/DemoButton';
 import HeroVisual from '@/components/HeroVisual';
 import Reveal from '@/components/Reveal';
-import RigArt from '@/components/RigArt';
 import StickyCta from '@/components/StickyCta';
 import { COOKIE } from '@/lib/server/auth';
 
@@ -18,12 +17,6 @@ const STEPS = [
   { t: 'Pick a plan', d: 'Choose the hash power that fits your budget.' },
   { t: 'Pay in bitcoin', d: 'Send BTC to your personal payment address. Your miner starts once the payment confirms.' },
   { t: 'Follow your earnings', d: 'Open your dashboard to see what your miners earn, day by day.' },
-];
-
-const RIGS = [
-  { id: 'r1', plan: 'starter', kind: 'asic', units: 1, speed: 2.2, t: 'Starter', d: 'A first taste of mining.' },
-  { id: 'r2', plan: 'growth', kind: 'gpu', units: 2, speed: 1.5, t: 'Growth', d: 'More hash power, more earnings.' },
-  { id: 'r3', plan: 'elite', kind: 'container', units: 3, speed: 0.6, t: 'Elite', d: 'Our biggest plan.' },
 ];
 
 const ICONS = {
@@ -122,23 +115,6 @@ export default async function Home() {
           </Reveal>
         </section>
 
-        <section className="lp-sec" aria-labelledby="rigs">
-          <Reveal>
-            <h2 id="rigs">Rigs that grow with your plan</h2>
-            <div className="lp-snap c3">
-              {RIGS.map((r) => (
-                <div className="lp-card" key={r.id}>
-                  <div className="lp-rig">
-                    <RigArt kind={r.kind} units={r.units} speed={r.speed} id={r.id} />
-                  </div>
-                  <h3>{r.t}</h3>
-                  <p>{r.d}</p>
-                </div>
-              ))}
-            </div>
-          </Reveal>
-        </section>
-
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
             <h2 id="why">Why Miner Opus</h2>
@@ -169,21 +145,6 @@ export default async function Home() {
             </div>
           </Reveal>
         </section>
-
-        {!signedIn && (
-          <Reveal>
-            <section className="lp-end" aria-labelledby="go">
-              <h2 id="go">Take a look inside</h2>
-              <p>See the dashboard, the plans and a miner page before you create an account.</p>
-              <div className="lp-cta">
-                <Link href="/login?mode=signup" className="btn">
-                  Create an account
-                </Link>
-                <DemoButton className="btn ghost">Explore the demo</DemoButton>
-              </div>
-            </section>
-          </Reveal>
-        )}
 
         <p className="lp-foot">&copy; 2026 Miner Opus</p>
       </div>
