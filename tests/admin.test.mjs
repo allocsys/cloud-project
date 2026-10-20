@@ -116,3 +116,24 @@ test('balance changes by an admin are bounded, never overdraw, and are logged', 
   assert.ok(near(rows.reduce((s, r) => s + Number(r.btc), 0), 0.1));
   assert.equal((await logLen()) - logBefore, 10);
 });
+
+test('the admin overview shows each user\'s available balance, matching their wallet', async () => {
+  const id = `ovw${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const shown = async () => (await overview()).users.find((u) => u.id === id)?.available;
+  const wallet = async () => {
+    const w = await getWallet(id);
+    return w.earned - w.withdrawn - w.spent;
+  };
+  const near = (a, b) => Math.abs(a - b) < 1e-7;
+
+  assert.ok(near(await shown(), 0));
+  assert.ok((await act({ action: 'balance', userId: id, op: 'add', amountBtc: '0.5', note: 'test' })).ok);
+  assert.ok(near(await shown(), 0.5));
+  assert.ok((await act({ action: 'balance', userId: id, op: 'subtract', amountBtc: '0.2', note: 'test' })).ok);
+  assert.ok(near(await shown(), 0.3));
+  assert.ok(near(await shown(), await wallet()));
+  // The screen warns before this, and the server still refuses it.
+  assert.equal((await act({ action: 'balance', userId: id, op: 'subtract', amountBtc: '0.4', note: 'test' })).status, 409);
+  assert.ok(near(await shown(), 0.3));
+});
