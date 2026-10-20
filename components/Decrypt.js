@@ -9,7 +9,7 @@ const G = '0123456789ABCDEF';
 const SCRAMBLE = /[A-Za-z0-9]/;
 const glyph = () => G[Math.floor(Math.random() * 16)];
 
-export default function Decrypt({ text, when = 'load', delay = 0 }) {
+export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
   const ref = useRef(null);
 
   useEffect(() => {
@@ -28,7 +28,7 @@ export default function Decrypt({ text, when = 'load', delay = 0 }) {
     const run = () => {
       const t0 = performance.now() + delay + (when === 'load' ? 700 : 300);
       const n = els.length;
-      const dur = Math.min(3000, 800 + n * 90);
+      const dur = Math.min(3000, 800 + n * 90) * pace;
       const at = els.map((_, i) => (i / n) * dur + Math.random() * 260);
       const order = at.map((_, i) => i).sort((a, b) => at[a] - at[b]);
       let p = 0;
@@ -70,7 +70,7 @@ export default function Decrypt({ text, when = 'load', delay = 0 }) {
       if (io) io.disconnect();
       els.forEach((e) => e.classList.remove('dc-s'));
     };
-  }, [text, when, delay]);
+  }, [text, when, delay, pace]);
 
   return (
     <span ref={ref}>
