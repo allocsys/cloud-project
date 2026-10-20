@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
-import { MIN_WITHDRAW, MIN_WITHDRAW_USD, plans } from '@/lib/data';
+import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD, plans } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
@@ -393,7 +393,7 @@ export default function Wallet() {
                 <div className="addr" style={{ margin: '0 0 10px' }}>{N.address}</div>
                 <button className="btn ghost" type="button" onClick={copy}>Copy address</button>
                 <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>
-                  {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'}
+                  {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'} · min ${MIN_DEPOSIT_USD}
                 </p>
 
                 <Field id="da" label="Amount you send" className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />}>
@@ -425,9 +425,12 @@ export default function Wallet() {
                           <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(dq.creditedUsd)}</small>
                         </b>
                       </div>
+                      {dq.usd < MIN_DEPOSIT_USD - 0.01 && (
+                        <p className="fine" role="alert" style={{ margin: '8px 0 0' }}>Below the ${MIN_DEPOSIT_USD} minimum. A smaller deposit may not be credited.</p>
+                      )}
                     </>
                   ) : (
-                    `Credited as BTC · ${asset === 'btc' ? 'no fee' : `${SWAP_FEE_PCT}% swap fee`}`
+                    `Min $${MIN_DEPOSIT_USD} · credited as BTC · ${asset === 'btc' ? 'no fee' : `${SWAP_FEE_PCT}% swap fee`}`
                   )}
                 </div>
               </div>
