@@ -1,7 +1,7 @@
 'use client';
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
-import { useMinedFeed, formatBtc, formatUsd } from '@/lib/useMined';
+import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, plans } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
@@ -100,11 +100,12 @@ export default function Wallet() {
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
-  const { gain: mined } = useMinedFeed(dailyUsd);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
+  // What the online miners added since the server worked out the wallet (asOf): same maths as the dashboard.
+  const mined = useAccrued(dailyUsd, wd ? wd.asOf : null);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
