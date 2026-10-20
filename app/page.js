@@ -82,21 +82,21 @@ export default async function Home() {
               <Decrypt text="Cloud mining, made simple" />
             </span>
             <h1>
-              <Decrypt text="Bitcoin mining" delay={1000} />{' '}
+              <Decrypt text="Bitcoin mining" delay={400} pace={0.55} />{' '}
               <span>
-                <Decrypt text="without the machines." delay={2000} />
+                <Decrypt text="without the machines." delay={1100} pace={0.55} />
               </span>
             </h1>
             <p className="lp-sub">
-              <Decrypt text="Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise." delay={2800} />
+              <Decrypt text="Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise." delay={1500} pace={0.5} />
             </p>
             <div className="lp-cta">
               <Link href={signedIn ? '/dashboard' : '/login?mode=signup'} className="btn">
-                <Decrypt text={signedIn ? 'Open my dashboard' : 'Get started'} delay={3800} />
+                <Decrypt text={signedIn ? 'Open my dashboard' : 'Get started'} delay={2600} />
               </Link>
               {!signedIn && (
                 <DemoButton>
-                  <Decrypt text="Explore the demo first" delay={4100} />
+                  <Decrypt text="Explore the demo first" delay={2900} />
                 </DemoButton>
               )}
             </div>
