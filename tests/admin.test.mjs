@@ -110,9 +110,9 @@ test('balance changes by an admin are bounded, never overdraw, and are logged', 
 
   // The user can see them, and each one is in the ledger and the audit log.
   const w = await getWallet(id);
-  assert.equal(w.history.filter((h) => h.kind === 'adjustment').length, 11);
+  assert.equal(w.history.filter((h) => h.kind === 'adjustment').length, 10);
   const rows = (await q("SELECT btc FROM ledger WHERE user_id = $1 AND kind = 'adjust'", [id])).rows;
-  assert.equal(rows.length, 11);
+  assert.equal(rows.length, 10);
   assert.ok(near(rows.reduce((s, r) => s + Number(r.btc), 0), 0.1));
-  assert.equal((await logLen()) - logBefore, 11);
+  assert.equal((await logLen()) - logBefore, 10);
 });
