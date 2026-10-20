@@ -4,6 +4,7 @@ import ChainSteps from '@/components/ChainSteps';
 import Decrypt from '@/components/Decrypt';
 import HeroVisual from '@/components/HeroVisual';
 import Reveal from '@/components/Reveal';
+import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
 import { COOKIE } from '@/lib/server/auth';
 
@@ -64,6 +65,7 @@ export default async function Home() {
 
   return (
     <main className="lp">
+      <Splash />
       <div className="lp-in">
         <header className="lp-top">
           <Link href="/" className="lp-brand" aria-label="Miner Opus">
