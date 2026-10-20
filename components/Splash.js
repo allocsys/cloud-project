@@ -33,6 +33,7 @@ function idle() {
 
 export default function Splash() {
   const ref = useRef(null);
+  const bar = useRef(null);
   const [gone, setGone] = useState(false);
   const router = useRouter();
 
@@ -48,12 +49,24 @@ export default function Splash() {
     try {
       router.prefetch('/login');
     } catch {}
-    const work = Promise.all([ready(fonts), ready(loaded()), ready(image('/logo.svg'))]).then(() => idle());
+    // Each finished task moves the bar forward, so what it shows is real progress, not a timer.
+    const total = 5;
+    let done = 1;
+    const step = () => {
+      done += 1;
+      if (bar.current) bar.current.style.transform = `scaleX(${Math.min(1, done / total)})`;
+    };
+    if (bar.current) bar.current.style.transform = `scaleX(${done / total})`;
+    const track = (p) => ready(p).then(step);
+    const work = Promise.all([track(fonts), track(loaded()), track(image('/logo.svg'))])
+      .then(() => idle())
+      .then(step);
     let t1 = 0;
     let t2 = 0;
     Promise.race([work, new Promise((r) => setTimeout(r, CAP))]).then(() => {
       const wait = Math.max(0, (seen ? REPEAT : FIRST) - (performance.now() - t0));
       t1 = setTimeout(() => {
+        if (bar.current) bar.current.style.transform = 'scaleX(1)';
         if (ref.current) ref.current.classList.add('sp-out');
         window.__opusSplash = 'off';
         window.dispatchEvent(new Event('opus-splash-done'));
@@ -80,6 +93,9 @@ export default function Splash() {
         <i />
       </div>
       <div className="sp-name">Miner Opus</div>
+      <div className="sp-track">
+        <div className="sp-bar" ref={bar} />
+      </div>
     </div>
   );
 }
