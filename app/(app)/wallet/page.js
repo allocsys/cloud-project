@@ -279,6 +279,7 @@ export default function Wallet() {
             <small>BTC</small>
           </div>
           <span className="mute" style={{ fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
+          <span className="mute" style={{ fontSize: '12.5px' }}>{ready && wd.mined != null ? `Total mined ${formatBtc(wd.mined + mined)} BTC` : '\u00a0'}</span>
         </div>
 
         {rein && (
