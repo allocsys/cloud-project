@@ -1540,6 +1540,36 @@ a.stat:active { background: var(--s3); }
   cursor: pointer;
 }
 .asst-fab:active { transform: scale(0.96); }
+/* The assistant's sparkle mark: the big one breathes, the small ones twinkle out of step, a soft ring pulses out of the
+   button, and the big one spins while an answer is on its way. */
+.asst-fab { animation: ai-ring 3.2s ease-out infinite; }
+.asst-fab svg.ai-mark,
+.asst-title .ai-mark { fill: currentColor; stroke: none; overflow: visible; }
+.asst-fab svg.ai-mark { width: 28px; height: 28px; }
+.ai-mark path { transform-box: fill-box; transform-origin: center; }
+.ai-mark .s1 { animation: ai-breathe 3.2s ease-in-out infinite; }
+.ai-mark .s2 { animation: ai-twinkle 2.4s ease-in-out infinite; }
+.ai-mark .s3 { animation: ai-twinkle 2.4s ease-in-out 1.2s infinite; }
+.ai-mark.busy .s1 { animation: ai-spin 0.9s linear infinite; }
+.ai-mark.busy .s2,
+.ai-mark.busy .s3 { animation-duration: 0.9s; }
+@keyframes ai-breathe { 0%, 100% { transform: scale(1) rotate(0deg); } 50% { transform: scale(1.14) rotate(14deg); } }
+@keyframes ai-twinkle { 0%, 100% { opacity: 0.2; transform: scale(0.55); } 50% { opacity: 1; transform: scale(1.1); } }
+@keyframes ai-spin { to { transform: rotate(360deg); } }
+@keyframes ai-ring {
+  0% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 0 color-mix(in srgb, var(--gold-c) 50%, transparent); }
+  70%, 100% { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4), 0 0 0 14px color-mix(in srgb, var(--gold-c) 0%, transparent); }
+}
+.asst-title { display: flex; align-items: center; gap: 8px; }
+.asst-title .ai-mark { width: 20px; height: 20px; flex: none; color: var(--gold2); }
+.asst-actions { display: flex; align-items: center; gap: 4px; flex: none; }
+.asst-new { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 12px 0 8px; border: 0; border-radius: 18px; background: var(--s4); color: var(--gold2); font: inherit; font-size: 13px; cursor: pointer; }
+.asst-new svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+@media (prefers-reduced-motion: reduce) {
+  .asst-fab,
+  .ai-mark path,
+  .ai-mark.busy path { animation: none; }
+}
 .asst-fab svg,
 .asst-x svg,
 .asst-send svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
