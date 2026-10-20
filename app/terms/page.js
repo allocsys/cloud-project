@@ -69,6 +69,9 @@ export default function Terms() {
 
         <h2 style={h2}>5. Estimates and risk</h2>
         <p className="mute">Daily figures are estimates. Real payouts follow the BTC price and network difficulty, so they can be higher or lower. Returns are not guaranteed, cloud mining carries risk, and you can lose money. Only use funds you can afford to lose. Nothing here is financial advice.</p>
+        <p className="mute">
+          Each day&apos;s payout is worked out from that day&apos;s market: what your hash power mines at the network difficulty and BTC price of the day, minus the electricity and maintenance in section 2. If those costs are higher than what the machines mine on a day, that day pays nothing; you never owe us anything. A day that has been paid is not changed afterwards. The daily figure on a plan screen uses today&apos;s market and is not a promise: if the BTC price falls or difficulty rises, your payouts fall, and over the term you may receive less than the plan cost.
+        </p>
 
         <h2 style={h2}>6. Changes to these terms</h2>
         <p className="mute">If we change these terms or any fee, we tell you before it takes effect. A change applies only to plans bought after it. A plan you already own keeps the terms it was bought under.</p>
