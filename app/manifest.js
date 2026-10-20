@@ -1,8 +1,8 @@
 // Web app manifest. Served at /manifest.webmanifest and linked automatically.
 export default function manifest() {
   return {
-    name: 'Opus Cloud Mining',
-    short_name: 'Opus',
+    name: 'Miner Opus',
+    short_name: 'Miner Opus',
     description: 'Rent hash power and mine bitcoin without owning a machine.',
     id: '/',
     start_url: '/dashboard',
