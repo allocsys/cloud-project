@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
-import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { useMinedFeed, useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
 import { notifications, halls, plans, MIN_WITHDRAW } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -132,7 +132,10 @@ export default function Dashboard() {
   const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
   const dash = dd || EMPTY;
 
-  const { mined, gain, shares } = useMinedFeed(dailyUsd, dash.totalBtc);
+  // Shares are a simulated feed. The big number is the server figure plus the online rate since the server's asOf,
+  // the same maths the Wallet uses, so the two screens agree.
+  const { shares } = useMinedFeed(dailyUsd);
+  const mined = dash.totalBtc + useAccrued(dailyUsd, dd ? dd.asOf : null);
   const shown = useCountUp(mined);
   const now = useNow(1000);
   const [pulse, setPulse] = useState(false);
@@ -157,6 +160,7 @@ export default function Dashboard() {
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
   const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
+  const gain = useAccrued(dailyUsd, wd ? wd.asOf : null);
 
   // Lets the goal bar grow from empty once the page is on screen.
   useEffect(() => {
