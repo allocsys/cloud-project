@@ -40,6 +40,8 @@ const CASES = [
   ['what is a sat', 'units'],
   ['where is the notification bell', 'notifications'],
   ['when is the next payout', 'earn_timing'],
+  ['what is the minimum withdrawal', 'withdraw_min'],
+  ['what is the minimum deposit', 'deposit_min'],
 ];
 
 for (const [q, id] of CASES) {
