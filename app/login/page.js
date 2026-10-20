@@ -57,6 +57,13 @@ export default function Login() {
     } catch {}
   }, []);
 
+  // The landing page's Get started button links to /login?mode=signup.
+  useEffect(() => {
+    try {
+      if (new URLSearchParams(window.location.search).get('mode') === 'signup') setSignup(true);
+    } catch {}
+  }, []);
+
   // A reset link (/login?reset=TOKEN&email=...) opens the new-password screen. The token is removed from the address bar.
   useEffect(() => {
     try {
@@ -169,7 +176,7 @@ export default function Login() {
   return (
     <section id="auth">
       <form className="authbox" onSubmit={submit} noValidate>
-        <div className="mark">O</div>
+        <img src="/logo.svg" alt="Miner Opus" width="56" height="56" style={{ display: 'block', borderRadius: '16px', marginBottom: '24px' }} />
         {view ? (
           <>
             <h1>{view === 'forgot' ? 'Forgot your password?' : 'Choose a new password'}</h1>
@@ -178,12 +185,12 @@ export default function Login() {
         ) : (
           <>
             <h1>Mine bitcoin without owning a single machine.</h1>
-            <p className="mute">Rent hash power, watch earnings arrive every day, withdraw whenever you like.</p>
+            <p className="mute">Rent hash power, watch earnings arrive every day, request a withdrawal whenever you like.</p>
 
             <div className="trust">
               <span>Daily payouts</span>
               <span>No hardware</span>
-              <span>Withdraw anytime</span>
+              <span>Reviewed withdrawals</span>
             </div>
           </>
         )}
