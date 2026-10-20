@@ -484,11 +484,10 @@ input::placeholder { color: var(--ph); }
   .lp-hero > :nth-child(4) { animation-delay: 0.24s; }
   .lp-hero > :nth-child(5) { animation-delay: 0.32s; }
   .lp-vis { animation: lp-rise 0.9s 0.25s cubic-bezier(0.2, 0, 0, 1) both; }
-  .lp-hero2::before { animation: lp-drift 24s linear infinite; }
   .lp-float { animation: lp-float 5s ease-in-out infinite; }
   .lp-live i { animation: lp-pulse 1.6s ease-in-out infinite; }
   .lp-eq i { animation: lp-eq 1.1s ease-in-out infinite; }
-  .lp-marq { overflow: hidden; -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent); }
+  .lp-marq { overflow: hidden; }
   .lp-marq-in { width: max-content; animation: lp-marq 30s linear infinite; }
   .lp-marq-dup { display: flex; }
   .lp-card { transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1); }
@@ -498,7 +497,6 @@ input::placeholder { color: var(--ph); }
   .lp-card:hover { transform: translateY(-3px); }
 }
 @keyframes lp-rise { from { opacity: 0; transform: translateY(20px); } }
-@keyframes lp-drift { to { background-position: 56px 100px; } }
 @keyframes lp-float { 50% { transform: translateY(-8px); } }
 @keyframes lp-pulse { 50% { opacity: 0.3; } }
 @keyframes lp-eq { 50% { transform: scaleY(1); } }
