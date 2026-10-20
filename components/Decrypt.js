@@ -26,10 +26,10 @@ export default function Decrypt({ text, when = 'load', delay = 0 }) {
     });
 
     const run = () => {
-      const t0 = performance.now() + delay;
+      const t0 = performance.now() + delay + (when === 'load' ? 700 : 300);
       const n = els.length;
-      const dur = Math.min(2200, 600 + n * 55);
-      const at = els.map((_, i) => (i / n) * dur + Math.random() * 220);
+      const dur = Math.min(3000, 800 + n * 90);
+      const at = els.map((_, i) => (i / n) * dur + Math.random() * 260);
       const order = at.map((_, i) => i).sort((a, b) => at[a] - at[b]);
       let p = 0;
       let last = 0;
@@ -40,7 +40,7 @@ export default function Decrypt({ text, when = 'load', delay = 0 }) {
           els[order[p]].classList.remove('dc-s');
           p += 1;
         }
-        if (t - last > 90) {
+        if (t - last > 110) {
           last = t;
           const end = Math.min(n, p + 16);
           for (let k = p; k < end; k += 1) els[order[k]].dataset.g = glyph();
