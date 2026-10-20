@@ -18,6 +18,7 @@ export default function Splash() {
       sessionStorage.setItem('opus-splash', '1');
     } catch {}
     const t0 = performance.now();
+    window.__opusSplash = 'on';
     const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
     let t1 = 0;
     let t2 = 0;
@@ -25,10 +26,13 @@ export default function Splash() {
       const wait = Math.max(0, (seen ? REPEAT : FIRST) - (performance.now() - t0));
       t1 = setTimeout(() => {
         if (ref.current) ref.current.classList.add('sp-out');
+        window.__opusSplash = 'off';
+        window.dispatchEvent(new Event('opus-splash-done'));
         t2 = setTimeout(() => setGone(true), 600);
       }, wait);
     });
     return () => {
+      window.__opusSplash = 'off';
       clearTimeout(t1);
       clearTimeout(t2);
     };
