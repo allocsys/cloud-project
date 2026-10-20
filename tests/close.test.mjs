@@ -39,6 +39,9 @@ const empty = async (id) => {
   });
 };
 let seq = 0;
+const starter = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
+// An order the admin screen can list (it needs a plan), for rows the tests add by hand.
+const orderData = (id, status) => JSON.stringify({ id, plan: { ...starter() }, usd: starter().price, status, at: Date.now() });
 async function buy(id) {
   const r = await miners.buyPlan({ planId: 'starter', pay: 'balance' }, { userId: id, key: `${run}-${++seq}` });
   assert.ok(r.ok, r.error);
@@ -61,7 +64,7 @@ test('closing erases the sign-in data, frees the email and keeps the books under
   await buy(id);
   await empty(id);
   const ord = { id: `ord_${run}_k`, status: 'cancelled', at: Date.now() };
-  await q('INSERT INTO orders (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [ord.id, id, ord.status, ord.at, JSON.stringify(ord)]);
+  await q('INSERT INTO orders (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [ord.id, id, ord.status, ord.at, orderData(ord.id, ord.status)]);
   await q('INSERT INTO withdrawals (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [`wd_${run}_k`, id, 'sent', Date.now(), JSON.stringify({ id: `wd_${run}_k`, address: 'bc1qtest' })]);
   await q("INSERT INTO ledger (user_id, kind, btc, usd, ref) VALUES ($1, 'spend', 0.001, 10, 'test')", [id]);
   const code = (await getUser(id)).refCode;
@@ -74,7 +77,7 @@ test('closing erases the sign-in data, frees the email and keeps the books under
   const gone = (await q('SELECT user_id FROM orders WHERE id = $1', [ord.id])).rows[0].user_id;
   assert.match(gone, /^closed:/);
   assert.equal((await q('SELECT user_id FROM withdrawals WHERE id = $1', [`wd_${run}_k`])).rows[0].user_id, gone);
-  assert.equal((await q("SELECT count(*)::int AS n FROM ledger WHERE user_id = $1 AND kind = 'spend'", [gone])).rows[0].n, 1);
+  assert.equal((await q("SELECT count(*)::int AS n FROM ledger WHERE user_id = $1 AND kind = 'spend' AND ref = 'test'", [gone])).rows[0].n, 1);
   assert.equal((await q('SELECT count(*)::int AS n FROM ledger WHERE user_id = $1', [id])).rows[0].n, 0);
 
   const row = (await q('SELECT data FROM users WHERE id = $1', [gone])).rows[0].data;
@@ -88,6 +91,8 @@ test('closing erases the sign-in data, frees the email and keeps the books under
   // The same email can open a fresh account.
   assert.ok((await auth.signup({ email: id, password: PW })).ok);
   assert.equal((await getUser(id)).contracts.length, 0);
+  await q('DELETE FROM orders WHERE id = $1', [ord.id]);
+  await q('DELETE FROM withdrawals WHERE id = $1', [`wd_${run}_k`]);
 });
 
 test('a wrong password, a missing DELETE or the demo account change nothing', async () => {
@@ -112,7 +117,7 @@ test('unfinished money blocks it: a pending withdrawal, an open payment, or a ba
   assert.ok(await exists(a));
 
   const b = await account('ord');
-  await q('INSERT INTO orders (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [`ord_${run}_o`, b, 'pending', Date.now(), '{}']);
+  await q('INSERT INTO orders (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [`ord_${run}_o`, b, 'pending', Date.now(), orderData(`ord_${run}_o`, 'pending')]);
   assert.match((await close(b)).error, /payment/);
 
   const c = await account('bal');
@@ -123,6 +128,8 @@ test('unfinished money blocks it: a pending withdrawal, an open payment, or a ba
   await empty(c);
   await credit(c, MIN_WITHDRAW / 2); // below the minimum: cannot be paid out, so it may be given up
   assert.ok((await close(c)).ok);
+  await q('DELETE FROM withdrawals WHERE id = $1', [`wd_${run}_p`]);
+  await q('DELETE FROM orders WHERE id = $1', [`ord_${run}_o`]);
 });
 
 test('running miners need the person to agree they end with no refund', async () => {
