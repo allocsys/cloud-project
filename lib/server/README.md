@@ -28,9 +28,10 @@ Buying a plan and withdrawing also add a notification, and `totalTh` on the dash
 
 Prices come from CoinGecko, falling back to the static prices in `lib/assets.js`. `PRICE_FEED=static` turns the feed off.
 
+A plan is activated only after payment: from the balance (`payBalance`) or from a signed provider callback (`settleOrder`). An admin can change a user's balance with the `balance` action in `lib/server/admin.js`. It writes a signed entry to `u.adjust` (counted in `earnedOf`), the user's activity, the ledger and the audit log, and never edits `withdrawn` or `spent`.
+
 To replace before launch:
 - `lib/server/wallet.js`: the accrual maths (`SATS_PER_SEC`) and the payout of withdrawals.
-- `lib/server/miners.js`: take payment before activating a plan (see the TODO).
 - `lib/server/account.js`: real earnings, uptime and hashrate series, and the referral code and friends per user.
 - Auth on every route. Sign out already calls `clearApiCache()`.
 - Deposit addresses (`NETWORKS` in `lib/assets.js`).
