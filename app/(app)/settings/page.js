@@ -293,11 +293,7 @@ export default function Settings() {
                   <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
                   <small>{tfOn ? 'On. Sign-in asks for a code.' : 'A code from an authenticator app at sign-in'}</small>
                 </div>
-                {tfOn ? (
-                  <button className="btn ghost" type="button" aria-expanded={tf === 'off'} onClick={openOff}>{tf === 'off' ? 'Cancel' : 'Turn off'}</button>
-                ) : (
-                  <button className="btn ghost" type="button" aria-expanded={tf === 'setup'} disabled={tfBusy} onClick={startTf}>{tf === 'setup' ? 'Cancel' : 'Set up'}</button>
-                )}
+                <Switch on={tfOn} onChange={tfOn ? openOff : startTf} label="Two-factor" />
               </div>
               {tf === 'setup' && (
                 <form onSubmit={enableTf} noValidate style={{ paddingBottom: '8px' }}>
