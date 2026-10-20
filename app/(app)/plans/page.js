@@ -297,7 +297,7 @@ export default function Plans() {
             const rig = rigFor(c);
             return (
               <Link key={c.serial} href={`/miners/${c.serial}`} onClick={openMiner} className="card cl">
-                <div className="mrow">
+                <div className="crow">
                   <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
                   <div className="mi">
                     <div className="mt">
