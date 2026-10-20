@@ -617,7 +617,21 @@ nav {
   z-index: 10;
   display: flex;
   background: var(--s2);
-  padding: 12px 8px calc(16px + env(safe-area-inset-bottom, 0px));
+  padding: 14px 8px calc(16px + env(safe-area-inset-bottom, 0px));
+  /* Dome: the top edge rises gently to the centre, where the raised action button sits */
+  border-radius: 50% 50% 0 0 / 22px 22px 0 0;
+  box-shadow: 0 -1px 0 var(--line), 0 -10px 28px rgba(0, 0, 0, 0.28);
+}
+
+:root[data-theme="light"] nav { box-shadow: 0 -1px 0 var(--line), 0 -8px 24px rgba(0, 0, 0, 0.08); }
+
+/* Glass: content scrolls visibly under the bars. Browsers without these features keep the solid colours above. */
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) and (background: color-mix(in srgb, red 50%, transparent)) {
+  nav {
+    background: color-mix(in srgb, var(--s2) 68%, transparent);
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+  }
 }
 
 nav .brand, nav .out { display: none; }
@@ -712,6 +726,15 @@ main {
   padding: env(safe-area-inset-top, 0px) 16px 0;
   margin: 0 -16px 8px;
   background: var(--bg);
+}
+
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) and (background: color-mix(in srgb, red 50%, transparent)) {
+  .top {
+    background: color-mix(in srgb, var(--bg) 66%, transparent);
+    -webkit-backdrop-filter: blur(16px) saturate(1.4);
+    backdrop-filter: blur(16px) saturate(1.4);
+    box-shadow: 0 1px 0 var(--line);
+  }
 }
 
 .top h2 {
@@ -1505,6 +1528,10 @@ a.stat:active { background: var(--s3); }
     background: var(--s1);
     padding: 24px 12px;
     gap: 4px;
+    border-radius: 0;
+    box-shadow: none;
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 
   nav .brand {
