@@ -520,6 +520,10 @@ input::placeholder { color: var(--ph); }
 .ch-b h3 { margin: 0 0 4px; }
 .ch-b p { margin: 0; color: var(--mute); font-size: 13px; line-height: 18px; }
 
+/* Landing: encrypted text (components/Decrypt.js). The real letter keeps its place but is hidden; a digit is painted over it. */
+.dc-s { position: relative; color: transparent; }
+.dc-s::after { content: attr(data-g); position: absolute; left: 0; right: 0; top: 0; text-align: center; color: var(--gold); opacity: 0.85; font-family: ui-monospace, 'Roboto Mono', Menlo, monospace; }
+
 /* Login */
 #auth {
   min-height: 100vh;
