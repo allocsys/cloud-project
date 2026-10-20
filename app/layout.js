@@ -9,9 +9,15 @@ import TelegramInit from '@/components/TelegramInit';
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 
 export const metadata = {
-  title: 'Opus Cloud Mining',
-  description: 'Rent hash power and mine bitcoin without owning a machine.',
-  applicationName: 'Opus',
+  title: 'Miner Opus',
+  description: 'Rent bitcoin hash power and follow your earnings every day. No hardware, no setup.',
+  applicationName: 'Miner Opus',
+  openGraph: {
+    title: 'Miner Opus: bitcoin mining without the machines',
+    description: 'Rent bitcoin hash power and follow your earnings every day. No hardware, no setup.',
+    siteName: 'Miner Opus',
+    type: 'website',
+  },
   icons: {
     icon: [
       { url: '/logo.svg', type: 'image/svg+xml' },
@@ -22,7 +28,7 @@ export const metadata = {
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
-    title: 'Opus Cloud Mining',
+    title: 'Miner Opus',
   },
   formatDetection: {
     telephone: false,
