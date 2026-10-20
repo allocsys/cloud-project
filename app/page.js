@@ -82,9 +82,9 @@ export default async function Home() {
               <Decrypt text="Cloud mining, made simple" />
             </span>
             <h1>
-              <Decrypt text="Bitcoin mining" delay={150} />{' '}
+              <Decrypt text="Bitcoin mining" delay={500} />{' '}
               <span>
-                <Decrypt text="without the machines." delay={450} />
+                <Decrypt text="without the machines." delay={1100} />
               </span>
             </h1>
             <p className="lp-sub">Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise.</p>
