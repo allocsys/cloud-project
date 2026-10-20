@@ -48,7 +48,7 @@ export default function Terms() {
           A plan runs for the term shown when you buy it and then ends. It does not renew by itself; buying again is always your choice. You cannot cancel a plan early or sell it on, and it keeps mining until the term ends.
         </p>
         <p className="mute">
-          You can ask for a full refund within 24 hours of buying, as long as the miner has not paid out yet. After that, purchases are not refunded, because the hash power is already working for you. Where the law of your country gives you a longer right to cancel, that right applies.
+          You can ask for a full refund within 24 hours of buying, as long as the miner has not paid out yet (the first payout day ends at 00:00 UTC, so ask before then). The price goes back to your balance, in BTC at the rate on the day of the refund, and the miner is removed. After that, purchases are not refunded, because the hash power is already working for you. Where the law of your country gives you a longer right to cancel, that right applies.
         </p>
         <p className="mute">If a machine fails or a hall goes offline, we move your hash power to another machine. If we cannot, the days lost are added to the end of your term.</p>
 
