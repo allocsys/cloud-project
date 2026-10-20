@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, plans } from '@/lib/data';
-import { reinvestPick } from '@/lib/reinvest';
+import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
@@ -124,7 +124,7 @@ export default function Wallet() {
   const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
   // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
-  const rein = ready ? reinvestPick(cat ? cat.plans : plans, balUsd) : null;
+  const rein = ready ? smartPick(cat ? cat.plans : plans, balUsd, cat ? cat.halls : undefined) : null;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -278,9 +278,9 @@ export default function Wallet() {
         </div>
 
         {rein && (
-          <Link href={`/plans?plan=${rein.plan.id}`} className="card rein">
+          <Link href={reinvestHref(rein)} className="card rein">
             <div>
-              <b>Reinvest in {rein.plan.name} · {rein.plan.th} TH/s</b>
+              <b>{reinvestTitle(rein)}</b>
               <small>
                 ${formatUsd(rein.plan.price)} · {rein.plan.days} days · ~{rein.plan.daily}/day
                 {rein.left >= 1 ? ` · $${formatUsd(rein.left)} left` : ''}
