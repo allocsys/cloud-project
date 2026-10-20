@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Field from '@/components/Field';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache, signOut } from '@/lib/api';
+import { MIN_WITHDRAW_USD } from '@/lib/data';
 
 export default function Login() {
   const router = useRouter();
@@ -207,7 +208,7 @@ export default function Login() {
         ) : (
           <>
             <h1>Mine bitcoin without owning a single machine.</h1>
-            <p className="mute">Rent hash power, watch earnings arrive every day, request a withdrawal whenever you like.</p>
+            <p className="mute">Rent hash power, watch earnings arrive every day, and withdraw from just ${MIN_WITHDRAW_USD}.</p>
 
             <div className="trust">
               <span>Daily payouts</span>
