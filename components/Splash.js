@@ -83,9 +83,9 @@ export default function Splash() {
 
   if (gone) return null;
   return (
-    <div className="sp" ref={ref} aria-hidden="true">
+    <div className="splash" ref={ref} aria-hidden="true">
       <noscript>
-        <style>{'.sp{display:none}'}</style>
+        <style>{'.splash{display:none}'}</style>
       </noscript>
       <div className="sp-orb">
         <i />
