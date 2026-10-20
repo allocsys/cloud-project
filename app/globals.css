@@ -525,6 +525,8 @@ input::placeholder { color: var(--ph); }
 /* Landing splash (components/Splash.js): a soft gold sphere. Only transforms animate. */
 .sp { position: fixed; top: 0; left: 0; width: 100%; height: 100%; height: 100dvh; z-index: 100; background: var(--bg); background: color-mix(in srgb, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
 .sp-out { opacity: 0; transform: scale(1.04); pointer-events: none; }
+.sp ~ .lp { filter: blur(12px); transition: filter 0.5s ease; }
+.sp.sp-out ~ .lp { filter: blur(0); }
 .sp-orb { position: fixed; top: calc(50vh - 72px); top: calc(50dvh - 72px); left: calc(50vw - 60px); width: 120px; height: 120px; margin: 0; border-radius: 50%; overflow: hidden; isolation: isolate; background: radial-gradient(circle at 50% 55%, #3b2a00, #17130a 75%); box-shadow: 0 0 36px rgba(233, 196, 106, 0.22); animation: sp-breathe 2.8s ease-in-out infinite; }
 .sp-orb i { position: absolute; top: -25%; left: -25%; right: -25%; bottom: -25%; border-radius: 50%; }
 .sp-orb i:nth-child(1) { background: radial-gradient(circle at 32% 30%, #f6dc9a 0, transparent 52%); animation: sp-spin 5s linear infinite; }
