@@ -46,7 +46,23 @@ const CASES = [
   ['what is the lowest deposit', 'deposit_min'],
   ['lowest deposit', 'deposit_min'],
   ['smallest withdrawal', 'withdraw_min'],
+  ['min deposit', 'deposit_min'],
+  ['why is my withdrawal delayed', 'withdraw_time'],
+  ['do you support ethereum', 'networks'],
+  ['how do I change my password', 'password'],
+  ['what is the swap fee', 'fees'],
+  ['how many days is a plan', 'plan_duration'],
+  ['does bitcoin price affect my earnings', 'btc_price'],
+  ['what is mining difficulty', 'btc_price'],
+  ['can I buy another plan', 'multi_plan'],
+  ['i sent funds to the wrong address', 'wrong_address'],
+  ['is it profitable', 'returns'],
+  ['is this a ponzi', 'security'],
 ];
+
+test('"mining" is not read as "min"', () => {
+  assert.ok(!tokens('how does mining work').includes('minimum'));
+});
 
 for (const [q, id] of CASES) {
   test(`"${q}" -> ${id}`, () => {
