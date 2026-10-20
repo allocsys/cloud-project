@@ -1,6 +1,6 @@
 'use client';
 import Link from 'next/link';
-import { halls as defaultHalls, MIN_WITHDRAW } from '@/lib/data';
+import { halls as defaultHalls, MIN_WITHDRAW, MIN_WITHDRAW_USD } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
 import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
 import { useApi } from '@/lib/api';
@@ -54,7 +54,7 @@ export default function Terms() {
 
         <h2 style={h2}>4. Deposits and withdrawals</h2>
         <p className="mute">
-          Bitcoin has no swap fee. Any other coin pays a {SWAP_FEE_PCT}% swap fee on its dollar value, on deposits (which are credited as BTC) and on withdrawals. A withdrawal also pays a flat network fee, which depends on the coin and network. The minimum withdrawal is {MIN_WITHDRAW} BTC. The amount you receive is shown before you confirm.
+          Bitcoin has no swap fee. Any other coin pays a {SWAP_FEE_PCT}% swap fee on its dollar value, on deposits (which are credited as BTC) and on withdrawals. A withdrawal also pays a flat network fee, which depends on the coin and network. The minimum withdrawal is ${MIN_WITHDRAW_USD} worth of coin, but we do not recommend withdrawing so little: the flat network fee takes a large share of a small amount. The amount you receive is shown before you confirm.
         </p>
         <div>
           {coinRows.map((c) => (
