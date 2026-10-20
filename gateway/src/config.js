@@ -1,5 +1,6 @@
 // Gateway settings, read from environment variables at the moment they are needed (so tests can change them).
 // GATEWAY_DB_NAME     optional. Shared Postgres server: DATABASE_URL points at the server, the gateway creates and uses its own database with this name (read in server.js)
+// GATEWAY_DB_USER, GATEWAY_DB_PASSWORD  optional, one-time: with the admin DATABASE_URL, creates a limited login (owns only the gateway database, 16+ char password). Then set DATABASE_URL to that login and remove these three variables.
 // GATEWAY_API_SECRET  shared secret the app sends as a Bearer token
 // BTC_XPUB            account-level extended PUBLIC key (xpub or zpub). Never a private key or seed.
 // BTC_CONFIRMATIONS   confirmations needed before a BTC payment counts (default 1, matching the app)
