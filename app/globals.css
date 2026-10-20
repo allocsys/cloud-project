@@ -423,15 +423,10 @@ input::placeholder { color: var(--ph); }
 .lp-fine { margin: 12px 0 0; color: var(--mute); font-size: 12px; line-height: 16px; }
 .lp-sec { padding-top: 28px; }
 .lp-sec h2 { margin: 0 0 12px; font-size: 18px; line-height: 24px; font-weight: 500; }
-.lp-card { background: var(--s2); border-radius: 14px; padding: 12px; }
-.lp-card h3 { margin: 0 0 6px; }
-.lp-card p { margin: 0; color: var(--mute); font-size: 13px; line-height: 18px; }
-.lp-n { width: 26px; height: 26px; display: grid; place-items: center; margin-bottom: 8px; border-radius: 50%; background: var(--gold-c); color: var(--on-gold-c); font-size: 14px; font-weight: 500; }
 .lp-note { background: var(--s1); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
 .lp-note h3 { margin: 0 0 6px; }
 .lp-note p { margin: 0; color: var(--mute); font-size: 13px; line-height: 18px; }
 .lp-foot { margin: 28px 0 0; text-align: center; color: var(--mute); font-size: 12px; line-height: 16px; }
-:root[data-theme="light"] .lp-card { box-shadow: inset 0 0 0 1px var(--line); }
 @media (min-width: 720px) {
   .lp { padding-left: 32px; padding-right: 32px; }
   .lp-hero { padding-top: 40px; }
