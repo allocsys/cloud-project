@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 const { pool, q, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { act, overview } = await import('@/lib/server/admin');
-const { getWallet } = await import('@/lib/server/wallet');
+const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 
 const run = `a${Date.now().toString(36)}`;
@@ -116,6 +116,37 @@ test('balance changes by an admin are bounded, never overdraw, and are logged', 
   assert.equal(rows.length, 10);
   assert.ok(near(rows.reduce((s, r) => s + Number(r.btc), 0), 0.1));
   assert.equal((await logLen()) - logBefore, 10);
+});
+
+test('taking a balance allows the buy tolerance and no more', async () => {
+  const balanceOf = async (id) => {
+    const w = await getWallet(id);
+    return w.earned - w.withdrawn - w.spent;
+  };
+  const fund = async (name) => {
+    const id = `${name}${run}@test.dev`;
+    assert.ok(await tx((c) => createUser(c, id, {})));
+    assert.ok((await act({ action: 'balance', userId: id, op: 'add', amountBtc: '0.5', note: 'fund' })).ok);
+    return id;
+  };
+  const take = (id, amountBtc) => act({ action: 'balance', userId: id, op: 'subtract', amountBtc, note: 'tol' });
+  const sats = (n) => (0.5 + n * 1e-8).toFixed(8); // 0.5 BTC plus n satoshis
+  assert.equal(TOLERANCE, 2e-6);
+
+  // Exactly the balance, and a little over it but inside the tolerance (100 sats), go through.
+  const exact = await fund('tolx');
+  assert.ok((await take(exact, sats(0))).ok);
+  assert.ok(Math.abs(await balanceOf(exact)) < 1e-9);
+
+  const inside = await fund('toli');
+  assert.ok((await take(inside, sats(100))).ok);
+  assert.ok(Math.abs(await balanceOf(inside) + 1e-6) < 1e-9);
+
+  // 500 sats over is beyond the tolerance: refused, and nothing changes.
+  const beyond = await fund('tolb');
+  assert.equal((await take(beyond, sats(500))).status, 409);
+  assert.ok(Math.abs((await balanceOf(beyond)) - 0.5) < 1e-9);
+  assert.equal((await getWallet(beyond)).history.filter((h) => h.kind === 'adjustment').length, 1);
 });
 
 test('the admin overview shows each user\'s available balance, matching their wallet', async () => {
