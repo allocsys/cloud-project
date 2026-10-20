@@ -42,6 +42,7 @@ const CASES = [
   ['when is the next payout', 'earn_timing'],
   ['what is the minimum withdrawal', 'withdraw_min'],
   ['what is the minimum deposit', 'deposit_min'],
+  ['can I withdraw small amounts', 'low_min'],
 ];
 
 for (const [q, id] of CASES) {
