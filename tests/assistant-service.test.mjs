@@ -16,6 +16,7 @@ function deps(over = {}) {
       getWallet: async () => ({ earned: 0.002, mined: 0.002, withdrawn: 0.0005, spent: 0.0003, history: [] }),
       getCatalog: () => ({ plans: PLANS }),
       getPrices: async () => ({ prices: { btc: 80000 } }),
+      getMarket: async () => null,
       answersLeft: () => 17,
       makeLlm: (userId, snapshot) => {
         seen.userId = userId;
