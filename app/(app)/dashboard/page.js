@@ -5,7 +5,7 @@ import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
 import { useMinedFeed, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import { useCountUp } from '@/lib/useCountUp';
-import { notifications, halls, MIN_WITHDRAW } from '@/lib/data';
+import { notifications, halls, plans, MIN_WITHDRAW } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
@@ -205,6 +205,9 @@ export default function Dashboard() {
   // Newest first. Rows without a timestamp (the demo's samples) keep their order, after the dated ones.
   const history = [...(wd?.history ?? [])].sort((a, b) => (b.at || 0) - (a.at || 0));
   const latest = history[0];
+  // Balance that can pay for a plan, in USD at the live rate. The Reinvest card shows once it covers a plan.
+  const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * btc : 0;
+  const canBuy = (cat ? cat.plans : plans).filter((p) => p.price <= balUsd).length;
 
   useEffect(() => {
     setPulse(true);
@@ -392,6 +395,16 @@ export default function Dashboard() {
               {formatBtc(mined, 5)} of {formatBtc(goal, 5)} BTC · ≈ ${formatUsd(toGo * btc)} to go
             </small>
           </div>
+        )}
+
+        {canBuy > 0 && (
+          <Link href="/plans" className="card rein">
+            <div>
+              <b>Reinvest</b>
+              <small>${formatUsd(balUsd)} available · {canBuy} {canBuy === 1 ? 'plan' : 'plans'} within balance</small>
+            </div>
+            <span className="rgo">Choose plan</span>
+          </Link>
         )}
 
         <div className="pair">
