@@ -1,5 +1,6 @@
 'use client';
 import { useEffect, useRef } from 'react';
+import Decrypt from '@/components/Decrypt';
 
 // "How it works" as a small blockchain: each step is a block that gets sealed (its hash is searched for,
 // then locks in with leading zeros) as it scrolls into view. The hashes are decoration, not real data.
@@ -62,8 +63,12 @@ export default function ChainSteps({ steps }) {
               {HASHES[i % HASHES.length]}
             </code>
           </div>
-          <h3>{s.t}</h3>
-          <p>{s.d}</p>
+          <h3>
+            <Decrypt when="view" text={s.t} />
+          </h3>
+          <p>
+            <Decrypt when="view" text={s.d} />
+          </p>
         </li>
       ))}
     </ol>
