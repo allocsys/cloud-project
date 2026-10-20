@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 const { pool, q, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { act } = await import('@/lib/server/admin');
+const { act, overview } = await import('@/lib/server/admin');
 const { getWallet } = await import('@/lib/server/wallet');
 
 const run = `a${Date.now().toString(36)}`;
