@@ -42,7 +42,7 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
         }
         if (t - last > 110) {
           last = t;
-          const end = Math.min(n, p + 16);
+          const end = Math.min(n, p + 6);
           for (let k = p; k < end; k += 1) els[order[k]].dataset.g = glyph();
         }
         if (p < n) raf = requestAnimationFrame(tick);
