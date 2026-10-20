@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { halls } from '@/lib/data';
-import { MAINT_PER_TH_DAY, hallRates, dailyCosts, fmtCost } from '@/lib/fees';
+import { halls, plans } from '@/lib/data';
+import { MAINT_PER_TH_DAY, GROSS_PER_TH_DAY, hallRates, dailyCosts, fmtCost } from '@/lib/fees';
 
 const near = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, `${a} vs ${b}`);
 
@@ -28,6 +28,20 @@ test('costs stay below what a TH/s earns, so the estimate after them is positive
   for (const h of Object.values(halls)) {
     const r = hallRates(h);
     assert.ok(r.elec + r.maint < 0.0398, h.name);
+  }
+});
+
+test('the costs shown add up: net = gross - electricity - maintenance, for every hall', () => {
+  for (const h of Object.values(halls)) {
+    const r = hallRates(h);
+    assert.ok(Math.abs(GROSS_PER_TH_DAY - r.elec - r.maint - h.net) < 0.0001, `${h.name}: ${GROSS_PER_TH_DAY - r.elec - r.maint} vs ${h.net}`);
+  }
+});
+
+test('each plan daily label matches its hash power at the hall net rate (to the cent)', () => {
+  for (const p of plans) {
+    const daily = p.th * halls[p.hall].net;
+    assert.ok(Math.abs(daily - Number(p.daily.slice(1))) <= 0.006, `${p.id}: ${daily} vs ${p.daily}`);
   }
 });
 
