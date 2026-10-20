@@ -130,20 +130,22 @@ export default async function Home() {
             <h2 id="why">
               <Decrypt when="view" text="Why Miner Opus" />
             </h2>
-            <div className="lp-snap c4">
+            <div className="lp-why">
               {WHY.map((w) => (
-                <div className="lp-card" key={w.t}>
+                <div className="lp-wi" key={w.t}>
                   <div className="lp-ic">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       {ICONS[w.i]}
                     </svg>
                   </div>
-                  <h3>
-                    <Decrypt when="view" text={w.t} />
-                  </h3>
-                  <p>
-                    <Decrypt when="view" text={w.d} />
-                  </p>
+                  <div className="lp-wt">
+                    <h3>
+                      <Decrypt when="view" text={w.t} />
+                    </h3>
+                    <p>
+                      <Decrypt when="view" text={w.d} />
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
