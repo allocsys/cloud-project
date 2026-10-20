@@ -75,6 +75,7 @@ export default function Terms() {
 
         <h2 style={h2}>7. Your account</h2>
         <p className="mute">You must be 18 or older and keep one account. Keep your password and two-factor codes to yourself, and turn on two-factor in Settings. We do not accept accounts from places where we cannot legally operate.</p>
+        <p className="mute">You can close your account yourself in Settings at any time. Withdraw your balance first: a balance of {MIN_WITHDRAW} BTC or more, a withdrawal or a payment that is not finished yet blocks closing. A smaller balance cannot be paid out and is given up, and any running miners end with no refund. A closed account cannot be reopened; you can sign up again, but you start from nothing.</p>
 
         <h2 style={h2}>8. Nothing else is charged</h2>
         <p className="mute">A charge that is not listed on this page is not made. If a fee ever applies, it is shown before you confirm.</p>
