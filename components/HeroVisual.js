@@ -7,7 +7,6 @@ export default function HeroVisual() {
   const [v, setV] = useState(0.00184207);
 
   useEffect(() => {
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
     const t = setInterval(() => setV((x) => x + 0.00000006 + Math.random() * 0.00000004), 1000);
     return () => clearInterval(t);
   }, []);
