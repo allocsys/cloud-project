@@ -6,6 +6,7 @@ const { pool, q, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { act, overview } = await import('@/lib/server/admin');
 const { getWallet } = await import('@/lib/server/wallet');
+const { getPrices } = await import('@/lib/server/prices');
 
 const run = `a${Date.now().toString(36)}`;
 const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
@@ -136,4 +137,57 @@ test('the admin overview shows each user\'s available balance, matching their wa
   // The screen warns before this, and the server still refuses it.
   assert.equal((await act({ action: 'balance', userId: id, op: 'subtract', amountBtc: '0.4', note: 'test' })).status, 409);
   assert.ok(near(await shown(), 0.3));
+});
+
+test('balance changes can be typed in USD, converted at the live rate and logged with it', async () => {
+  const id = `usd${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const rate = (await getPrices()).prices.btc;
+  assert.ok(rate > 0);
+  const btcOf = (usd) => Math.round((usd / rate) * 1e8) / 1e8;
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const balance = async () => {
+    const w = await getWallet(id);
+    return w.earned - w.withdrawn - w.spent;
+  };
+  const ask = (op, extra) => act({ action: 'balance', userId: id, op, note: 'usd test', ...extra });
+  const logBefore = await logLen();
+
+  // Refused: both amounts, bad or too small USD, above the cap, and no note.
+  assert.equal((await ask('add', { amountUsd: '10', amountBtc: '0.1' })).status, 400);
+  for (const bad of ['0', '-5', 'abc', '0.001']) assert.equal((await ask('add', { amountUsd: bad })).status, 422, bad);
+  assert.equal((await ask('add', { amountUsd: String(rate * 10.5) })).status, 422);
+  assert.equal((await act({ action: 'balance', userId: id, op: 'add', amountUsd: '10', note: ' ' })).status, 422);
+  assert.ok(near(await balance(), 0));
+
+  // Add $1000 and take $400 back: the balance moves by the BTC each came to at the live rate.
+  const added = await ask('add', { amountUsd: '1000' });
+  assert.ok(added.ok, JSON.stringify(added));
+  assert.equal(added.btc, btcOf(1000));
+  assert.equal(added.usd, 1000);
+  assert.equal(added.rate, rate);
+  assert.ok(near(await balance(), btcOf(1000)));
+  const taken = await ask('subtract', { amountUsd: '400.50' });
+  assert.ok(taken.ok, JSON.stringify(taken));
+  assert.equal(taken.btc, btcOf(400.5));
+  assert.ok(near(await balance(), btcOf(1000) - btcOf(400.5)));
+
+  // More than is available is still refused, in USD as in BTC.
+  assert.equal((await ask('subtract', { amountUsd: '700' })).status, 409);
+  assert.ok(near(await balance(), btcOf(1000) - btcOf(400.5)));
+
+  // The ledger keeps the signed USD, the signed BTC and the rate; the user sees the BTC in their activity.
+  const rows = (await q("SELECT btc, usd, ref FROM ledger WHERE user_id = $1 AND kind = 'adjust' ORDER BY id", [id])).rows;
+  assert.equal(rows.length, 2);
+  assert.equal(Number(rows[0].usd), 1000);
+  assert.equal(Number(rows[1].usd), -400.5);
+  assert.equal(Number(rows[0].btc), btcOf(1000));
+  assert.equal(Number(rows[1].btc), -btcOf(400.5));
+  assert.ok(rows[0].ref.startsWith('usd test'));
+  assert.ok(rows[0].ref.includes(`at $${rate}/BTC`));
+  assert.equal((await getWallet(id)).history.filter((h) => h.kind === 'adjustment').length, 2);
+  assert.equal((await logLen()) - logBefore, 2);
+
+  // The screen gets the rate it previews with.
+  assert.equal((await overview()).rate.btc, rate);
 });
