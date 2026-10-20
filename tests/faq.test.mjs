@@ -26,6 +26,20 @@ const CASES = [
   ['i forgot my password', 'password'],
   ['which networks do you accept', 'networks'],
   ['can I pay with a card', 'pay_method'],
+  ['how do I create an account', 'register'],
+  ['how do I sign up', 'register'],
+  ['how do I close my account', 'close_account'],
+  ['delete my account', 'close_account'],
+  ['how do I turn on 2fa', 'twofa'],
+  ['what is the demo', 'demo'],
+  ['do you have an invite code', 'invite'],
+  ['what is my miner id', 'miner_id'],
+  ['who pays for electricity', 'electricity'],
+  ['do I need hardware', 'hardware'],
+  ['can I get a refund', 'refund'],
+  ['what is a sat', 'units'],
+  ['where is the notification bell', 'notifications'],
+  ['when is the next payout', 'earn_timing'],
 ];
 
 for (const [q, id] of CASES) {
