@@ -181,6 +181,7 @@ export default function Admin() {
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
   const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
   const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
+  const [adj, setAdj] = useState({ id: null, op: 'add', amount: '', note: '' }); // balance change form (one user at a time)
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -370,6 +371,35 @@ export default function Admin() {
                 <span className={u.kyc.status === 'verified' ? 'up' : 'mute'}>{KYC[u.kyc.status] || u.kyc.status}</span>
               </div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
+              <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
+              {adj.id === u.id ? (
+                <div className="adm-form">
+                  <Pick id="ajo" label="Change" value={adj.op} onChange={(v) => setAdj({ ...adj, op: v })}>
+                    <option value="add">Add to balance</option>
+                    <option value="subtract">Take from balance</option>
+                  </Pick>
+                  <Field id="aja" label="Amount (BTC)" inputMode="decimal" value={adj.amount} onChange={(v) => setAdj({ ...adj, amount: v })} />
+                  <Field id="ajn" label="Note for the record" value={adj.note} maxLength={80} onChange={(v) => setAdj({ ...adj, note: v })} />
+                  <p className="fine" style={{ margin: '12px 0 0' }}>The user sees the change in their activity. To undo it, make the opposite change. Up to 10 BTC at a time.</p>
+                  <div className="adm-actions">
+                    <button className="btn ghost" onClick={() => setAdj({ id: null, op: 'add', amount: '', note: '' })}>Cancel</button>
+                    <button
+                      className="btn"
+                      disabled={busy || !adj.amount.trim() || !adj.note.trim()}
+                      onClick={async () => {
+                        if (!window.confirm(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} BTC ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`)) return;
+                        if (await run({ action: 'balance', userId: u.id, op: adj.op, amountBtc: adj.amount, note: adj.note }, 'Balance updated')) setAdj({ id: null, op: 'add', amount: '', note: '' });
+                      }}
+                    >
+                      Apply
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="adm-actions">
+                  <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ id: u.id, op: 'add', amount: '', note: '' })}>Change balance</button>
+                </div>
+              )}
 
               {u.kyc.status === 'pending' && (
                 <>
