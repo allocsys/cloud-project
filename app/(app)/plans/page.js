@@ -10,6 +10,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
 import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
 import { dailyCosts, fmtCost } from '@/lib/fees';
+import { liveDaily } from '@/lib/market';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -25,6 +26,11 @@ export default function Plans() {
   const { data: ord, refresh: refreshOrders } = useApi('/api/orders', { ttl: 10000 });
   const planList = cat ? cat.plans : plans;
   const hallMap = cat ? cat.halls : halls;
+  // What a plan is expected to pay per day at today's market (the catalogue's static label until the server answers).
+  const dailyOf = (p) => {
+    const v = liveDaily(p.th, hallMap[p.hall], cat?.live);
+    return v === null ? p.daily : `$${v.toFixed(2)}`;
+  };
   const list = md ? md.contracts : contracts;
   const nextId = md ? md.nextSerial : seedMiners.nextSerial;
 
@@ -279,7 +285,7 @@ export default function Plans() {
               <RigArt kind={a.kind} units={a.units} speed={a.speed} id={p.id} />
               <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
               <div className="tprice">${p.price.toLocaleString()}</div>
-              <div className="tmeta">{p.days} days · <b>~{p.daily}</b>/day</div>
+              <div className="tmeta">{p.days} days · <b>~{dailyOf(p)}</b>/day</div>
               {balUsd >= p.price && <div className="tcan">✓ Within your balance</div>}
             </div>
           );
@@ -362,7 +368,7 @@ export default function Plans() {
             <h3 id="st">{cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
             {cur.id === 'custom' ? (
               <div className="slide">
-                <div className="big"><b>{fmtTh(cur.th)} TH/s</b><span>~{cur.daily}/day</span></div>
+                <div className="big"><b>{fmtTh(cur.th)} TH/s</b><span>~{dailyOf(cur)}/day</span></div>
                 <input
                   type="range"
                   min="0"
@@ -435,7 +441,7 @@ export default function Plans() {
               </div>
             )}
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{cur.daily}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).{ord?.demo ? ' Demo: nothing is charged.' : ''}
+              ~{dailyOf(cur)}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).{ord?.demo ? ' Demo: nothing is charged.' : ''}
             </p>
             {!ord?.demo && (!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
