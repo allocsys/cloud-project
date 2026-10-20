@@ -3,6 +3,7 @@ import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useMined, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, plans } from '@/lib/data';
+import { reinvestPick } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
@@ -121,9 +122,9 @@ export default function Wallet() {
   // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
   const earned = (wd ? wd.earned : 0) + mined;
   const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
-  // The Reinvest card shows once the balance covers at least one plan.
+  // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
-  const canBuy = ready ? (cat ? cat.plans : plans).filter((p) => p.price <= balUsd).length : 0;
+  const rein = ready ? reinvestPick(cat ? cat.plans : plans, balUsd) : null;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -276,13 +277,16 @@ export default function Wallet() {
           <span className="mute" style={{ fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
         </div>
 
-        {canBuy > 0 && (
-          <Link href="/plans" className="card rein">
+        {rein && (
+          <Link href={`/plans?plan=${rein.plan.id}`} className="card rein">
             <div>
-              <b>Reinvest</b>
-              <small>{canBuy} {canBuy === 1 ? 'plan' : 'plans'} within your balance</small>
+              <b>Reinvest in {rein.plan.name} · {rein.plan.th} TH/s</b>
+              <small>
+                ${formatUsd(rein.plan.price)} · {rein.plan.days} days · ~{rein.plan.daily}/day
+                {rein.left >= 1 ? ` · $${formatUsd(rein.left)} left` : ''}
+              </small>
             </div>
-            <span className="rgo">Choose plan</span>
+            <span className="rgo">Review</span>
           </Link>
         )}
 
