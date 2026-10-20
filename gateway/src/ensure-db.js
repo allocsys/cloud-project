@@ -10,7 +10,7 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 // Returns the URL of database `name` on the same server as baseUrl. Creates the database if it is missing.
 // Safe to call from several processes at once. Never puts the URL or password into an error message.
 export async function ensureDatabase(baseUrl, name) {
-  if (!NAME.test(String(name))) {
+  if (typeof name !== 'string' || !NAME.test(name)) {
     throw new Error('GATEWAY_DB_NAME must be lowercase letters, digits and underscores, starting with a letter (max 63).');
   }
   let u;
