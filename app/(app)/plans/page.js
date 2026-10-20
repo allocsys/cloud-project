@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
 import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
+import { dailyCosts, fmtCost } from '@/lib/fees';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -48,6 +49,7 @@ export default function Plans() {
   // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
   const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
   const hall = cur ? hallMap[cur.hall] : null;
+  const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
   const canBal = !!cur && balUsd >= cur.price;
@@ -403,6 +405,18 @@ export default function Plans() {
                 <span className="mute">Rig</span>
                 <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
               </div>
+              {costs && (
+                <>
+                  <div className="row">
+                    <span className="mute">Electricity</span>
+                    <b className="v">~${fmtCost(costs.elec)}/day<small>Taken out of your mining</small></b>
+                  </div>
+                  <div className="row">
+                    <span className="mute">Maintenance</span>
+                    <b className="v">~${fmtCost(costs.maint)}/day<small>Taken out of your mining</small></b>
+                  </div>
+                </>
+              )}
               <div className="row">
                 <span className="mute">Miner ID</span>
                 <b className="serial">{nextId}</b>
@@ -421,7 +435,7 @@ export default function Plans() {
               </div>
             )}
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{cur.daily}/day is an estimate after electricity and maintenance. Real payouts follow BTC price and network difficulty.
+              ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty.
               {ord?.demo
                 ? ' Demo account: nothing is charged.'
                 : !canBal && !crypto
