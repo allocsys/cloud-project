@@ -370,6 +370,7 @@ export default function Admin() {
                 <h3>{u.id}</h3>
                 <span className={u.kyc.status === 'verified' ? 'up' : 'mute'}>{KYC[u.kyc.status] || u.kyc.status}</span>
               </div>
+              <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
               <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
               {adj.id === u.id ? (
@@ -381,11 +382,14 @@ export default function Admin() {
                   <Field id="aja" label="Amount (BTC)" inputMode="decimal" value={adj.amount} onChange={(v) => setAdj({ ...adj, amount: v })} />
                   <Field id="ajn" label="Note for the record" value={adj.note} maxLength={80} onChange={(v) => setAdj({ ...adj, note: v })} />
                   <p className="fine" style={{ margin: '12px 0 0' }}>The user sees the change in their activity. To undo it, make the opposite change. Up to 10 BTC at a time.</p>
+                  {adj.op === 'subtract' && Number(adj.amount.trim().replace(',', '.')) > u.available && (
+                    <p className="fine" style={{ margin: '6px 0 0', color: 'var(--red)' }}>That is more than the {u.available.toFixed(8)} BTC available, so it will be refused.</p>
+                  )}
                   <div className="adm-actions">
                     <button className="btn ghost" onClick={() => setAdj({ id: null, op: 'add', amount: '', note: '' })}>Cancel</button>
                     <button
                       className="btn"
-                      disabled={busy || !adj.amount.trim() || !adj.note.trim()}
+                      disabled={busy || !adj.amount.trim() || !adj.note.trim() || (adj.op === 'subtract' && Number(adj.amount.trim().replace(',', '.')) > u.available)}
                       onClick={async () => {
                         if (!window.confirm(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} BTC ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`)) return;
                         if (await run({ action: 'balance', userId: u.id, op: adj.op, amountBtc: adj.amount, note: adj.note }, 'Balance updated')) setAdj({ id: null, op: 'add', amount: '', note: '' });
