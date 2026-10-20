@@ -66,9 +66,7 @@ export default function ChainSteps({ steps }) {
           <h3>
             <Decrypt when="view" text={s.t} />
           </h3>
-          <p>
-            <Decrypt when="view" text={s.d} />
-          </p>
+          <p>{s.d}</p>
         </li>
       ))}
     </ol>
