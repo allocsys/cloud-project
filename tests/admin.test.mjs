@@ -2,9 +2,10 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q } = await import('@/lib/server/db');
+const { pool, q, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { act } = await import('@/lib/server/admin');
+const { getWallet } = await import('@/lib/server/wallet');
 
 const run = `a${Date.now().toString(36)}`;
 const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
@@ -66,4 +67,52 @@ test('a hall is removed only when nothing uses it', async () => {
 test('actions on an unknown user are refused', async () => {
   assert.equal((await act({ action: 'miners-clear', userId: `nobody-${run}@test.dev` })).status, 404);
   assert.equal((await act({ action: 'notify', userId: `nobody-${run}@test.dev`, title: 'Hi' })).status, 404);
+  assert.equal((await act({ action: 'balance', userId: `nobody-${run}@test.dev`, op: 'add', amountBtc: '0.1', note: 'x' })).status, 404);
+});
+
+test('balance changes by an admin are bounded, never overdraw, and are logged', async () => {
+  const id = `adj${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const balance = async () => {
+    const w = await getWallet(id);
+    return w.earned - w.withdrawn - w.spent;
+  };
+  const near = (a, b) => Math.abs(a - b) < 1e-9;
+  const ask = (op, amountBtc, note = 'test') => act({ action: 'balance', userId: id, op, amountBtc, note });
+  const logBefore = await logLen();
+
+  // Refused: bad input changes nothing.
+  assert.equal((await ask('give', '1')).status, 400);
+  assert.equal((await ask('add', '0')).status, 422);
+  assert.equal((await ask('add', '-1')).status, 422);
+  assert.equal((await ask('add', 'abc')).status, 422);
+  assert.equal((await ask('add', '10.5')).status, 422); // above the cap
+  assert.equal((await ask('add', '0.1', '  ')).status, 422); // a note is required
+  assert.ok(near(await balance(), 0));
+
+  // Add, then take part of it back.
+  assert.ok((await ask('add', '0.5')).ok);
+  assert.ok(near(await balance(), 0.5));
+  assert.ok((await ask('subtract', '0.2')).ok);
+  assert.ok(near(await balance(), 0.3));
+
+  // Taking more than is available is refused, and the balance stays.
+  assert.equal((await ask('subtract', '1')).status, 409);
+  assert.ok(near(await balance(), 0.3));
+
+  // Adjustments made at the same moment all count, and none overdraws.
+  const rs = await many(6, () => ask('add', '0.1'));
+  assert.equal(rs.filter((r) => r.ok).length, 6);
+  assert.ok(near(await balance(), 0.9));
+  const racing = await many(4, () => ask('subtract', '0.4'));
+  assert.equal(racing.filter((r) => r.ok).length, 2); // 0.9 covers two, not three
+  assert.ok(near(await balance(), 0.1));
+
+  // The user can see them, and each one is in the ledger and the audit log.
+  const w = await getWallet(id);
+  assert.equal(w.history.filter((h) => h.kind === 'adjustment').length, 11);
+  const rows = (await q("SELECT btc FROM ledger WHERE user_id = $1 AND kind = 'adjust'", [id])).rows;
+  assert.equal(rows.length, 11);
+  assert.ok(near(rows.reduce((s, r) => s + Number(r.btc), 0), 0.1));
+  assert.equal((await logLen()) - logBefore, 11);
 });
