@@ -23,6 +23,16 @@ const Icon = ({ d }) => (
   </svg>
 );
 
+// The assistant's mark: one big sparkle and two small ones. They breathe and twinkle (see .ai-mark in globals.css), and
+// the big one spins while an answer is on its way.
+const AiMark = ({ busy }) => (
+  <svg viewBox="0 0 24 24" aria-hidden="true" className={`ai-mark${busy ? ' busy' : ''}`}>
+    <path className="s1" d="M11 4c.7 4.6 3 6.9 7.6 7.6-4.6.7-6.9 3-7.6 7.6-.7-4.6-3-6.9-7.6-7.6C8 10.9 10.3 8.6 11 4z" />
+    <path className="s2" d="M19 1.6c.3 2 1.1 2.8 3.1 3.1-2 .3-2.8 1.1-3.1 3.1-.3-2-1.1-2.8-3.1-3.1 2-.3 2.8-1.1 3.1-3.1z" />
+    <path className="s3" d="M19 15.6c.25 1.7 1 2.45 2.7 2.7-1.7.25-2.45 1-2.7 2.7-.25-1.7-1-2.45-2.7-2.7 1.7-.25 2.45-1 2.7-2.7z" />
+  </svg>
+);
+
 export default function Assistant() {
   const [info, setInfo] = useState(null); // { enabled, llm, left }
   const [open, setOpen] = useState(false);
@@ -31,6 +41,8 @@ export default function Assistant() {
   const [busy, setBusy] = useState(false);
   const logRef = useRef(null);
   const cardRef = useRef(null);
+  const inputRef = useRef(null);
+  const gen = useRef(0); // bumped by New chat, so an answer still on its way is dropped instead of landing in the new chat
 
   useEffect(() => {
     let live = true;
@@ -60,22 +72,34 @@ export default function Assistant() {
     async (raw) => {
       const q = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, MAX);
       if (!q || busy) return;
+      const g = gen.current;
       setText('');
       setBusy(true);
       setMsgs((m) => [...m, { role: 'me', text: q }]);
       try {
         const r = await post('/api/assistant', { question: q });
-        setMsgs((m) => [...m, { role: 'bot', text: r.text, source: r.source, did: r.did }]);
         if (typeof r.left === 'number') setInfo((i) => (i ? { ...i, left: r.left } : i));
+        if (g !== gen.current) return;
+        setMsgs((m) => [...m, { role: 'bot', text: r.text, source: r.source, did: r.did }]);
       } catch (e) {
+        if (g !== gen.current) return;
         const msg = e?.status === 401 ? 'Please sign in again to ask a question.' : 'Something went wrong. Please try again.';
         setMsgs((m) => [...m, { role: 'bot', text: msg, source: 'error' }]);
       } finally {
-        setBusy(false);
+        if (g === gen.current) setBusy(false);
       }
     },
     [busy]
   );
+
+  const newChat = () => {
+    triggerHaptic('selection');
+    gen.current += 1;
+    setMsgs([]);
+    setText('');
+    setBusy(false);
+    inputRef.current?.focus();
+  };
 
   if (!info) return null;
 
@@ -98,7 +122,7 @@ export default function Assistant() {
           setOpen(true);
         }}
       >
-        <Icon d="M4 5h16v11H9l-5 4zM8.5 10h7" />
+        <AiMark busy={busy && open} />
       </button>
 
       {open && (
@@ -115,12 +139,23 @@ export default function Assistant() {
             <div className="grab" aria-hidden="true" />
             <div className="asst-head">
               <div>
-                <h3 id="asst-t">Ask Miner Opus</h3>
+                <h3 id="asst-t" className="asst-title">
+                  <AiMark busy={busy} />
+                  Ask Miner Opus
+                </h3>
                 <p className="asst-sub">AI assistant, not financial advice</p>
               </div>
-              <button type="button" className="asst-x" aria-label="Close" onClick={() => setOpen(false)}>
-                <Icon d="M6 6l12 12M18 6L6 18" />
-              </button>
+              <div className="asst-actions">
+                {msgs.length > 0 && (
+                  <button type="button" className="asst-new" onClick={newChat}>
+                    <Icon d="M12 5v14M5 12h14" />
+                    New chat
+                  </button>
+                )}
+                <button type="button" className="asst-x" aria-label="Close" onClick={() => setOpen(false)}>
+                  <Icon d="M6 6l12 12M18 6L6 18" />
+                </button>
+              </div>
             </div>
 
             <div className="asst-log" ref={logRef} aria-live="polite">
@@ -159,6 +194,7 @@ export default function Assistant() {
               }}
             >
               <input
+                ref={inputRef}
                 type="text"
                 value={text}
                 maxLength={MAX}
