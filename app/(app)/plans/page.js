@@ -434,16 +434,20 @@ export default function Plans() {
                 </div>
               </div>
             )}
-            <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty.
-              {ord?.demo
-                ? ' Demo account: nothing is charged.'
-                : !canBal && !crypto
-                  ? ' Not enough balance, and crypto payments are not switched on yet.'
-                  : !canBal
-                    ? ` Balance is $${fmtUsd(cur.price - balUsd)} short.`
-                    : ''}
-            </p>
+            <details className="fine" style={{ margin: '-8px 0 12px' }}>
+              <summary style={{ cursor: 'pointer' }}>~{cur.daily}/day estimate · details</summary>
+              <p className="fine" style={{ margin: '6px 0 0' }}>
+                ~{cur.daily}/day is an estimate after the electricity and maintenance above, which come out of your mining and are not billed to you. Total due is the only charge for the plan, with no setup or hidden fees (<Link href="/terms">Terms</Link>). Real payouts follow BTC price and network difficulty.
+                {ord?.demo ? ' Demo account: nothing is charged.' : ''}
+              </p>
+            </details>
+            {!ord?.demo && (!canBal || !crypto) && (!canBal) && (
+              <p className="fine" style={{ margin: '-4px 0 12px' }}>
+                {!crypto
+                  ? 'Not enough balance, and crypto payments are not switched on yet.'
+                  : `Balance is $${fmtUsd(cur.price - balUsd)} short.`}
+              </p>
+            )}
             {ord?.demo ? (
               <button className="btn" autoFocus onClick={() => pay('demo')} disabled={busy}>Confirm &amp; Pay</button>
             ) : (
