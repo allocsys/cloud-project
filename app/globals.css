@@ -514,6 +514,19 @@ input::placeholder { color: var(--ph); }
 @keyframes lp-eq { 50% { transform: scaleY(1); } }
 @keyframes lp-marq { to { transform: translateX(-50%); } }
 
+/* Landing: scroll motion (components/Motion.js) */
+.mo-intro { display: flex; align-items: flex-start; gap: 14px; padding-top: 44px; }
+.mo-spin { flex: none; width: 44px; height: 44px; margin-top: 2px; color: var(--gold); }
+.mo-scrub { margin: 0; font-size: clamp(22px, 6vw, 34px); line-height: 1.25; font-weight: 500; letter-spacing: -0.3px; }
+.mo-words { overflow: hidden; margin: 44px -20px 0; padding: 4px 0; }
+.mo-row { width: max-content; white-space: nowrap; font-size: clamp(44px, 14vw, 96px); line-height: 1.05; font-weight: 500; letter-spacing: -1px; color: transparent; -webkit-text-stroke: 1px rgba(233, 196, 106, 0.55); }
+.mo-row.alt { color: var(--s3); -webkit-text-stroke: 0; }
+@media (min-width: 720px) {
+  .mo-words { margin-left: -32px; margin-right: -32px; }
+  .mo-intro { gap: 20px; }
+  .mo-spin { width: 56px; height: 56px; }
+}
+
 /* Login */
 #auth {
   min-height: 100vh;
