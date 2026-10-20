@@ -222,7 +222,7 @@ h3 {
 }
 
 .hero {
-  background: var(--hero);
+  background: var(--s2);
   padding: 16px 20px 18px;
 }
 
@@ -720,7 +720,7 @@ main {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  min-height: calc(64px + env(safe-area-inset-top, 0px));
+  min-height: calc(56px + env(safe-area-inset-top, 0px));
   padding: env(safe-area-inset-top, 0px) 16px 0;
   margin: 0 -16px 8px;
   background: var(--bg);
@@ -736,8 +736,21 @@ main {
 }
 
 .top h2 {
-  font-size: 22px;
-  line-height: 28px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 20px;
+  line-height: 24px;
+  font-weight: 500;
+}
+
+.ldot {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--green);
+  animation: pulse 1.8s ease-out infinite;
 }
 
 .pill {
