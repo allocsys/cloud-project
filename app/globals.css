@@ -1268,6 +1268,7 @@ main {
 .tile:active { background: var(--s3); }
 .tile.feat { box-shadow: inset 0 0 0 1px var(--gold); }
 .tile { user-select: none; -webkit-user-select: none; }
+.tcan { margin-top: 2px; font-size: 11px; line-height: 16px; font-weight: 500; color: var(--green); }
 
 @media (hover: hover) {
   .tile:hover { background: var(--s3); }
@@ -1448,6 +1449,13 @@ main {
 .goal span { font-size: 12px; line-height: 16px; color: var(--mute); }
 .streak { flex: none; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--green); background: rgba(125, 214, 160, 0.14); border-radius: 8px; padding: 2px 8px; white-space: nowrap; }
 .card > .bar.goalbar i { transition: width 1.2s cubic-bezier(0.2, 0, 0, 1); }
+
+/* Reinvest card on Earnings: a link into Plans */
+a.rein { display: flex; align-items: center; justify-content: space-between; gap: 12px; color: inherit; text-decoration: none; transition: background 0.2s; }
+a.rein:active { background: var(--s3); }
+.rein b { display: block; font-size: 15px; line-height: 22px; font-weight: 500; }
+.rein small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+.rein .rgo { flex: none; font-size: 12px; line-height: 16px; font-weight: 500; color: var(--gold2); background: var(--s4); border-radius: 12px; padding: 4px 12px; white-space: nowrap; }
 
 .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 a.stat { color: inherit; text-decoration: none; transition: background 0.2s; }
