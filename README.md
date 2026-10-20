@@ -42,7 +42,7 @@ Code is in `lib/server/`:
 - `auth.js`, `account.js`, `kyc.js`: accounts, sessions, passwords, reset
 - `wallet.js`, `miners.js`, `referrals.js`: balances, purchases, miners, rewards
 - `admin.js`: admin actions and audit log
-- `pay-provider.js`: NOWPayments invoices and signed webhook (`/api/payments/webhook`)
+- `pay-provider.js`: crypto invoices and signed webhook (`/api/payments/webhook`) for NOWPayments (default) or our own gateway (`PAY_PROVIDER=gateway`, see `gateway/README.md`)
 
 Health check: `GET /api/health`.
 
