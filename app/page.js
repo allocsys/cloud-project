@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { cookies } from 'next/headers';
 import DemoButton from '@/components/DemoButton';
 import HeroVisual from '@/components/HeroVisual';
+import { Drift, ScrollWords, ScrubText, Spinner } from '@/components/Motion';
 import Reveal from '@/components/Reveal';
 import RigArt from '@/components/RigArt';
 import StickyCta from '@/components/StickyCta';
@@ -96,7 +97,9 @@ export default async function Home() {
             </div>
             {!signedIn && <p className="lp-fine">The demo is free and needs no sign-up.</p>}
           </div>
-          <HeroVisual />
+          <Drift from={14} to={-14}>
+            <HeroVisual />
+          </Drift>
         </section>
 
         <div className="lp-marq" aria-label="Highlights">
@@ -112,6 +115,14 @@ export default async function Home() {
               ))}
             </div>
           </div>
+        </div>
+
+        <div className="mo-intro">
+          <Spinner />
+          <ScrubText
+            className="mo-scrub"
+            text="Miner Opus gives you bitcoin hash power without buying or running a single machine. Pick a plan, pay in bitcoin and follow what your miners earn, day by day."
+          />
         </div>
 
         <section className="lp-sec" aria-labelledby="how">
@@ -164,6 +175,8 @@ export default async function Home() {
             </div>
           </Reveal>
         </section>
+
+        <ScrollWords top="Mine bitcoin" bottom="Follow your earnings" />
 
         <section className="lp-sec" aria-labelledby="know">
           <Reveal>
