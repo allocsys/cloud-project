@@ -28,10 +28,10 @@ export default function Privacy() {
         <p className="mute">Crypto deposits and withdrawals happen on public blockchains, so the addresses and amounts involved can be seen by anyone there. We cannot remove them.</p>
 
         <h2 style={h2}>4. How long we keep it</h2>
-        <p className="mute">While your account is open, and afterwards for as long as the law requires us to keep financial records. You can ask us to delete your account and the data we are not required to keep.</p>
+        <p className="mute">While your account is open. You can close it yourself at any time in Settings. Closing erases your email, password, Telegram details, name and verification details, alert settings and notifications, and you are signed out everywhere. We keep your payment orders, withdrawals (with their addresses and amounts), balance records and the miners you bought, under a random identifier that no longer carries your email, for as long as the law requires us to keep financial records and to keep what your inviter earned from you correct. Those records are not used to contact you.</p>
 
         <h2 style={h2}>5. Your choices</h2>
-        <p className="mute">You can change your alert settings, turn on two-factor sign-in, and change your password in Settings. To get a copy of your data or have it deleted, contact support through the app.</p>
+        <p className="mute">You can change your alert settings, turn on two-factor sign-in, change your password and close your account in Settings. Before closing, withdraw your balance: a balance above the withdrawal minimum blocks closing, and anything below it, and any running miners, are given up with no refund. To get a copy of your data, contact support through the app.</p>
 
         <h2 style={h2}>6. Security</h2>
         <p className="mute">Passwords are stored hashed, sign-in can be protected with two-factor codes, and repeated wrong attempts are slowed down. No system is perfectly safe, so use a strong, unique password.</p>
