@@ -522,6 +522,7 @@ input::placeholder { color: var(--ph); }
 
 .btn:not(.ghost) .dc-s::after { color: var(--on-gold); opacity: 0.8; }
 
+/* Login */
 #auth {
   min-height: 100vh;
   min-height: 100dvh;
