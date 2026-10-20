@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import ChainSteps from '@/components/ChainSteps';
-import DemoButton from '@/components/DemoButton';
 import Decrypt from '@/components/Decrypt';
 import HeroVisual from '@/components/HeroVisual';
 import Reveal from '@/components/Reveal';
@@ -94,13 +93,7 @@ export default async function Home() {
               <Link href={signedIn ? '/dashboard' : '/login?mode=signup'} className="btn">
                 <Decrypt text={signedIn ? 'Open my dashboard' : 'Get started'} delay={2600} />
               </Link>
-              {!signedIn && (
-                <DemoButton>
-                  <Decrypt text="Explore the demo first" delay={2900} />
-                </DemoButton>
-              )}
             </div>
-            {!signedIn && <p className="lp-fine">The demo is free and needs no sign-up.</p>}
           </div>
           <HeroVisual />
         </section>
