@@ -168,6 +168,16 @@ function Login({ onDone, setup }) {
   );
 }
 
+const ADJ0 = { id: null, op: 'add', cur: 'btc', amount: '', note: '' };
+
+// The BTC a balance change comes to: typed in BTC, or typed in USD and converted at the current rate.
+// The server converts again when the change is applied, so this is a preview.
+const adjBtc = (a, rate) => {
+  const n = Number(a.amount.trim().replace(',', '.'));
+  if (!Number.isFinite(n) || n <= 0) return 0;
+  return a.cur === 'usd' ? (rate > 0 ? n / rate : 0) : n;
+};
+
 export default function Admin() {
   const [state, setState] = useState('loading'); // loading, login, off, error, ready
   const [data, setData] = useState(null);
@@ -181,7 +191,7 @@ export default function Admin() {
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
   const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
   const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
-  const [adj, setAdj] = useState({ id: null, op: 'add', amount: '', note: '' }); // balance change form (one user at a time)
+  const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -255,7 +265,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, serial, catalog: cat } = data;
+  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat } = data;
   const sendDisabled = busy || !title.trim();
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
@@ -379,20 +389,28 @@ export default function Admin() {
                     <option value="add">Add to balance</option>
                     <option value="subtract">Take from balance</option>
                   </Pick>
-                  <Field id="aja" label="Amount (BTC)" inputMode="decimal" value={adj.amount} onChange={(v) => setAdj({ ...adj, amount: v })} />
+                  <Pick id="ajc" label="Amount in" value={adj.cur} onChange={(v) => setAdj({ ...adj, cur: v, amount: '' })}>
+                    <option value="btc">BTC</option>
+                    <option value="usd">USD</option>
+                  </Pick>
+                  <Field id="aja" label={`Amount (${adj.cur === 'usd' ? 'USD' : 'BTC'})`} inputMode="decimal" value={adj.amount} onChange={(v) => setAdj({ ...adj, amount: v })} />
                   <Field id="ajn" label="Note for the record" value={adj.note} maxLength={80} onChange={(v) => setAdj({ ...adj, note: v })} />
                   <p className="fine" style={{ margin: '12px 0 0' }}>The user sees the change in their activity. To undo it, make the opposite change. Up to 10 BTC at a time.</p>
-                  {adj.op === 'subtract' && Number(adj.amount.trim().replace(',', '.')) > u.available && (
+                  {adj.cur === 'usd' && adjBtc(adj, rate?.btc) > 0 && (
+                    <p className="fine" style={{ margin: '6px 0 0' }}>About {adjBtc(adj, rate.btc).toFixed(8)} BTC at ${rate.btc.toLocaleString()} per BTC{rate.source === 'live' ? '' : ' (fallback price)'}. The rate is taken again when you apply.</p>
+                  )}
+                  {adj.op === 'subtract' && adjBtc(adj, rate?.btc) > u.available && (
                     <p className="fine" style={{ margin: '6px 0 0', color: 'var(--red)' }}>That is more than the {u.available.toFixed(8)} BTC available, so it will be refused.</p>
                   )}
                   <div className="adm-actions">
-                    <button className="btn ghost" onClick={() => setAdj({ id: null, op: 'add', amount: '', note: '' })}>Cancel</button>
+                    <button className="btn ghost" onClick={() => setAdj(ADJ0)}>Cancel</button>
                     <button
                       className="btn"
-                      disabled={busy || !adj.amount.trim() || !adj.note.trim() || (adj.op === 'subtract' && Number(adj.amount.trim().replace(',', '.')) > u.available)}
+                      disabled={busy || !adj.amount.trim() || !adj.note.trim() || (adj.op === 'subtract' && adjBtc(adj, rate?.btc) > u.available)}
                       onClick={async () => {
-                        if (!window.confirm(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} BTC ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`)) return;
-                        if (await run({ action: 'balance', userId: u.id, op: adj.op, amountBtc: adj.amount, note: adj.note }, 'Balance updated')) setAdj({ id: null, op: 'add', amount: '', note: '' });
+                        if (!window.confirm(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} ${adj.cur === 'usd' ? `USD (about ${adjBtc(adj, rate?.btc).toFixed(8)} BTC)` : 'BTC'} ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`)) return;
+                        const amountField = adj.cur === 'usd' ? { amountUsd: adj.amount } : { amountBtc: adj.amount };
+                        if (await run({ action: 'balance', userId: u.id, op: adj.op, ...amountField, note: adj.note }, (r) => `Balance updated · ${adj.op === 'add' ? '+' : '-'}${r.btc.toFixed(8)} BTC`)) setAdj(ADJ0);
                       }}
                     >
                       Apply
@@ -401,7 +419,7 @@ export default function Admin() {
                 </div>
               ) : (
                 <div className="adm-actions">
-                  <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ id: u.id, op: 'add', amount: '', note: '' })}>Change balance</button>
+                  <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ ...ADJ0, id: u.id })}>Change balance</button>
                 </div>
               )}
 
