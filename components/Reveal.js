@@ -2,13 +2,13 @@
 import { useEffect, useRef } from 'react';
 
 // Fades its content in as it scrolls into view. Content already on screen is left alone, and nothing is
-// hidden when the device asks for reduced motion or has no IntersectionObserver.
+// hidden when the device has no IntersectionObserver. The reduced-motion setting is deliberately ignored.
 export default function Reveal({ delay = 0, className = '', children }) {
   const ref = useRef(null);
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !('IntersectionObserver' in window) || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return undefined;
+    if (!el || !('IntersectionObserver' in window)) return undefined;
     if (el.getBoundingClientRect().top < window.innerHeight) return undefined;
     el.classList.add('rv-hide');
     const io = new IntersectionObserver(
