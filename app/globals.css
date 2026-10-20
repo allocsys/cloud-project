@@ -416,7 +416,7 @@ input::placeholder { color: var(--ph); }
 .lp-hero { max-width: 640px; padding: 20px 0 4px; }
 .lp-eyebrow { display: inline-block; margin-bottom: 10px; padding: 6px 12px; border-radius: 8px; background: var(--gold-c); color: var(--on-gold-c); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
 .lp h1 { font-size: clamp(24px, 6.4vw, 36px); line-height: 1.12; font-weight: 500; letter-spacing: -0.3px; margin: 0 0 12px; }
-.lp h1 span { color: var(--gold); }
+.lp h1 > span { color: var(--gold); }
 .lp-sub { margin: 0 0 16px; color: var(--mute); font-size: 14px; line-height: 20px; }
 .lp-cta { display: flex; flex-direction: column; gap: 12px; }
 .lp-cta .btn { min-height: 44px; font-size: 14px; }
