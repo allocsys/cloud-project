@@ -461,10 +461,13 @@ input::placeholder { color: var(--ph); }
 .lp-marq-g { display: flex; gap: 8px; padding-right: 8px; }
 .lp-marq-dup { display: none; }
 .lp-marq span { padding: 6px 10px; border-radius: 8px; background: var(--ov); color: var(--text); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
-.lp-snap { display: flex; gap: 12px; margin: 0 -20px; padding: 0 20px 4px; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
-.lp-snap::-webkit-scrollbar { display: none; }
-.lp-snap > * { flex: 0 0 70%; scroll-snap-align: start; }
-.lp-ic { width: 36px; height: 36px; display: grid; place-items: center; margin-bottom: 10px; border-radius: 12px; background: var(--gold-c); }
+.lp-why { overflow: hidden; border-radius: 16px; background: var(--s2); }
+.lp-wi { display: flex; align-items: flex-start; gap: 12px; padding: 14px; }
+.lp-wi + .lp-wi { border-top: 1px solid var(--line); }
+.lp-wt h3 { margin: 0 0 2px; }
+.lp-wt p { margin: 0; color: var(--mute); font-size: 13px; line-height: 18px; }
+:root[data-theme="light"] .lp-why { box-shadow: inset 0 0 0 1px var(--line); }
+.lp-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; background: var(--gold-c); }
 .lp-ic svg { width: 20px; height: 20px; fill: none; stroke: var(--on-gold-c); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .lp-sticky { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 420px; margin: 0 auto; opacity: 0; transform: translateY(140%); pointer-events: none; }
 .lp-sticky.on { opacity: 1; transform: none; pointer-events: auto; }
@@ -473,9 +476,9 @@ input::placeholder { color: var(--ph); }
   .lp-hero2 { grid-template-columns: 1.1fr 0.9fr; align-items: center; gap: 48px; }
   .lp-hero2 .lp-hero { padding-top: 20px; }
   .lp-vis-art .art { max-width: 210px; }
-  .lp-snap { display: grid; margin: 0; padding: 0; overflow: visible; }
-  .lp-snap.c3 { grid-template-columns: repeat(3, 1fr); }
-  .lp-snap.c4 { grid-template-columns: repeat(4, 1fr); }
+  .lp-why { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--line); }
+  .lp-wi { background: var(--s2); }
+  .lp-wi + .lp-wi { border-top: 0; }
 }
 @media all {
   .rv { transition: opacity 0.6s cubic-bezier(0.2, 0, 0, 1), transform 0.6s cubic-bezier(0.2, 0, 0, 1); }
