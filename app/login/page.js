@@ -276,6 +276,13 @@ export default function Login() {
                     : 'Sign in'}
         </button>
 
+        {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
+        {!view && (
+          <button className="btn ghost" type="button" style={{ marginTop: '12px' }} onClick={handleSkip}>
+            Explore the demo first
+          </button>
+        )}
+
         {view === 'forgot' && sent && (
           <p className="fine" role="status">If an account exists for that email, a reset link is on its way. It works for 30 minutes.</p>
         )}
@@ -296,13 +303,6 @@ export default function Login() {
         {!view && tg && (
           <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
             {tgBusy ? 'Connecting...' : 'Continue with Telegram'}
-          </button>
-        )}
-
-        {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
-        {!view && (
-          <button className="btn ghost" type="button" onClick={handleSkip}>
-            Skip login for now
           </button>
         )}
       </form>
