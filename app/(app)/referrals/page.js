@@ -55,7 +55,7 @@ export default function Referrals() {
     const url = link(code);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title: 'Opus Cloud Mining', text: 'Mine bitcoin without owning a machine.', url });
+        await navigator.share({ title: 'Miner Opus', text: 'Mine bitcoin without owning a machine.', url });
       } catch {}
       return;
     }
