@@ -1522,6 +1522,50 @@ a.stat:active { background: var(--s3); }
 
 .sheetbody .row:first-child { border-top: 0; }
 
+/* Ask Miner Opus: floating button and chat sheet */
+.asst-fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(96px + env(safe-area-inset-bottom, 0px));
+  z-index: 90;
+  width: 52px;
+  height: 52px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  border-radius: 16px;
+  background: var(--gold-c);
+  color: var(--on-gold-c);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  cursor: pointer;
+}
+.asst-fab:active { transform: scale(0.96); }
+.asst-fab svg,
+.asst-x svg,
+.asst-send svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.asst { display: flex; flex-direction: column; outline: 0; }
+.asst-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+.asst-sub { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); }
+.asst-x { width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 20px; background: transparent; color: var(--mute); cursor: pointer; }
+.asst-log { display: flex; flex-direction: column; gap: 10px; margin: 16px 0 12px; min-height: 140px; max-height: 45dvh; overflow-y: auto; }
+.asst-empty { margin: 0; font-size: 14px; line-height: 20px; color: var(--mute); }
+.asst-chips { display: flex; flex-direction: column; gap: 8px; }
+.asst-chips button,
+.asst-did { text-align: left; border: 0; border-radius: 12px; background: var(--s4); color: var(--gold2); font: inherit; font-size: 14px; line-height: 20px; padding: 10px 14px; cursor: pointer; }
+.asst-did { margin-top: 8px; font-size: 13px; }
+.asst-m { max-width: 88%; padding: 10px 14px; border-radius: 16px; font-size: 14px; line-height: 20px; }
+.asst-m p { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; }
+.asst-m.me { align-self: flex-end; background: var(--gold-c); color: var(--on-gold-c); border-bottom-right-radius: 4px; }
+.asst-m.bot { align-self: flex-start; background: var(--s4); color: var(--text); border-bottom-left-radius: 4px; }
+.asst-note { display: block; margin-top: 6px; font-size: 12px; line-height: 16px; color: var(--mute); }
+.asst-left { margin: 0 0 8px; font-size: 12px; line-height: 16px; color: var(--mute); }
+.asst-form { display: flex; gap: 8px; }
+.asst-form input { flex: 1; min-width: 0; border: 0; border-radius: 24px; background: var(--s4); color: var(--text); font: inherit; font-size: 16px; padding: 12px 18px; outline: 0; }
+.asst-form input::placeholder { color: var(--ph); }
+.asst-send { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border: 0; border-radius: 24px; background: var(--gold); color: var(--on-gold); cursor: pointer; }
+.asst-send:disabled { opacity: 0.4; cursor: default; }
+@media (min-width: 760px) { .asst-fab { bottom: 24px; right: 24px; } }
+
 /* Snackbar */
 #toast,
 #exit-toast {
