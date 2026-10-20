@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { provider, cryptoEnabled, verifyGatewaySig, verifyCallback } from '../lib/server/pay-provider.js';
+import { provider, cryptoEnabled, gatewayUrlOk, verifyGatewaySig, verifyCallback } from '../lib/server/pay-provider.js';
 
 const SECRET = 'whsec_test_secret';
 const sortDeep = (v) =>
@@ -28,10 +28,31 @@ test('provider defaults to nowpayments and only "gateway" switches it', () => {
   assert.equal(withEnv({ PAY_PROVIDER: ' Gateway ' }, provider), 'gateway');
 });
 
+const LONG_A = 'a'.repeat(16);
+const LONG_W = 'w'.repeat(16);
+
 test('gateway needs url, api secret and webhook secret to be enabled', () => {
   assert.equal(withEnv({ PAY_PROVIDER: 'gateway' }, cryptoEnabled), false);
-  assert.equal(withEnv({ PAY_PROVIDER: 'gateway', GATEWAY_URL: 'https://g.example', GATEWAY_API_SECRET: 'a' }, cryptoEnabled), false);
-  assert.equal(withEnv({ PAY_PROVIDER: 'gateway', GATEWAY_URL: 'https://g.example', GATEWAY_API_SECRET: 'a', GATEWAY_WEBHOOK_SECRET: 'w' }, cryptoEnabled), true);
+  assert.equal(withEnv({ PAY_PROVIDER: 'gateway', GATEWAY_URL: 'https://g.example', GATEWAY_API_SECRET: LONG_A }, cryptoEnabled), false);
+  assert.equal(withEnv({ PAY_PROVIDER: 'gateway', GATEWAY_URL: 'https://g.example', GATEWAY_API_SECRET: LONG_A, GATEWAY_WEBHOOK_SECRET: LONG_W }, cryptoEnabled), true);
+});
+
+test('gateway secrets shorter than 16 characters keep it disabled', () => {
+  const base = { PAY_PROVIDER: 'gateway', GATEWAY_URL: 'https://g.example' };
+  assert.equal(withEnv({ ...base, GATEWAY_API_SECRET: 'a'.repeat(15), GATEWAY_WEBHOOK_SECRET: LONG_W }, cryptoEnabled), false);
+  assert.equal(withEnv({ ...base, GATEWAY_API_SECRET: LONG_A, GATEWAY_WEBHOOK_SECRET: 'w'.repeat(15) }, cryptoEnabled), false);
+});
+
+test('gateway url: https, or http only on localhost and the Railway private network', () => {
+  for (const ok of ['https://g.example', 'https://g.example/', 'http://localhost:4000', 'http://127.0.0.1:4000', 'http://gateway.railway.internal:8080']) {
+    assert.equal(gatewayUrlOk(ok), true, ok);
+  }
+  for (const bad of ['', undefined, 'not a url', 'http://g.example', 'http://evilrailway.internal', 'http://x.railway.internal.evil.com', 'ftp://g.example', 'https://user:pw@g.example', 'javascript:alert(1)']) {
+    assert.equal(gatewayUrlOk(bad), false, String(bad));
+  }
+  const env = { PAY_PROVIDER: 'gateway', GATEWAY_API_SECRET: LONG_A, GATEWAY_WEBHOOK_SECRET: LONG_W };
+  assert.equal(withEnv({ ...env, GATEWAY_URL: 'http://g.example' }, cryptoEnabled), false);
+  assert.equal(withEnv({ ...env, GATEWAY_URL: 'http://gateway.railway.internal:8080' }, cryptoEnabled), true);
 });
 
 test('valid signature returns the parsed body', () => {
