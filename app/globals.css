@@ -503,17 +503,18 @@ input::placeholder { color: var(--ph); }
 @keyframes lp-marq { to { transform: translateX(-50%); } }
 
 /* Landing: block chain steps (components/ChainSteps.js) */
-.ch { margin: 0; padding: 0 0 0 7px; list-style: none; }
-.ch-b { position: relative; padding: 0 0 18px 20px; border-left: 2px solid var(--line); transition: border-color 0.6s; }
-.ch-b:last-child { padding-bottom: 0; border-left-color: transparent; }
-.ch-b::before { content: ''; position: absolute; left: -7px; top: 3px; width: 12px; height: 12px; border: 2px solid var(--line); border-radius: 3px; background: var(--bg); transform: rotate(45deg); transition: background 0.4s, border-color 0.4s; }
-.ch-b.sealed { border-left-color: var(--gold); }
-.ch-b.sealed::before { background: var(--gold); border-color: var(--gold); }
-.ch-b:last-child.sealed::before { box-shadow: 0 0 10px rgba(233, 196, 106, 0.6); }
-.ch-h { display: flex; align-items: center; gap: 8px; margin-bottom: 2px; color: var(--mute); font-size: 11px; line-height: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
+.ch { margin: 0; padding: 0; list-style: none; overflow: hidden; border-radius: 16px; background: var(--s2); }
+:root[data-theme="light"] .ch { box-shadow: inset 0 0 0 1px var(--line); }
+.ch-b { position: relative; display: flex; align-items: flex-start; gap: 12px; padding: 14px; }
+.ch-b:not(:last-child)::after { content: ''; position: absolute; left: 31px; top: 50px; bottom: -14px; width: 2px; background: var(--line); transition: background 0.6s; }
+.ch-b.sealed:not(:last-child)::after { background: var(--gold); }
+.ch-n { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; background: var(--s4); color: var(--mute); font-size: 15px; font-weight: 500; transition: background 0.4s, color 0.4s; }
+.ch-b.sealed .ch-n { background: var(--gold-c); color: var(--on-gold-c); }
+.ch-t { min-width: 0; flex: 1; }
+.ch-h { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 2px; color: var(--mute); font-size: 11px; line-height: 16px; letter-spacing: 0.5px; text-transform: uppercase; }
 .ch-hash { font-family: ui-monospace, 'Roboto Mono', Menlo, monospace; letter-spacing: 0; text-transform: none; transition: color 0.4s; }
 .ch-b.sealed .ch-hash { color: var(--gold2); }
-.ch-b h3 { margin: 0 0 4px; }
+.ch-b h3 { margin: 0 0 2px; }
 .ch-b p { margin: 0; color: var(--mute); font-size: 13px; line-height: 18px; }
 
 /* Landing: encrypted text (components/Decrypt.js). The real letter keeps its place but is hidden; a digit is painted over it. */
