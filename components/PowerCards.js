@@ -3,7 +3,7 @@
 // every tier has its own animation, and the picture swaps with a short fade when the slider crosses into a new tier.
 import { useEffect, useRef } from 'react';
 import RigArt, { rigFor } from '@/components/RigArt';
-import { ASIC_TIERS, SMART_TIERS, tierOf } from '@/lib/tiers';
+import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
 import { SMART } from '@/lib/smart';
@@ -215,9 +215,9 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
         <Ticks
           tiers={SMART_TIERS}
           tier={tier}
-          at={(t) => spos0(t.from)}
+          at={(t) => posFromBudget(t.from) / 1000}
           label={(t) => `${t.name}, from $${t.from}`}
-          onPick={(t) => onSlide(spos0(t.from) * 1000)}
+          onPick={(t) => onSlide(posFromBudget(t.from))}
         />
         <TermChips terms={SMART.terms} term={term} setTerm={setTerm} />
       </div>
@@ -234,6 +234,3 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
   );
 }
 
-// 0 to 1 position of a budget on the Smart Mining slider.
-import { posFromBudget } from '@/lib/tiers';
-const spos0 = (budget) => posFromBudget(budget) / 1000;
