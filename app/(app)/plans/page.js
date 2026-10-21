@@ -385,7 +385,23 @@ export default function Plans() {
             <h3 id="st">{cur.smart ? 'Smart Mining' : cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
             {cur.smart && (
               <div className="slide">
-                <div className="big"><b>${fmtUsd(cur.price)}</b><span>~{cur.daily}/day</span></div>
+                <div className="big">
+                  <label className="amt">
+                    <i aria-hidden="true">$</i>
+                    <input
+                      type="number"
+                      inputMode="numeric"
+                      min={SMART.min}
+                      max={SMART.max}
+                      step="1"
+                      value={budget}
+                      aria-label={`Budget in dollars, ${SMART.min} to ${SMART.max.toLocaleString('en-US')}`}
+                      onChange={(e) => setBudget(e.target.value)}
+                      onBlur={() => setBudget(String(bNum))}
+                    />
+                  </label>
+                  <span>~{cur.daily}/day</span>
+                </div>
                 <input
                   type="range"
                   min={SMART.min}
@@ -399,18 +415,6 @@ export default function Plans() {
                   onTouchStart={stop}
                   onTouchMove={stop}
                   onTouchEnd={stop}
-                />
-                <input
-                  className="num"
-                  type="number"
-                  inputMode="numeric"
-                  min={SMART.min}
-                  max={SMART.max}
-                  step="1"
-                  value={budget}
-                  aria-label="Budget in dollars, 50 to 10,000"
-                  onChange={(e) => setBudget(e.target.value)}
-                  onBlur={() => setBudget(String(bNum))}
                 />
                 <div className="terms" role="group" aria-label="Term">
                   {SMART.terms.map((d) => (
@@ -427,7 +431,7 @@ export default function Plans() {
                     </button>
                   ))}
                 </div>
-                <p className="mute" style={{ fontSize: '13px', margin: '10px 0 0' }}>We pick the most profitable coin for you every day.</p>
+                <p className="mute" style={{ fontSize: '13px', margin: '10px 0 0' }}>We pick the most profitable coin for you every day. Paid in BTC.</p>
               </div>
             )}
             {cur.smart ? null : cur.id === 'custom' ? (
@@ -478,12 +482,7 @@ export default function Plans() {
                     <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
                   </div>
                 </>
-              ) : (
-                <div className="row">
-                  <span className="mute">Mining</span>
-                  <b className="v">Best coin, chosen daily<small>Paid in BTC</small></b>
-                </div>
-              )}
+              ) : null}
               {costs && (
                 <>
                   <div className="row">
@@ -504,8 +503,6 @@ export default function Plans() {
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>
-            </div>
-            <div className="sheetbody" style={{ marginTop: -4 }}>
               <div className="row">
                 <span className="mute">Your balance</span>
                 <b className="v">${fmtUsd(balUsd)}</b>
