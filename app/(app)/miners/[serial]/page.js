@@ -55,6 +55,7 @@ export default function ContractPage() {
 
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
+  const sc = det?.contract?.coins; // Smart Mining: { today, history }
   const daily = det?.contract?.daily || [];
   const ch = det?.contract?.charts; // hashrate and uptime, from the server (real samples, or mock while the admin has that on)
   const total = det?.contract?.earnedUsd ?? 0;
@@ -67,7 +68,7 @@ export default function ContractPage() {
   return (
     <>
       <div className="top">
-        <Back title={`${c.plan} miner`} />
+        <Back title={c.smart ? 'Smart Mining' : `${c.plan} miner`} />
         <span className={`badge ${c.online ? 'ok' : 'warn'}`}>{c.online ? 'Online' : 'Offline'}</span>
       </div>
       <div className="grid">
@@ -124,6 +125,7 @@ export default function ContractPage() {
             )}
           </div>
 
+          {!c.smart && (
           <div className="card">
             <div className="cardhead">
               <h3>Uptime · 7 days</h3>
@@ -150,20 +152,49 @@ export default function ContractPage() {
               <p className="empty">{ch ? 'No uptime data yet.' : 'Loading…'}</p>
             )}
           </div>
+          )}
+
+          {c.smart && (
+            <div className="card">
+              <div className="cardhead">
+                <h3>Mining coin</h3>
+                <span className="mute">{sc?.today ? `Today ${sc.today}` : '–'}</span>
+              </div>
+              {sc?.history?.length ? (
+                sc.history.map((h) => (
+                  <div key={h.day} className="row">
+                    <span className="mute">{h.day}</span>
+                    <b className="v">{h.coin}</b>
+                  </div>
+                ))
+              ) : (
+                <p className="empty">{det ? 'The first coin is recorded after the first full day.' : 'Loading…'}</p>
+              )}
+            </div>
+          )}
 
           <div className="card">
             <h3>Details</h3>
-            <div className="hs">
+            <div className="hs" style={c.smart ? { display: 'none' } : undefined}>
               <div>
                 <span>Hashrate · 24h</span>
                 {ch?.hash.hasData ? <b>{ch.hash.now}<small>TH/s</small></b> : <b>–</b>}
               </div>
               {ch?.hash.hasData ? <Spark values={ch.hash.series} /> : <small className="mute">{ch ? 'No data yet' : 'Loading…'}</small>}
             </div>
-            <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
-            <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
-            <div className="row"><span className="mute">Rig</span><b className="v">{hall.rig}<small>{hall.efficiency}</small></b></div>
-            <div className="row"><span className="mute">Power</span><b className="v">{hall.power}</b></div>
+            {c.smart ? (
+              <>
+                <div className="row"><span className="mute">Budget</span><b className="v">${formatUsd(c.budget)}</b></div>
+                <div className="row"><span className="mute">Mining</span><b className="v">Best coin, chosen daily<small>Paid in BTC</small></b></div>
+              </>
+            ) : (
+              <>
+                <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
+                <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
+                <div className="row"><span className="mute">Rig</span><b className="v">{hall.rig}<small>{hall.efficiency}</small></b></div>
+                <div className="row"><span className="mute">Power</span><b className="v">{hall.power}</b></div>
+              </>
+            )}
             <div className="row"><span className="mute">Term</span><b className="v">{c.started} – {c.ends}</b></div>
           </div>
         </div>
