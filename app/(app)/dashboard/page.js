@@ -209,6 +209,9 @@ export default function Dashboard() {
   const toGo = Math.max(0, goal - avail);
 
   const btc = pd?.prices?.btc ?? BTC_USD;
+  // Days to the goal at today's daily earnings (online miners), rounded up. Null when nothing is earning or the goal is reached.
+  const etaDays = dailyUsd > 0 && toGo > 0 ? Math.ceil((toGo * btc) / dailyUsd) : null;
+  const etaText = etaDays === null ? '' : etaDays > 365 ? 'over a year' : etaDays <= 1 ? 'about a day' : `about ${etaDays} days`;
   const tr = pd?.trend;
   const friends = rd?.friends?.length ?? 0;
   // Newest first. Rows without a timestamp (the demo's samples) keep their order, after the dated ones.
@@ -403,6 +406,7 @@ export default function Dashboard() {
             <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
               {formatBtc(avail, 5)} of {formatBtc(goal, 5)} BTC available · ≈ ${formatUsd(toGo * btc)} to go
             </small>
+            {etaText && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>Est. {etaText} at your current daily earnings</small>}
           </div>
         )}
 
