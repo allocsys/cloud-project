@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { halls as defaultHalls, MIN_WITHDRAW, MIN_WITHDRAW_USD } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
 import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
+import { SMART } from '@/lib/smart';
 import { useApi } from '@/lib/api';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
@@ -74,6 +75,9 @@ export default function Terms() {
         </p>
         <p className="mute">
           Smart Mining follows the same rules on estimates and risk. You choose a budget and a term, and each day we mine the coin that looks most profitable that day. Payouts are still made in BTC. The figure shown is an estimate at today&apos;s market, not a promise, and you may receive less than your budget. Smart Mining can be switched off or its rate changed for new purchases; a Smart Mining plan you already own keeps the rate it was bought at.
+        </p>
+        <p className="mute">
+          Smart Mining also uses a reserve to even out your daily payout. Each plan has a daily rate, shown when you buy. A day&apos;s profit is kept within {+(SMART.band * 100).toFixed(2)} percentage points of your budget either side of that rate. Profit above the top of that range goes into the plan&apos;s reserve instead of your payout. When a day falls below the bottom of the range, it is topped up from the reserve, but only as far as the reserve holds. When the reserve is empty, the day pays what the market gives. The reserve starts with {+(SMART.seed * 100).toFixed(2)}% of your budget, put in by us. When the term ends, that amount goes back to us, and anything left above it is split equally: {+(SMART.userShare * 100).toFixed(0)}% is paid to you and the rest is kept by us. If less than that amount is left, you receive nothing from the reserve. The reserve evens out payouts; it does not guarantee any payout or protect your budget. It is not electricity or maintenance, and it is not an extra charge. Smart Mining plans bought before the reserve existed do not have one.
         </p>
 
         <h2 style={h2}>6. Changes to these terms</h2>
