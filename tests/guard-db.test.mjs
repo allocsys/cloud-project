@@ -1,0 +1,93 @@
+// The profit guard's daily decisions against a real Postgres: written once per finished day from that day's final market,
+// never backwards in time on the first run, locked once written, switchable per scope, and the owners are told what changed.
+import { test, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+
+const { pool, q, tx, createUser, getUser, metaGet, metaSet, metaDelete } = await import('@/lib/server/db');
+const { migrate } = await import('@/lib/server/migrate');
+const { ensureGuardDays, guardState, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
+
+const DAY = 86400000;
+const today = Math.floor(Date.now() / DAY) * DAY;
+const d = (k) => today - k * DAY;
+const ID = 'guarduser@test';
+const wipe = async () => {
+  await q('DELETE FROM market_days');
+  await q('DELETE FROM coin_days');
+  await q('DELETE FROM users WHERE id = $1', [ID]);
+  await metaDelete('guard');
+  await metaDelete('guarddays');
+};
+const market = (day, gross) => q('INSERT INTO market_days (day, btc_usd, difficulty, gross_per_th, at) VALUES ($1, 100000, 1, $2, $3)', [day, String(gross), day + 1000]);
+const coin = (day, ratio) => q("INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, at) VALUES ($1, 'BTC', 1, $2, $3)", [day, String(ratio), day + 1000]);
+
+before(async () => {
+  await migrate();
+  await wipe();
+  await q("UPDATE smart_coins SET ref_gross = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
+  await tx(async (c) =>
+    createUser(c, ID, { contracts: [{ serial: 'OP-9000001', name: 'Guard test', plan: 'Custom', th: 10, hall: 'tx-1', online: true, days: 90, startedAt: d(10), dailyUsd: 1, price: 100, status: 'active' }] }),
+  );
+});
+
+after(async () => {
+  await wipe();
+  await pool().end();
+});
+
+test('the first run decides nothing: it starts at yesterday', async () => {
+  assert.equal(await ensureGuardDays(Date.now()), 0);
+  assert.equal(metaGet('guarddays').upto, today - DAY);
+  assert.deepEqual(metaGet('guarddays').paused, {});
+});
+
+test('losing days are paused for every hall and Smart, a good day is not, and the owner is told it resumed', async () => {
+  await metaSet('guarddays', { upto: d(4), paused: {} });
+  await market(d(3), 0.0001); // far below any hall's costs
+  await market(d(2), 0.0001);
+  await market(d(1), 1); // far above
+  await coin(d(3), 0.5); // below the Smart break-even ratio
+  await coin(d(2), 0.5);
+  await coin(d(1), 2);
+  assert.equal(await ensureGuardDays(Date.now()), 3);
+  const g = metaGet('guarddays');
+  assert.equal(g.upto, d(1));
+  assert.deepEqual([...g.paused[d(3)]].sort(), ['is-2', 'no-1', 'smart', 'tx-1']);
+  assert.deepEqual([...g.paused[d(2)]].sort(), ['is-2', 'no-1', 'smart', 'tx-1']);
+  assert.equal(g.paused[d(1)], undefined, 'a profitable day pauses nothing');
+  const u = await getUser(ID);
+  assert.ok(u.notifications.some((n) => n.title === 'Mining resumed'), 'the owner of a tx-1 miner hears it is back');
+});
+
+test('a decided day is locked, and a second run does nothing', async () => {
+  const before = JSON.stringify(metaGet('guarddays'));
+  await q('UPDATE market_days SET gross_per_th = 1');
+  assert.equal(await ensureGuardDays(Date.now()), 0);
+  assert.equal(JSON.stringify(metaGet('guarddays')), before);
+  const s = await guardState();
+  assert.ok(s.paused[d(3)].includes('tx-1'));
+});
+
+test('switching a scope off stops new pauses for it, and hand flips are saved by scope', async () => {
+  await metaSet('guarddays', { upto: d(2), paused: {} });
+  await q('UPDATE market_days SET gross_per_th = 0.0001 WHERE day = $1', [d(1)]);
+  await q('UPDATE coin_days SET gross_per_unit = 0.5 WHERE day = $1', [d(1)]);
+  assert.equal((await saveGuardSettings({ asicsAuto: false, smartAuto: true, mode: 'zero', margin: 0, buffer: 2 })).ok, true);
+  assert.equal(await ensureGuardDays(Date.now()), 1);
+  assert.deepEqual(metaGet('guarddays').paused[d(1)], ['smart'], 'ASICs auto is off, Smart is still guarded');
+  assert.equal((await setGuardManual({ scope: 'tx-1', state: 'paused', when: 'now' })).ok, true);
+  assert.equal((await setGuardManual({ scope: 'nope', state: 'paused' })).ok, false);
+  assert.equal((await setGuardManual({ scope: 'tx-1', state: 'maybe' })).ok, false);
+  const s = await guardState();
+  assert.deepEqual(s.manual['tx-1'], [{ from: today, state: 'paused' }]);
+});
+
+test('settings are checked: margin and buffer have limits', async () => {
+  assert.equal((await saveGuardSettings({ margin: 80, buffer: 1 })).ok, false);
+  assert.equal((await saveGuardSettings({ margin: 1, buffer: 50 })).ok, false);
+  const r = await saveGuardSettings({ margin: '2,5', buffer: 1, mode: 'extend' });
+  assert.equal(r.ok, true);
+  assert.equal(r.margin, 0.025);
+  assert.equal(r.mode, 'extend');
+  assert.ok(Array.isArray(metaGet('guard').manual?.['tx-1']), 'saving the rules keeps the hand flips');
+});
