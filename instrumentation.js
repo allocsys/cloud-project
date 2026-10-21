@@ -3,6 +3,9 @@ export async function register() {
   if (process.env.NEXT_RUNTIME === 'nodejs') {
     const { migrateWithRetry } = await import('./lib/server/migrate');
     if (!(await migrateWithRetry())) console.error('[db] starting without a working database; /api/health will report it.');
-    else (await import('./lib/server/market')).startMarketTicker();
+    else {
+      (await import('./lib/server/market')).startMarketTicker();
+      (await import('./lib/server/smart-market')).startSmartTicker();
+    }
   }
 }
