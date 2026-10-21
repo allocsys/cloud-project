@@ -430,6 +430,10 @@ export default function Plans() {
                 </>
               ) : null}
               <div className="row">
+                <span className="mute">A paused day</span>
+                <b className="v">{cat?.pauseRule === 'zero' ? 'Pays nothing' : 'Extends your term'}<small>{cat?.pauseRule === 'zero' ? 'Counts as one of your days' : 'Added to the end of your term'} · see <Link href="/terms">Terms</Link></small></b>
+              </div>
+              <div className="row">
                 <span className="mute">Miner ID</span>
                 <b className="serial">{nextId}</b>
               </div>
