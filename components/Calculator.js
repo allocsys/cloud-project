@@ -118,18 +118,6 @@ export default function Calculator({ signedIn = false }) {
               </button>
             ))}
           </div>
-          <input
-            className="num"
-            type="number"
-            inputMode="numeric"
-            min={SMART.min}
-            max={SMART.max}
-            step="1"
-            value={budget}
-            aria-label={`Budget in dollars, ${SMART.min} to ${SMART.max.toLocaleString('en-US')}`}
-            onChange={(e) => setBudget(e.target.value)}
-            onBlur={() => setBudget(String(b))}
-          />
           <div className="terms" role="group" aria-label="Term">
             {SMART.terms.map((d) => (
               <button
