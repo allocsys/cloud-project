@@ -50,7 +50,7 @@ export default function Terms() {
           A plan runs for the term shown when you buy it and then ends. It does not renew by itself; buying again is always your choice. You cannot cancel a plan early or sell it on, and it keeps mining until the term ends.
         </p>
         <p className="mute">
-          You can ask for a full refund within 24 hours of buying, as long as the miner has not paid out yet (the first payout day ends at 00:00 UTC, so ask before then). The price goes back to your balance, in BTC at the rate on the day of the refund, and the miner is removed. After that, purchases are not refunded, because the hash power is already working for you. Where the law of your country gives you a longer right to cancel, that right applies.
+          You can ask for a full refund within 24 hours of buying, as long as the miner has not paid out yet (the first payout day ends at 00:00 UTC, so ask before then). The price goes back to your balance, in BTC at the rate on the day of the refund, and the miner is removed. After that, purchases are not refunded, because the machines are already working for you. Where the law of your country gives you a longer right to cancel, that right applies.
         </p>
         <p className="mute">If a machine fails or a hall goes offline, we move your hash power to another machine. If we cannot, the days lost are added to the end of your term.</p>
 
@@ -76,6 +76,9 @@ export default function Terms() {
         </p>
         <p className="mute">
           Smart Mining follows the same rules on estimates and risk. You choose a budget and a term, and each day we mine the coin that looks most profitable that day. Payouts are still made in BTC. The figure shown is an estimate at today&apos;s market, not a promise, and you may receive less than your budget. Smart Mining can be switched off or its rate changed for new purchases; a Smart Mining plan you already own keeps the rate it was bought at.
+        </p>
+        <p className="mute">
+          Smart Mining does not give you a fixed number of machines. Each day your budget runs on the halls of the coin it is on: ASIC machines for BTC, GPU machines for KAS and RVN, CPU machines for XMR. Your miner page shows that hall and rig, the hashrate your budget is contracted for that day in the unit of the coin (TH/s, GH/s, MH/s or KH/s), and an uptime figure, which is the share of hours in which the hall reported at least 90% of that hashrate. The hashrate and uptime are a measure of the service; what you are paid is worked out from your budget and the market as described above, not from the hashrate shown.
         </p>
         <p className="mute">
           Smart Mining also uses a reserve to even out your daily payout. Each plan has a daily rate, shown when you buy. A day&apos;s profit is kept within {+(SMART.band * 100).toFixed(2)} percentage points of your budget either side of that rate. Profit above the top of that range goes into the plan&apos;s reserve instead of your payout. When a day falls below the bottom of the range, it is topped up from the reserve, but only as far as the reserve holds. When the reserve is empty, the day pays what the market gives. The reserve starts with {+(SMART.seed * 100).toFixed(2)}% of your budget, put in by us. When the term ends, that amount goes back to us, and anything left above it is split equally: {+(SMART.userShare * 100).toFixed(0)}% is paid to you and the rest is kept by us. If less than that amount is left, you receive nothing from the reserve. The reserve evens out payouts; it does not guarantee any payout or protect your budget. It is not electricity or maintenance, and it is not an extra charge. Smart Mining plans bought before the reserve existed do not have one.
