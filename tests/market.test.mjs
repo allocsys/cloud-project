@@ -115,3 +115,24 @@ test('usdPerDay is a whole day at that day\'s market', () => {
   near(usdPerDay(miner, NOW, market, NOW), 1.98); // today: live
   assert.equal(usdPerDay(miner, D17 - DAY, market, NOW), 1.98); // no snapshot: static
 });
+
+test('a gap day carries the last saved snapshot forward, at its price and rate', () => {
+  // 18 Oct has no snapshot and the live feed is down today: 18 Oct uses 17 Oct, today uses 19 Oct.
+  const gap = { halls, days: { [D17]: { gross: 0.04, btc: 80000 }, [D17 + 2 * DAY]: { gross: 0.03, btc: 90000 } }, live: null };
+  const e = buildEarnings([miner], NOW, 84800, gap);
+  assert.deepEqual(e.earnings.week.map((w) => w.usd), [0, 0, 0, 2, 2, 1, 0.5]);
+  near(e.totalBtc, 2 / 80000 + 2 / 80000 + 1 / 90000 + 0.5 / 90000, 1e-10);
+  assert.deepEqual(minerDaily(miner, NOW, gap).rows.map((r) => r.usd), [1, 2, 2]);
+  // The live feed takes over today again, and the finished days stay as they were.
+  const back = buildEarnings([miner], NOW, 84800, { ...gap, live: { gross: 0.0398, btc: 85000 } });
+  assert.deepEqual(back.earnings.week.slice(0, 6), e.earnings.week.slice(0, 6));
+  assert.equal(back.earnings.week[6].usd, 0.99);
+});
+
+test('carrying forward stops after 14 days, and never reaches back before the first snapshot', () => {
+  const old = { halls, days: { [D17]: { gross: 0.04, btc: 80000 } }, live: null };
+  const later = D17 + 40 * DAY;
+  near(usdPerDay(miner, D17 + 14 * DAY, old, later), 2); // 14 days on: still carried
+  assert.equal(usdPerDay(miner, D17 + 15 * DAY, old, later), 1.98); // 15 days on: static
+  assert.equal(usdPerDay(miner, D17 - 3 * DAY, old, later), 1.98); // before any snapshot: static
+});
