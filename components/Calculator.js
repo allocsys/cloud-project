@@ -46,7 +46,7 @@ export default function Calculator({ signedIn = false }) {
   const best = cat?.smart || null;
 
   const [budget, setBudget] = useState('500'); // as typed
-  const [term, setTerm] = useState(180);
+  const [term, setTerm] = useState(120);
 
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const perDay = dailyUsd(b, smartBaseYield(term, cat?.smartPayout), best?.ratio ?? 1);
