@@ -54,7 +54,7 @@ export default function Plans() {
   const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const ap = customPlan(thFromPos(pos), aterm, hallMap);
   const sp = smartPlan(bNum, term, cat?.smartPayout);
-  // The plan on the sheet: Smart Mining, an ASICs pick, or (from a Reinvest link) a catalogue plan.
+  // The plan on the sheet: Smart Mining or an ASICs pick.
   const cur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
@@ -219,12 +219,6 @@ export default function Plans() {
       if (SLIDER_SIZES.includes(th)) setPos(posFromTh(th));
       if (CUSTOM.terms.includes(days)) setAterm(days);
       setSel({ id: 'custom' });
-      return;
-    }
-    const p = cat.plans.find((x) => x.id === id);
-    if (p) {
-      setTab('buy');
-      setSel(p);
     }
   }, [cat]);
 
