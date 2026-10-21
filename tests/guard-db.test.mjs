@@ -21,6 +21,8 @@ const wipe = async () => {
 const market = (day, gross) => q('INSERT INTO market_days (day, btc_usd, difficulty, gross_per_th, at) VALUES ($1, 100000, 1, $2, $3)', [day, String(gross), day + 1000]);
 const coin = (day, ratio) => q("INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, at) VALUES ($1, 'BTC', 1, $2, $3)", [day, String(ratio), day + 1000]);
 
+const autoLog = async () => (((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data) || []).filter((e) => e.action === 'guard-auto');
+
 before(async () => {
   await migrate();
   await wipe();
@@ -43,6 +45,7 @@ test('the first run decides nothing: it starts at yesterday', async () => {
 
 test('losing days are paused for every hall and Smart, a good day is not, and the owner is told it resumed', async () => {
   await metaSet('guarddays', { upto: d(4), paused: {} });
+  const had = (await autoLog()).length;
   await market(d(3), 0.0001); // far below any hall's costs
   await market(d(2), 0.0001);
   await market(d(1), 1); // far above
@@ -57,6 +60,10 @@ test('losing days are paused for every hall and Smart, a good day is not, and th
   assert.equal(g.paused[d(1)], undefined, 'a profitable day pauses nothing');
   const u = await getUser(ID);
   assert.ok(u.notifications.some((n) => n.title === 'Mining resumed'), 'the owner of a tx-1 miner hears it is back');
+  const log = await autoLog();
+  assert.equal(log.length, had + 2, 'one entry for the day it paused and one for the day it resumed');
+  assert.match(log[0].detail, /resumed/);
+  assert.match(log[1].detail, /paused .*Smart Mining/);
 });
 
 test('a decided day is locked, and a second run does nothing', async () => {
