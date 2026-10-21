@@ -128,6 +128,7 @@ export default function Dashboard() {
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const miners = md ? md.contracts : [];
   const online = miners.filter((c) => c.online);
+  const pausedN = online.filter((c) => c.paused).length; // switched off today by the profit guard
   const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
 
   const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
@@ -307,7 +308,7 @@ export default function Dashboard() {
                   <div className="egrid">
                     <div className="hcell"><span>Per day</span><b>${formatUsd(dailyUsd)}</b></div>
                     <div className="hcell"><span>Per week</span><b>${formatUsd(dailyUsd * 7)}</b></div>
-                    <div className="hcell ok"><span>Miners</span><b>{online.length} online</b></div>
+                    <div className="hcell ok"><span>Miners</span><b>{online.length - pausedN} online{pausedN ? ` · ${pausedN} paused` : ''}</b></div>
                   </div>
                 </>
               ) : (
@@ -337,7 +338,7 @@ export default function Dashboard() {
               <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="live" />
               <div className="li">
                 <div className="hr">
-                  <b>{online.length}<small>of {miners.length} miners online</small></b>
+                  <b>{online.length - pausedN}<small>of {miners.length} miners online{pausedN ? `, ${pausedN} paused` : ''}</small></b>
                   <span><i />{online.length ? 'Mining' : 'Idle'}</span>
                 </div>
                 <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
