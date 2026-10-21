@@ -305,10 +305,10 @@ export default function Plans() {
             </div>
           );
         })}
-        <div role="button" tabIndex={0} className="card tile" onClick={() => selectPlan({ id: 'custom' })} onKeyDown={press(() => selectPlan({ id: 'custom' }))} aria-label="Custom power, choose your own size and term">
-          <div className="tname">Custom<span>{CUSTOM.min}–{CUSTOM.max} TH/s</span></div>
-          <div className="tprice">From ${fmtUsd(customPlan(CUSTOM.min, CUSTOM.terms[0], hallMap).price)}</div>
-          <div className="tmeta">Choose your own power and term</div>
+        <div role="button" tabIndex={0} className="card tile" onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
+          <div className="tname">Smart Mining<span>Best coin, daily</span></div>
+          <div className="tprice">From ${fmtUsd(SMART.min)}</div>
+          <div className="tmeta">Choose your budget and term</div>
         </div>
       </div>
       ) : list.length ? (
@@ -380,8 +380,55 @@ export default function Plans() {
             }}
           >
             <div className="grab" aria-hidden="true" />
-            <h3 id="st">{cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
-            {cur.id === 'custom' ? (
+            <h3 id="st">{cur.smart ? 'Smart Mining' : cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
+            {cur.smart && (
+              <div className="slide">
+                <div className="big"><b>${fmtUsd(cur.price)}</b><span>~{cur.daily}/day</span></div>
+                <input
+                  type="range"
+                  min={SMART.min}
+                  max={SMART.max}
+                  step="50"
+                  value={bNum}
+                  aria-label="Budget in dollars"
+                  aria-valuetext={`${bNum} dollars`}
+                  style={{ '--p': `${((bNum - SMART.min) / (SMART.max - SMART.min)) * 100}%` }}
+                  onChange={(e) => setBudget(e.target.value)}
+                  onTouchStart={stop}
+                  onTouchMove={stop}
+                  onTouchEnd={stop}
+                />
+                <input
+                  className="num"
+                  type="number"
+                  inputMode="numeric"
+                  min={SMART.min}
+                  max={SMART.max}
+                  step="1"
+                  value={budget}
+                  aria-label="Budget in dollars, 50 to 10,000"
+                  onChange={(e) => setBudget(e.target.value)}
+                  onBlur={() => setBudget(String(bNum))}
+                />
+                <div className="terms" role="group" aria-label="Term">
+                  {SMART.terms.map((d) => (
+                    <button
+                      key={d}
+                      type="button"
+                      aria-pressed={term === d}
+                      onClick={() => {
+                        triggerHaptic('selection');
+                        setTerm(d);
+                      }}
+                    >
+                      {d} days
+                    </button>
+                  ))}
+                </div>
+                <p className="mute" style={{ fontSize: '13px', margin: '10px 0 0' }}>We pick the most profitable coin for you every day.</p>
+              </div>
+            )}
+            {cur.smart ? null : cur.id === 'custom' ? (
               <div className="slide">
                 <div className="big"><b>{fmtTh(cur.th)} TH/s</b><span>~{dailyOf(cur)}/day</span></div>
                 <input
@@ -418,14 +465,23 @@ export default function Plans() {
               <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{cur.blurb}</p>
             )}
             <div className="sheetbody">
-              <div className="row">
-                <span className="mute">Hall</span>
-                <b className="v">{hall.name}<small>{hall.power}</small></b>
-              </div>
-              <div className="row">
-                <span className="mute">Rig</span>
-                <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
-              </div>
+              {hall ? (
+                <>
+                  <div className="row">
+                    <span className="mute">Hall</span>
+                    <b className="v">{hall.name}<small>{hall.power}</small></b>
+                  </div>
+                  <div className="row">
+                    <span className="mute">Rig</span>
+                    <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
+                  </div>
+                </>
+              ) : (
+                <div className="row">
+                  <span className="mute">Mining</span>
+                  <b className="v">Best coin, chosen daily<small>Paid in BTC</small></b>
+                </div>
+              )}
               {costs && (
                 <>
                   <div className="row">
@@ -454,7 +510,7 @@ export default function Plans() {
               </div>
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{dailyOf(cur)}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
+              ~{dailyOf(cur)}/day is an estimate and {cur.smart ? 'follows the market and the coin picked each day' : 'follows BTC price and difficulty'}. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
             {(!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
