@@ -1418,6 +1418,35 @@ main {
 }
 @keyframes glowpulse { 0%, 100% { opacity: 0.3; } 50% { opacity: 0.75; } }
 
+/* Power cards: ASICs and Smart Mining. One slider, tiers marked along it, each tier with its own animation. */
+.pcard { margin-bottom: 12px; }
+.pcard .phead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.pcard .phead b { font-size: 17px; line-height: 24px; font-weight: 500; }
+.pcard .phead span { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--gold2); text-align: right; }
+.pcard .stage { margin-top: 8px; animation: stagein 0.35s cubic-bezier(0.2, 0, 0, 1); }
+.pcard .stage .art { margin-bottom: 0; }
+.pcard .stage .art svg { height: 112px; }
+.pcard .slide { margin-top: 6px; }
+@keyframes stagein { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: none; } }
+.ticks { position: relative; height: 22px; margin-top: -4px; }
+.tick { position: absolute; top: 0; left: calc(12px + (100% - 24px) * var(--t, 0)); width: 28px; height: 22px; margin-left: -14px; padding: 0; border: 0; background: transparent; cursor: pointer; }
+.tick::after { content: ''; position: absolute; left: 50%; top: 50%; width: 6px; height: 6px; margin: -3px 0 0 -3px; border-radius: 50%; background: var(--s4); transition: background 0.2s, transform 0.2s; }
+.tick[data-past=true]::after { background: rgba(233, 196, 106, 0.55); }
+.tick[data-on=true]::after { background: var(--gold); transform: scale(1.6); }
+.pcard .prow { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin: 12px 0 10px; }
+.pcard .prow div { min-width: 0; display: flex; flex-direction: column; font-size: 13px; line-height: 18px; }
+.pcard .prow small { font-size: 12px; line-height: 16px; color: var(--mute); }
+.pcard .prow b { flex: none; font-size: 22px; line-height: 28px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
+.pcard .tcan { margin: -4px 0 10px; }
+
+/* Smart Mining art: coins circle the hub, the marker at the top is today's pick */
+.orbit { transform-box: fill-box; transform-origin: center; animation: spin var(--orb, 12s) linear infinite; }
+.orbit.rev { animation-direction: reverse; animation-duration: calc(var(--orb, 12s) * 0.7); }
+.orbit .cn { transform-box: fill-box; transform-origin: center; animation: spin var(--orb, 12s) linear infinite reverse; }
+.pickmark { animation: blink 2.4s ease-in-out infinite; }
+.hub { animation: glowpulse 2.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .orbit, .orbit .cn, .pickmark, .hub, .pcard .stage { animation: none; } }
+
 .art .fan { transform-box: fill-box; transform-origin: center; animation: spin var(--spd, 1.4s) linear infinite; }
 .art .led { animation: blink 1.3s ease-in-out infinite; }
 .art .coin { animation: floaty 3s ease-in infinite; }
