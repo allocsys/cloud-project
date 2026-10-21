@@ -284,6 +284,11 @@ export default function Plans() {
 
       {tab === 'buy' ? (
       <div className="tiles">
+        <div role="button" tabIndex={0} className="card tile" style={{ gridColumn: '1 / -1' }} onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
+          <div className="tname">Smart Mining<span>Best coin, daily</span></div>
+          <div className="tprice">From ${fmtUsd(SMART.min)}</div>
+          <div className="tmeta">Choose your budget and term</div>
+        </div>
         {planList.map((p) => {
           const a = rigFor({ plan: p.id, th: p.th });
           return (
@@ -305,11 +310,6 @@ export default function Plans() {
             </div>
           );
         })}
-        <div role="button" tabIndex={0} className="card tile" onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
-          <div className="tname">Smart Mining<span>Best coin, daily</span></div>
-          <div className="tprice">From ${fmtUsd(SMART.min)}</div>
-          <div className="tmeta">Choose your budget and term</div>
-        </div>
       </div>
       ) : list.length ? (
         <div className="clist">
