@@ -5,7 +5,7 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | Endpoint | What | Caching |
 | --- | --- | --- |
 | `GET /api/prices` | `{ prices: { btc, eth, ... }, at, source }` | Server memory 30 s (stale up to 5 min while refreshing), edge `s-maxage=15, stale-while-revalidate=60` |
-| `GET /api/plans` | `{ plans, halls }`, the catalogue | Edge `s-maxage=300, stale-while-revalidate=3600` |
+| `GET /api/plans` | `{ halls, live, smart, smartOn, smartPayout }`: the halls, the live market, and Smart Mining state | Edge `s-maxage=10, stale-while-revalidate=30` |
 | `GET /api/miners` | `{ contracts, nextSerial }` for the user | `no-store`; browser stale-while-revalidate copy |
 | `GET /api/miners/:serial` | `{ contract }` or 404 | `no-store` |
 | `POST /api/plans/buy` | `{ planId }`, header `Idempotency-Key`; returns the new contract and a history entry | `no-store` |
