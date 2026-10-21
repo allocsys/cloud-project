@@ -79,7 +79,7 @@ test('a budget or term that is not allowed is refused and charges nothing', asyn
 
 test('without enough balance Smart Mining is refused', async () => {
   const id = await account('poor');
-  const r = await buy(id, { budget: 500, days: 180 });
+  const r = await buy(id, { budget: 500, days: 120 });
   assert.equal(r.ok, false);
   assert.equal(r.status, 409);
 });
@@ -88,14 +88,14 @@ test('the admin switch turns Smart Mining off for new purchases and back on', as
   const id = await account('switch');
   await credit(id, 1);
   try {
-    assert.equal((await act({ action: 'smart-settings', enabled: false, payout: 1.06 })).ok, true);
+    assert.equal((await act({ action: 'smart-settings', enabled: false, payout: 0.003 })).ok, true);
     assert.equal((await smartSettings()).enabled, false);
     const off = await buy(id, { budget: 100, days: 90 });
     assert.equal(off.ok, false);
     assert.equal(off.status, 409);
     assert.equal((await getUser(id)).contracts.length, 0);
   } finally {
-    await act({ action: 'smart-settings', enabled: true, payout: 1.06 });
+    await act({ action: 'smart-settings', enabled: true, payout: 0.003 });
   }
   assert.equal((await smartSettings()).enabled, true);
   assert.equal((await buy(id, { budget: 100, days: 90 })).ok, true);
@@ -105,17 +105,17 @@ test('a new payout applies to purchases made afterwards and each miner keeps its
   const id = await account('payout');
   await credit(id, 1);
   try {
-    const first = await buy(id, { budget: 100, days: 180 });
+    const first = await buy(id, { budget: 100, days: 120 });
     assert.equal(first.ok, true);
-    assert.equal((await act({ action: 'smart-settings', enabled: true, payout: 1.1 })).ok, true);
-    const second = await buy(id, { budget: 100, days: 180 });
+    assert.equal((await act({ action: 'smart-settings', enabled: true, payout: 0.004 })).ok, true);
+    const second = await buy(id, { budget: 100, days: 120 });
     assert.equal(second.ok, true);
-    assert.ok(Math.abs(first.contract.baseYield - 1.06 / 180) < 1e-12);
-    assert.ok(Math.abs(second.contract.baseYield - 1.1 / 180) < 1e-12);
+    assert.ok(Math.abs(first.contract.baseYield - smartBaseYield(120, 0.003)) < 1e-12);
+    assert.ok(Math.abs(second.contract.baseYield - smartBaseYield(120, 0.004)) < 1e-12);
     const u = await getUser(id);
-    assert.ok(Math.abs(u.contracts[0].baseYield - 1.06 / 180) < 1e-12);
+    assert.ok(Math.abs(u.contracts[0].baseYield - smartBaseYield(120, 0.003)) < 1e-12);
   } finally {
-    await act({ action: 'smart-settings', enabled: true, payout: 1.06 });
+    await act({ action: 'smart-settings', enabled: true, payout: 0.003 });
   }
 });
 
