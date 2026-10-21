@@ -103,35 +103,6 @@ function Pick({ id, label, value, onChange, children }) {
   );
 }
 
-function PlanForm({ draft, set, halls, isNew, busy, onSave, onCancel, onDelete }) {
-  const net = halls[draft.hall]?.net ?? 0;
-  const daily = Number(String(draft.th).replace(',', '.')) * net;
-  return (
-    <div className="adm-form">
-      <Field id="pn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={24} />
-      <Field id="pt" label="Hash power (TH/s)" inputMode="decimal" value={draft.th} onChange={(v) => set('th', v)} />
-      <Field id="pp" label="Price (USD)" inputMode="decimal" value={draft.price} onChange={(v) => set('price', v)} />
-      <Field id="pd" label="Term (days)" inputMode="numeric" value={draft.days} onChange={(v) => set('days', v)} />
-      <Pick id="ph" label="Hall" value={draft.hall} onChange={(v) => set('hall', v)}>
-        {Object.entries(halls).map(([id, h]) => <option key={id} value={id}>{h.name}</option>)}
-      </Pick>
-      <Field id="pb" label="Description" value={draft.blurb} onChange={(v) => set('blurb', v)} maxLength={140} />
-      <Pick id="pf" label="Most chosen tag" value={draft.featured} onChange={(v) => set('featured', v)}>
-        <option value="no">No</option>
-        <option value="yes">Yes</option>
-      </Pick>
-      <p className="fine" style={{ margin: '12px 0 0' }}>
-        Daily payout ~${Number.isFinite(daily) ? daily.toFixed(2) : '0.00'}, worked out from the hall&apos;s net rate. Miners already bought keep their terms.
-      </p>
-      <div className="adm-actions">
-        <button className="btn ghost" onClick={onCancel}>Cancel</button>
-        <button className="btn" disabled={busy} onClick={onSave}>Save</button>
-      </div>
-      {!isNew && <button className="swap danger" disabled={busy} onClick={onDelete}>Delete plan</button>}
-    </div>
-  );
-}
-
 function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDelete }) {
   return (
     <div className="adm-form">
@@ -142,7 +113,7 @@ function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDele
       <Field id="hr" label="Rig model" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
       <Field id="hx" label="Net rate (USD per TH/s per day)" inputMode="decimal" value={draft.net} onChange={(v) => set('net', v)} />
       <p className="fine" style={{ margin: '12px 0 0' }}>
-        {isNew ? 'A new hall can be picked for plans once saved.' : 'Changing the rate updates the daily payout of every miner in this hall and of the plans that use it.'}
+        {isNew ? 'The new hall prices ASICs power in its own size range only if it replaces a core hall, so most halls are for the record.' : 'Changing the rate updates the daily payout of every miner in this hall and the price of new ASICs power sold from it.'}
       </p>
       <div className="adm-actions">
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
@@ -221,10 +192,10 @@ export default function Admin() {
   const [to, setTo] = useState('all');
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
-  const [edit, setEdit] = useState(null); // { kind: 'plan' | 'hall', id, draft }
+  const [edit, setEdit] = useState(null); // { kind: 'hall', id, draft }
   const [setup, setSetup] = useState(false); // first run: no admin account yet
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
-  const [tf, setTf] = useState({ code: '', planId: '' }); // test friend form
+  const [tf, setTf] = useState({ code: '', th: '15' }); // test friend form
   const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [toast, show] = useToast();
@@ -304,22 +275,7 @@ export default function Admin() {
   const sendDisabled = busy || !title.trim();
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
-  const planDraft = (p) => ({
-    name: p?.name ?? '',
-    th: p ? String(p.th) : '',
-    price: p ? String(p.price) : '',
-    days: p ? String(p.days) : '180',
-    hall: p?.hall ?? Object.keys(cat.halls)[0],
-    blurb: p?.blurb ?? '',
-    featured: p?.featured ? 'yes' : 'no',
-  });
   const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
-
-  async function savePlan() {
-    const d = edit.draft;
-    const plan = { id: edit.id === 'new' ? undefined : edit.id, name: d.name, th: d.th, price: d.price, days: d.days, hall: d.hall, blurb: d.blurb, featured: d.featured === 'yes' };
-    if (await run({ action: 'plan-save', plan }, 'Plan saved')) setEdit(null);
-  }
 
   async function saveHall() {
     const ok = await run(
@@ -329,21 +285,6 @@ export default function Admin() {
     if (ok) setEdit(null);
   }
 
-  const planForm = (isNew) => (
-    <PlanForm
-      draft={edit.draft}
-      set={setDraft}
-      halls={cat.halls}
-      isNew={isNew}
-      busy={busy}
-      onSave={savePlan}
-      onCancel={() => setEdit(null)}
-      onDelete={async () => {
-        if (window.confirm(`Delete the ${edit.draft.name} plan? Miners already bought are not affected.`) && (await run({ action: 'plan-delete', id: edit.id }, 'Plan deleted'))) setEdit(null);
-      }}
-    />
-  );
-
   return (
     <>
       <div className="top">
@@ -352,7 +293,7 @@ export default function Admin() {
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['plans', 'Plans'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
+        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send']].map(([k, l]) => (
           <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : k === 'withdrawals' && stats.withdrawalsOpen > 0 ? `${l} · ${stats.withdrawalsOpen}` : l}</button>
         ))}
       </div>
@@ -629,38 +570,8 @@ export default function Admin() {
         </div>
       )}
 
-      {tab === 'plans' && (
+      {tab === 'halls' && (
         <div className="adm-stack">
-          <div className="card">
-            <div className="cardhead">
-              <h3>Plans</h3>
-              <button className="swap" style={SM} disabled={busy} onClick={() => setEdit({ kind: 'plan', id: 'new', draft: planDraft(null) })}>Add plan</button>
-            </div>
-            {edit?.kind === 'plan' && edit.id === 'new' && planForm(true)}
-            {cat.plans.map((p, i) =>
-              edit?.kind === 'plan' && edit.id === p.id ? (
-                <div key={p.id} className="adm-edit">{planForm(false)}</div>
-              ) : (
-                <div key={p.id} style={{ display: 'flex', alignItems: 'center' }}>
-                  <button type="button" className="row adm-click" style={{ flex: 1, minWidth: 0 }} aria-label={`Edit ${p.name}`} onClick={() => setEdit({ kind: 'plan', id: p.id, draft: planDraft(p) })}>
-                    <div>
-                      {p.name}{p.featured ? ' ★' : ''}
-                      <small>{fmtTh(p.th)} TH/s · {p.days} days · {cat.halls[p.hall]?.name}</small>
-                    </div>
-                    <div style={{ textAlign: 'right' }}>
-                      <b>${fmtUsd(p.price)}</b>
-                      <small>~{p.daily}/day</small>
-                    </div>
-                  </button>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 8px' }}>
-                    <button className="swap" style={{ ...SM, minHeight: 32, padding: '0 10px' }} aria-label={`Move ${p.name} up`} disabled={busy || i === 0} onClick={() => run({ action: 'plan-move', id: p.id, dir: 'up' }, 'Moved')}>▲</button>
-                    <button className="swap" style={{ ...SM, minHeight: 32, padding: '0 10px' }} aria-label={`Move ${p.name} down`} disabled={busy || i === cat.plans.length - 1} onClick={() => run({ action: 'plan-move', id: p.id, dir: 'down' }, 'Moved')}>▼</button>
-                  </div>
-                </div>
-              )
-            )}
-          </div>
-
           <div className="card">
             <div className="cardhead">
               <h3>Halls</h3>
@@ -682,7 +593,7 @@ export default function Admin() {
                     onSave={saveHall}
                     onCancel={() => setEdit(null)}
                     onDelete={async () => {
-                      if (window.confirm(`Delete ${h.name}? This only works when no plan or miner uses it.`) && (await run({ action: 'hall-delete', id }, 'Hall deleted'))) setEdit(null);
+                      if (window.confirm(`Delete ${h.name}? This only works when no miner uses it.`) && (await run({ action: 'hall-delete', id }, 'Hall deleted'))) setEdit(null);
                     }}
                   />
                 </div>
@@ -705,7 +616,7 @@ export default function Admin() {
             className="btn ghost danger"
             disabled={busy}
             onClick={async () => {
-              if (window.confirm('Reset all plans and halls to the built-in defaults? Hall rates of existing miners follow the defaults again.') && (await run({ action: 'catalog-reset' }, 'Reset to defaults'))) setEdit(null);
+              if (window.confirm('Reset the halls to the built-in defaults? Hall rates of existing miners follow the defaults again.') && (await run({ action: 'catalog-reset' }, 'Reset to defaults'))) setEdit(null);
             }}
           >
             Reset to defaults
@@ -718,7 +629,7 @@ export default function Admin() {
         const d = refDraft || Object.fromEntries(Object.entries(R.settings).map(([k, v]) => [k, String(v)]));
         const put = (k, v) => setRefDraft({ ...d, [k]: v });
         const code = tf.code || R.codes[0]?.code || '';
-        const planId = tf.planId || cat.plans[0]?.id || '';
+        const th = tf.th ?? '15';
         return (
           <div className="adm-stack">
             <div className="card">
@@ -737,15 +648,13 @@ export default function Admin() {
 
             <div className="card">
               <h3>Try it</h3>
-              <p className="fine" style={{ margin: '0 0 4px' }}>Creates a test friend who signs up with the code and buys the plan.</p>
+              <p className="fine" style={{ margin: '0 0 4px' }}>Creates a test friend who signs up with the code and gets an ASICs miner (90 days).</p>
               <Pick id="tfc" label="Inviter code" value={code} onChange={(v) => setTf({ ...tf, code: v })}>
                 {R.codes.map((c) => <option key={c.code} value={c.code}>{c.id} · {c.code}</option>)}
               </Pick>
-              <Pick id="tfp" label="Plan bought" value={planId} onChange={(v) => setTf({ ...tf, planId: v })}>
-                {cat.plans.map((p) => <option key={p.id} value={p.id}>{p.name} · ${fmtUsd(p.price)}</option>)}
-              </Pick>
+              <Field id="tfp" label="Hash power (TH/s)" inputMode="decimal" value={th} onChange={(v) => setTf({ ...tf, th: v })} />
               <div style={{ height: 12 }} />
-              <button className="btn" disabled={busy || !code} onClick={() => run({ action: 'ref-test', code, planId }, (r) => `Created ${r.friend}`)}>Create test friend</button>
+              <button className="btn" disabled={busy || !code} onClick={() => run({ action: 'ref-test', code, th: Number(String(th).replace(',', '.')), days: 90 }, (r) => `Created ${r.friend}`)}>Create test friend</button>
             </div>
 
             <div className="card">
