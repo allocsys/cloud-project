@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { SMART_HALLS, smartHallFor, contractedRate, machineOn } from '@/lib/smart-halls';
+import { SMART_HALLS, smartHallFor, contractedRate, machineOn, mergeSmartHalls } from '@/lib/smart-halls';
 
 const smart = { smart: true, budget: 1000, baseYield: 0.01 }; // $10 a day at the reference
 
@@ -34,6 +34,28 @@ test('contractedRate: null for a non-Smart miner, a missing reference or no budg
   assert.equal(contractedRate(smart, 0), null);
   assert.equal(contractedRate({ smart: true, budget: 0, baseYield: 0.01 }, 0.05), null);
   assert.equal(contractedRate(null, 0.05), null);
+});
+
+test('mergeSmartHalls: saved details win, the rest stays default, and the kind never changes', () => {
+  const h = mergeSmartHalls({ 'sm-gpu': { name: '  Oslo GPU Hall  ', rig: '8x RTX 5090', kind: 'asic', id: 'x' } });
+  assert.equal(h['sm-gpu'].name, 'Oslo GPU Hall');
+  assert.equal(h['sm-gpu'].rig, '8x RTX 5090');
+  assert.equal(h['sm-gpu'].place, SMART_HALLS['sm-gpu'].place);
+  assert.equal(h['sm-gpu'].kind, 'gpu');
+  assert.deepEqual(h['sm-cpu'], SMART_HALLS['sm-cpu']);
+});
+
+test('mergeSmartHalls: empty, wrong-typed or unknown saved data changes nothing', () => {
+  assert.deepEqual(mergeSmartHalls(null), SMART_HALLS);
+  assert.deepEqual(mergeSmartHalls({ 'sm-cpu': { name: '', place: 5 }, nope: { name: 'x' } }), SMART_HALLS);
+  assert.equal(mergeSmartHalls({ 'sm-gpu': { efficiency: '9 J/TH' } })['sm-gpu'].efficiency, undefined); // only the ASIC hall states one
+});
+
+test('smartHallFor and machineOn use the saved halls when given', () => {
+  const halls = mergeSmartHalls({ 'sm-cpu': { name: 'Keflavik CPU Hall' } });
+  assert.equal(smartHallFor('XMR', halls).name, 'Keflavik CPU Hall');
+  assert.equal(smartHallFor('XMR').name, SMART_HALLS['sm-cpu'].name);
+  assert.equal(machineOn(smart, 'XMR', 0.05, 'KH/s', halls).hall.name, 'Keflavik CPU Hall');
 });
 
 test('machineOn: hall, unit and rate together, or null when either is missing', () => {
