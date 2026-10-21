@@ -36,6 +36,7 @@ test('with no Smart Mining data a day pays at the reference: budget x base yield
 test("today follows the live market's best coin and holds the previous coin inside the hysteresis", () => {
   const smart = (live) => ({ refs: { BTC: 1, KAS: 1 }, picks: {}, days: {}, prev: 'BTC', live });
   const todayUsd = (live) => buildEarnings([smartMiner], now, BTC, { days: {}, live: null, halls: {}, smart: smart(live) }).todayBtc * BTC;
-  assert.ok(Math.abs(todayUsd({ BTC: 1, KAS: 1.5 }) - 15) < 1e-6); // KAS far ahead
-  assert.ok(Math.abs(todayUsd({ BTC: 1, KAS: 1.02 }) - 10) < 1e-6); // inside 3%: BTC stays, ratio 1
+  // `now` is 12:00 UTC, so today has run for half a day.
+  assert.ok(Math.abs(todayUsd({ BTC: 1, KAS: 1.5 }) - 7.5) < 1e-6); // KAS far ahead: $15 a day
+  assert.ok(Math.abs(todayUsd({ BTC: 1, KAS: 1.02 }) - 5) < 1e-6); // inside 3%: BTC stays, ratio 1, $10 a day
 });
