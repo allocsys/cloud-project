@@ -3,7 +3,6 @@ import assert from 'node:assert/strict';
 import { ask } from '../lib/server/assistant-service.js';
 
 const NOW = Date.parse('2026-10-20T12:00:00Z');
-const PLANS = [{ id: 'starter', name: 'Starter', price: 50, th: 1 }];
 
 // Fake data sources; makeLlm records the snapshot it was given.
 function deps(over = {}) {
@@ -14,7 +13,6 @@ function deps(over = {}) {
       now: () => NOW,
       getUser: async () => ({ contracts: [] }),
       getWallet: async () => ({ earned: 0.002, mined: 0.002, withdrawn: 0.0005, spent: 0.0003, history: [] }),
-      getCatalog: () => ({ plans: PLANS }),
       getPrices: async () => ({ prices: { btc: 80000 } }),
       getMarket: async () => null,
       getTelemetry: async () => null,
