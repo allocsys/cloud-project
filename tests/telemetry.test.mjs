@@ -4,6 +4,20 @@ import assert from 'node:assert/strict';
 import { realHash, uptimeOf, realMinerHash, minerCharts, mockMinerHash, mockMinerUptime } from '../lib/telemetry.js';
 import { buildEarnings } from '../lib/earnings.js';
 
+const { pool, q } = await import('@/lib/server/db');
+const { migrate } = await import('@/lib/server/migrate');
+const { ingest, loadSamples, telemetryFor, mockCharts, setMockCharts, feedStatus, checkKey, feedEnabled } = await import('@/lib/server/telemetry');
+const { act, overview } = await import('@/lib/server/admin');
+
+await migrate();
+const serial = `OP-${String(Date.now() % 1e7).padStart(7, '0')}`;
+
+after(async () => {
+  await q('DELETE FROM hash_samples WHERE serial = $1', [serial]);
+  await setMockCharts(true);
+  await pool().end();
+});
+
 const HOUR = 3600000;
 const DAY = 86400000;
 const D17 = Date.parse('2026-10-17T00:00:00Z');
@@ -48,9 +62,12 @@ test('uptime counts whole hours: a low or missing hour is down, time before moni
 
 test('uptime is weighted by contracted TH/s across miners', () => {
   const big = { serial: 'OP-0000002', th: 300, start: D17, stop: NOW };
-  const both = uptimeOf([m, big], { [m.serial]: samples(), [big.serial]: samples().filter((s) => s.th === 100) }, NOW);
+  const clean = [];
+  for (let t = D18 + 10 * 60000; t < NOW; t += HOUR) clean.push({ at: t, th: 300 });
+  const both = uptimeOf([m, big], { [m.serial]: samples(), [big.serial]: clean }, NOW);
   const mine = uptimeOf([m], { [m.serial]: samples() }, NOW);
-  assert.ok(both.pct < 100 && both.pct > mine.pct, `${both.pct} vs ${mine.pct}`);
+  assert.equal(both.pct, 97.1); // 23300 of 24000 TH-hours
+  assert.ok(both.pct > mine.pct);
 });
 
 test('a miner that is offline since today counts no hours today', () => {
@@ -97,20 +114,6 @@ test('the dashboard takes real hashrate and uptime when given samples, and the o
 });
 
 // ---- Against Postgres ----
-
-const { pool, q } = await import('@/lib/server/db');
-const { migrate } = await import('@/lib/server/migrate');
-const { ingest, loadSamples, telemetryFor, mockCharts, setMockCharts, feedStatus, checkKey, feedEnabled } = await import('@/lib/server/telemetry');
-const { act, overview } = await import('@/lib/server/admin');
-
-await migrate();
-const serial = `OP-${String(Date.now() % 1e7).padStart(7, '0')}`;
-
-after(async () => {
-  await q('DELETE FROM hash_samples WHERE serial = $1', [serial]);
-  await setMockCharts(true);
-  await pool().end();
-});
 
 test('the feed keeps good rows, skips bad ones, and the last write for a moment wins', async () => {
   const now = Date.now();
