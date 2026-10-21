@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { uptimeOf, realHash, realMinerHash, minerCharts } from '@/lib/telemetry';
 
-const HOUR = 3600000;
 const DAY = 86400000;
 const now = Date.UTC(2026, 9, 21, 12, 30); // 12:30 UTC
 const at = (hour, min = 10) => Date.UTC(2026, 9, 21, hour, min);
@@ -27,7 +26,7 @@ test('Smart uptime: the rate can change by hour (another coin) and the bar moves
 test('Smart uptime: hours whose contract is unknown are not counted', () => {
   const samples = { 'OP-0000001': [at(7), at(8), at(9), at(10)].map((t) => ({ at: t, th: 95 })) };
   const r = uptimeOf([smart((h) => (h < at(9, 0) ? null : 100))], samples, now);
-  assert.equal(r.series[6].pct, 100 * 2 / 3 > 66 ? 66.7 : 0); // 09 and 10 up, 11 down
+  assert.equal(r.series[6].pct, 66.7); // 09 and 10 up, 11 down
 });
 
 test('Smart uptime: nothing to count gives null, not zero', () => {
@@ -63,5 +62,4 @@ test('a Smart miner page: real hashrate in the coin unit, made-up one follows th
   const rl = minerCharts(c, start, start + 150 * DAY, list, now, () => 100);
   assert.equal(rl.real, true);
   assert.equal(rl.hash.now, 97);
-  assert.ok(HOUR > 0);
 });
