@@ -265,7 +265,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat } = data;
+  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
@@ -349,6 +349,28 @@ export default function Admin() {
             <div className="row"><span className="mute">Storage</span><b>{mode}</b></div>
             <div className="row"><span className="mute">BTC fallback price</span><b>${btcUsd.toLocaleString()}</b></div>
             <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{formatSerial(serial)}</b></div>
+          </div>
+          <div className="card">
+            <h3>Hashrate and uptime charts</h3>
+            <div className="row"><span className="mute">Showing</span><b>{charts.mock ? 'Mock data' : 'Real data'}</b></div>
+            <div className="row">
+              <span className="mute">Hall feed</span>
+              <b>{!charts.feed.enabled ? 'Off (no TELEMETRY_KEY)' : charts.feed.samples ? `${charts.feed.miners} miner${charts.feed.miners === 1 ? '' : 's'} · last ${when(charts.feed.last)}` : 'Nothing received yet'}</b>
+            </div>
+            <div className="adm-actions">
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={() => {
+                  const toReal = charts.mock;
+                  if (toReal && !charts.feed.samples && !window.confirm('No samples have come in from the halls yet, so the charts will say "No data yet". Switch anyway?')) return;
+                  run({ action: 'charts-mock', mode: toReal ? 'real' : 'mock' }, toReal ? 'Charts now show real data' : 'Charts now show mock data');
+                }}
+              >
+                {charts.mock ? 'Switch to real data' : 'Switch to mock data'}
+              </button>
+            </div>
+            <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </div>
           <div className="card">
             <h3>Admin password</h3>
