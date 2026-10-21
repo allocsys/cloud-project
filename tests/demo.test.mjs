@@ -11,6 +11,7 @@ const miners = await import('@/lib/server/miners');
 const { act } = await import('@/lib/server/admin');
 const { getWallet } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
+const { customPlan } = await import('@/lib/data');
 
 const run = `d${Date.now().toString(36)}`;
 let seq = 0;
@@ -23,7 +24,7 @@ const avail = async () => {
   const w = await getWallet('demo');
   return w.earned - w.withdrawn - w.spent;
 };
-const buy = () => miners.buyPlan({ planId: 'starter', pay: 'balance' }, { userId: 'demo', key: `${run}-${++seq}` });
+const buy = () => miners.buyPlan({ planId: 'custom', th: 15, days: 90, pay: 'balance' }, { userId: 'demo', key: `${run}-${++seq}` });
 const count = async (sql) => (await q(sql)).rows[0].n;
 
 before(async () => {
@@ -49,7 +50,7 @@ test('a wiped demo account is empty: no miners, activity, notifications, withdra
 
 test('the demo account pays for a plan from its balance and is refused when the balance is gone', async () => {
   await clean();
-  const price = miners.getCatalog().plans.find((p) => p.id === 'starter').price;
+  const price = customPlan(15, 90, miners.getCatalog().halls).price;
   const rate = (await getPrices()).prices.btc;
   await withUser('demo', (u) => {
     u.withdrawn = -((price / rate) * 1.5); // enough for one starter, not two
@@ -69,7 +70,7 @@ test('the clean-up removes what demo bought, its ledger rows, and the invite tes
   await clean();
   const real = `real-${run}@test.dev`;
   assert.ok((await auth.signup({ email: real, password: 'correct horse 1' })).ok);
-  const f = await act({ action: 'ref-test', code: 'OPUS-7K2M', planId: 'starter' });
+  const f = await act({ action: 'ref-test', code: 'OPUS-7K2M', th: 15, days: 90 });
   assert.ok(f.ok, f.error);
   assert.equal(await count(`SELECT count(*)::int AS n FROM users WHERE id = '${f.friend}'`), 1);
 
