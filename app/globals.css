@@ -1337,8 +1337,11 @@ main {
 .tmeta { font-size: 12px; line-height: 16px; color: var(--mute); }
 .tmeta b { color: var(--green); font-weight: 500; }
 
-.slide .num{width:100%;margin:10px 0 0;padding:10px 12px;border-radius:10px;border:1px solid rgba(233,196,106,.25);background:transparent;color:inherit;font:inherit;font-size:16px}
-.slide .num:focus-visible{outline:2px solid var(--gold2);outline-offset:2px}
+.slide .big .amt { display: flex; align-items: baseline; gap: 2px; margin: 0; font-size: 24px; line-height: 30px; font-weight: 500; color: var(--gold2); }
+.slide .big .amt i { font-style: normal; }
+.slide .big .amt input { width: 6ch; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-bottom: 1px dashed rgba(233, 196, 106, 0.4); border-radius: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; font-size: 24px; line-height: 30px; font-weight: 500; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.slide .big .amt input:focus { border-bottom-color: var(--gold2); box-shadow: none; }
+.slide .big .amt input::-webkit-outer-spin-button, .slide .big .amt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* Custom power slider */
 .slide { margin: 14px 0 4px; }
 .slide .big { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
@@ -1522,7 +1525,7 @@ a.stat:active { background: var(--s3); }
   overflow-y: auto;
   background: var(--s3);
   border-radius: 28px 28px 0 0;
-  padding: 12px 24px max(24px, env(safe-area-inset-bottom, 24px));
+  padding: 12px 24px max(44px, env(safe-area-inset-bottom, 44px));
   animation: slideup 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
