@@ -12,7 +12,17 @@ import {
   SLIDER_SIZES,
   BUNDLE_MIN_USD,
 } from '../lib/reinvest.js';
-import { plans as CATALOGUE, customPlan, thFromPos } from '../lib/data.js';
+import { customPlan, thFromPos } from '../lib/data.js';
+
+// lib/reinvest.js stays generic. The app no longer has fixed plans, so these tests use a fixture shaped like the old ones.
+const CATALOGUE = [
+  { id: 'starter', name: 'Starter', th: 15, price: 27 },
+  { id: 'basic', name: 'Basic', th: 60, price: 215 },
+  { id: 'growth', name: 'Growth', th: 100, price: 335 },
+  { id: 'plus', name: 'Plus', th: 250, price: 1699 },
+  { id: 'pro', name: 'Pro', th: 500, price: 4499 },
+  { id: 'elite', name: 'Elite', th: 1000, price: 8999 },
+];
 
 const plans = [
   { id: 'starter', th: 15, price: 27 },
