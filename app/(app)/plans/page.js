@@ -58,6 +58,10 @@ export default function Plans() {
   const cur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
+  // Smart Mining: the profit a day is held between the bottom and the top of the reserve band (lib/smart.js), so the term's profit
+  // is estimated as that band over the whole term. An estimate, not a promise: a weak market can pay less, a strong one more.
+  const money = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const profitRange = cur?.smart && cur.reserve ? { lo: cur.budget * cur.reserve.lo * cur.days, hi: cur.budget * cur.reserve.hi * cur.days } : null;
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
   const canBal = !!cur && balUsd >= cur.price;
@@ -437,6 +441,12 @@ export default function Plans() {
                 <span className="mute">Your balance</span>
                 <b className="v">${fmtUsd(balUsd)}</b>
               </div>
+              {profitRange && (
+                <div className="row">
+                  <span className="mute">Est. profit by term end</span>
+                  <b className="v" style={{ color: 'var(--green)' }}>${money(profitRange.lo)} to ${money(profitRange.hi)}<small>After {cur.days} days · an estimate, not a promise</small></b>
+                </div>
+              )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               ~{dailyOf(cur)}/day is an estimate and {cur.smart ? 'follows the market and the coin picked each day' : 'follows BTC price and difficulty'}. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
