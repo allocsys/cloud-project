@@ -49,7 +49,7 @@ export default function Calculator({ signedIn = false }) {
   const [term, setTerm] = useState(180);
 
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const perDay = dailyUsd(b, smartBaseYield(term), best?.ratio ?? 1);
+  const perDay = dailyUsd(b, smartBaseYield(term, cat?.smartPayout), best?.ratio ?? 1);
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
@@ -57,6 +57,8 @@ export default function Calculator({ signedIn = false }) {
   const btcShown = useGlide(perDay / btcPx);
   const monthShown = useGlide(perDay * 30);
   const termShown = useGlide(perDay * term);
+
+  if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
 
   const go = signedIn ? `/plans?plan=smart&budget=${b}&days=${term}` : '/login?mode=signup';
 
