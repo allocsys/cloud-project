@@ -226,6 +226,35 @@ h3 {
   padding: 14px 16px 16px;
 }
 
+/* Cards: the calculator's gold cube lattice, in five subtle variations by position (glow corner, cube size, strength, fade direction). Not on bottom sheets. */
+:root {
+  --lat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%23e9c46a' stroke-opacity='.12'/%3E%3C/svg%3E");
+  --lgc: rgba(233, 196, 106, 0.12);
+}
+:root[data-theme="light"] {
+  --lat: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='100' viewBox='0 0 56 100'%3E%3Cpath d='M28 66L0 50L0 16L28 0L56 16L56 50L28 66L28 100M28 0L28 34L0 50L0 84L28 100L56 84L56 50L28 34' fill='none' stroke='%237a5900' stroke-opacity='.1'/%3E%3C/svg%3E");
+  --lgc: rgba(233, 196, 106, 0.24);
+}
+:is(.card, .stat, .linktile) { position: relative; isolation: isolate; }
+:is(.card, .stat, .linktile)::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background-image: radial-gradient(var(--lq, 120% 70% at 100% 0%), var(--lgc), transparent 62%), var(--lat);
+  background-size: auto, var(--ls, 56px 100px);
+  opacity: var(--lo, 1);
+  -webkit-mask-image: var(--lm, linear-gradient(#000, transparent 92%));
+  mask-image: var(--lm, linear-gradient(#000, transparent 92%));
+}
+:is(.card, .stat, .linktile):nth-child(5n + 2) { --lq: 120% 70% at 0% 0%; --ls: 42px 75px; --lo: 0.8; }
+:is(.card, .stat, .linktile):nth-child(5n + 3) { --lq: 120% 70% at 100% 100%; --ls: 70px 125px; --lo: 0.85; --lm: linear-gradient(to top, #000, transparent 92%); }
+:is(.card, .stat, .linktile):nth-child(5n + 4) { --lq: 120% 70% at 0% 100%; --ls: 56px 100px; --lo: 0.7; --lm: linear-gradient(to top, #000, transparent 92%); }
+:is(.card, .stat, .linktile):nth-child(5n + 5) { --lq: 120% 70% at 100% 50%; --ls: 70px 125px; --lo: 0.75; --lm: linear-gradient(to left, #000, transparent 92%); }
+.sheet .card::before { display: none; }
+
 /* Text fields: outlined */
 label {
   display: block;
