@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import ChainSteps from '@/components/ChainSteps';
+import Calculator from '@/components/Calculator';
 import Decrypt from '@/components/Decrypt';
 import HeroVisual from '@/components/HeroVisual';
 import Reveal from '@/components/Reveal';
@@ -58,6 +59,7 @@ const WHY = [
 
 // The page people see before they sign in. It makes no income promises and shows no made-up numbers or reviews:
 // in this market, guaranteed returns and invented proof are what people have learned to distrust.
+// The calculator uses the live market and the real plan prices, and says it is an estimate.
 // The floating card in the hero is labelled as a demo.
 export default async function Home() {
   const jar = await cookies();
@@ -115,6 +117,15 @@ export default async function Home() {
             </div>
           </div>
         </div>
+
+        <section className="lp-sec" aria-labelledby="calc">
+          <Reveal>
+            <h2 id="calc">
+              <Decrypt when="view" text="Estimate your mining" />
+            </h2>
+            <Calculator signedIn={signedIn} />
+          </Reveal>
+        </section>
 
         <section className="lp-sec" aria-labelledby="how">
           <Reveal>
