@@ -70,7 +70,7 @@ export default function ContractPage() {
     <>
       <div className="top">
         <Back title={c.smart ? 'Smart Mining' : `${c.plan} miner`} />
-        <span className={`badge ${c.online ? 'ok' : 'warn'}`}>{c.online ? 'Online' : 'Offline'}</span>
+        <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}`}>{!c.online ? 'Offline' : c.paused ? 'Paused today' : 'Online'}</span>
       </div>
       <div className="grid">
         <div className="card hero">
@@ -85,6 +85,7 @@ export default function ContractPage() {
             <span>Day {c.elapsed} of {c.days}</span>
             <span>Ends {c.ends}</span>
           </div>
+          {c.extendedDays > 0 && <span className="mute" style={{ fontSize: '13px' }}>Term extended by {c.extendedDays} paused day{c.extendedDays === 1 ? '' : 's'}</span>}
         </div>
 
         <div className="grid cols">
@@ -111,8 +112,8 @@ export default function ContractPage() {
                 </div>
                 {(all ? daily : daily.slice(0, 5)).map((d) => (
                   <div key={d.day} className="row">
-                    <div>Daily payout<small>{d.day}</small></div>
-                    <b className="up">+${formatUsd(d.usd)}</b>
+                    <div>{d.paused ? 'Paused, not profitable' : 'Daily payout'}<small>{d.day}</small></div>
+                    {d.paused ? <b className="mute">Paused</b> : <b className="up">+${formatUsd(d.usd)}</b>}
                   </div>
                 ))}
                 {daily.length > 5 && (
