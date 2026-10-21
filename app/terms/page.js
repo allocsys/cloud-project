@@ -75,6 +75,9 @@ export default function Terms() {
           Each day&apos;s payout is worked out from that day&apos;s market: what your hash power mines at the network difficulty and BTC price of the day, minus the electricity and maintenance in section 2. If those costs are higher than what the machines mine on a day, that day pays nothing; you never owe us anything. A day that has been paid is not changed afterwards. The daily figure on a plan screen uses today&apos;s market and is not a promise: if the BTC price falls or difficulty rises, your payouts fall, and over the term you may receive less than the plan cost.
         </p>
         <p className="mute">
+          To avoid mining at a loss, we may switch a hall, or Smart Mining, off for a whole UTC day when that day would not be profitable. This is decided once the day is over, from that day&apos;s final market, and a decided day is not changed afterwards. We can also pause or resume a hall by hand. A paused day pays nothing. Depending on the setting in force when you bought the plan, a paused day is either added to the end of your term or counts as one of its days; your miner page lists paused days and shows the end date of your term. Paused days are not counted against uptime.
+        </p>
+        <p className="mute">
           Smart Mining follows the same rules on estimates and risk. You choose a budget and a term, and each day we mine the coin that looks most profitable that day. Payouts are still made in BTC. The figure shown is an estimate at today&apos;s market, not a promise, and you may receive less than your budget. Smart Mining can be switched off or its rate changed for new purchases; a Smart Mining plan you already own keeps the rate it was bought at.
         </p>
         <p className="mute">
