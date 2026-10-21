@@ -102,16 +102,16 @@ test('allUsers with cursor returns users after cursor', async () => {
   assert.ok(firstPage.length > 0, 'First page should have users');
   
   const lastUser = firstPage[firstPage.length - 1];
-  // Convert numeric timestamp to Date string for cursor comparison
+  // Use the numeric timestamp directly for cursor comparison
   const cursor = {
-    created_at: new Date(lastUser.createdAt).toISOString(),
+    created_at: lastUser.createdAt,
     id: lastUser.id
   };
   
   const secondPage = await allUsers(10, pool(), cursor);
   assert.ok(Array.isArray(secondPage), 'Second page should be array');
   
-  // Check no overlap
+  // Check no overlap - allow empty second page if all users fit in first page
   const overlap = firstPage.filter(u => secondPage.some(v => v.id === u.id));
   assert.equal(overlap.length, 0, 'Pages should not overlap with cursor');
 });
