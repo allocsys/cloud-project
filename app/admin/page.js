@@ -38,6 +38,39 @@ const REF_FIELDS = [
   ['maxCodes', 'Codes per user (with the default)'],
 ];
 
+// Smart Mining: sell on/off, the payout multiplier for new purchases, and which coins may be picked. See lib/server/smart-admin.js.
+function SmartCard({ smart, busy, run }) {
+  const set = smart?.settings || { enabled: true, payout: 1.06 };
+  const coins = smart?.coins || [];
+  const [payout, setPayout] = useState(String(set.payout));
+  useEffect(() => setPayout(String(set.payout)), [set.payout]);
+  return (
+    <div className="card">
+      <h3>Smart Mining</h3>
+      <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
+      <Field id="smp" label="Payout at the reference market (times the budget)" inputMode="decimal" value={payout} onChange={setPayout} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, payout }, 'Smart Mining payout saved')}>Save payout</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled, payout: set.payout }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
+          {set.enabled ? 'Turn off' : 'Turn on'}
+        </button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 12px' }}>Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new payout applies to purchases made after saving, each miner keeps the one it was bought with.</p>
+      {coins.map((c) => (
+        <div className="row adm-m" key={c.symbol}>
+          <div>
+            {c.symbol} · {c.name}
+            <small>{c.algo} · {c.days} day{c.days === 1 ? '' : 's'} of data{c.ref === null ? ' · no reference yet' : ''}{c.enabled ? '' : ' · off'}</small>
+          </div>
+          <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'smart-coin', symbol: c.symbol, enabled: !c.enabled }, c.enabled ? `${c.symbol} turned off` : `${c.symbol} turned on`)}>
+            {c.enabled ? 'Turn off' : 'Turn on'}
+          </button>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Stat({ l, v, s }) {
   return (
     <div className="stat">
@@ -372,6 +405,7 @@ export default function Admin() {
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </div>
+          <SmartCard smart={data.smart} busy={busy} run={run} />
           <div className="card">
             <h3>Demo account</h3>
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
