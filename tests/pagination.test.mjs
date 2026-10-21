@@ -15,9 +15,11 @@ const TEST_USER_COUNT = 25;
 before(async () => {
   await migrate();
   
-  // Create test users
+  // Create test users with proper timestamps (not Date.now() which returns ms)
   for (let i = 0; i < TEST_USER_COUNT; i++) {
     await createUser(pool(), email(`user-${i}`), { email: email(`user-${i}`) });
+    // Add a small delay to ensure different created_at timestamps for cursor pagination
+    await new Promise(resolve => setTimeout(resolve, 10));
   }
 });
 
@@ -100,8 +102,9 @@ test('allUsers with cursor returns users after cursor', async () => {
   assert.ok(firstPage.length > 0, 'First page should have users');
   
   const lastUser = firstPage[firstPage.length - 1];
+  // Convert numeric timestamp to Date string for cursor comparison
   const cursor = {
-    created_at: lastUser.createdAt,
+    created_at: new Date(lastUser.createdAt).toISOString(),
     id: lastUser.id
   };
   

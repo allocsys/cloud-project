@@ -122,6 +122,16 @@ describe('Log formatting', () => {
     assert.equal(parsed.message, 'Test message');
     assert.equal(parsed.key, 'value');
   });
+  
+  test('formatLog handles non-object metadata', () => {
+    const log = formatLog('info', 'Test message', 'string');
+    assert.equal(typeof log, 'string');
+    
+    const parsed = JSON.parse(log);
+    assert.equal(parsed.level, 'info');
+    assert.equal(parsed.message, 'Test message');
+    assert.equal(parsed.key, undefined);
+  });
 
   test('formatLog includes timestamp', () => {
     const log = formatLog('info', 'Test message');
@@ -212,9 +222,11 @@ describe('Log sanitization', () => {
   });
 
   test('sanitizeLogEntry handles non-object values', () => {
+    // Non-object values are now handled by returning empty object
     assert.deepEqual(sanitizeLogEntry('string'), {});
     assert.deepEqual(sanitizeLogEntry(123), {});
     assert.deepEqual(sanitizeLogEntry(true), {});
+    assert.deepEqual(sanitizeLogEntry(['array']), {});
   });
 
   test('sanitizeLogEntry is case-insensitive for field names', () => {

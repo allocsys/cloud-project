@@ -56,9 +56,9 @@ describe('AppError class', () => {
     assert.ok(json.timestamp, 'Should have timestamp');
   });
 
-  test('AppError.toResponse returns NextResponse', () => {
+  test('AppError.toResponse returns NextResponse', async () => {
     const error = new AppError('Test error', 400, 'testField');
-    const response = error.toResponse();
+    const response = await error.toResponse();
     
     assert.ok(response, 'Should return a response');
     assert.equal(response.status, 400);
@@ -120,6 +120,7 @@ describe('NotFoundError class', () => {
   test('NotFoundError with no resource info', () => {
     const error = new NotFoundError('Not found');
     assert.equal(error.status, 404);
+    // details is null when no resourceType or resourceId is provided
     assert.equal(error.details, null);
   });
 });
@@ -210,6 +211,7 @@ describe('Utility functions', () => {
     assert.equal(isAppError(null), false);
     assert.equal(isAppError(undefined), false);
     assert.equal(isAppError({}), false);
+    assert.equal(isAppError('string'), false);
   });
 
   test('formatError formats AppError correctly', () => {
@@ -235,6 +237,11 @@ describe('Utility functions', () => {
 
   test('formatError handles null', () => {
     const formatted = formatError(null);
+    assert.deepEqual(formatted, {});
+  });
+  
+  test('formatError handles undefined', () => {
+    const formatted = formatError(undefined);
     assert.deepEqual(formatted, {});
   });
 });
