@@ -419,7 +419,7 @@ export default function Plans() {
                   </div>
                 </>
               ) : null}
-              {costs && (
+              {costs ? (
                 <>
                   <div className="row">
                     <span className="mute">Electricity</span>
