@@ -261,7 +261,7 @@ export default function Dashboard() {
               {hasWeek && <HeroChart rows={week} />}
               <div className="hrow">
                 <div className="hk">{dash.totalTh > 0 || !(dash.smartBudget > 0) ? <><b>{dash.totalTh}</b><span>TH/s</span></> : <><b>${Math.round(dash.smartBudget).toLocaleString('en-US')}</b><span>Smart budget</span></>}</div>
-                <div className="hk ok">{!(dash.totalTh > 0) && dash.smartBudget > 0 ? <><b>Mining</b><span>Smart</span></> : <><b>{dash.uptime == null ? '–' : `${dash.uptime.toFixed(1)}%`}</b><span>Uptime</span></>}</div>
+                <div className="hk ok"><b>{dash.uptime == null ? '–' : `${dash.uptime.toFixed(1)}%`}</b><span>Uptime</span></div>
                 <div className="hk"><b>+{Math.round(dash.todayBtc * 1e8)}</b><span>Sat today</span></div>
                 <div className="hk"><b>${formatUsd(weekAvg)}</b><span>Avg/day</span></div>
               </div>
