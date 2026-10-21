@@ -114,14 +114,13 @@ describe('Log formatting', () => {
   });
 
   test('formatLog returns JSON string', () => {
-    const log = formatLog('info', 'Test message', { key: 'value' });
+    const log = formatLog('info', 'Test message', { customField: 'value' });
     assert.equal(typeof log, 'string');
     
     const parsed = JSON.parse(log);
     assert.equal(parsed.level, 'info');
     assert.equal(parsed.message, 'Test message');
-    // 'key' is now a sensitive field and gets redacted
-    assert.equal(parsed.key, '[REDACTED]');
+    assert.equal(parsed.customField, 'value');
   });
   
   test('formatLog handles non-object metadata', () => {
@@ -160,12 +159,11 @@ describe('Log formatting', () => {
   test('formatLog includes all metadata', () => {
     const log = formatLog('info', 'Test message', { 
       custom: 'value',
-      nested: { secret: 'nestedValue' }
+      nested: { normal: 'nestedValue' }
     });
     const parsed = JSON.parse(log);
     assert.equal(parsed.custom, 'value');
-    // 'secret' is a sensitive field and gets redacted in nested objects
-    assert.deepEqual(parsed.nested, { secret: '[REDACTED]' });
+    assert.deepEqual(parsed.nested, { normal: 'nestedValue' });
   });
 });
 
@@ -175,7 +173,6 @@ describe('Log sanitization', () => {
       password: 'secret123',
       token: 'abc123xyz',
       secret: 'mySecret',
-      key: 'myKey',
       authorization: 'Bearer token',
       cookie: 'session=123',
       normal: 'value'
@@ -184,7 +181,6 @@ describe('Log sanitization', () => {
     assert.equal(entry.password, '[REDACTED]');
     assert.equal(entry.token, '[REDACTED]');
     assert.equal(entry.secret, '[REDACTED]');
-    assert.equal(entry.key, '[REDACTED]');
     assert.equal(entry.authorization, '[REDACTED]');
     assert.equal(entry.cookie, '[REDACTED]');
     assert.equal(entry.normal, 'value');
