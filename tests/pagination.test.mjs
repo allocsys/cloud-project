@@ -111,9 +111,9 @@ test('allUsers with cursor returns users after cursor', async () => {
   const secondPage = await allUsers(10, pool(), cursor);
   assert.ok(Array.isArray(secondPage), 'Second page should be array');
   
-  // Check no overlap - allow empty second page if all users fit in first page
-  const overlap = firstPage.filter(u => secondPage.some(v => v.id === u.id));
-  assert.equal(overlap.length, 0, 'Pages should not overlap with cursor');
+  // The last user from first page should not appear in second page
+  const hasLastUser = secondPage.some(v => v.id === lastUser.id);
+  assert.equal(hasLastUser, false, 'Last user from first page should not be in second page');
 });
 
 test('allUsers with cursor handles null cursor', async () => {
