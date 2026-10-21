@@ -10,6 +10,7 @@ const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const { act, refundMiner } = await import('@/lib/server/admin');
 const { getWallet } = await import('@/lib/server/wallet');
+const { customPlan } = await import('@/lib/data');
 
 const run = `r${Date.now().toString(36)}`;
 const PW = 'correct horse 1';
@@ -29,10 +30,11 @@ const availOf = async (id) => {
   const w = await getWallet(id);
   return w.earned - w.withdrawn - w.spent;
 };
-const starter = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
+const SMALL = { planId: 'custom', th: 15, days: 90 }; // 15 TH/s for 90 days, about $26.75
+const starter = () => customPlan(15, 90, miners.getCatalog().halls);
 let seq = 0;
 async function buy(id) {
-  const r = await miners.buyPlan({ planId: 'starter', pay: 'balance' }, { userId: id, key: `${run}-${++seq}` });
+  const r = await miners.buyPlan({ ...SMALL, pay: 'balance' }, { userId: id, key: `${run}-${++seq}` });
   assert.ok(r.ok, r.error);
   return r.contract.serial;
 }
@@ -115,7 +117,7 @@ test('outside the window nothing is refunded: after 24 hours, or after the first
 
 test('granted miners, welcome gifts and the demo account are not refunded', async () => {
   const id = await account('grant');
-  const g = await miners.grantPlan(id, 'starter');
+  const g = await miners.grantPlan(id, SMALL);
   assert.ok(g.ok);
   const r = await refund(id, g.contract.serial);
   assert.equal(r.status, 409);
