@@ -2,7 +2,7 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
-import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD, plans } from '@/lib/data';
+import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
 import { useApi, post } from '@/lib/api';
@@ -130,7 +130,7 @@ export default function Wallet() {
   const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
   // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
-  const rein = ready ? smartPick(cat ? cat.plans : plans, balUsd, cat ? cat.halls : undefined) : null;
+  const rein = ready ? smartPick([], balUsd, cat ? cat.halls : undefined) : null;
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
