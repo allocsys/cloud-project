@@ -24,6 +24,7 @@ export default function Terms() {
 
         <h2 style={h2}>1. What you pay for a plan</h2>
         <p className="mute">The price shown as Total due when you choose a plan is the full charge. There is no setup, activation or management fee on top of it.</p>
+        <p className="mute">The price of ASICs power follows the live mining market and can change from one hour to the next. The price you see when you confirm is the price you pay, and it is locked when you buy: a later change in the market does not change a plan you already own.</p>
 
         <h2 style={h2}>2. Electricity and maintenance</h2>
         <p className="mute">
