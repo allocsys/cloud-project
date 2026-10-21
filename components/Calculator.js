@@ -1,19 +1,17 @@
 'use client';
 // The earnings calculator on the page people see before they sign in.
-// It uses the same numbers as the Plans screen: the live market from /api/plans (gross hashprice from BTC price and
-// network difficulty), the hall's electricity and maintenance, and the custom-power price rule. With no live market it
-// falls back to the catalogue's static rates and says so. Everything shown is an estimate, never a promise.
+// It works from a budget and a term, like the Smart Mining sheet on the Plans screen (lib/smart.js): the estimate is the
+// budget x the plan's daily yield x how the coin we are on today pays against its reference (from /api/plans). With no live
+// market the ratio is 1, the reference, and the badge says so. Everything shown is an estimate, never a promise.
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
-import { halls, CUSTOM, BTC_USD, customPlan, thFromPos, fmtTh } from '@/lib/data';
-import { liveDaily } from '@/lib/market';
-import { SLIDER_SIZES } from '@/lib/reinvest';
+import { BTC_USD } from '@/lib/data';
+import { SMART, dailyUsd, smartBaseYield } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 
-const TICKS = [1, 10, 100, 1000];
-const posOf = (th) => Math.round((1000 * Math.log10(th)) / Math.log10(CUSTOM.max));
+const TICKS = [100, 500, 1000, 5000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Glides a number to its new value, so the figures roll as the slider moves. Reduced motion jumps straight to it.
@@ -44,27 +42,23 @@ function useGlide(target, ms = 420) {
 
 export default function Calculator({ signedIn = false }) {
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
-  const hallMap = cat?.halls || halls;
   const live = cat?.live || null;
+  const best = cat?.smart || null;
 
-  const [pos, setPos] = useState(667); // about 100 TH/s
+  const [budget, setBudget] = useState('500'); // as typed
   const [term, setTerm] = useState(180);
 
-  const th = thFromPos(pos);
-  const plan = customPlan(th, term, hallMap);
-  const hall = hallMap[plan.hall];
-  const perDay = liveDaily(th, hall, live) ?? th * hall.net;
+  const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
+  const perDay = dailyUsd(b, smartBaseYield(term), best?.ratio ?? 1);
   const btcPx = live?.btc ?? BTC_USD;
-  const rig = rigFor({ th });
+  const rig = rigFor('smart');
 
   const usdShown = useGlide(perDay);
   const btcShown = useGlide(perDay / btcPx);
   const monthShown = useGlide(perDay * 30);
   const termShown = useGlide(perDay * term);
 
-  const go = signedIn
-    ? `/plans?plan=custom${SLIDER_SIZES.includes(th) ? `&th=${th}` : ''}&days=${term}`
-    : '/login?mode=signup';
+  const go = signedIn ? `/plans?plan=smart&budget=${b}&days=${term}` : '/login?mode=signup';
 
   return (
     <div className="calc">
@@ -72,13 +66,13 @@ export default function Calculator({ signedIn = false }) {
         <div className="calc-top">
           <span className="calc-lbl">You could earn about</span>
           <span className="calc-live">
-            <i className={live ? '' : 'off'} />
-            {live ? `Live market · BTC $${Math.round(live.btc).toLocaleString('en-US')}` : 'Reference prices'}
+            <i className={best ? '' : 'off'} />
+            {best ? `Live market · mining ${best.coin} today` : 'Reference prices'}
           </span>
         </div>
         <div className="calc-main">
           <div className="calc-art">
-            <RigArt key={`${rig.kind}${rig.units}`} kind={rig.kind} units={rig.units} speed={rig.speed} id="calc" />
+            <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="calc" />
           </div>
           <div className="calc-nums" aria-live="off">
             <div className="calc-btc">
@@ -93,19 +87,19 @@ export default function Calculator({ signedIn = false }) {
       <div className="calc-r">
         <div className="slide">
           <div className="calc-th">
-            <span>with</span>
-            <b>{fmtTh(th)} TH/s</b>
+            <span>with a budget of</span>
+            <b>${b.toLocaleString('en-US')}</b>
           </div>
           <input
             type="range"
-            min="0"
-            max="1000"
-            step="1"
-            value={pos}
-            aria-label="Hash power in terahash"
-            aria-valuetext={`${fmtTh(th)} terahash`}
-            style={{ '--p': `${pos / 10}%` }}
-            onChange={(e) => setPos(+e.target.value)}
+            min={SMART.min}
+            max={SMART.max}
+            step="50"
+            value={b}
+            aria-label="Budget in dollars"
+            aria-valuetext={`${b} dollars`}
+            style={{ '--p': `${((b - SMART.min) / (SMART.max - SMART.min)) * 100}%` }}
+            onChange={(e) => setBudget(e.target.value)}
           />
           <div className="calc-ticks">
             {TICKS.map((t) => (
@@ -114,16 +108,28 @@ export default function Calculator({ signedIn = false }) {
                 type="button"
                 onClick={() => {
                   triggerHaptic('selection');
-                  setPos(posOf(t));
+                  setBudget(String(t));
                 }}
-                aria-label={`Set to ${t} terahash`}
+                aria-label={`Set budget to ${t} dollars`}
               >
-                {t.toLocaleString('en-US')}
+                ${t.toLocaleString('en-US')}
               </button>
             ))}
           </div>
+          <input
+            className="num"
+            type="number"
+            inputMode="numeric"
+            min={SMART.min}
+            max={SMART.max}
+            step="1"
+            value={budget}
+            aria-label={`Budget in dollars, ${SMART.min} to ${SMART.max.toLocaleString('en-US')}`}
+            onChange={(e) => setBudget(e.target.value)}
+            onBlur={() => setBudget(String(b))}
+          />
           <div className="terms" role="group" aria-label="Term">
-            {CUSTOM.terms.map((d) => (
+            {SMART.terms.map((d) => (
               <button
                 key={d}
                 type="button"
@@ -150,19 +156,17 @@ export default function Calculator({ signedIn = false }) {
           </div>
           <div>
             <span>Price</span>
-            <b>${usd2(plan.price)}</b>
+            <b>${usd2(b)}</b>
           </div>
         </div>
-        <p className="calc-hall">
-          {hall.name}, {hall.place} · {hall.rig} · {hall.efficiency}
-        </p>
+        <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
 
         <Link href={go} className="btn" onClick={() => triggerHaptic('light')}>
           {signedIn ? 'Open this in Plans' : 'Get started'}
         </Link>
         <p className="calc-fine">
-          An estimate at today&rsquo;s bitcoin price and network difficulty, after electricity and maintenance. It changes every day and is not a promise of
-          earnings. See the <Link href="/terms">Terms</Link>.
+          An estimate at today&rsquo;s market, after electricity and maintenance. It changes every day and is not a promise of earnings. See the{' '}
+          <Link href="/terms">Terms</Link>.
         </p>
       </div>
     </div>
