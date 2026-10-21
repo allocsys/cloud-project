@@ -57,7 +57,7 @@ export default function Plans() {
   const startY = useRef(null);
   // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
   const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const cur = sel ? (sel.id === 'smart' ? smartPlan(bNum, term) : sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
+  const cur = sel ? (sel.id === 'smart' ? smartPlan(bNum, term, cat?.smartPayout) : sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
@@ -284,11 +284,13 @@ export default function Plans() {
 
       {tab === 'buy' ? (
       <div className="tiles">
-        <div role="button" tabIndex={0} className="card tile" style={{ gridColumn: '1 / -1' }} onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
-          <div className="tname">Smart Mining<span>Best coin, daily</span></div>
-          <div className="tprice">From ${fmtUsd(SMART.min)}</div>
-          <div className="tmeta">Choose your budget and term</div>
-        </div>
+        {cat?.smartOn !== false && (
+          <div role="button" tabIndex={0} className="card tile" style={{ gridColumn: '1 / -1' }} onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
+            <div className="tname">Smart Mining<span>Best coin, daily</span></div>
+            <div className="tprice">From ${fmtUsd(SMART.min)}</div>
+            <div className="tmeta">Choose your budget and term</div>
+          </div>
+        )}
         {planList.map((p) => {
           const a = rigFor({ plan: p.id, th: p.th });
           return (
