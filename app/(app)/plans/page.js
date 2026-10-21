@@ -1,14 +1,16 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { plans, halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
+import { halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { formatSerial, serialNumber } from '@/lib/contracts';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
+import { AsicsCard, SmartCard } from '@/components/PowerCards';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
 import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
+import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan } from '@/lib/smart';
@@ -25,7 +27,6 @@ export default function Plans() {
   const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000 });
   const { data: ord, refresh: refreshOrders } = useApi('/api/orders', { ttl: 10000 });
-  const planList = cat ? cat.plans : plans;
   const hallMap = cat ? cat.halls : halls;
   // What a plan is expected to pay per day at today's market (the catalogue's static label until the server answers).
   const dailyOf = (p) => {
@@ -37,17 +38,11 @@ export default function Plans() {
   const nextId = md ? md.nextSerial : seedMiners.nextSerial;
 
   const [sel, setSel] = useState(null);
-  const [pos, setPos] = useState(666); // slider position, about 100 TH/s
-  const [term, setTerm] = useState(120);
+  const [pos, setPos] = useState(666); // ASICs slider position, about 100 TH/s
+  const [aterm, setAterm] = useState(180); // ASICs term
+  const [term, setTerm] = useState(120); // Smart Mining term
   const [budget, setBudget] = useState('500'); // Smart Mining budget as typed, in dollars
-  const stop = (e) => e.stopPropagation(); // keep slider drags from dragging the sheet
-  // Tiles are cards with a button role, so they look like every other card.
-  const press = (fn) => (e) => {
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      fn();
-    }
-  };
+  const [spos, setSpos] = useState(() => posFromBudget(500)); // Smart Mining slider position
   const [tab, setTab] = useState('buy');
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -55,9 +50,12 @@ export default function Plans() {
   const sheetRef = useRef(null);
   const openerRef = useRef(null);
   const startY = useRef(null);
-  // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
+  // What the two cards show, and what the sheet confirms: the ASICs pick and the Smart Mining pick.
   const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const cur = sel ? (sel.id === 'smart' ? smartPlan(bNum, term, cat?.smartPayout) : sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
+  const ap = customPlan(thFromPos(pos), aterm, hallMap);
+  const sp = smartPlan(bNum, term, cat?.smartPayout);
+  // The plan on the sheet: Smart Mining, an ASICs pick, or (from a Reinvest link) a catalogue plan.
+  const cur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
@@ -66,13 +64,28 @@ export default function Plans() {
   const crypto = !!ord?.crypto;
   const methods = canBal ? ['balance', ...(crypto ? ['crypto'] : [])] : crypto ? ['crypto'] : ['balance'];
 
+  // Smart Mining amount box and slider keep each other in step.
+  const onAmount = (v) => {
+    setBudget(v);
+    const n = Math.round(Number(v));
+    if (Number.isFinite(n) && n >= SMART.min) setSpos(posFromBudget(n));
+  };
+  const onAmountBlur = () => {
+    setBudget(String(bNum));
+    setSpos(posFromBudget(bNum));
+  };
+  const onSlide = (v) => {
+    setSpos(v);
+    setBudget(String(budgetFromPos(v)));
+  };
+
   function selectPlan(p) {
     triggerHaptic('selection');
     openerRef.current = document.activeElement;
     setSel(p);
   }
 
-  // Close the sheet and give focus back to the tile that opened it.
+  // Close the sheet and give focus back to the button that opened it.
   function dismiss() {
     setSel(null);
     setDragY(0);
@@ -115,7 +128,7 @@ export default function Plans() {
       }
       await refresh().catch(() => {});
       triggerHaptic('success');
-      show(plan.smart ? 'Smart Mining started' : `${plan.name} plan activated`);
+      show(plan.smart ? 'Smart Mining started' : plan.id === 'custom' ? 'ASICs miner activated' : `${plan.name} plan activated`);
       dismiss();
     } catch (e) {
       triggerHaptic('error');
@@ -172,8 +185,9 @@ export default function Plans() {
     } catch {}
   }, []);
 
-  // Coming from a Reinvest card: /plans?plan=<id> opens that plan's sheet once the catalogue has loaded.
-  // /plans?plan=custom&th=24&days=180 opens the Custom sheet on that size and term.
+  // Coming from a Reinvest card or the calculator: /plans?plan=<id> opens that plan's sheet once the catalogue has loaded.
+  // /plans?plan=custom&th=24&days=180 sets the ASICs card to that size and term and opens its sheet.
+  // /plans?plan=smart&budget=500&days=120 does the same for Smart Mining.
   const deepPlan = useRef(null);
   useEffect(() => {
     try {
@@ -191,7 +205,11 @@ export default function Plans() {
     deepPlan.current = null;
     if (id === 'smart') {
       setTab('buy');
-      if (Number.isInteger(b)) setBudget(String(Math.min(SMART.max, Math.max(SMART.min, b))));
+      if (Number.isInteger(b)) {
+        const n = Math.min(SMART.max, Math.max(SMART.min, b));
+        setBudget(String(n));
+        setSpos(posFromBudget(n));
+      }
       if (SMART.terms.includes(days)) setTerm(days);
       setSel({ id: 'smart' });
       return;
@@ -199,7 +217,7 @@ export default function Plans() {
     if (id === 'custom') {
       setTab('buy');
       if (SLIDER_SIZES.includes(th)) setPos(posFromTh(th));
-      if (CUSTOM.terms.includes(days)) setTerm(days);
+      if (CUSTOM.terms.includes(days)) setAterm(days);
       setSel({ id: 'custom' });
       return;
     }
@@ -285,35 +303,31 @@ export default function Plans() {
       {tab === 'buy' ? (
       <>
       {cat?.smartOn !== false && (
-        <div role="button" tabIndex={0} className="card tile" style={{ marginBottom: 12 }} onClick={() => selectPlan({ id: 'smart' })} onKeyDown={press(() => selectPlan({ id: 'smart' }))} aria-label="Smart Mining, choose your budget and term">
-          <div className="tname">Smart Mining<span>Best coin, daily</span></div>
-          <div className="tprice">From ${fmtUsd(SMART.min)}</div>
-          <div className="tmeta">Choose your budget and term</div>
-        </div>
+        <SmartCard
+          budget={budget}
+          bNum={bNum}
+          spos={spos}
+          term={term}
+          setTerm={setTerm}
+          plan={sp}
+          within={balUsd >= sp.price}
+          onAmount={onAmount}
+          onAmountBlur={onAmountBlur}
+          onSlide={onSlide}
+          onBuy={() => selectPlan({ id: 'smart' })}
+        />
       )}
-      <div className="tiles">
-        {planList.map((p) => {
-          const a = rigFor({ plan: p.id, th: p.th });
-          return (
-            <div
-              key={p.id}
-              role="button"
-              tabIndex={0}
-              className={`card tile ${p.featured ? 'feat' : ''}`}
-              onClick={() => selectPlan(p)}
-              onKeyDown={press(() => selectPlan(p))}
-              aria-label={`${p.name}, ${p.th} terahash, $${p.price}`}
-            >
-              {p.featured && <span className="tag">Most chosen</span>}
-              <RigArt kind={a.kind} units={a.units} speed={a.speed} id={p.id} />
-              <div className="tname">{p.name}<span>{p.th} TH/s</span></div>
-              <div className="tprice">${p.price.toLocaleString()}</div>
-              <div className="tmeta">{p.days} days · <b>~{dailyOf(p)}</b>/day</div>
-              {balUsd >= p.price && <div className="tcan">✓ Within your balance</div>}
-            </div>
-          );
-        })}
-      </div>
+      <AsicsCard
+        pos={pos}
+        setPos={setPos}
+        term={aterm}
+        setTerm={setAterm}
+        plan={ap}
+        daily={dailyOf(ap)}
+        hall={hallMap[ap.hall] || null}
+        within={balUsd >= ap.price}
+        onBuy={() => selectPlan({ id: 'custom' })}
+      />
       </>
       ) : list.length ? (
         <div className="clist">
@@ -384,94 +398,14 @@ export default function Plans() {
             }}
           >
             <div className="grab" aria-hidden="true" />
-            <h3 id="st">{cur.smart ? 'Smart Mining' : cur.id === 'custom' ? 'Custom power' : `${cur.name} plan`}</h3>
-            {cur.smart && (
-              <div className="slide">
-                <div className="big">
-                  <label className="amt">
-                    <i aria-hidden="true">$</i>
-                    <input
-                      type="number"
-                      inputMode="numeric"
-                      min={SMART.min}
-                      max={SMART.max}
-                      step="1"
-                      value={budget}
-                      aria-label={`Budget in dollars, ${SMART.min} to ${SMART.max.toLocaleString('en-US')}`}
-                      onChange={(e) => setBudget(e.target.value)}
-                      onBlur={() => setBudget(String(bNum))}
-                    />
-                  </label>
-                  <span>~{cur.daily}/day</span>
-                </div>
-                <input
-                  type="range"
-                  min={SMART.min}
-                  max={SMART.max}
-                  step="50"
-                  value={bNum}
-                  aria-label="Budget in dollars"
-                  aria-valuetext={`${bNum} dollars`}
-                  style={{ '--p': `${((bNum - SMART.min) / (SMART.max - SMART.min)) * 100}%` }}
-                  onChange={(e) => setBudget(e.target.value)}
-                  onTouchStart={stop}
-                  onTouchMove={stop}
-                  onTouchEnd={stop}
-                />
-                <div className="terms" role="group" aria-label="Term">
-                  {SMART.terms.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      aria-pressed={term === d}
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setTerm(d);
-                      }}
-                    >
-                      {d} days
-                    </button>
-                  ))}
-                </div>
-                <p className="mute" style={{ fontSize: '13px', margin: '10px 0 0' }}>We pick the most profitable coin for you every day. Paid in BTC.</p>
-              </div>
-            )}
-            {cur.smart ? null : cur.id === 'custom' ? (
-              <div className="slide">
-                <div className="big"><b>{fmtTh(cur.th)} TH/s</b><span>~{dailyOf(cur)}/day</span></div>
-                <input
-                  type="range"
-                  min="0"
-                  max="1000"
-                  step="1"
-                  value={pos}
-                  aria-label="Hash power in terahash"
-                  aria-valuetext={`${fmtTh(cur.th)} terahash`}
-                  style={{ '--p': `${pos / 10}%` }}
-                  onChange={(e) => setPos(+e.target.value)}
-                  onTouchStart={stop}
-                  onTouchMove={stop}
-                  onTouchEnd={stop}
-                />
-                <div className="terms" role="group" aria-label="Term">
-                  {CUSTOM.terms.map((d) => (
-                    <button
-                      key={d}
-                      type="button"
-                      aria-pressed={term === d}
-                      onClick={() => {
-                        triggerHaptic('selection');
-                        setTerm(d);
-                      }}
-                    >
-                      {d} days
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{cur.blurb}</p>
-            )}
+            <h3 id="st">{cur.smart ? 'Smart Mining' : cur.id === 'custom' ? 'ASICs' : `${cur.name} plan`}</h3>
+            <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>
+              {cur.smart
+                ? `$${fmtUsd(cur.budget)} for ${cur.days} days. We pick the most profitable coin for you every day. Paid in BTC.`
+                : cur.id === 'custom'
+                  ? `${fmtTh(cur.th)} TH/s for ${cur.days} days.`
+                  : cur.blurb}
+            </p>
             <div className="sheetbody">
               {hall ? (
                 <>
@@ -496,7 +430,7 @@ export default function Plans() {
                     <b className="v">~${fmtCost(costs.maint)}/day<small>Taken out of your mining</small></b>
                   </div>
                 </>
-              )}
+              ) : null}
               <div className="row">
                 <span className="mute">Miner ID</span>
                 <b className="serial">{nextId}</b>
