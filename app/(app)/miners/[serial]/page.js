@@ -2,7 +2,7 @@
 import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { contracts, halls, minerHash } from '@/lib/data';
+import { contracts, halls } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
 import { useApi } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -56,7 +56,7 @@ export default function ContractPage() {
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
   const daily = det?.contract?.daily || [];
-  const hash = minerHash(c);
+  const ch = det?.contract?.charts; // hashrate and uptime, from the server (real samples, or mock while the admin has that on)
   const total = det?.contract?.earnedUsd ?? 0;
   const avg = daily.length ? total / daily.length : 0;
   const pct = Math.round((c.elapsed / c.days) * 100);
@@ -125,13 +125,40 @@ export default function ContractPage() {
           </div>
 
           <div className="card">
+            <div className="cardhead">
+              <h3>Uptime · 7 days</h3>
+              <span className="mute">{ch?.uptime.pct == null ? '–' : `${ch.uptime.pct.toFixed(1)}%`}</span>
+            </div>
+            {ch && ch.uptime.series.some((d) => d.pct !== null) ? (
+              <>
+                <div className="bars" role="img" aria-label="Uptime for each of the last 7 days">
+                  {ch.uptime.series.map((d, i) => (
+                    <i
+                      key={d.day}
+                      title={`${d.day} · ${d.pct === null ? 'no data' : `${d.pct.toFixed(1)}%`}`}
+                      className={i === ch.uptime.series.length - 1 ? 'last' : undefined}
+                      style={{ height: `${d.pct === null ? 6 : Math.max(8, d.pct)}%`, ...(d.pct === null ? { opacity: 0.25 } : {}) }}
+                    />
+                  ))}
+                </div>
+                <div className="chartlabels">
+                  <span>{ch.uptime.series[0].day}</span>
+                  <span className="now">Today</span>
+                </div>
+              </>
+            ) : (
+              <p className="empty">{ch ? 'No uptime data yet.' : 'Loading…'}</p>
+            )}
+          </div>
+
+          <div className="card">
             <h3>Details</h3>
             <div className="hs">
               <div>
                 <span>Hashrate · 24h</span>
-                <b>{hash.now}<small>TH/s</small></b>
+                {ch?.hash.hasData ? <b>{ch.hash.now}<small>TH/s</small></b> : <b>–</b>}
               </div>
-              <Spark values={hash.series} />
+              {ch?.hash.hasData ? <Spark values={ch.hash.series} /> : <small className="mute">{ch ? 'No data yet' : 'Loading…'}</small>}
             </div>
             <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
             <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
