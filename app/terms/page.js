@@ -72,6 +72,9 @@ export default function Terms() {
         <p className="mute">
           Each day&apos;s payout is worked out from that day&apos;s market: what your hash power mines at the network difficulty and BTC price of the day, minus the electricity and maintenance in section 2. If those costs are higher than what the machines mine on a day, that day pays nothing; you never owe us anything. A day that has been paid is not changed afterwards. The daily figure on a plan screen uses today&apos;s market and is not a promise: if the BTC price falls or difficulty rises, your payouts fall, and over the term you may receive less than the plan cost.
         </p>
+        <p className="mute">
+          Smart Mining follows the same rules on estimates and risk. You choose a budget and a term, and each day we mine the coin that looks most profitable that day. Payouts are still made in BTC. The figure shown is an estimate at today&apos;s market, not a promise, and you may receive less than your budget. Smart Mining can be switched off or its rate changed for new purchases; a Smart Mining plan you already own keeps the rate it was bought at.
+        </p>
 
         <h2 style={h2}>6. Changes to these terms</h2>
         <p className="mute">If we change these terms or any fee, we tell you before it takes effect. A change applies only to plans bought after it. A plan you already own keeps the terms it was bought under.</p>
