@@ -25,7 +25,7 @@ Runs `node --test` against a real Postgres (set `DATABASE_URL`, `PRICE_FEED=stat
 | --- | --- |
 | `/login` | Sign in, sign up (with referral code), password reset, Telegram Mini App login |
 | `/dashboard` | Balance and total mined, earnings chart, miners, recent activity |
-| `/plans` | ASICs power (pick TH/s and a term) and Smart Mining (pick a budget and a term). Buy from balance or by crypto invoice |
+| `/plans` | ASICs power (pick TH/s and a term; the price follows the live market, 2% below it, refreshed hourly and locked at purchase) and Smart Mining (pick a budget and a term). Buy from balance or by crypto invoice |
 | `/wallet` | Withdraw, deposit, history |
 | `/referrals` | Invite codes with rebates, rewards, rules |
 | `/settings` | Email, password, theme (Dark, Light, Auto), sign out |
