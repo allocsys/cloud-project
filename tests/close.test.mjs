@@ -11,7 +11,7 @@ const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const { getWallet } = await import('@/lib/server/wallet');
 const { getReferral } = await import('@/lib/server/account');
-const { MIN_WITHDRAW } = await import('@/lib/data');
+const { MIN_WITHDRAW, customPlan } = await import('@/lib/data');
 const totp = await import('@/lib/server/totp');
 
 const run = `c${Date.now().toString(36)}`;
@@ -39,11 +39,11 @@ const empty = async (id) => {
   });
 };
 let seq = 0;
-const starter = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
+const starter = () => customPlan(15, 90, miners.getCatalog().halls);
 // An order the admin screen can list (it needs a plan), for rows the tests add by hand.
 const orderData = (id, status) => JSON.stringify({ id, plan: { ...starter() }, usd: starter().price, status, at: Date.now() });
 async function buy(id) {
-  const r = await miners.buyPlan({ planId: 'starter', pay: 'balance' }, { userId: id, key: `${run}-${++seq}` });
+  const r = await miners.buyPlan({ planId: 'custom', th: 15, days: 90, pay: 'balance' }, { userId: id, key: `${run}-${++seq}` });
   assert.ok(r.ok, r.error);
   return r.contract.serial;
 }
