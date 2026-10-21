@@ -124,6 +124,26 @@ function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDele
   );
 }
 
+const SMART_KIND = { asic: 'ASIC hall', gpu: 'GPU hall', cpu: 'CPU hall' };
+
+// One Smart Mining hall. Its kind and the coins it mines are fixed; only the details shown to users can change.
+function SmartHallForm({ draft, set, busy, asic, onSave, onCancel }) {
+  return (
+    <div className="adm-form">
+      <Field id="shn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={40} />
+      <Field id="shp" label="Location" value={draft.place} onChange={(v) => set('place', v)} maxLength={40} />
+      <Field id="shw" label="Power source" value={draft.power} onChange={(v) => set('power', v)} maxLength={60} />
+      {asic && <Field id="she" label="Efficiency (e.g. 12.0 J/TH)" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />}
+      <Field id="shr" label="Rig" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
+      <p className="fine" style={{ margin: '12px 0 0' }}>Shown on the Smart Mining miner page. It does not change what a miner earns.</p>
+      <div className="adm-actions">
+        <button className="btn ghost" onClick={onCancel}>Cancel</button>
+        <button className="btn" disabled={busy} onClick={onSave}>Save</button>
+      </div>
+    </div>
+  );
+}
+
 function Login({ onDone, setup }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState('');
@@ -283,6 +303,12 @@ export default function Admin() {
       (r) => (r.updated ? `Hall saved · ${r.updated} miner${r.updated === 1 ? '' : 's'} updated` : 'Hall saved')
     );
     if (ok) setEdit(null);
+  }
+
+  const smartHallDraft = (h) => ({ name: h.name, place: h.place, power: h.power, rig: h.rig, efficiency: h.efficiency || '' });
+
+  async function saveSmartHall() {
+    if (await run({ action: 'smart-hall-save', id: edit.id, hall: edit.draft }, 'Smart hall saved')) setEdit(null);
   }
 
   return (
@@ -610,6 +636,39 @@ export default function Admin() {
                 </button>
               )
             )}
+          </div>
+
+          <div className="card">
+            <div className="cardhead">
+              <h3>Smart Mining halls</h3>
+            </div>
+            {Object.entries(data.smart?.halls || {}).map(([id, h]) =>
+              edit?.kind === 'smart-hall' && edit.id === id ? (
+                <div key={id} className="adm-edit">
+                  <SmartHallForm draft={edit.draft} set={setDraft} busy={busy} asic={h.kind === 'asic'} onSave={saveSmartHall} onCancel={() => setEdit(null)} />
+                </div>
+              ) : (
+                <button key={id} type="button" className="row adm-click" aria-label={`Edit ${h.name}`} onClick={() => setEdit({ kind: 'smart-hall', id, draft: smartHallDraft(h) })}>
+                  <div>
+                    {h.name}
+                    <small>{h.rig} · {h.place}</small>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <b>{SMART_KIND[h.kind] || h.kind}</b>
+                  </div>
+                </button>
+              )
+            )}
+            <p className="fine" style={{ margin: '8px 0 12px' }}>Smart Mining miners run on these halls: the ASIC hall for BTC, the GPU hall for KAS and RVN, the CPU hall for XMR. Hall details are shown to users on the miner page.</p>
+            <button
+              className="btn ghost"
+              disabled={busy}
+              onClick={async () => {
+                if (window.confirm('Reset the Smart Mining halls to the built-in details?') && (await run({ action: 'smart-halls-reset' }, 'Smart halls reset'))) setEdit(null);
+              }}
+            >
+              Reset Smart halls
+            </button>
           </div>
 
           <button
