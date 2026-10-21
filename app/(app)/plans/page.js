@@ -38,7 +38,7 @@ export default function Plans() {
 
   const [sel, setSel] = useState(null);
   const [pos, setPos] = useState(666); // slider position, about 100 TH/s
-  const [term, setTerm] = useState(180);
+  const [term, setTerm] = useState(120);
   const [budget, setBudget] = useState('500'); // Smart Mining budget as typed, in dollars
   const stop = (e) => e.stopPropagation(); // keep slider drags from dragging the sheet
   // Tiles are cards with a button role, so they look like every other card.
