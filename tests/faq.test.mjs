@@ -61,6 +61,9 @@ const CASES = [
   ['what is smart mining', 'smart_mining'],
   ['how does the smart budget work', 'smart_mining'],
   ['how does the smart mining reserve work', 'smart_reserve'],
+  ['why was my miner paused for a day', 'paused_day'],
+  ['what is the profit guard', 'paused_day'],
+  ['my plan is paused', 'paused_day'],
 ];
 
 test('"mining" is not read as "min"', () => {
