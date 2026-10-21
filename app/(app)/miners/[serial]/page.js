@@ -56,6 +56,7 @@ export default function ContractPage() {
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
   const sc = det?.contract?.coins; // Smart Mining: { today, history }
+  const machine = det?.contract?.machine; // Smart Mining: { coin, hall, unit, rate }, what it runs on today
   const daily = det?.contract?.daily || [];
   const ch = det?.contract?.charts; // hashrate and uptime, from the server (real samples, or mock while the admin has that on)
   const total = det?.contract?.earnedUsd ?? 0;
@@ -125,7 +126,7 @@ export default function ContractPage() {
             )}
           </div>
 
-          {!c.smart && (
+          {(
           <div className="card">
             <div className="cardhead">
               <h3>Uptime · 7 days</h3>
@@ -175,10 +176,10 @@ export default function ContractPage() {
 
           <div className="card">
             <h3>Details</h3>
-            <div className="hs" style={c.smart ? { display: 'none' } : undefined}>
+            <div className="hs">
               <div>
                 <span>Hashrate · 24h</span>
-                {ch?.hash.hasData ? <b>{ch.hash.now}<small>TH/s</small></b> : <b>–</b>}
+                {ch?.hash.hasData ? <b>{ch.hash.now}<small>{c.smart ? machine?.unit || '' : 'TH/s'}</small></b> : <b>–</b>}
               </div>
               {ch?.hash.hasData ? <Spark values={ch.hash.series} /> : <small className="mute">{ch ? 'No data yet' : 'Loading…'}</small>}
             </div>
@@ -186,6 +187,13 @@ export default function ContractPage() {
               <>
                 <div className="row"><span className="mute">Budget</span><b className="v">${formatUsd(c.budget)}</b></div>
                 <div className="row"><span className="mute">Mining</span><b className="v">Best coin, chosen daily<small>Paid in BTC</small></b></div>
+                {machine && (
+                  <>
+                    <div className="row"><span className="mute">Hash power</span><b className="v">{machine.rate.toLocaleString('en-US', { maximumFractionDigits: 1 })} {machine.unit}<small>{machine.coin} today</small></b></div>
+                    <div className="row"><span className="mute">Mining hall</span><b className="v">{machine.hall.name}<small>{machine.hall.place}</small></b></div>
+                    <div className="row"><span className="mute">Rig</span><b className="v">{machine.hall.rig}<small>{machine.hall.power}</small></b></div>
+                  </>
+                )}
               </>
             ) : (
               <>
