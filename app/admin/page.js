@@ -38,19 +38,21 @@ const REF_FIELDS = [
   ['maxCodes', 'Codes per user (with the default)'],
 ];
 
-// Smart Mining: sell on/off, the payout multiplier for new purchases, and which coins may be picked. See lib/server/smart-admin.js.
+// Smart Mining: sell on/off, the net profit a day for new purchases (shown in percent, stored as a fraction), and which coins may be picked. See lib/server/smart-admin.js.
 function SmartCard({ smart, busy, run }) {
-  const set = smart?.settings || { enabled: true, payout: 1.06 };
+  const set = smart?.settings || { enabled: true, payout: 0.003 };
   const coins = smart?.coins || [];
-  const [payout, setPayout] = useState(String(set.payout));
-  useEffect(() => setPayout(String(set.payout)), [set.payout]);
+  const pct = (p) => String(Math.round(p * 1e6) / 1e4);
+  const [payout, setPayout] = useState(pct(set.payout));
+  useEffect(() => setPayout(pct(set.payout)), [set.payout]);
+  const asFraction = () => Number(String(payout).trim().replace(',', '.')) / 100;
   return (
     <div className="card">
       <h3>Smart Mining</h3>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
-      <Field id="smp" label="Payout at the reference market (times the budget)" inputMode="decimal" value={payout} onChange={setPayout} />
+      <Field id="smp" label="Net profit a day at the reference market (%)" inputMode="decimal" value={payout} onChange={setPayout} />
       <div className="adm-actions">
-        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, payout }, 'Smart Mining payout saved')}>Save payout</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, payout: asFraction() }, 'Smart Mining payout saved')}>Save payout</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled, payout: set.payout }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
           {set.enabled ? 'Turn off' : 'Turn on'}
         </button>
