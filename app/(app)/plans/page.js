@@ -338,7 +338,7 @@ export default function Plans() {
                   <RigArt units={rig.units} speed={rig.speed} id={c.serial} />
                   <div className="mi">
                     <div className="mt">
-                      <i className={`sdot${c.online ? '' : ' off'}`} />
+                      <i className={`sdot${c.online && !c.paused ? '' : ' off'}`} />
                       <b>{c.plan}</b>
                       <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
                     </div>
@@ -346,7 +346,7 @@ export default function Plans() {
                     <div className="mchips">
                       <span>{c.smart ? `$${fmtUsd(c.budget)} budget` : `${c.th} TH/s`}</span>
                       <span>{c.smart ? 'Best coin daily' : hallMap[c.hall].efficiency}</span>
-                      <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
+                      {c.paused ? <span>Paused today</span> : <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>}
                     </div>
                   </div>
                 </div>
