@@ -10,6 +10,7 @@ const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const provider = await import('@/lib/server/pay-provider');
+const { customPlan } = await import('@/lib/data');
 const buyRoute = await import('@/app/api/plans/buy/route');
 
 const run = `c${Date.now().toString(36)}`;
@@ -57,8 +58,9 @@ async function account(name) {
   assert.ok((await auth.signup({ email: e, password: PW })).ok);
   return e;
 }
-const plan = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
-const pay = (id, key) => miners.buyPlan({ planId: 'starter', pay: 'crypto' }, { userId: id, key });
+const SMALL = { planId: 'custom', th: 15, days: 90 }; // 15 TH/s for 90 days, about $26.75
+const plan = () => customPlan(15, 90, miners.getCatalog().halls);
+const pay = (id, key) => miners.buyPlan({ ...SMALL, pay: 'crypto' }, { userId: id, key });
 const orderRows = async (id) => (await q('SELECT id, status, data FROM orders WHERE user_id = $1 ORDER BY at, id', [id])).rows;
 const hook = (o, extra = {}) => ({ order_id: o.id, payment_status: 'finished', price_amount: o.usd, price_currency: 'usd', payment_id: `pay_${o.id}`, ...extra });
 
@@ -227,11 +229,11 @@ test('through the buy route: a session starts a crypto order for its own account
       );
       return { status: res.status, body: await res.json() };
     };
-    const a = await post(id, { planId: 'starter', pay: 'crypto' }, `rk-${run}`);
+    const a = await post(id, { ...SMALL, pay: 'crypto' }, `rk-${run}`);
     assert.equal(a.status, 200, JSON.stringify(a.body));
     assert.ok(a.body.pending);
     assert.ok(a.body.order.url);
-    const b = await post(id, { planId: 'starter', pay: 'crypto' }, `rk-${run}`);
+    const b = await post(id, { ...SMALL, pay: 'crypto' }, `rk-${run}`);
     assert.equal(b.body.order.id, a.body.order.id);
     assert.equal(calls.length, 1);
     assert.equal((await orderRows(id)).length, 1);
