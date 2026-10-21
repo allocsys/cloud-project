@@ -212,6 +212,7 @@ describe('Utility functions', () => {
     assert.equal(isAppError(undefined), false);
     assert.equal(isAppError({}), false);
     assert.equal(isAppError('string'), false);
+    assert.equal(isAppError([]), false);
   });
 
   test('formatError formats AppError correctly', () => {
