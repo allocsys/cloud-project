@@ -58,6 +58,8 @@ const CASES = [
   ['i sent funds to the wrong address', 'wrong_address'],
   ['is it profitable', 'returns'],
   ['is this a ponzi', 'security'],
+  ['what is smart mining', 'smart_mining'],
+  ['how does the smart budget work', 'smart_mining'],
 ];
 
 test('"mining" is not read as "min"', () => {
