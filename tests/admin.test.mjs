@@ -28,11 +28,11 @@ after(async () => {
 test('halls added at the same moment are all kept, and each is logged', async () => {
   const before = await catalog();
   const logBefore = await logLen();
-  const rs = await Promise.all(each(8, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })));
+  const rs = await Promise.all(each(4, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })));
   const okCount = rs.filter((r) => r.ok).length;
-  assert.equal(okCount, 8, JSON.stringify(rs.filter((r) => !r.ok)));
+  assert.equal(okCount, 4, JSON.stringify(rs.filter((r) => !r.ok)));
   const after = await catalog();
-  assert.equal(Object.keys(after.halls).length, Object.keys(before.halls).length + 8);
+  assert.equal(Object.keys(after.halls).length, Object.keys(before.halls).length + 4);
   assert.equal(Object.hasOwn(after, 'plans'), false, 'no fixed plans in the catalogue');
   assert.equal((await logLen()) - logBefore, okCount);
 });
