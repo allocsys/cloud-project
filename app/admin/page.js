@@ -73,6 +73,61 @@ function SmartCard({ smart, busy, run }) {
   );
 }
 
+// Profit guard: switches ASICs and Smart Mining off on days that would not pay. Rules in lib/guard.js, storage in lib/server/guard.js.
+// margin and buffer are typed and saved in percent. Hand flips can start now (today, UTC) or tomorrow; finished days never change.
+const HAND = { auto: 'Automatic', paused: 'Paused by hand', active: 'Kept on by hand' };
+function GuardCard({ guard, busy, run }) {
+  const s = guard?.settings;
+  const [draft, setDraft] = useState(null);
+  const [from, setFrom] = useState('tomorrow');
+  if (!s) return null;
+  const d = draft || { asicsAuto: s.asicsAuto, smartAuto: s.smartAuto, mode: s.mode, margin: String(s.margin), buffer: String(s.buffer) };
+  const put = (k, v) => setDraft({ ...d, [k]: v });
+  const lastText = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'never');
+  return (
+    <div className="card">
+      <h3>Profit guard</h3>
+      <p className="fine" style={{ margin: '0 0 4px' }}>Switches a hall off for a whole UTC day when that day would not be profitable. A paused day pays nothing. Each day is decided once it is over, from its final market, and then never changes.</p>
+      <Pick id="gpa" label="ASICs: automatic guard" value={d.asicsAuto ? 'on' : 'off'} onChange={(v) => put('asicsAuto', v === 'on')}>
+        <option value="on">On</option>
+        <option value="off">Off</option>
+      </Pick>
+      <Pick id="gps" label="Smart Mining: automatic guard" value={d.smartAuto ? 'on' : 'off'} onChange={(v) => put('smartAuto', v === 'on')}>
+        <option value="on">On</option>
+        <option value="off">Off</option>
+      </Pick>
+      <Pick id="gpm" label="A paused day" value={d.mode} onChange={(v) => put('mode', v)}>
+        <option value="extend">Extends the term by a day</option>
+        <option value="zero">Uses up a day and pays zero</option>
+      </Pick>
+      <Field id="gpg" label="Profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
+      <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
+      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
+      <div className="adm-actions">
+        <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
+      </div>
+      <span className="eyebrow adm-sub">By hand</span>
+      <Pick id="gpw" label="Takes effect" value={from} onChange={setFrom}>
+        <option value="tomorrow">From tomorrow (UTC)</option>
+        <option value="now">From today (UTC)</option>
+      </Pick>
+      {(guard.scopes || []).map((sc) => (
+        <div className="row adm-m" key={sc.id}>
+          <div>
+            {sc.name}
+            <small>{sc.pausedToday ? 'Paused today' : 'Running today'} · {HAND[sc.manual] || sc.manual}{sc.manualNext !== sc.manual ? ` (then ${String(HAND[sc.manualNext] || sc.manualNext).toLowerCase()})` : ''} · last auto pause {lastText(sc.lastPaused)}</small>
+          </div>
+          <div className="adm-btns">
+            <button className="btn ghost" disabled={busy || sc.manualNext === 'paused'} onClick={() => run({ action: 'guard-manual', scope: sc.id, state: 'paused', when: from }, 'Pause saved')}>Pause</button>
+            <button className="btn ghost" disabled={busy || sc.manualNext === 'active'} onClick={() => run({ action: 'guard-manual', scope: sc.id, state: 'active', when: from }, 'Resume saved')}>Resume</button>
+            <button className="btn ghost" disabled={busy || sc.manualNext === 'auto'} onClick={() => run({ action: 'guard-manual', scope: sc.id, state: 'auto', when: from }, 'Back to automatic')}>Auto</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 function Stat({ l, v, s }) {
   return (
     <div className="stat">
@@ -375,6 +430,7 @@ export default function Admin() {
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </div>
           <SmartCard smart={data.smart} busy={busy} run={run} />
+          <GuardCard guard={data.guard} busy={busy} run={run} />
           <div className="card">
             <h3>Demo account</h3>
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
