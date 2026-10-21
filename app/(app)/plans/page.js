@@ -432,33 +432,27 @@ export default function Plans() {
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>
             </div>
-            {!ord?.demo && (
-              <div className="sheetbody" style={{ marginTop: -4 }}>
-                <div className="row">
-                  <span className="mute">Your balance</span>
-                  <b className="v">${fmtUsd(balUsd)}</b>
-                </div>
+            <div className="sheetbody" style={{ marginTop: -4 }}>
+              <div className="row">
+                <span className="mute">Your balance</span>
+                <b className="v">${fmtUsd(balUsd)}</b>
               </div>
-            )}
+            </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{dailyOf(cur)}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).{ord?.demo ? ' Demo: nothing is charged.' : ''}
+              ~{dailyOf(cur)}/day is an estimate and follows BTC price and difficulty. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
-            {!ord?.demo && (!canBal || !crypto) && (!canBal) && (
+            {(!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
                 {!crypto
                   ? 'Not enough balance, and crypto payments are not switched on yet.'
                   : `Balance is $${fmtUsd(cur.price - balUsd)} short.`}
               </p>
             )}
-            {ord?.demo ? (
-              <button className="btn" autoFocus onClick={() => pay('demo')} disabled={busy}>Confirm &amp; Pay</button>
-            ) : (
-              methods.map((m, i) => (
-                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
-                  {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
-                </button>
-              ))
-            )}
+            {methods.map((m, i) => (
+              <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
+                {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
+              </button>
+            ))}
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
           </div>
         </div>

@@ -373,6 +373,22 @@ export default function Admin() {
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </div>
           <div className="card">
+            <h3>Demo account</h3>
+            <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
+            <div className="adm-actions">
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={() => {
+                  if (!window.confirm('Wipe the demo account? Its miners, activity, balance and test friends are deleted. This cannot be undone.')) return;
+                  run({ action: 'demo-reset' }, (r) => `Demo account cleaned · ${r.miners} miner${r.miners === 1 ? '' : 's'} removed`);
+                }}
+              >
+                Clean up demo account
+              </button>
+            </div>
+          </div>
+          <div className="card">
             <h3>Admin password</h3>
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
             <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
