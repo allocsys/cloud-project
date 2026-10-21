@@ -8,6 +8,8 @@ export const RIG = {
   plus: { kind: 'tank', units: 2, speed: 1.2 },
   pro: { kind: 'cabinet', units: 3, speed: 0.9 },
   elite: { kind: 'container', units: 3, speed: 0.6 },
+  smart: { kind: 'cabinet', units: 3, speed: 1.1 },
+  'smart mining': { kind: 'cabinet', units: 3, speed: 1.1 },
 };
 // Takes a plan name or id, or a miner: custom miners get a rig that fits their size.
 export const rigFor = (x) => {
