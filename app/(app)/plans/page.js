@@ -11,6 +11,7 @@ import { markDrill, useSheetBack } from '@/lib/nav';
 import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
 import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
+import { SMART, smartPlan } from '@/lib/smart';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -28,6 +29,7 @@ export default function Plans() {
   const hallMap = cat ? cat.halls : halls;
   // What a plan is expected to pay per day at today's market (the catalogue's static label until the server answers).
   const dailyOf = (p) => {
+    if (p.smart) return p.daily;
     const v = liveDaily(p.th, hallMap[p.hall], cat?.live);
     return v === null ? p.daily : `$${v.toFixed(2)}`;
   };
@@ -37,6 +39,7 @@ export default function Plans() {
   const [sel, setSel] = useState(null);
   const [pos, setPos] = useState(666); // slider position, about 100 TH/s
   const [term, setTerm] = useState(180);
+  const [budget, setBudget] = useState('500'); // Smart Mining budget as typed, in dollars
   const stop = (e) => e.stopPropagation(); // keep slider drags from dragging the sheet
   // Tiles are cards with a button role, so they look like every other card.
   const press = (fn) => (e) => {
@@ -53,8 +56,9 @@ export default function Plans() {
   const openerRef = useRef(null);
   const startY = useRef(null);
   // The plan on the sheet: a catalogue plan, or a custom one priced from the slider and term.
-  const cur = sel ? (sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
-  const hall = cur ? hallMap[cur.hall] : null;
+  const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
+  const cur = sel ? (sel.id === 'smart' ? smartPlan(bNum, term) : sel.id === 'custom' ? customPlan(thFromPos(pos), term, hallMap) : sel) : null;
+  const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
@@ -92,7 +96,11 @@ export default function Plans() {
     setBusy(true);
     let leaving = false;
     try {
-      const body = plan.id === 'custom' ? { planId: 'custom', th: plan.th, days: plan.days, pay: method } : { planId: plan.id, pay: method };
+      const body = plan.smart
+        ? { planId: 'smart', budget: plan.budget, days: plan.days, pay: method }
+        : plan.id === 'custom'
+          ? { planId: 'custom', th: plan.th, days: plan.days, pay: method }
+          : { planId: plan.id, pay: method };
       const r = await post('/api/plans/buy', body, uid());
       if (r.pending && r.order?.url) {
         leaving = true;
@@ -107,7 +115,7 @@ export default function Plans() {
       }
       await refresh().catch(() => {});
       triggerHaptic('success');
-      show(`${plan.name} plan activated`);
+      show(plan.smart ? 'Smart Mining started' : `${plan.name} plan activated`);
       dismiss();
     } catch (e) {
       triggerHaptic('error');
@@ -172,15 +180,22 @@ export default function Plans() {
       const q = new URLSearchParams(window.location.search);
       const id = q.get('plan');
       if (id) {
-        deepPlan.current = { id, th: parseFloat(q.get('th')), days: parseInt(q.get('days'), 10) };
+        deepPlan.current = { id, th: parseFloat(q.get('th')), days: parseInt(q.get('days'), 10), budget: parseInt(q.get('budget'), 10) };
         window.history.replaceState(null, '', window.location.pathname);
       }
     } catch {}
   }, []);
   useEffect(() => {
     if (!deepPlan.current || !cat) return;
-    const { id, th, days } = deepPlan.current;
+    const { id, th, days, budget: b } = deepPlan.current;
     deepPlan.current = null;
+    if (id === 'smart') {
+      setTab('buy');
+      if (Number.isInteger(b)) setBudget(String(Math.min(SMART.max, Math.max(SMART.min, b))));
+      if (SMART.terms.includes(days)) setTerm(days);
+      setSel({ id: 'smart' });
+      return;
+    }
     if (id === 'custom') {
       setTab('buy');
       if (SLIDER_SIZES.includes(th)) setPos(posFromTh(th));
@@ -313,8 +328,8 @@ export default function Plans() {
                     </div>
                     <span className="serial">{c.serial}</span>
                     <div className="mchips">
-                      <span>{c.th} TH/s</span>
-                      <span>{hallMap[c.hall].efficiency}</span>
+                      <span>{c.smart ? `$${fmtUsd(c.budget)} budget` : `${c.th} TH/s`}</span>
+                      <span>{c.smart ? 'Best coin daily' : hallMap[c.hall].efficiency}</span>
                       <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>
                     </div>
                   </div>
