@@ -112,7 +112,7 @@ export default function ContractPage() {
                 </div>
                 {(all ? daily : daily.slice(0, 5)).map((d) => (
                   <div key={d.day} className="row">
-                    <div>{d.paused ? 'Paused, not profitable' : 'Daily payout'}<small>{d.day}</small></div>
+                    <div>{d.paused ? 'Paused day' : 'Daily payout'}<small>{d.day}</small></div>
                     {d.paused ? <b className="mute">Paused</b> : <b className="up">+${formatUsd(d.usd)}</b>}
                   </div>
                 ))}
