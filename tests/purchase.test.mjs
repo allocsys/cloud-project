@@ -30,7 +30,9 @@ const credit = (id, btc) =>
   withUser(id, (u) => {
     u.withdrawn = (u.withdrawn || 0) - btc;
   });
-const starter = () => miners.getCatalog().plans.find((p) => p.id === 'starter');
+// The small miner most tests buy: 15 TH/s for 90 days (about $26.75 at the default hall rates).
+const starter = () => customPlan(15, 90, miners.getCatalog().halls);
+const BUY = { planId: 'custom', th: 15, days: 90, pay: 'balance' };
 const costOf = async (plan) => Math.ceil((plan.price / (await getPrices()).prices.btc) * 1e8) / 1e8;
 const ledgerRows = async (id, kind) => (await q('SELECT btc, usd, ref FROM ledger WHERE user_id = $1 AND kind = $2 ORDER BY id', [id, kind])).rows;
 const spentOf = async (id) => (await getUser(id)).spent || 0;
@@ -107,14 +109,14 @@ test('a signed-in buy lands on that account, is charged once, and shows in /api/
   const ca = await cookieOf(a);
   const cb = await cookieOf(b);
 
-  const r = await buy(ca, { planId: 'starter', pay: 'balance' }, `k-${run}`);
+  const r = await buy(ca, BUY, `k-${run}`);
   assert.equal(r.status, 200, JSON.stringify(r.body));
   assert.ok(r.body.ok);
   assert.ok(r.body.contract.serial);
   assert.ok(Math.abs(r.body.spentBtc - cost) < 1e-9);
 
   // The same key again is the same miner, not a second purchase.
-  const again = await buy(ca, { planId: 'starter', pay: 'balance' }, `k-${run}`);
+  const again = await buy(ca, BUY, `k-${run}`);
   assert.equal(again.status, 200);
   assert.equal(again.body.contract.serial, r.body.contract.serial);
 
@@ -138,12 +140,12 @@ test('with sign-in required, no session or a forged one cannot buy or list miner
   await withAuthMode('1', async () => {
     const good = await cookieOf(id);
     for (const c of [undefined, tamper(good)]) {
-      assert.equal((await buy(c, { planId: 'starter', pay: 'balance' })).status, 401);
+      assert.equal((await buy(c, BUY)).status, 401);
       assert.equal((await listMiners(c)).status, 401);
     }
     assert.equal((await getUser(id)).contracts.length, 0);
     assert.equal(await spentOf(id), 0);
-    assert.equal((await buy(good, { planId: 'starter', pay: 'balance' })).status, 200);
+    assert.equal((await buy(good, BUY)).status, 200);
     assert.equal((await getUser(id)).contracts.length, 1);
   });
 });
@@ -153,8 +155,9 @@ test('a real account cannot buy without paying, and bad plans, sizes or bodies a
   await credit(id, 5); // plenty, so only the rules can stop these
   const c = await cookieOf(id);
   const bad = [
-    { planId: 'starter' }, // no way to pay: never the free demo path
-    { planId: 'starter', pay: 'free' },
+    { planId: 'custom', th: 15, days: 90 }, // no way to pay: never the free demo path
+    { planId: 'custom', th: 15, days: 90, pay: 'free' },
+    { planId: 'starter', pay: 'balance' }, // the old fixed plans are gone
     { planId: 'nope', pay: 'balance' },
     { pay: 'balance' },
     { planId: 'custom', th: CUSTOM.min - 0.5, days: 90, pay: 'balance' },
@@ -176,7 +179,7 @@ test('a real account cannot buy without paying, and bad plans, sizes or bodies a
 test('the balance covers the price within the tolerance and no further', async () => {
   const plan = starter();
   const cost = await costOf(plan);
-  const pay = (id) => miners.buyPlan({ planId: 'starter', pay: 'balance' }, { userId: id, key: `k-${id}` });
+  const pay = (id) => miners.buyPlan(BUY, { userId: id, key: `k-${id}` });
 
   const short = await account('short');
   await credit(short, cost - TOLERANCE * 2.5);
