@@ -127,8 +127,8 @@ test('no return promises in any answer', () => {
   }
 });
 
-test('answers are still drafts until approved', () => {
-  assert.equal(FAQ_APPROVED, false);
+test('the answers are approved by the owner', () => {
+  assert.equal(FAQ_APPROVED, true);
 });
 
 test('unknown id', () => {
