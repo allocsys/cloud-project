@@ -25,30 +25,19 @@ after(async () => {
   await pool().end();
 });
 
-test('halls and plans added at the same moment are all kept, and each is logged', async () => {
+test('halls added at the same moment are all kept, and each is logged', async () => {
   const before = await catalog();
   const logBefore = await logLen();
-  const rs = await Promise.all([
-    ...each(4, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })),
-    ...each(4, (i) => act({ action: 'plan-save', plan: { name: `P${run}${i}`, th: 10 + i, price: 20 + i, days: 30, hall: 'tx-1' } })),
-  ]);
+  const rs = await Promise.all(each(8, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })));
   const okCount = rs.filter((r) => r.ok).length;
   assert.equal(okCount, 8, JSON.stringify(rs.filter((r) => !r.ok)));
   const after = await catalog();
-  assert.equal(Object.keys(after.halls).length, Object.keys(before.halls).length + 4);
-  assert.equal(after.plans.length, before.plans.length + 4);
-  assert.equal(new Set(after.plans.map((p) => p.id)).size, after.plans.length);
+  assert.equal(Object.keys(after.halls).length, Object.keys(before.halls).length + 8);
+  assert.equal(Object.hasOwn(after, 'plans'), false, 'no fixed plans in the catalogue');
   assert.equal((await logLen()) - logBefore, okCount);
 });
 
-test('plans moved at the same moment are never lost or duplicated', async () => {
-  const before = (await catalog()).plans.map((p) => p.id);
-  await many(8, (i) => act({ action: 'plan-move', id: before[i % before.length], dir: i % 2 ? 'up' : 'down' }));
-  const after = (await catalog()).plans.map((p) => p.id);
-  assert.deepEqual([...after].sort(), [...before].sort());
-});
-
-test('a hall is removed only when nothing uses it', async () => {
+test('a core hall cannot be removed, an unknown one is not found, and an added one can be removed', async () => {
   assert.equal((await act({ action: 'hall-delete', id: 'tx-1' })).status, 409); // core hall
   assert.equal((await act({ action: 'hall-delete', id: 'nope' })).status, 404);
 
@@ -56,11 +45,6 @@ test('a hall is removed only when nothing uses it', async () => {
   const halls = (await catalog()).halls;
   const id = Object.keys(halls).find((k) => halls[k].name === `T${run}use`);
   assert.ok(id);
-  assert.ok((await act({ action: 'plan-save', plan: { name: `U${run}`, th: 5, price: 9, days: 30, hall: id } })).ok);
-  assert.equal((await act({ action: 'hall-delete', id })).status, 409); // a plan still uses it
-
-  const plan = (await catalog()).plans.find((p) => p.name === `U${run}`);
-  assert.ok((await act({ action: 'plan-delete', id: plan.id })).ok);
   assert.ok((await act({ action: 'hall-delete', id })).ok);
   assert.equal(Object.hasOwn((await catalog()).halls, id), false);
 });
