@@ -113,7 +113,7 @@ function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDele
       <Field id="hr" label="Rig model" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
       <Field id="hx" label="Net rate (USD per TH/s per day)" inputMode="decimal" value={draft.net} onChange={(v) => set('net', v)} />
       <p className="fine" style={{ margin: '12px 0 0' }}>
-        {isNew ? 'The new hall prices ASICs power in its own size range only if it replaces a core hall, so most halls are for the record.' : 'Changing the rate updates the daily payout of every miner in this hall and the price of new ASICs power sold from it.'}
+        {isNew ? 'The new hall can host miners, but ASICs power is priced from the three core halls.' : 'Changing the rate updates the daily payout of every miner in this hall and the price of new ASICs power sold from it.'}
       </p>
       <div className="adm-actions">
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
