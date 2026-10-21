@@ -17,6 +17,7 @@ function deps(over = {}) {
       getCatalog: () => ({ plans: PLANS }),
       getPrices: async () => ({ prices: { btc: 80000 } }),
       getMarket: async () => null,
+      getTelemetry: async () => null,
       answersLeft: () => 17,
       makeLlm: (userId, snapshot) => {
         seen.userId = userId;
