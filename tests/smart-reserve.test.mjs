@@ -22,12 +22,12 @@ test('a payout outside the range falls back to the default', () => {
   assert.equal(smartBaseYield(90, 1.06), smartBaseYield(90));
 });
 
-test('plan carries its reserve: band 0.2-0.4%, seed 2%, user share 70%', () => {
+test('plan carries its reserve: band 0.2-0.4%, seed 2%, user share 50%', () => {
   const p = smartPlan(100, 90);
   near(p.reserve.lo, 0.002, 1e-9);
   near(p.reserve.hi, 0.004, 1e-9);
   assert.equal(p.reserve.seed, 2);
-  assert.equal(p.reserve.userShare, 0.7);
+  assert.equal(p.reserve.userShare, 0.5);
 });
 
 test('flat market pays as priced and nothing is left to split', () => {
@@ -45,8 +45,8 @@ test('a strong market is capped per day and the excess is split at the end', () 
   const s = smartSeries(p, flat(90, 1.4));
   near(Math.max(...s.days), 100 / 90 + 0.4);
   const e = smartSettle(p, s.left);
-  near(total(p, flat(90, 1.4)) + e.user, 165.26, 0.05);
-  near(e.us - 2, 12.54, 0.05);
+  near(total(p, flat(90, 1.4)) + e.user, 156.9, 0.05);
+  near(e.us - 2, 20.9, 0.05);
 });
 
 test('a weak market is topped up from the reserve, never beyond it', () => {
