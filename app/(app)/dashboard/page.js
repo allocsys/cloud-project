@@ -188,7 +188,7 @@ export default function Dashboard() {
   const weekAvg = dash.avgUsd || 0;
 
   // Split of the daily earnings, by hall or by plan.
-  const hallName = (id) => ((cat && cat.halls[id]) || halls[id])?.name || id;
+  const hallName = (id) => (id === 'smart' ? 'Smart Mining' : ((cat && cat.halls[id]) || halls[id])?.name || id);
   const split = Object.values(
     online.reduce((m, c) => {
       const k = by === 'hall' ? hallName(c.hall) : c.plan;
