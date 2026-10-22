@@ -1,10 +1,37 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, scopeOf } from '../lib/guard.js';
+import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, decideDay, replayGuard, scopeOf } from '../lib/guard.js';
 import { usdPerDay } from '../lib/earnings.js';
 
 const D0 = 20000 * DAY; // some UTC midnight
 const asic = { hall: 'tx-1', th: 10, days: 5, dailyUsd: 2, startedAt: D0 };
+
+test('decideDay: one rule for every scope, and a scope paused the day before needs margin plus buffer to resume', () => {
+  const rates = { a: { elec: 0.01, maint: 0.002 }, b: { elec: 0.005, maint: 0.001 } };
+  const settings = { asicsAuto: true, smartAuto: true, margin: 0, buffer: 0.02 };
+  const base = { rates, payout: 0.003, settings };
+  assert.deepEqual(decideDay({ ...base, gross: 0.011, best: 2, before: new Set() }), ['a'], 'only the hall that loses money');
+  assert.deepEqual(decideDay({ ...base, gross: 0.0121, best: 2, before: new Set() }), [], 'just above break-even stays on');
+  assert.deepEqual(decideDay({ ...base, gross: 0.0121, best: 2, before: new Set(['a']) }), ['a'], 'but stays off once paused');
+  assert.deepEqual(decideDay({ ...base, gross: 0.02, best: 0.5, before: new Set() }), ['smart'], 'Smart on its best coin ratio');
+  assert.deepEqual(decideDay({ ...base, gross: null, best: null, before: new Set() }), [], 'no data pauses nothing');
+  assert.deepEqual(decideDay({ ...base, settings: { ...settings, asicsAuto: false, smartAuto: false }, gross: 0.011, best: 0.5, before: new Set() }), [], 'switched off');
+});
+
+test('replayGuard: oldest first from a clean start, resumes only above margin plus buffer, skips days with no data', () => {
+  const rates = { a: { elec: 0.01, maint: 0.002 } };
+  const settings = { asicsAuto: true, smartAuto: false, margin: 0, buffer: 0.02 };
+  const days = [
+    { day: 1 * DAY, gross: 0.02, best: null }, // good
+    { day: 2 * DAY, gross: 0.011, best: null }, // loses: paused
+    { day: 3 * DAY, gross: 0.0121, best: null }, // barely profitable, still paused (needs margin plus buffer)
+    { day: 4 * DAY, gross: 0.02, best: null }, // good: resumes
+    { day: 5 * DAY, gross: null, best: null }, // no data: nothing
+    { day: 6 * DAY, gross: 0.0121, best: null }, // barely profitable and not paused the day before: stays on
+  ];
+  assert.deepEqual(replayGuard(days, { rates, payout: 0.003, settings }), { a: [2 * DAY, 3 * DAY] });
+  assert.deepEqual(replayGuard([], { rates, payout: 0.003, settings }), {});
+});
 
 test('settings: defaults, limits and cleaning', () => {
   const d = normalizeGuard(undefined);
