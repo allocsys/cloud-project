@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const { pool, q, tx, createUser, getUser, metaGet, metaSet, metaDelete } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { ensureGuardDays, guardState, guardOverview, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
+const { ensureGuardDays, guardState, guardOverview, guardBacktest, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
 
 const DAY = 86400000;
 const today = Math.floor(Date.now() / DAY) * DAY;
@@ -109,4 +109,24 @@ test('the admin overview lists each scope\'s paused days of the last 14, newest 
   assert.deepEqual(by.smart, [d(1)], 'an automatic pause counts');
   assert.deepEqual(by['no-1'], [d(13)], 'the window is 14 days: today and the 13 before it');
   assert.deepEqual(by['is-2'], []);
+});
+
+test('the backtest replays the rule over the last 30 days with the typed settings and changes nothing', async () => {
+  // Market left by the tests above: ASICs gross is high on d(3) and d(2) and far too low on d(1); the Smart ratio is 0.5 on all three.
+  const stored = JSON.stringify([metaGet('guard'), metaGet('guarddays')]);
+  const r = await guardBacktest({ asicsAuto: true, smartAuto: true, margin: 0, buffer: 2 });
+  assert.equal(r.ok, true);
+  assert.equal(r.days, 30);
+  assert.equal(r.withData, 3);
+  assert.equal(r.margin, 0);
+  assert.equal(r.buffer, 2);
+  const by = Object.fromEntries(r.scopes.map((s) => [s.id, s.days]));
+  assert.deepEqual(by['tx-1'], [d(1)]);
+  assert.deepEqual(by['is-2'], [d(1)]);
+  assert.deepEqual(by['no-1'], [d(1)]);
+  assert.deepEqual(by.smart, [d(3), d(2), d(1)], 'oldest first');
+  const off = await guardBacktest({ asicsAuto: false, smartAuto: true, margin: 0, buffer: 2 });
+  assert.deepEqual(off.scopes.find((s) => s.id === 'tx-1').days, [], 'the typed switch counts, not the saved one');
+  assert.equal((await guardBacktest({ margin: 80, buffer: 1 })).ok, false, 'limits apply');
+  assert.equal(JSON.stringify([metaGet('guard'), metaGet('guarddays')]), stored, 'nothing is saved or decided');
 });
