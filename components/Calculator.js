@@ -8,7 +8,7 @@ import Link from 'next/link';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { BTC_USD } from '@/lib/data';
-import { SMART, dailyUsd, smartBaseYield } from '@/lib/smart';
+import { SMART, dailyUsd, smartBaseYield, smartPayout } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 
 const TICKS = [100, 500, 1000, 5000];
@@ -49,7 +49,7 @@ export default function Calculator({ signedIn = false }) {
   const [term, setTerm] = useState(120);
 
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const perDay = dailyUsd(b, smartBaseYield(term, cat?.smartPayout), best?.ratio ?? 1);
+  const perDay = dailyUsd(b, smartBaseYield(term, smartPayout(b, term, cat?.smartTable)), best?.ratio ?? 1);
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
