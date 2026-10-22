@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const { pool, q, tx, createUser, getUser, metaGet, metaSet, metaDelete } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { ensureGuardDays, guardState, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
+const { ensureGuardDays, guardState, guardOverview, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
 
 const DAY = 86400000;
 const today = Math.floor(Date.now() / DAY) * DAY;
@@ -97,4 +97,17 @@ test('settings are checked: margin and buffer have limits', async () => {
   assert.equal(r.margin, 0.025);
   assert.equal(r.mode, 'extend');
   assert.ok(Array.isArray(metaGet('guard').manual?.['tx-1']), 'saving the rules keeps the hand flips');
+});
+
+test('the admin overview lists each scope\'s paused days of the last 14, newest first, by rule and by hand', async () => {
+  // tx-1 is paused by hand from today (set above); Smart was paused by the rule yesterday; no-1 has one day inside the window
+  // (13 days ago) and one just outside it (14 days ago).
+  await metaSet('guarddays', { upto: d(1), paused: { [d(1)]: ['smart'], [d(13)]: ['no-1'], [d(14)]: ['no-1'] } });
+  const o = await guardOverview();
+  const by = Object.fromEntries(o.scopes.map((s) => [s.id, s.pausedDays]));
+  assert.deepEqual(by['tx-1'], [today], 'a hand pause from today counts');
+  assert.deepEqual(by.smart, [d(1)], 'an automatic pause counts');
+  assert.deepEqual(by['no-1'], [d(13)], 'the window is 14 days: today and the 13 before it');
+  assert.deepEqual(by['is-2'], []);
+  await q('UPDATE users SET data = data WHERE id = $1', [ID]);
 });
