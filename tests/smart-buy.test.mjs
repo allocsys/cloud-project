@@ -11,7 +11,7 @@ const miners = await import('@/lib/server/miners');
 const { act } = await import('@/lib/server/admin');
 const { smartSettings } = await import('@/lib/server/smart-admin');
 const { getPrices } = await import('@/lib/server/prices');
-const { smartPlan, smartBaseYield, SMART } = await import('@/lib/smart');
+const { smartPlan, smartBaseYield, smartPayout, SMART, SMART_RATES, SMART_BONUS } = await import('@/lib/smart');
 
 const run = `s${Date.now().toString(36)}`;
 const PW = 'correct horse 1';
@@ -50,7 +50,7 @@ test('Smart Mining is bought from the balance once, and the miner carries its bu
   assert.equal(c.budget, 200);
   assert.equal(c.th, 0);
   assert.equal(c.days, 90);
-  assert.ok(Math.abs(c.baseYield - smartBaseYield(90)) < 1e-12);
+  assert.ok(Math.abs(c.baseYield - smartBaseYield(90, smartPayout(200, 90))) < 1e-12);
   assert.equal(c.price, 200);
 
   const u = await getUser(id);
@@ -88,42 +88,56 @@ test('the admin switch turns Smart Mining off for new purchases and back on', as
   const id = await account('switch');
   await credit(id, 1);
   try {
-    assert.equal((await act({ action: 'smart-settings', enabled: false, payout: 0.003 })).ok, true);
+    assert.equal((await act({ action: 'smart-settings', enabled: false })).ok, true);
     assert.equal((await smartSettings()).enabled, false);
     const off = await buy(id, { budget: 100, days: 90 });
     assert.equal(off.ok, false);
     assert.equal(off.status, 409);
     assert.equal((await getUser(id)).contracts.length, 0);
   } finally {
-    await act({ action: 'smart-settings', enabled: true, payout: 0.003 });
+    await act({ action: 'smart-settings', enabled: true });
   }
   assert.equal((await smartSettings()).enabled, true);
   assert.equal((await buy(id, { budget: 100, days: 90 })).ok, true);
 });
 
-test('a new payout applies to purchases made afterwards and each miner keeps its own', async () => {
+test('a new pay table applies to purchases made afterwards and each miner keeps its own', async () => {
   const id = await account('payout');
   await credit(id, 1);
+  const flatTable = { rates: SMART_RATES.map(() => 0.004), bonus: { 120: 0.0005, 150: 0.001 } };
   try {
     const first = await buy(id, { budget: 100, days: 120 });
     assert.equal(first.ok, true);
-    assert.equal((await act({ action: 'smart-settings', enabled: true, payout: 0.004 })).ok, true);
+    assert.equal((await act({ action: 'smart-settings', enabled: true, ...flatTable })).ok, true);
+    assert.deepEqual((await smartSettings()).table, { rates: flatTable.rates, bonus: { 90: 0, 120: 0.0005, 150: 0.001 } });
     const second = await buy(id, { budget: 100, days: 120 });
     assert.equal(second.ok, true);
-    assert.ok(Math.abs(first.contract.baseYield - smartBaseYield(120, 0.003)) < 1e-12);
-    assert.ok(Math.abs(second.contract.baseYield - smartBaseYield(120, 0.004)) < 1e-12);
+    const was = smartBaseYield(120, smartPayout(100, 120));
+    assert.ok(Math.abs(first.contract.baseYield - was) < 1e-12);
+    assert.ok(Math.abs(second.contract.baseYield - smartBaseYield(120, 0.0045)) < 1e-12);
+    assert.ok(Math.abs(second.contract.reserve.hi - 0.0045 * 1.3) < 1e-9, 'the band follows the miner\'s own payout');
     const u = await getUser(id);
-    assert.ok(Math.abs(u.contracts[0].baseYield - smartBaseYield(120, 0.003)) < 1e-12);
+    assert.ok(Math.abs(u.contracts[0].baseYield - was) < 1e-12);
   } finally {
-    await act({ action: 'smart-settings', enabled: true, payout: 0.003 });
+    await act({ action: 'smart-settings', enabled: true, rates: SMART_RATES, bonus: { 120: SMART_BONUS[120], 150: SMART_BONUS[150] } });
   }
 });
 
-test('a payout outside the allowed range is refused and nothing changes', async () => {
+test('a pay table outside the allowed range is refused and nothing changes', async () => {
   const before = await smartSettings();
-  for (const payout of [0.1, 3, 'x', '']) {
-    const r = await act({ action: 'smart-settings', enabled: true, payout });
-    assert.equal(r.ok, false, String(payout));
+  const bad = [
+    { rates: [...SMART_RATES.slice(0, 9), 0.1] },
+    { rates: SMART_RATES.slice(1) },
+    { rates: [...SMART_RATES.slice(0, 9), 'x'] },
+    { rates: [...SMART_RATES.slice(0, 9), ''] },
+    { rates: 'x' },
+    { bonus: { 120: 0.5, 150: 0 } },
+    { bonus: { 120: 0, 150: -0.001 } },
+    { bonus: { 120: 'x', 150: 0 } },
+  ];
+  for (const body of bad) {
+    const r = await act({ action: 'smart-settings', enabled: true, ...body });
+    assert.equal(r.ok, false, JSON.stringify(body));
     assert.equal(r.status, 422);
   }
   assert.deepEqual(await smartSettings(), before);
