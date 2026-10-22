@@ -109,5 +109,4 @@ test('the admin overview lists each scope\'s paused days of the last 14, newest 
   assert.deepEqual(by.smart, [d(1)], 'an automatic pause counts');
   assert.deepEqual(by['no-1'], [d(13)], 'the window is 14 days: today and the 13 before it');
   assert.deepEqual(by['is-2'], []);
-  await q('UPDATE users SET data = data WHERE id = $1', [ID]);
 });
