@@ -14,6 +14,7 @@ export const dynamic = 'force-dynamic';
 // `smart` is the coin Smart Mining is on today and how it pays against the reference ({ coin, ratio }), or null when there is no data.
 // `halls[].net` is already the live-linked rate buyers pay (see lib/pricing.js); `priced` says whether that is in effect
 // (the saved rates are used until the first live reading).
+// `smartTable` is the pay table for new Smart Mining purchases ({ rates, bonus }, lib/smart.js smartPayout).
 // `pauseRule` is what a day the profit guard pauses does to a miner bought now: 'extend' (the term moves back a day) or 'zero'
 // (the day counts and pays nothing). It is fixed on the miner at purchase.
 export async function GET() {
@@ -26,7 +27,7 @@ export async function GET() {
       priced: pricingGross() ? { buffer: PRICE_BUFFER } : null,
       smart: best ? { coin: best.coin, ratio: Math.round(best.ratio * 10000) / 10000 } : null,
       smartOn: st.enabled,
-      smartPayout: st.payout,
+      smartTable: st.table,
       pauseRule: guard.mode,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
