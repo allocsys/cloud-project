@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { fmtTh, fmtUsd } from '@/lib/data';
 import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
+import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -38,26 +39,36 @@ const REF_FIELDS = [
   ['maxCodes', 'Codes per user (with the default)'],
 ];
 
-// Smart Mining: sell on/off, the net profit a day for new purchases (shown in percent, stored as a fraction), and which coins may be picked. See lib/server/smart-admin.js.
+// Smart Mining: sell on/off, the pay table for new purchases (ten rates by budget on a 90 day term, plus what 120 and 150 days add;
+// shown in percent, stored as fractions), and which coins may be picked. See lib/server/smart-admin.js.
+const pctText = (p) => String(Math.round(p * 1e6) / 1e4);
+const draftOf = (t) => ({ rates: t.rates.map(pctText), b120: pctText(t.bonus[120]), b150: pctText(t.bonus[150]) });
 function SmartCard({ smart, busy, run }) {
-  const set = smart?.settings || { enabled: true, payout: 0.003 };
+  const set = smart?.settings || { enabled: true, table: SMART_TABLE };
+  const table = set.table || SMART_TABLE;
   const coins = smart?.coins || [];
-  const pct = (p) => String(Math.round(p * 1e6) / 1e4);
-  const [payout, setPayout] = useState(pct(set.payout));
-  useEffect(() => setPayout(pct(set.payout)), [set.payout]);
-  const asFraction = () => Number(String(payout).trim().replace(',', '.')) / 100;
+  const key = JSON.stringify(table);
+  const [d, setD] = useState(() => draftOf(table));
+  useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
+  const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
+  const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150) } }, 'Smart Mining pay table saved');
   return (
     <div className="card">
       <h3>Smart Mining</h3>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
-      <Field id="smp" label="Net profit a day at the reference market (%)" inputMode="decimal" value={payout} onChange={setPayout} />
+      <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
+      {SMART_BUDGETS.map((b, i) => (
+        <Field key={b} id={`smr${i}`} label={`$${b.toLocaleString('en-US')}`} inputMode="decimal" value={d.rates[i]} onChange={(v) => setD({ ...d, rates: d.rates.map((x, j) => (j === i ? v : x)) })} />
+      ))}
+      <Field id="smb1" label="Added on 120 days (% a day)" inputMode="decimal" value={d.b120} onChange={(v) => setD({ ...d, b120: v })} />
+      <Field id="smb2" label="Added on 150 days (% a day)" inputMode="decimal" value={d.b150} onChange={(v) => setD({ ...d, b150: v })} />
       <div className="adm-actions">
-        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, payout: asFraction() }, 'Smart Mining payout saved')}>Save payout</button>
-        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled, payout: set.payout }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
+        <button className="btn" disabled={busy} onClick={save}>Save pay table</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
           {set.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 12px' }}>Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new payout applies to purchases made after saving, each miner keeps the one it was bought with.</p>
+      <p className="fine" style={{ margin: '8px 0 12px' }}>Between two budgets the rate follows the log of the budget, and it stays flat above $10,000. Each rate must be between 0.1% and 1%. Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new table applies to purchases made after saving, each miner keeps the rate and reserve band it was bought with.</p>
       {coins.map((c) => (
         <div className="row adm-m" key={c.symbol}>
           <div>
@@ -104,7 +115,7 @@ function GuardCard({ guard, busy, run }) {
       </Pick>
       <Field id="gpg" label="Profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
       <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
-      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
+      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Each Smart Mining plan is judged on its own payout and term, so the plans with the lowest rates and shortest terms pause first; the Smart row shows the first and the last to pause. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
       <div className="adm-actions">
         <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
         <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
@@ -134,6 +145,9 @@ function GuardCard({ guard, busy, run }) {
             {sc.name}
             <small>{sc.pausedToday ? 'Paused today' : 'Running today'} · {HAND[sc.manual] || sc.manual}{sc.manualNext !== sc.manual ? ` (then ${String(HAND[sc.manualNext] || sc.manualNext).toLowerCase()})` : ''} · last auto pause {lastText(sc.lastPaused)}</small>
             <small>Paused in the last 14 days: {daysText(sc.pausedDays)}</small>
+            {(sc.tiers || []).map((t) => (
+              <small key={t.name}>{t.name}: {t.pausedToday ? 'paused today' : 'running today'} · last 14 days: {daysText(t.pausedDays)}</small>
+            ))}
           </div>
           <div className="adm-btns">
             <button className="btn ghost" disabled={busy || sc.manualNext === 'paused'} onClick={() => run({ action: 'guard-manual', scope: sc.id, state: 'paused', when: from }, 'Pause saved')}>Pause</button>
