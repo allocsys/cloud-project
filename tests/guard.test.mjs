@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, decideDay, replayGuard, scopeOf } from '../lib/guard.js';
+import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, decideDay, replayGuard, replaySmart, smartReplay, smartPausedDays, parseSmartScope, contractPayout, scopeOf } from '../lib/guard.js';
 import { usdPerDay } from '../lib/earnings.js';
 
 const D0 = 20000 * DAY; // some UTC midnight
@@ -13,7 +13,7 @@ test('decideDay: one rule for every scope, and a scope paused the day before nee
   assert.deepEqual(decideDay({ ...base, gross: 0.011, best: 2, before: new Set() }), ['a'], 'only the hall that loses money');
   assert.deepEqual(decideDay({ ...base, gross: 0.0121, best: 2, before: new Set() }), [], 'just above break-even stays on');
   assert.deepEqual(decideDay({ ...base, gross: 0.0121, best: 2, before: new Set(['a']) }), ['a'], 'but stays off once paused');
-  assert.deepEqual(decideDay({ ...base, gross: 0.02, best: 0.5, before: new Set() }), ['smart'], 'Smart on its best coin ratio');
+  assert.deepEqual(decideDay({ ...base, gross: 0.02, best: 0.5, before: new Set() }), [], 'Smart is not decided here: it is replayed per contract');
   assert.deepEqual(decideDay({ ...base, gross: null, best: null, before: new Set() }), [], 'no data pauses nothing');
   assert.deepEqual(decideDay({ ...base, settings: { ...settings, asicsAuto: false, smartAuto: false }, gross: 0.011, best: 0.5, before: new Set() }), [], 'switched off');
 });
@@ -108,4 +108,69 @@ test('a paused day pays nothing', () => {
   assert.equal(usdPerDay(asic, day, market, now), 0);
   assert.equal(usdPerDay(asic, day + DAY, market, now), 2);
   assert.equal(usdPerDay(asic, day, null, now), 2, 'no guard, no pause');
+});
+
+// Smart Mining: a $100 plan on 90 days at 0.21% a day breaks even at ratio 1 / 1.189 = 0.841; a $10,000 plan on 150 days at 0.42%
+// breaks even at 1 / 1.63 = 0.614. The same market day can pause the first and not the second.
+const smallSmart = { smart: true, budget: 100, days: 90, baseYield: (1 + 0.0021 * 90) / 90, th: 0, hall: 'smart', dailyUsd: 1 };
+const bigSmart = { smart: true, budget: 10000, days: 150, baseYield: (1 + 0.0042 * 150) / 150, th: 0, hall: 'smart', dailyUsd: 1 };
+const N = (n) => D0 + n * DAY;
+const smartDays = { [N(1)]: [0.9, 0, 0.02], [N(2)]: [0.7, 0, 0.02], [N(3)]: [0.85, 0, 0.02], [N(4)]: [1.2, 0, 0.02] };
+
+test('a Smart contract has its own scope, worked out from its payout and term', () => {
+  assert.equal(scopeOf(smallSmart), 'smart:90:210');
+  assert.equal(scopeOf(bigSmart), 'smart:150:420');
+  assert.ok(Math.abs(contractPayout(smallSmart) - 0.0021) < 1e-12);
+  assert.deepEqual(parseSmartScope('smart:90:210'), { days: 90, payout: 0.0021 });
+  assert.equal(parseSmartScope('smart'), null);
+  assert.equal(parseSmartScope('tx-1'), null);
+  assert.equal(scopeOf({ smart: true }), 'smart', 'a Smart contract with no yield falls back to the plain scope');
+});
+
+test('the same day pauses a small Smart plan and not a big one, and resumes only above margin plus buffer', () => {
+  const guard = { smart: smartDays, manual: {} };
+  const small = [1, 2, 3, 4, 5].map((n) => isPaused(guard, scopeOf(smallSmart), N(n)));
+  assert.deepEqual(small, [false, true, true, false, false], 'ratio 0.7 pauses; 0.85 is profitable but not yet above the buffer; a day with no entry pauses nothing');
+  assert.deepEqual([1, 2, 3, 4, 5].map((n) => isPaused(guard, scopeOf(bigSmart), N(n))), [false, false, false, false, false]);
+  assert.equal(isPaused(guard, scopeOf(smallSmart), D0), false, 'before the first stored day');
+  assert.deepEqual(smartPausedDays(guard, scopeOf(smallSmart)), [N(2), N(3)]);
+  assert.deepEqual(smartPausedDays(guard, scopeOf(bigSmart)), []);
+  assert.deepEqual(smartPausedDays({ manual: {} }, scopeOf(smallSmart)), [], 'no stored days');
+});
+
+test('the margin and buffer stored with a day are the ones that day was decided with', () => {
+  const strict = { [N(1)]: [0.9, 0.1, 0.02] }; // a 6.5% profit share is under a 10% margin
+  assert.equal(isPaused({ smart: strict, manual: {} }, scopeOf(smallSmart), N(1)), true);
+  assert.equal(isPaused({ smart: smartDays, manual: {} }, scopeOf(smallSmart), N(1)), false);
+  assert.equal(smartReplay({ [N(1)]: [0.9, 0, 0] }, 90, 0.0021).size, 0);
+});
+
+test('a hand flip on smart covers every Smart plan and beats the automatic rule', () => {
+  const manual = { smart: [{ from: N(1), state: 'paused' }, { from: N(2), state: 'active' }] };
+  const guard = { smart: smartDays, manual };
+  assert.equal(isPaused(guard, scopeOf(smallSmart), N(1)), true);
+  assert.equal(isPaused(guard, scopeOf(bigSmart), N(1)), true);
+  assert.equal(isPaused(guard, scopeOf(smallSmart), N(2)), false, 'kept on by hand although the rule would pause it');
+  assert.equal(isPaused(guard, 'tx-1', N(1)), false, 'a hall is not touched');
+});
+
+test('a Smart plan paused by the rule has its term pushed back and earns nothing that day', () => {
+  const guard = { smart: smartDays, manual: {} };
+  assert.equal(termEnd(smallSmart, D0, guard), D0 + 92 * DAY);
+  assert.equal(termEnd(bigSmart, D0, guard), D0 + 150 * DAY);
+  assert.equal(termEnd({ ...smallSmart, pauseRule: 'zero' }, D0, guard), D0 + 90 * DAY);
+  assert.equal(pausedDays(smallSmart, D0, D0 + 30 * DAY, guard), 2);
+  const now = D0 + 10 * DAY;
+  assert.equal(usdPerDay(smallSmart, N(2), { guard }, now), 0);
+  assert.ok(usdPerDay(smallSmart, N(4), { guard }, now) > 0);
+  assert.ok(usdPerDay(bigSmart, N(2), { guard }, now) > 0);
+});
+
+test('replaySmart: the backtest follows the same rule, and a day with no data resets it', () => {
+  const days = [{ day: N(1), best: 0.9 }, { day: N(2), best: 0.7 }, { day: N(3), best: null }, { day: N(4), best: 1.2 }];
+  const settings = { smartAuto: true, margin: 0, buffer: 0.02 };
+  assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(smallSmart) }), [N(2)]);
+  assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(bigSmart) }), []);
+  assert.deepEqual(replaySmart(days, { settings: { ...settings, smartAuto: false }, scope: scopeOf(smallSmart) }), []);
+  assert.deepEqual(replaySmart(days, { settings, scope: 'tx-1' }), []);
 });
