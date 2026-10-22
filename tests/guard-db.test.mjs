@@ -6,6 +6,11 @@ import assert from 'node:assert/strict';
 const { pool, q, tx, createUser, getUser, metaGet, metaSet, metaDelete } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { ensureGuardDays, guardState, guardOverview, guardBacktest, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
+const { isPaused } = await import('@/lib/guard');
+
+// The Smart scopes the default pay table gives: the plan that pauses first (90 days at 0.21%) and the one that pauses last (150 days at 0.42%).
+const FIRST = 'smart:90:210';
+const LAST = 'smart:150:420';
 
 const DAY = 86400000;
 const today = Math.floor(Date.now() / DAY) * DAY;
@@ -43,7 +48,7 @@ test('the first run decides nothing: it starts at yesterday', async () => {
   assert.deepEqual(metaGet('guarddays').paused, {});
 });
 
-test('losing days are paused for every hall and Smart, a good day is not, and the owner is told it resumed', async () => {
+test('losing days are paused for every hall, Smart is kept per plan, a good day is not paused, and the owner is told it resumed', async () => {
   await metaSet('guarddays', { upto: d(4), paused: {} });
   const had = (await autoLog()).length;
   await market(d(3), 0.0001); // far below any hall's costs
@@ -55,9 +60,18 @@ test('losing days are paused for every hall and Smart, a good day is not, and th
   assert.equal(await ensureGuardDays(Date.now()), 3);
   const g = metaGet('guarddays');
   assert.equal(g.upto, d(1));
-  assert.deepEqual([...g.paused[d(3)]].sort(), ['is-2', 'no-1', 'smart', 'tx-1']);
-  assert.deepEqual([...g.paused[d(2)]].sort(), ['is-2', 'no-1', 'smart', 'tx-1']);
+  assert.deepEqual([...g.paused[d(3)]].sort(), ['is-2', 'no-1', 'tx-1']);
+  assert.deepEqual([...g.paused[d(2)]].sort(), ['is-2', 'no-1', 'tx-1']);
   assert.equal(g.paused[d(1)], undefined, 'a profitable day pauses nothing');
+  assert.deepEqual(g.smart[d(3)], [0.5, 0, 0.02], 'Smart keeps the day\'s best ratio with the rule in force');
+  assert.deepEqual(g.smart[d(2)], [0.5, 0, 0.02]);
+  assert.deepEqual(g.smart[d(1)], [2, 0, 0.02]);
+  const s = await guardState();
+  for (const scope of [FIRST, LAST]) {
+    assert.equal(isPaused(s, scope, d(3)), true, `${scope} is below its break-even`);
+    assert.equal(isPaused(s, scope, d(2)), true);
+    assert.equal(isPaused(s, scope, d(1)), false, `${scope} resumes on a good day`);
+  }
   const u = await getUser(ID);
   assert.ok(u.notifications.some((n) => n.title === 'Mining resumed'), 'the owner of a tx-1 miner hears it is back');
   const log = await autoLog();
@@ -73,6 +87,7 @@ test('a decided day is locked, and a second run does nothing', async () => {
   assert.equal(JSON.stringify(metaGet('guarddays')), before);
   const s = await guardState();
   assert.ok(s.paused[d(3)].includes('tx-1'));
+  assert.deepEqual(s.smart[d(3)], [0.5, 0, 0.02]);
 });
 
 test('switching a scope off stops new pauses for it, and hand flips are saved by scope', async () => {
@@ -81,7 +96,8 @@ test('switching a scope off stops new pauses for it, and hand flips are saved by
   await q('UPDATE coin_days SET gross_per_unit = 0.5 WHERE day = $1', [d(1)]);
   assert.equal((await saveGuardSettings({ asicsAuto: false, smartAuto: true, mode: 'zero', margin: 0, buffer: 2 })).ok, true);
   assert.equal(await ensureGuardDays(Date.now()), 1);
-  assert.deepEqual(metaGet('guarddays').paused[d(1)], ['smart'], 'ASICs auto is off, Smart is still guarded');
+  assert.equal(metaGet('guarddays').paused[d(1)], undefined, 'ASICs auto is off');
+  assert.deepEqual(metaGet('guarddays').smart[d(1)], [0.5, 0, 0.02], 'Smart is still guarded: its ratio is kept');
   assert.equal((await setGuardManual({ scope: 'tx-1', state: 'paused', when: 'now' })).ok, true);
   assert.equal((await setGuardManual({ scope: 'nope', state: 'paused' })).ok, false);
   assert.equal((await setGuardManual({ scope: 'tx-1', state: 'maybe' })).ok, false);
@@ -100,15 +116,19 @@ test('settings are checked: margin and buffer have limits', async () => {
 });
 
 test('the admin overview lists each scope\'s paused days of the last 14, newest first, by rule and by hand', async () => {
-  // tx-1 is paused by hand from today (set above); Smart was paused by the rule yesterday; no-1 has one day inside the window
-  // (13 days ago) and one just outside it (14 days ago).
-  await metaSet('guarddays', { upto: d(1), paused: { [d(1)]: ['smart'], [d(13)]: ['no-1'], [d(14)]: ['no-1'] } });
+  // tx-1 is paused by hand from today (set above); the first Smart plan was paused by the rule yesterday; no-1 has one day inside
+  // the window (13 days ago) and one just outside it (14 days ago).
+  await metaSet('guarddays', { upto: d(1), paused: { [d(13)]: ['no-1'], [d(14)]: ['no-1'] }, smart: { [d(1)]: [0.5, 0, 0.02] } });
   const o = await guardOverview();
   const by = Object.fromEntries(o.scopes.map((s) => [s.id, s.pausedDays]));
   assert.deepEqual(by['tx-1'], [today], 'a hand pause from today counts');
   assert.deepEqual(by.smart, [d(1)], 'an automatic pause counts');
   assert.deepEqual(by['no-1'], [d(13)], 'the window is 14 days: today and the 13 before it');
   assert.deepEqual(by['is-2'], []);
+  const sm = o.scopes.find((s) => s.id === 'smart');
+  assert.equal(sm.lastPaused, d(1));
+  assert.equal(sm.tiers.length, 2);
+  assert.deepEqual(sm.tiers.map((t) => t.pausedDays), [[d(1)], [d(1)]], 'both ends of the Smart range were under their break-even');
 });
 
 test('the backtest replays the rule over the last 30 days with the typed settings and changes nothing', async () => {
@@ -124,7 +144,9 @@ test('the backtest replays the rule over the last 30 days with the typed setting
   assert.deepEqual(by['tx-1'], [d(1)]);
   assert.deepEqual(by['is-2'], [d(1)]);
   assert.deepEqual(by['no-1'], [d(1)]);
-  assert.deepEqual(by.smart, [d(3), d(2), d(1)], 'oldest first');
+  assert.deepEqual(by[FIRST], [d(3), d(2), d(1)], 'oldest first');
+  assert.deepEqual(by[LAST], [d(3), d(2), d(1)]);
+  assert.equal(by.smart, undefined, 'Smart is listed per plan, not as one scope');
   const off = await guardBacktest({ asicsAuto: false, smartAuto: true, margin: 0, buffer: 2 });
   assert.deepEqual(off.scopes.find((s) => s.id === 'tx-1').days, [], 'the typed switch counts, not the saved one');
   assert.equal((await guardBacktest({ margin: 80, buffer: 1 })).ok, false, 'limits apply');
