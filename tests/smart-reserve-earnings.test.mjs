@@ -26,19 +26,19 @@ const totalAt = (plan, ratio) => buildEarnings([miner(plan)], now, 100000, marke
 const near = (a, b, e = 0.05) => assert.ok(Math.abs(a - b) <= e, `${a} vs ${b}`);
 
 test('a finished term in a flat market pays budget x (1 + 0.3% x days)', () => {
-  near(totalAt(smartPlan(100, 90), 1), 127);
+  near(totalAt(smartPlan(100, 90, 0.003), 1), 127);
 });
 
 test('a finished term in a strong market pays the capped days plus half of the reserve left', () => {
-  near(totalAt(smartPlan(100, 90), 1.4), 156.9);
+  near(totalAt(smartPlan(100, 90, 0.003), 1.4), 156.45);
 });
 
 test('a finished term in a weak market is topped up only from the seed', () => {
-  near(totalAt(smartPlan(100, 90), 0.6), 78.2);
+  near(totalAt(smartPlan(100, 90, 0.003), 0.6), 78.2);
 });
 
 test('a miner bought before the reserve existed is paid as before', () => {
-  const plan = smartPlan(100, 90);
+  const plan = smartPlan(100, 90, 0.003);
   const old = { ...miner(plan), baseYield: 1.06 / 90 };
   delete old.reserve;
   near(buildEarnings([old], now, 100000, marketAt(1)).totalUsd, 106);
