@@ -84,6 +84,7 @@ function GuardCard({ guard, busy, run }) {
   const d = draft || { asicsAuto: s.asicsAuto, smartAuto: s.smartAuto, mode: s.mode, margin: String(s.margin), buffer: String(s.buffer) };
   const put = (k, v) => setDraft({ ...d, [k]: v });
   const lastText = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'never');
+  const daysText = (list) => (list && list.length ? list.map(lastText).join(', ') : 'none');
   return (
     <div className="card">
       <h3>Profit guard</h3>
@@ -116,6 +117,7 @@ function GuardCard({ guard, busy, run }) {
           <div>
             {sc.name}
             <small>{sc.pausedToday ? 'Paused today' : 'Running today'} · {HAND[sc.manual] || sc.manual}{sc.manualNext !== sc.manual ? ` (then ${String(HAND[sc.manualNext] || sc.manualNext).toLowerCase()})` : ''} · last auto pause {lastText(sc.lastPaused)}</small>
+            <small>Paused in the last 14 days: {daysText(sc.pausedDays)}</small>
           </div>
           <div className="adm-btns">
             <button className="btn ghost" disabled={busy || sc.manualNext === 'paused'} onClick={() => run({ action: 'guard-manual', scope: sc.id, state: 'paused', when: from }, 'Pause saved')}>Pause</button>
