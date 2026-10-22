@@ -80,6 +80,7 @@ function GuardCard({ guard, busy, run }) {
   const s = guard?.settings;
   const [draft, setDraft] = useState(null);
   const [from, setFrom] = useState('tomorrow');
+  const [test, setTest] = useState(null); // the last backtest: what the rule would have done over the last 30 days
   if (!s) return null;
   const d = draft || { asicsAuto: s.asicsAuto, smartAuto: s.smartAuto, mode: s.mode, margin: String(s.margin), buffer: String(s.buffer) };
   const put = (k, v) => setDraft({ ...d, [k]: v });
@@ -105,8 +106,23 @@ function GuardCard({ guard, busy, run }) {
       <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
       <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
       <div className="adm-actions">
+        <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
         <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
       </div>
+      {test && (
+        <div style={{ marginTop: 8 }}>
+          <p className="fine" style={{ margin: '0 0 4px' }}>Last {test.days} days ({test.withData} with market data), margin {test.margin}% and buffer {test.buffer}%. The rule only; hand flips are not counted. Nothing was saved.</p>
+          {test.scopes.map((x) => (
+            <div className="row adm-m" key={x.id}>
+              <div>
+                {x.name}
+                <small>{x.count ? x.days.map(lastText).join(', ') : 'No paused days'}</small>
+              </div>
+              <b>{x.count}</b>
+            </div>
+          ))}
+        </div>
+      )}
       <span className="eyebrow adm-sub">By hand</span>
       <Pick id="gpw" label="Takes effect" value={from} onChange={setFrom}>
         <option value="tomorrow">From tomorrow (UTC)</option>
