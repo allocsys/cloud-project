@@ -53,7 +53,7 @@ export default function Plans() {
   // What the two cards show, and what the sheet confirms: the ASICs pick and the Smart Mining pick.
   const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const ap = customPlan(thFromPos(pos), aterm, hallMap);
-  const sp = smartPlan(bNum, term, cat?.smartPayout);
+  const sp = smartPlan(bNum, term, cat?.smartTable);
   // The plan on the sheet: Smart Mining or an ASICs pick.
   const cur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
