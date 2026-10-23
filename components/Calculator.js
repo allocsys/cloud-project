@@ -58,8 +58,7 @@ export default function Calculator({ signedIn = false }) {
 
   const usdShown = useGlide(perDay);
   const btcShown = useGlide(perDay / btcPx);
-  const monthShown = useGlide(perDay * 30);
-  const termShown = useGlide(perDay * term);
+  const termShown = useGlide(profit);
 
   if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
 
@@ -140,18 +139,15 @@ export default function Calculator({ signedIn = false }) {
 
         <div className="calc-grid">
           <div>
-            <span>Per month</span>
-            <b>~${usd2(monthShown)}</b>
-          </div>
-          <div>
-            <span>Over {term} days</span>
-            <b>About ${usd2(termShown)}<small>Between ${usd2(lo)} and ${usd2(hi)}</small></b>
-          </div>
-          <div>
             <span>Price</span>
             <b>${usd2(b)}</b>
           </div>
+          <div>
+            <span>Profit over {term} days</span>
+            <b>About ${usd2(termShown)}</b>
+          </div>
         </div>
+        <p className="calc-range">Likely between ${usd2(lo)} and ${usd2(hi)}</p>
         <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
 
         <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
