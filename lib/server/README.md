@@ -5,7 +5,7 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | Endpoint | What | Caching |
 | --- | --- | --- |
 | `GET /api/prices` | `{ prices: { btc, eth, ... }, at, source }` | Server memory 30 s (stale up to 5 min while refreshing), edge `s-maxage=15, stale-while-revalidate=60` |
-| `GET /api/plans` | `{ halls, live, priced, smart, smartOn, smartPayout, pauseRule }`: the halls with live-linked net rates (2% below the live gross, refreshed hourly, floor 0.004; `priced` is null until the first live reading, when the saved rates apply), the live market, and Smart Mining state. A purchase reads the price once and locks it | Edge `s-maxage=10, stale-while-revalidate=30` |
+| `GET /api/plans` | `{ halls, live, priced, smart, smartOn, smartTable, pauseRule }`: the halls with live-linked net rates (2% below the live gross, refreshed hourly, floor 0.004; `priced` is null until the first live reading, when the saved rates apply), the live market, and Smart Mining state (`smartTable` is the pay table for new purchases: ten rates by budget plus the 120/150 day bonus). A purchase reads the price once and locks it | Edge `s-maxage=10, stale-while-revalidate=30` |
 | `GET /api/miners` | `{ contracts, nextSerial }` for the user | `no-store`; browser stale-while-revalidate copy |
 | `GET /api/miners/:serial` | `{ contract }` or 404 | `no-store` |
 | `POST /api/plans/buy` | `{ planId }`, header `Idempotency-Key`; returns the new contract and a history entry | `no-store` |
