@@ -490,7 +490,7 @@ input::placeholder { color: var(--ph); }
 .calc-ticks button:first-child { padding-left: 0; text-align: left; }
 .calc-ticks button:last-child { padding-right: 0; text-align: right; }
 .calc-ticks button:active { color: var(--gold); }
-.calc-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; margin-top: 16px; }
+.calc-grid { display: grid; grid-template-columns: 1fr; gap: 8px; margin-top: 16px; }
 .calc-grid div { min-width: 0; padding: 10px; border-radius: 12px; background: var(--s2); }
 :root[data-theme="light"] .calc-grid div { box-shadow: inset 0 0 0 1px var(--line); }
 .calc-grid span { display: block; color: var(--mute); font-size: 11px; line-height: 16px; font-weight: 500; }
