@@ -1,6 +1,5 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
-import ChainSteps from '@/components/ChainSteps';
 import Calculator from '@/components/Calculator';
 import Decrypt from '@/components/Decrypt';
 import Reveal from '@/components/Reveal';
@@ -13,12 +12,6 @@ export const metadata = {
 };
 
 const MARQUEE = ['Daily earnings', 'Pay in BTC', 'Reviewed withdrawals', 'Works in Telegram', 'Install as an app', 'Invite and earn rebates'];
-
-const STEPS = [
-  { t: 'Pick a plan', d: 'Choose the hash power that fits your budget.' },
-  { t: 'Pay in bitcoin', d: 'Send BTC to your personal payment address. Your miner starts once the payment confirms.' },
-  { t: 'Follow your earnings', d: 'Open your dashboard to see what your miners earn, day by day.' },
-];
 
 const ICONS = {
   eye: (
@@ -119,15 +112,6 @@ export default async function Home() {
           </div>
         </div>
 
-        <section className="lp-sec" aria-labelledby="how">
-          <Reveal>
-            <h2 id="how">
-              <Decrypt when="view" text="How it works" />
-            </h2>
-            <ChainSteps steps={STEPS} />
-          </Reveal>
-        </section>
-
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
             <h2 id="why">
@@ -159,7 +143,7 @@ export default async function Home() {
               <h3 id="know">Know before you start</h3>
               <p>
                 Mining returns follow the bitcoin price and network difficulty, so they change over time. Earnings are not guaranteed. Only buy what you are
-                comfortable with.
+                comfortable with. You pay in bitcoin to your own personal payment address, and your miner starts once the payment confirms.
               </p>
             </div>
           </Reveal>
