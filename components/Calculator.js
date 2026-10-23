@@ -50,7 +50,7 @@ export default function Calculator({ signedIn = false }) {
 
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const profit = b * smartPayout(b, term, cat?.smartTable) * term; // middle of the band
-  const perDay = profit / term;
+  const perDay = (b + profit) / term; // paid per day: budget back plus profit, same as the Plans screen
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
