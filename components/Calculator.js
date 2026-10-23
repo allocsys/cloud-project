@@ -51,8 +51,6 @@ export default function Calculator({ signedIn = false }) {
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const profit = b * smartPayout(b, term, cat?.smartTable) * term; // middle of the band
   const perDay = profit / term;
-  const lo = profit * (1 - SMART.bandShare);
-  const hi = profit * (1 + SMART.bandShare);
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
@@ -143,7 +141,6 @@ export default function Calculator({ signedIn = false }) {
             <b>About ${usd2(termShown)}</b>
           </div>
         </div>
-        <p className="calc-range">Likely between ${usd2(lo)} and ${usd2(hi)}</p>
         <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
 
         <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
