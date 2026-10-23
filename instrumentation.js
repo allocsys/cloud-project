@@ -6,6 +6,7 @@ export async function register() {
     else {
       (await import('./lib/server/market')).startMarketTicker();
       (await import('./lib/server/smart-market')).startSmartTicker();
+      (await import('./lib/server/renew')).startRenewTicker();
     }
   }
 }
