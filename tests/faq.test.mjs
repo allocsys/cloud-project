@@ -51,6 +51,8 @@ const CASES = [
   ['do you support ethereum', 'networks'],
   ['how do I change my password', 'password'],
   ['what is the swap fee', 'fees'],
+  ['is there a fee for withdrawing', 'withdraw_fee'],
+  ['what is the service fee', 'withdraw_fee'],
   ['how many days is a plan', 'plan_duration'],
   ['does bitcoin price affect my earnings', 'btc_price'],
   ['what is mining difficulty', 'btc_price'],
