@@ -12,10 +12,11 @@ const today = Math.floor(Date.now() / DAY) * DAY;
 const wipe = async () => {
   await q('DELETE FROM smart_picks');
   await q('DELETE FROM coin_days');
-  await q('UPDATE smart_coins SET ref_gross = NULL');
+  await q('UPDATE smart_coins SET ref_gross = NULL, ref_net = NULL');
 };
+// The pick compares net profit per reference rig; with the anchor at 1 below, the value is the ratio.
 const row = (day, coin, gross) =>
-  q('INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, at) VALUES ($1, $2, 1, $3, $4)', [day, coin, String(gross), day + 1000]);
+  q('INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, net_per_rig, at) VALUES ($1, $2, 1, $3, $3, $4)', [day, coin, String(gross), day + 1000]);
 
 before(async () => {
   await migrate();
@@ -36,7 +37,7 @@ test('the seeded coins are BTC (asic) and three gpu_cpu coins, all enabled', asy
 });
 
 test('picks follow each day, hold inside the hysteresis, keep the coin on a day without data, and lock', async () => {
-  await q("UPDATE smart_coins SET ref_gross = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
+  await q("UPDATE smart_coins SET ref_gross = 1, ref_net = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
   const d = (k) => today - k * DAY;
   await row(d(4), 'BTC', 1);
   await row(d(4), 'KAS', 1.5); // KAS is far ahead: KAS
@@ -55,7 +56,7 @@ test('picks follow each day, hold inside the hysteresis, keep the coin on a day 
   ]);
   // Today is never written, and a second run changes nothing.
   assert.ok(!picks.some(([day]) => day === today));
-  await q("UPDATE coin_days SET gross_per_unit = 9 WHERE coin = 'KAS'");
+  await q("UPDATE coin_days SET gross_per_unit = 9, net_per_rig = 9 WHERE coin = 'KAS'");
   assert.equal(await ensurePicks(Date.now()), 0);
   const again = (await q('SELECT day, coin FROM smart_picks ORDER BY day')).rows.map((p) => [Number(p.day), p.coin]);
   assert.deepEqual(again, picks);
