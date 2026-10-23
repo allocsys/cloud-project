@@ -95,6 +95,15 @@ export default async function Home() {
           </div>
         </section>
 
+        <section className="lp-sec" aria-labelledby="calc">
+          <Reveal>
+            <h2 id="calc">
+              <Decrypt when="view" text="Estimate your mining" />
+            </h2>
+            <Calculator signedIn={signedIn} />
+          </Reveal>
+        </section>
+
         <div className="lp-marq" aria-label="Highlights">
           <div className="lp-marq-in">
             <div className="lp-marq-g">
@@ -109,15 +118,6 @@ export default async function Home() {
             </div>
           </div>
         </div>
-
-        <section className="lp-sec" aria-labelledby="calc">
-          <Reveal>
-            <h2 id="calc">
-              <Decrypt when="view" text="Estimate your mining" />
-            </h2>
-            <Calculator signedIn={signedIn} />
-          </Reveal>
-        </section>
 
         <section className="lp-sec" aria-labelledby="how">
           <Reveal>
