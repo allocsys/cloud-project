@@ -448,7 +448,7 @@ export default function Plans() {
               {profitRange && (
                 <div className="row">
                   <span className="mute">Est. profit by term end</span>
-                  <b className="v" style={{ color: 'var(--green)' }}>${money(profitRange.lo)} to ${money(profitRange.hi)}<small>After {cur.days} days · an estimate, not a promise</small></b>
+                  <b className="v" style={{ color: 'var(--green)' }}>About ${money((profitRange.lo + profitRange.hi) / 2)}<small>Between ${money(profitRange.lo)} and ${money(profitRange.hi)} after {cur.days} days · an estimate, not a promise</small></b>
                 </div>
               )}
             </div>
