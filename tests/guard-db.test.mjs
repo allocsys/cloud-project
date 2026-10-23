@@ -24,14 +24,15 @@ const wipe = async () => {
   await metaDelete('guarddays');
 };
 const market = (day, gross) => q('INSERT INTO market_days (day, btc_usd, difficulty, gross_per_th, at) VALUES ($1, 100000, 1, $2, $3)', [day, String(gross), day + 1000]);
-const coin = (day, ratio) => q("INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, at) VALUES ($1, 'BTC', 1, $2, $3)", [day, String(ratio), day + 1000]);
+// A Smart day is a net profit per reference rig; with the anchor set to 1 below, the value is the ratio.
+const coin = (day, ratio) => q("INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, net_per_rig, at) VALUES ($1, 'BTC', 1, $2, $2, $3)", [day, String(ratio), day + 1000]);
 
 const autoLog = async () => (((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data) || []).filter((e) => e.action === 'guard-auto');
 
 before(async () => {
   await migrate();
   await wipe();
-  await q("UPDATE smart_coins SET ref_gross = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
+  await q("UPDATE smart_coins SET ref_gross = 1, ref_net = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
   await tx(async (c) =>
     createUser(c, ID, { contracts: [{ serial: 'OP-9000001', name: 'Guard test', plan: 'Custom', th: 10, hall: 'tx-1', online: true, days: 90, startedAt: d(10), dailyUsd: 1, price: 100, status: 'active' }] }),
   );
@@ -93,7 +94,7 @@ test('a decided day is locked, and a second run does nothing', async () => {
 test('switching a scope off stops new pauses for it, and hand flips are saved by scope', async () => {
   await metaSet('guarddays', { upto: d(2), paused: {} });
   await q('UPDATE market_days SET gross_per_th = 0.0001 WHERE day = $1', [d(1)]);
-  await q('UPDATE coin_days SET gross_per_unit = 0.5 WHERE day = $1', [d(1)]);
+  await q('UPDATE coin_days SET gross_per_unit = 0.5, net_per_rig = 0.5 WHERE day = $1', [d(1)]);
   assert.equal((await saveGuardSettings({ asicsAuto: false, smartAuto: true, mode: 'zero', margin: 0, buffer: 2 })).ok, true);
   assert.equal(await ensureGuardDays(Date.now()), 1);
   assert.equal(metaGet('guarddays').paused[d(1)], undefined, 'ASICs auto is off');
