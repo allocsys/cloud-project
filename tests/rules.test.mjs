@@ -7,7 +7,7 @@ import * as R from '../lib/rules.js';
 import { SERVICE_TIERS } from '../lib/service-fee.js';
 import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '../lib/data.js';
 import { UP_RATIO } from '../lib/telemetry.js';
-import { SMART, smartEstimate } from '../lib/smart.js';
+import { SMART, smartEstimate, smartPlan, smartBand } from '../lib/smart.js';
 import { faqAnswer } from '../lib/faq.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
@@ -70,4 +70,18 @@ test('smartEstimate keeps the budget inside the allowed range', () => {
   assert.equal(smartEstimate(1, 90).budget, SMART.min);
   assert.equal(smartEstimate(1e9, 90).budget, SMART.max);
   assert.equal(smartEstimate('abc', 90).budget, SMART.min);
+});
+
+test('the Plans card and the calculator agree on profit, total and daily figure', () => {
+  for (const budget of [50, 75, 100, 350, 500, 1234, 5000, 10000]) {
+    for (const days of SMART.terms) {
+      const e = smartEstimate(budget, days);
+      const plan = smartPlan(budget, days);
+      const band = smartBand(plan);
+      near(band.mid, e.profit, 0.011); // both round to cents
+      assert.ok(band.low < band.mid && band.mid < band.high);
+      near(Number(plan.daily.slice(1)), e.perDay, 0.011); // the "~$X/day" on the Plans card
+    }
+  }
+  assert.equal(smartBand({ budget: 100, days: 90 }), null); // a plan without a reserve has no range
 });
