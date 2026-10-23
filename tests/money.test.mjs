@@ -9,6 +9,7 @@ const miners = await import('@/lib/server/miners');
 const { withdraw } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 const { customPlan } = await import('@/lib/data');
+const { publicCode, FREE_INVITES } = await import('@/lib/server/referrals');
 
 const run = `m${Date.now().toString(36)}`;
 const email = (n) => `${n}-${run}@test.dev`;
@@ -110,4 +111,19 @@ test('two friends buying at once are both counted and get unique miners', async 
   }
   const serials = us.flatMap((u) => u.contracts.map((c) => c.serial));
   assert.equal(new Set(serials).size, serials.length);
+});
+
+test('an account with no plan can bring in 3 friends; buying a plan lifts the limit', async () => {
+  const inviter = await account('lim');
+  const code = (await getUser(inviter)).refCode;
+  const sign = (n) => auth.signup({ email: email(n), password: PW, ref: code });
+  // Five sign-ups at once: exactly FREE_INVITES are linked, the rest still get an account but no link.
+  const rs = await many(5, (i) => sign(`lf${i}`));
+  assert.ok(rs.every((r) => r.ok));
+  assert.equal(rs.filter((r) => r.ref === 'applied').length, FREE_INVITES);
+  assert.equal(rs.filter((r) => r.ref === 'invalid').length, 2);
+  assert.equal((await publicCode(code)).valid, false);
+  for (let i = 0; i < 3; i += 1) assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
+  assert.equal((await publicCode(code)).valid, true);
+  assert.equal((await sign('lf5')).ref, 'applied');
 });
