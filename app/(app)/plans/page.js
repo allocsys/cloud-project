@@ -13,7 +13,7 @@ import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
 import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
-import { SMART, smartPlan } from '@/lib/smart';
+import { SMART, smartPlan, smartBand } from '@/lib/smart';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -61,7 +61,7 @@ export default function Plans() {
   // Smart Mining: the profit a day is held between the bottom and the top of the reserve band (lib/smart.js), so the term's profit
   // is estimated as that band over the whole term. An estimate, not a promise: a weak market can pay less, a strong one more.
   const money = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  const profitRange = cur?.smart && cur.reserve ? { lo: cur.budget * cur.reserve.lo * cur.days, hi: cur.budget * cur.reserve.hi * cur.days } : null;
+  const profitRange = cur?.smart ? smartBand(cur) : null; // { low, mid, high } from lib/smart.js
   // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
   const canBal = !!cur && balUsd >= cur.price;
@@ -448,7 +448,13 @@ export default function Plans() {
               {profitRange && (
                 <div className="row">
                   <span className="mute">Est. profit by term end</span>
-                  <b className="v" style={{ color: 'var(--green)' }}>About ${money((profitRange.lo + profitRange.hi) / 2)}<small>Between ${money(profitRange.lo)} and ${money(profitRange.hi)} after {cur.days} days · an estimate, not a promise</small></b>
+                  <b className="v" style={{ color: 'var(--green)' }}>About ${money(profitRange.mid)}<small>Between ${money(profitRange.low)} and ${money(profitRange.high)} after {cur.days} days · an estimate, not a promise</small></b>
+                </div>
+              )}
+              {profitRange && (
+                <div className="row">
+                  <span className="mute">Est. total by term end</span>
+                  <b className="v">About ${money(cur.budget + profitRange.mid)}<small>Budget + profit</small></b>
                 </div>
               )}
             </div>
