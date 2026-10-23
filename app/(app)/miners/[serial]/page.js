@@ -4,7 +4,9 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
-import { useApi } from '@/lib/api';
+import { post, useApi } from '@/lib/api';
+import { useToast } from '@/components/Toast';
+import { triggerHaptic } from '@/lib/haptics';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { drillBack } from '@/lib/nav';
 import Spark from '@/components/Spark';
@@ -38,7 +40,9 @@ function Back({ title }) {
 export default function ContractPage() {
   const { serial } = useParams();
   const [all, setAll] = useState(false);
-  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  const { data: md, mutate: mutateMiners } = useApi('/api/miners', { ttl: 10000 });
+  const [toast, show] = useToast();
+  const [renewBusy, setRenewBusy] = useState(false);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
   // The finished payout days and what they came to in BTC, from the server (each day at its own market).
@@ -51,6 +55,25 @@ export default function ContractPage() {
         <div className="card"><p className="empty">Miner not found.</p></div>
       </>
     );
+  }
+
+  // "Renew at term end": the switch moves at once; if saving fails it goes back and says so.
+  async function flipRenew() {
+    if (renewBusy || !md) return;
+    triggerHaptic('selection');
+    const next = !c.renew;
+    const was = md;
+    setRenewBusy(true);
+    mutateMiners({ ...md, contracts: md.contracts.map((x) => (x.serial === serial ? { ...x, renew: next } : x)) });
+    try {
+      await post(`/api/miners/${encodeURIComponent(serial)}`, { renew: next });
+    } catch (err) {
+      triggerHaptic('error');
+      mutateMiners(was);
+      show(err.status ? err.message : 'No connection. Try again.');
+    } finally {
+      setRenewBusy(false);
+    }
   }
 
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
@@ -205,9 +228,21 @@ export default function ContractPage() {
               </>
             )}
             <div className="row"><span className="mute">Term</span><b className="v">{c.started} – {c.ends}</b></div>
+            {c.smart && c.renewable && (
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Renew at term end</div>
+                  <small>Buys the same plan again from your balance. Turn off any time.</small>
+                </div>
+                <button type="button" role="switch" aria-checked={!!c.renew} aria-label="Renew at term end" className="switch" disabled={renewBusy} onClick={flipRenew}>
+                  <i />
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+      {toast}
     </>
   );
 }
