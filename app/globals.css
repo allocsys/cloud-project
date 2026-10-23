@@ -601,8 +601,37 @@ input::placeholder { color: var(--ph); }
 }
 
 .authbox {
+  position: relative;
   width: 100%;
   max-width: 400px;
+}
+
+/* Login backdrop: the same gold cube lattice and corner glow the cards have, fading out toward the bottom so the form stays readable. */
+#auth { position: relative; isolation: isolate; }
+#auth::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  background-image: radial-gradient(120% 60% at 100% 0%, var(--lgc), transparent 62%), var(--lat);
+  background-size: auto, 56px 100px;
+  opacity: 0.8;
+  -webkit-mask-image: linear-gradient(#000, transparent 85%);
+  mask-image: linear-gradient(#000, transparent 85%);
+}
+
+/* Soft gold glow under the logo */
+.authbox::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  left: -44px;
+  top: -44px;
+  width: 144px;
+  height: 144px;
+  pointer-events: none;
+  background: radial-gradient(circle, rgba(233, 196, 106, 0.28), transparent 70%);
 }
 
 .mark {
