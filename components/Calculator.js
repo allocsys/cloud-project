@@ -152,7 +152,7 @@ export default function Calculator({ signedIn = false }) {
           {signedIn ? 'Open this in Plans' : 'Get started'}
         </Link>
         <p className="calc-fine">
-          An estimate of your profit after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
+          An estimate of what you receive after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
           <Link href="/terms">Terms</Link>.
         </p>
       </div>
