@@ -151,7 +151,7 @@ export default function Calculator({ signedIn = false }) {
         </div>
         <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
 
-        <Link href={go} className="btn" onClick={() => triggerHaptic('light')}>
+        <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
           {signedIn ? 'Open this in Plans' : 'Get started'}
         </Link>
         <p className="calc-fine">
