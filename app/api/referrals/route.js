@@ -20,7 +20,7 @@ export async function POST(req) {
   try {
     body = await req.json();
   } catch {}
-  if (!(await inviteGate(id)).unlocked) return NextResponse.json({ ok: false, error: 'Buy a plan to unlock invites.' }, { status: 403, headers: NO_STORE });
+  if (!(await inviteGate(id)).unlocked) return NextResponse.json({ ok: false, error: 'Buy a plan to manage your own codes.' }, { status: 403, headers: NO_STORE });
   const a = body?.action;
   const r =
     a === 'create' ? await createCode(id, body)
