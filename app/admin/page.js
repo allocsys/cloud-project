@@ -48,6 +48,7 @@ function SmartCard({ smart, busy, run }) {
   const table = set.table || SMART_TABLE;
   const coins = smart?.coins || [];
   const days = smart?.days || [];
+  const cost = smart?.cost;
   const key = JSON.stringify(table);
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
@@ -71,6 +72,13 @@ function SmartCard({ smart, busy, run }) {
       </div>
       <p className="fine" style={{ margin: '8px 0 12px' }}>Between two budgets the rate follows the log of the budget, and it stays flat above $10,000. Each rate must be between 0.1% and 1%. Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new table applies to purchases made after saving, each miner keeps the rate and reserve band it was bought with.</p>
       <span className="eyebrow adm-sub">Coins and their reference rig</span>
+      <div className="row"><span className="mute">Electricity price</span><b>{cost?.inUse ? `$${cost.inUse} per kWh (live)` : cost?.auto === false ? 'Each coin\'s own (live price off)' : 'Each coin\'s own (no live price)'}</b></div>
+      {cost?.live && <p className="fine" style={{ margin: '4px 0 0' }}>Eurostat industrial price for {cost.live.period}, average of Iceland and Norway, €{cost.live.eur} per kWh, at the ECB rate of {cost.live.rate} on {cost.live.rateDate} (Frankfurter). Eurostat updates twice a year. If the feed is down or older than 30 days, each coin's own price below is used.</p>}
+      <div className="adm-actions">
+        <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, kwhAuto: !(set.kwhAuto !== false) }, set.kwhAuto !== false ? 'Live electricity price is off' : 'Live electricity price is on')}>
+          {set.kwhAuto !== false ? 'Use each coin\'s own price' : 'Use the live price'}
+        </button>
+      </div>
       <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{coins.find((c) => c.ref !== null) ? ` (${usd2(coins.find((c) => c.ref !== null).ref)} a day)` : ''}. The rig figures are editable defaults, and a change only applies to new readings.</p>
       {coins.map((c) => (
         <CoinRow key={c.symbol} c={c} busy={busy} run={run} />
