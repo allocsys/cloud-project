@@ -6,7 +6,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
-import { SMART } from '@/lib/smart';
+import { SMART, smartBand } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 
 const GOLD = '#e9c46a';
@@ -173,6 +173,7 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
 export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy }) {
   const tier = tierOf(SMART_TIERS, bNum);
   const level = SMART_TIERS.indexOf(tier) + 1;
+  const band = smartBand(plan); // profit range for the term (lib/smart.js)
   useTierBuzz(tier.id);
   return (
     <div className="card pcard">
@@ -228,9 +229,9 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
         </div>
         <b>${fmtUsd(plan.price)}</b>
       </div>
-      {plan.reserve && (
+      {band && (
         <div className="tcan">
-          About ${fmtUsd(Math.round(((plan.budget * (plan.reserve.lo + plan.reserve.hi)) / 2) * plan.days * 100) / 100)} over {plan.days} days (between ${fmtUsd(Math.round(plan.budget * plan.reserve.lo * plan.days * 100) / 100)} and ${fmtUsd(Math.round(plan.budget * plan.reserve.hi * plan.days * 100) / 100)})
+          About ${fmtUsd(band.mid)} over {plan.days} days (between ${fmtUsd(band.low)} and ${fmtUsd(band.high)})
         </div>
       )}
       {within && <div className="tcan">✓ Within your balance</div>}
