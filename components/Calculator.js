@@ -1,6 +1,6 @@
 'use client';
 // The earnings calculator on the page people see before they sign in.
-// It works from a budget and a term, like the Smart Mining sheet on the Plans screen (lib/smart.js): the estimate is the
+// It works from a budget and a term, like the Smart Mining sheet on the Plans screen (lib/smart.js). The estimate is
 // budget x the pay table's payout x days, the middle of the 70%-130% band, the same estimate as the buy sheet. The live coin
 // only shows in the badge and does not scale the numbers. Everything shown is an estimate, never a promise.
 import { useEffect, useRef, useState } from 'react';
