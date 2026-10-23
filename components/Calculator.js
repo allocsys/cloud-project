@@ -1,14 +1,14 @@
 'use client';
 // The earnings calculator on the page people see before they sign in.
 // It works from a budget and a term, like the Smart Mining sheet on the Plans screen (lib/smart.js): the estimate is the
-// budget x the plan's daily yield x how the coin we are on today pays against its reference (from /api/plans). With no live
-// market the ratio is 1, the reference, and the badge says so. Everything shown is an estimate, never a promise.
+// budget x the pay table's payout x days, the middle of the 70%-130% band, the same estimate as the buy sheet. The live coin
+// only shows in the badge and does not scale the numbers. Everything shown is an estimate, never a promise.
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { BTC_USD } from '@/lib/data';
-import { SMART, dailyUsd, smartBaseYield, smartPayout } from '@/lib/smart';
+import { SMART, smartPayout } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 
 const TICKS = [100, 500, 1000, 5000];
@@ -49,7 +49,10 @@ export default function Calculator({ signedIn = false }) {
   const [term, setTerm] = useState(120);
 
   const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const perDay = dailyUsd(b, smartBaseYield(term, smartPayout(b, term, cat?.smartTable)), best?.ratio ?? 1);
+  const profit = b * smartPayout(b, term, cat?.smartTable) * term; // middle of the band
+  const perDay = profit / term;
+  const lo = profit * (1 - SMART.bandShare);
+  const hi = profit * (1 + SMART.bandShare);
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
@@ -142,7 +145,7 @@ export default function Calculator({ signedIn = false }) {
           </div>
           <div>
             <span>Over {term} days</span>
-            <b>~${usd2(termShown)}</b>
+            <b>About ${usd2(termShown)}<small>Between ${usd2(lo)} and ${usd2(hi)}</small></b>
           </div>
           <div>
             <span>Price</span>
@@ -155,7 +158,7 @@ export default function Calculator({ signedIn = false }) {
           {signedIn ? 'Open this in Plans' : 'Get started'}
         </Link>
         <p className="calc-fine">
-          An estimate at today&rsquo;s market, after electricity and maintenance. It changes every day and is not a promise of earnings. See the{' '}
+          An estimate of your profit after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
           <Link href="/terms">Terms</Link>.
         </p>
       </div>
