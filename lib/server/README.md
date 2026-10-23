@@ -8,6 +8,7 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | `GET /api/plans` | `{ halls, live, priced, smart, smartOn, smartTable, pauseRule }`: the halls with live-linked net rates (2% below the live gross, refreshed hourly, floor 0.004; `priced` is null until the first live reading, when the saved rates apply), the live market, and Smart Mining state (`smartTable` is the pay table for new purchases: ten rates by budget plus the 120/150 day bonus). A purchase reads the price once and locks it | Edge `s-maxage=10, stale-while-revalidate=30` |
 | `GET /api/miners` | `{ contracts, nextSerial }` for the user | `no-store`; browser stale-while-revalidate copy |
 | `GET /api/miners/:serial` | `{ contract }` or 404 | `no-store` |
+| `POST /api/miners/:serial` | `{ renew: true \| false }`: turns "Renew at term end" on or off for a Smart Mining miner (409 once the term is over or the miner is not Smart Mining) | `no-store` |
 | `POST /api/plans/buy` | `{ planId }`, header `Idempotency-Key`; returns the new contract and a history entry | `no-store` |
 | `GET /api/wallet` | `{ earned, withdrawn, history, asOf }` | `no-store`; browser stale-while-revalidate copy |
 | `POST /api/wallet/withdraw` | `{ asset, net, amount, address }`, `amount` in the coin; header `Idempotency-Key` | `no-store` |
@@ -27,6 +28,8 @@ The server recomputes everything on submit and is the authority.
 Buying a plan and withdrawing also add a notification, and `totalTh` on the dashboard follows the miners you own.
 
 Prices come from CoinGecko, falling back to the static prices in `lib/assets.js`. `PRICE_FEED=static` turns the feed off.
+
+Renew at term end: a Smart Mining miner with `renew: true` buys the same budget and term again from the balance once the last payout day of its term has closed. `lib/server/renew.js` runs a timer from `instrumentation.js`, and `renewSmart` in `lib/server/miners.js` does the buying under the account lock (no fee, same rules as a purchase, `renewedTo` stops a second renewal; a short balance or Smart Mining off skips it, switches it off and notifies).
 
 A plan is activated only after payment: from the balance (`payBalance`) or from a signed provider callback (`settleOrder`). An admin can change a user's balance with the `balance` action in `lib/server/admin.js`. It writes a signed entry to `u.adjust` (counted in `earnedOf`), the user's activity, the ledger and the audit log, and never edits `withdrawn` or `spent`.
 
