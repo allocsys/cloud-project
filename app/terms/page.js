@@ -67,6 +67,7 @@ export default function Terms() {
           ))}
         </div>
         <p className="fine">Network fee per withdrawal. Sending crypto to us also costs a network fee, which you pay from your own wallet to the network.</p>
+        <p className="mute">A service fee of 2%, 1% or 0% applies to withdrawals, depending on the time since your last withdrawal, as set out in the FAQ.</p>
         <p className="mute">Withdrawals are checked by our team before they are paid, so they are not instant. A withdrawal can be held while we check your identity or look into suspected fraud.</p>
 
         <h2 style={h2}>5. Estimates and risk</h2>
