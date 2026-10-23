@@ -435,12 +435,7 @@ export default function Dashboard() {
           </div>
           <Link href="/referrals" className="stat" onClick={() => markDrill()}>
             <span>Invite friends</span>
-            {rd && rd.unlocked === false ? (
-              <>
-                <b>Earn BTC</b>
-                <small className="sub">Unlocks with a miner</small>
-              </>
-            ) : friends === 0 ? (
+            {friends === 0 ? (
               <>
                 <b>Earn BTC</b>
                 <small className="sub">{rd?.reward || 'Invite friends'}</small>
@@ -451,7 +446,7 @@ export default function Dashboard() {
                 <small className="sub">{friends} {friends === 1 ? 'friend' : 'friends'}</small>
               </>
             )}
-            <span className="invite">{rd && rd.unlocked === false ? 'Learn more' : 'Invite'}</span>
+            <span className="invite">Invite</span>
           </Link>
         </div>
 
