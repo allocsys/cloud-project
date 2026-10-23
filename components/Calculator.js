@@ -8,7 +8,7 @@ import Link from 'next/link';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { BTC_USD } from '@/lib/data';
-import { SMART, smartPayout } from '@/lib/smart';
+import { SMART, smartEstimate } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 
 const TICKS = [100, 500, 1000, 5000];
@@ -48,16 +48,16 @@ export default function Calculator({ signedIn = false }) {
   const [budget, setBudget] = useState('500'); // as typed
   const [term, setTerm] = useState(120);
 
-  const b = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
-  const profit = b * smartPayout(b, term, cat?.smartTable) * term; // middle of the band
-  const perDay = (b + profit) / term; // paid per day: budget back plus profit, same as the Plans screen
+  const est = smartEstimate(budget, term, cat?.smartTable); // the one formula for what a purchase pays (lib/smart.js)
+  const b = est.budget;
+  const perDay = est.perDay;
   const btcPx = live?.btc ?? BTC_USD;
   const rig = rigFor('smart');
 
   const usdShown = useGlide(perDay);
   const btcShown = useGlide(perDay / btcPx);
-  const monthShown = useGlide(((b + profit) / term) * 30); // paid per month: budget back plus profit, spread evenly
-  const termShown = useGlide(b + profit); // total at term end
+  const monthShown = useGlide(est.perMonth); // paid per month
+  const termShown = useGlide(est.total); // total at term end
 
   if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
 
