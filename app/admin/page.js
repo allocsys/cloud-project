@@ -47,6 +47,7 @@ function SmartCard({ smart, busy, run }) {
   const set = smart?.settings || { enabled: true, table: SMART_TABLE };
   const table = set.table || SMART_TABLE;
   const coins = smart?.coins || [];
+  const days = smart?.days || [];
   const key = JSON.stringify(table);
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
@@ -69,17 +70,66 @@ function SmartCard({ smart, busy, run }) {
         </button>
       </div>
       <p className="fine" style={{ margin: '8px 0 12px' }}>Between two budgets the rate follows the log of the budget, and it stays flat above $10,000. Each rate must be between 0.1% and 1%. Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new table applies to purchases made after saving, each miner keeps the rate and reserve band it was bought with.</p>
+      <span className="eyebrow adm-sub">Coins and their reference rig</span>
+      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{coins.find((c) => c.ref !== null) ? ` (${usd2(coins.find((c) => c.ref !== null).ref)} a day)` : ''}. The rig figures are editable defaults, and a change only applies to new readings.</p>
       {coins.map((c) => (
-        <div className="row adm-m" key={c.symbol}>
+        <CoinRow key={c.symbol} c={c} busy={busy} run={run} />
+      ))}
+      <span className="eyebrow adm-sub">Net profit per rig by day (USD)</span>
+      {days.length === 0 && <p className="fine" style={{ margin: 0 }}>No market data yet.</p>}
+      {days.map((r, i) => (
+        <div className="row adm-m" key={r.day}>
           <div>
-            {c.symbol} · {c.name}
-            <small>{c.algo} · {c.days} day{c.days === 1 ? '' : 's'} of data{c.ref === null ? ' · no reference yet' : ''}{c.enabled ? '' : ' · off'}</small>
+            {dayText(r.day)}
+            <small>
+              {coins.map((c) => (
+                <span key={c.symbol} style={{ marginRight: 10, fontWeight: (r.pick || r.best) === c.symbol ? 700 : 400 }}>{c.symbol} {r.nets[c.symbol] === undefined || r.nets[c.symbol] === null ? 'n/a' : usd2(r.nets[c.symbol])}</span>
+              ))}
+            </small>
           </div>
+          <b>{r.pick ? `${r.pick} ✓` : r.best ? `${r.best} (leading)` : ''}</b>
+        </div>
+      ))}
+      <p className="fine" style={{ margin: '8px 0 0' }}>A tick means the coin is locked in for that finished day. Today is still moving, so the coin shown is only the one in the lead.</p>
+    </div>
+  );
+}
+
+const usd2 = (n) => `$${(Math.round(n * 100) / 100).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+const dayText = (t) => new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+
+// One Smart coin: on/off, today's net profit and the reference rig (hashrate in the coin's own unit, watts, price of a kWh).
+function CoinRow({ c, busy, run }) {
+  const [open, setOpen] = useState(false);
+  const [f, setF] = useState({ rigHash: String(c.rigHash ?? ''), rigWatts: String(c.rigWatts ?? ''), kwh: String(c.kwh ?? '') });
+  const save = async () => {
+    if (await run({ action: 'smart-coin-rig', symbol: c.symbol, ...f }, `${c.symbol} rig saved`)) setOpen(false);
+  };
+  return (
+    <div className="adm-m">
+      <div className="row">
+        <div>
+          {c.symbol} · {c.name}
+          <small>{c.algo} · {c.days} day{c.days === 1 ? '' : 's'} of data{c.net === null ? '' : ` · latest ${usd2(c.net)} a day`}{c.ref === null ? ' · no reference yet' : ''}{c.enabled ? '' : ' · off'}</small>
+          <small>Rig {c.rigHash ?? '?'} {c.unit} · {c.rigWatts ?? '?'} W · ${c.kwh ?? '?'} per kWh</small>
+        </div>
+        <div className="adm-btns">
+          <button className="btn ghost" disabled={busy} onClick={() => setOpen(!open)}>{open ? 'Close' : 'Edit rig'}</button>
           <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'smart-coin', symbol: c.symbol, enabled: !c.enabled }, c.enabled ? `${c.symbol} turned off` : `${c.symbol} turned on`)}>
             {c.enabled ? 'Turn off' : 'Turn on'}
           </button>
         </div>
-      ))}
+      </div>
+      {open && (
+        <div className="adm-form">
+          <Field id={`rh${c.symbol}`} label={`Rig hashrate (${c.unit})`} inputMode="decimal" value={f.rigHash} onChange={(v) => setF({ ...f, rigHash: v })} />
+          <Field id={`rw${c.symbol}`} label="Rig power (watts)" inputMode="decimal" value={f.rigWatts} onChange={(v) => setF({ ...f, rigWatts: v })} />
+          <Field id={`rk${c.symbol}`} label="Electricity (USD per kWh)" inputMode="decimal" value={f.kwh} onChange={(v) => setF({ ...f, kwh: v })} />
+          <div className="adm-actions">
+            <button className="btn" disabled={busy} onClick={save}>Save rig</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
