@@ -56,8 +56,8 @@ export default function Calculator({ signedIn = false }) {
 
   const usdShown = useGlide(perDay);
   const btcShown = useGlide(perDay / btcPx);
-  const monthShown = useGlide(perDay * 30);
-  const termShown = useGlide(profit);
+  const monthShown = useGlide(((b + profit) / term) * 30); // paid per month: budget back plus profit, spread evenly
+  const termShown = useGlide(b + profit); // total at term end
 
   if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
 
@@ -138,12 +138,12 @@ export default function Calculator({ signedIn = false }) {
 
         <div className="calc-grid">
           <div>
-            <span>Per month</span>
+            <span>Paid per month</span>
             <b>~${usd2(monthShown)}</b>
           </div>
           <div>
-            <span>Profit over {term} days</span>
-            <b>About ${usd2(termShown)}</b>
+            <span>Total at term end</span>
+            <b>~${usd2(termShown)}</b>
           </div>
         </div>
         <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
