@@ -228,6 +228,11 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
         </div>
         <b>${fmtUsd(plan.price)}</b>
       </div>
+      {plan.reserve && (
+        <div className="tcan">
+          About ${fmtUsd(Math.round(((plan.budget * (plan.reserve.lo + plan.reserve.hi)) / 2) * plan.days * 100) / 100)} over {plan.days} days (between ${fmtUsd(Math.round(plan.budget * plan.reserve.lo * plan.days * 100) / 100)} and ${fmtUsd(Math.round(plan.budget * plan.reserve.hi * plan.days * 100) / 100)})
+        </div>
+      )}
       {within && <div className="tcan">✓ Within your balance</div>}
       <button type="button" className="btn" onClick={onBuy}>Buy Smart Mining</button>
     </div>
