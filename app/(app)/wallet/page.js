@@ -5,6 +5,7 @@ import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
+import { serviceTier, serviceLine } from '@/lib/service-fee';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
@@ -138,7 +139,10 @@ export default function Wallet() {
   const toCoin = (v) => (usdMode ? v / price : v);
   const parsed = parseFloat(amount);
   const coinAmt = parsed > 0 ? toCoin(parsed) : 0;
-  const q = coinAmt > 0 ? quote(asset, net, coinAmt, prices) : null;
+  // The withdrawal service fee tier, counted from the last withdrawal (or the first purchase). The server decides the real one.
+  const tier = ready && wd.svcSince ? serviceTier(wd.svcSince) : null;
+  const svcPct = tier ? tier.pct : 0;
+  const q = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
   const flatFee = A.nets[net];
   const dp = parseFloat(dep);
   const depCoin = dp > 0 ? toCoin(dp) : 0;
@@ -206,7 +210,7 @@ export default function Wallet() {
   async function withdraw() {
     if (busy || !wd) return;
     const next = {};
-    const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices) : null;
+    const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
     if (!wq) next.amount = 'Enter an amount to withdraw.';
     else if (wq.btc < MIN_WITHDRAW) next.amount = `Minimum is ${minText}.`;
     else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = 'More than your available balance.';
@@ -227,6 +231,7 @@ export default function Wallet() {
     mutate({
       ...base,
       withdrawn: base.withdrawn + wq.btc,
+      svcSince: Date.now(),
       history: [
         {
           kind: 'withdrawal',
@@ -236,7 +241,7 @@ export default function Wallet() {
           amount: `-${coinAmt.toFixed(A.dec)}`,
           coin: A.sym,
           net: N.short,
-          fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}`,
+          fee: `${wq.netFee} ${A.sym}${wq.swapUsd ? ` + $${formatUsd(wq.swapUsd)} swap` : ''}${wq.svcUsd ? ` + $${formatUsd(wq.svcUsd)} service` : ''}`,
         },
         ...base.history,
       ],
@@ -366,6 +371,12 @@ export default function Wallet() {
                           <b>${formatUsd(q.swapUsd)}</b>
                         </div>
                       )}
+                      {svcPct > 0 && (
+                        <div className="row">
+                          <span className="mute">Service fee ({svcPct}%)</span>
+                          <b>−${formatUsd(q.svcUsd)}</b>
+                        </div>
+                      )}
                       <div className="row">
                         <span className="mute">Network fee</span>
                         <b>{q.netFee} {A.sym} · ${formatUsd(q.netFeeUsd)}</b>
@@ -382,6 +393,8 @@ export default function Wallet() {
                     `Min ${minText} · fee ${asset === 'btc' ? '' : `${SWAP_FEE_PCT}% swap + `}${flatFee} ${A.sym}`
                   )}
                 </div>
+
+                {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier)}</p>}
 
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? 'Sending…' : 'Withdraw'}
