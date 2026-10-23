@@ -56,6 +56,7 @@ export default function Calculator({ signedIn = false }) {
 
   const usdShown = useGlide(perDay);
   const btcShown = useGlide(perDay / btcPx);
+  const monthShown = useGlide(perDay * 30);
   const termShown = useGlide(profit);
 
   if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
@@ -136,6 +137,10 @@ export default function Calculator({ signedIn = false }) {
         </div>
 
         <div className="calc-grid">
+          <div>
+            <span>Per month</span>
+            <b>~${usd2(monthShown)}</b>
+          </div>
           <div>
             <span>Profit over {term} days</span>
             <b>About ${usd2(termShown)}</b>
