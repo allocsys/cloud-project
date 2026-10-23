@@ -139,10 +139,6 @@ export default function Calculator({ signedIn = false }) {
 
         <div className="calc-grid">
           <div>
-            <span>Price</span>
-            <b>${usd2(b)}</b>
-          </div>
-          <div>
             <span>Profit over {term} days</span>
             <b>About ${usd2(termShown)}</b>
           </div>
