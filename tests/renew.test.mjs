@@ -113,8 +113,8 @@ test('a due miner with the switch on buys the same plan again from the balance, 
   const note = u.notifications.find((n) => n.title === 'Smart Mining renewed');
   assert.equal(note.body, `${next.serial} started a new term.`);
 
-  // The old miner never renews again.
-  assert.equal((await miners.renewSmart(id, s)).status === 409 || (await getUser(id)).contracts.length === 2, true);
+  // Asking again changes nothing: the old miner has renewed and never renews twice.
+  await miners.renewSmart(id, s);
   assert.equal((await getUser(id)).contracts.length, 2);
 });
 
