@@ -148,22 +148,18 @@ export default function Referrals() {
         </div>
 
         <div className="grid wal">
-          {locked ? (
+          {locked && (
             <div className="card">
-              <span className="mute eyebrow">Invites locked</span>
+              <span className="mute eyebrow">Free invites</span>
               <p style={{ margin: '8px 0 12px' }}>
-                Buy any plan, or at least ${rd.minUsd} of custom power, to get your invite code.
+                {rd.left > 0
+                  ? `You can invite ${rd.left} more ${rd.left === 1 ? 'friend' : 'friends'} (${rd.invited} of ${rd.freeInvites} used). Buy any plan to invite without a limit.`
+                  : `You have used all ${rd.freeInvites} free invites. Buy any plan to invite more.`}
               </p>
-              <div className="bar" role="progressbar" aria-valuenow={rd.spentUsd} aria-valuemin={0} aria-valuemax={rd.minUsd} aria-label="Custom power bought toward the minimum">
-                <i style={{ width: `${Math.round((rd.spentUsd / rd.minUsd) * 100)}%` }} />
-              </div>
-              <small className="mute" style={{ display: 'block', margin: '6px 0 12px' }}>
-                ${rd.spentUsd.toFixed(2)} of ${rd.minUsd} custom power
-              </small>
               <Link href="/plans" className="btn" style={{ textDecoration: 'none' }} onClick={() => triggerHaptic('selection')}>Buy a plan</Link>
             </div>
-          ) : (
-            <div className="card">
+          )}
+          <div className="card">
               <span className="mute eyebrow">Your invite codes</span>
               {codes.map((c) => (
                 <div key={c.code} className="icode">
@@ -184,9 +180,8 @@ export default function Referrals() {
                   </div>
                 </div>
               ))}
-              {canAdd && rd && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>New code</button>}
+              {canAdd && rd && !locked && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>New code</button>}
             </div>
-          )}
 
           {referral.rebate && (
             <div className="card">
