@@ -66,6 +66,8 @@ const CASES = [
   ['why was my miner paused for a day', 'paused_day'],
   ['what is the profit guard', 'paused_day'],
   ['my plan is paused', 'paused_day'],
+  ['what is the first buy bonus', 'first_bonus'],
+  ['do I get a bonus on my first purchase', 'first_bonus'],
 ];
 
 test('"mining" is not read as "min"', () => {
