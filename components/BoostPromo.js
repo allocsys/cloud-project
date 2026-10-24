@@ -18,7 +18,7 @@ export default function BoostPromo({ signedIn = false }) {
   return (
     <div className="card" style={{ marginTop: 14 }}>
       <h3>Boost</h3>
-      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>Extra hashrate for {b.hours} hours, paid in BTC.</p>
+      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>Extra hashrate for {b.hours} hours. Always pays, plus a chance to win.</p>
       {b.tickets.map((t) => (
         <div className="row" key={t.id}>
           <div>
