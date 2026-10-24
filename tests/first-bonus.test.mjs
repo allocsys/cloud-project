@@ -75,7 +75,7 @@ test('Smart Mining: the profit rate goes up by the percent, the budget and price
   assert.equal(r.plan.days, 120);
   assert.ok(r.plan.baseYield > plan.baseYield);
   assert.ok(r.plan.reserve.hi > plan.reserve.hi && r.plan.reserve.lo > plan.reserve.lo);
-  assert.equal(Math.round(p1 * 1e5) % 1, 0, 'still a multiple of 0.001% a day, which the profit guard relies on');
+  assert.ok(Math.abs(p1 * 1e5 - Math.round(p1 * 1e5)) < 1e-6, 'still a multiple of 0.001% a day, which the profit guard relies on');
   assert.equal(bonusText(r.bonus), `${r.bonus.pct}%`);
 });
 
