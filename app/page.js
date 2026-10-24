@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import Calculator from '@/components/Calculator';
+import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
@@ -99,6 +100,7 @@ export default async function Home() {
               <Decrypt when="view" text="Estimate your mining" />
             </h2>
             <Calculator signedIn={signedIn} />
+            <BoostPromo signedIn={signedIn} />
           </Reveal>
         </section>
 
