@@ -29,14 +29,16 @@ after(async () => {
 
 test('halls added at the same moment are all kept, and each is logged', async () => {
   const before = await catalog();
-  const logBefore = await logLen();
+  const t0 = Date.now();
   const rs = await Promise.all(each(4, (i) => act({ action: 'hall-save', hall: hall(`c${i}`) })));
   const okCount = rs.filter((r) => r.ok).length;
   assert.equal(okCount, 4, JSON.stringify(rs.filter((r) => !r.ok)));
   const after = await catalog();
   assert.equal(Object.keys(after.halls).length, Object.keys(before.halls).length + 4);
   assert.equal(Object.hasOwn(after, 'plans'), false, 'no fixed plans in the catalogue');
-  assert.equal((await logLen()) - logBefore, okCount);
+  // Other test files write to the same audit log at the same time, so count only the hall saves made since this test started.
+  const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+  assert.equal(log.filter((e) => e.action === 'hall-save' && e.at >= t0).length, okCount);
 });
 
 test('a core hall cannot be removed, an unknown one is not found, and an added one can be removed', async () => {
