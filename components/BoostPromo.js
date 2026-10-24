@@ -50,7 +50,7 @@ function BoostArt() {
     return () => io.disconnect();
   }, []);
   return (
-    <svg ref={ref} className={seen ? undefined : 'bp-off'} viewBox="0 -26 300 156" role="img" aria-label="A miner solves blocks and sends up prize bubbles" style={{ display: 'block', width: '100%', maxWidth: 300, margin: '6px auto 4px' }}>
+    <svg ref={ref} className={seen ? undefined : 'bp-off'} viewBox="0 -20 300 150" role="img" aria-label="A miner solves blocks and sends up prize bubbles" style={{ display: 'block', width: '100%', maxWidth: 300, margin: '0 auto 4px' }}>
       <style>{ART_CSS}</style>
       <defs>
         <clipPath id="bpClip">
