@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { drillBack } from '@/lib/nav';
+import { bonusText } from '@/lib/first-bonus';
 import Spark from '@/components/Spark';
 
 const chev = (
@@ -228,6 +229,9 @@ export default function ContractPage() {
               </>
             )}
             <div className="row"><span className="mute">Term</span><b className="v">{c.started} – {c.ends}</b></div>
+            {c.firstBonus && (
+              <div className="row"><span className="mute">First-buy bonus</span><b className="v">+{bonusText(c.firstBonus)} extra hashrate<small>for the full term</small></b></div>
+            )}
             {c.smart && c.renewable && (
               <div className="row">
                 <div>
