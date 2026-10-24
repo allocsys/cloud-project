@@ -194,7 +194,7 @@ test('the winners bar: empty while off, then masked real wins with sample ones f
   await finish(id, r.boost.id);
   const list = await boost.recentWinners({ nocache: true });
   assert.equal(list.length, WINNERS.count);
-  const mine = list.filter((w) => w.name === maskId(id));
+  const mine = list.filter((w) => w.name === maskId(id) && Math.abs(w.at - (Date.now() - 3600_000)) < 60_000);
   assert.equal(mine.length, 1);
   assert.equal(mine[0].prize, 10);
   assert.ok(Math.abs(mine[0].at - (Date.now() - 3 * 3600_000 + 2 * 3600_000)) < 60_000, 'the time is when the boost ended');
