@@ -464,7 +464,7 @@ export default function Plans() {
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
+              ~{dailyOf(cur)}/day. All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
             {(!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
