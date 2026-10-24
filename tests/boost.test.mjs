@@ -1,7 +1,7 @@
 // Boost tickets, the pure part: ticket numbers, the margin, settings clean-up, the draw threshold and what finished boosts add to a balance.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOOST, TICKETS, ticketOf, normalizeBoost, shownOf, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay } from '@/lib/boost';
+import { BOOST, TICKETS, ticketOf, normalizeBoost, shownOf, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay, WINNERS, maskId, mockWinners, pickWinners } from '@/lib/boost';
 
 test('the tickets pay th x 0.021 USD per TH/s per day for two hours', () => {
   assert.deepEqual(TICKETS.map((t) => [t.id, t.price, t.th, t.pay, t.prize, t.max]), [
@@ -63,4 +63,49 @@ test('a finished boost adds its pay, and the prize when won, at the rate it was 
   assert.equal(boostBtcOf({ boosts: [lost, won] }, 999), 0, 'nothing before the end');
   assert.ok(Math.abs(boostBtcOf({ boosts: [lost, won] }, 1000) - (0.21 / 100000 + 10.21 / 50000)) < 1e-12);
   assert.equal(boostBtcOf({}, 1000), 0);
+});
+
+test('winner names show half of the part before the @, never the domain or the whole name', () => {
+  assert.equal(maskId('johnsmith@x.com'), 'john\u2022\u2022\u2022\u2022');
+  assert.equal(maskId('ab@x.com'), 'a\u2022\u2022\u2022\u2022');
+  assert.equal(maskId('a@x.com'), 'a\u2022\u2022\u2022\u2022');
+  assert.equal(maskId('averyveryverylongname@x.com'), 'averyv\u2022\u2022\u2022\u2022', 'at most 6 characters');
+  assert.equal(maskId('tg_123456'), 'tg_1\u2022\u2022\u2022\u2022');
+  for (const id of ['johnsmith@x.com', 'ab@x.com', 'tg_123456']) {
+    const m = maskId(id);
+    assert.ok(!m.includes('@') && !m.includes('.com') && m !== id);
+  }
+  assert.equal(maskId(undefined), '1'.slice(1) + '\u2022\u2022\u2022\u2022');
+});
+
+test('sample winners are masked, recent and mostly small; the count is filled', () => {
+  const now = 1_000_000_000_000;
+  const list = mockWinners(now);
+  assert.equal(list.length, WINNERS.count);
+  assert.equal(new Set(list.map((w) => w.name)).size, list.length, 'no repeated name');
+  for (const w of list) {
+    assert.ok(w.name.endsWith('\u2022\u2022\u2022\u2022') && !w.name.includes('@'));
+    assert.ok([10, 100, 1000].includes(w.prize));
+    assert.ok(w.at <= now - 60_000 && w.at >= now - 60_000 - WINNERS.maxAgoMin * 60_000);
+  }
+});
+
+test('real winners take their places and sample ones fill only what is missing, in a random order', () => {
+  const mock = mockWinners(1_000_000_000_000);
+  const real = (n) => Array.from({ length: n }, (_, i) => ({ name: `real${i}\u2022\u2022\u2022\u2022`, prize: 100, at: 5000 - i }));
+  const isReal = (w) => w.name.startsWith('real');
+  assert.equal(pickWinners({ real: [], mock }).length, WINNERS.count);
+  assert.equal(pickWinners({ real: [], mock }).filter(isReal).length, 0, 'no real wins yet: all sample');
+  const some = pickWinners({ real: real(3), mock });
+  assert.equal(some.length, WINNERS.count);
+  assert.equal(some.filter(isReal).length, 3, 'every real win is in');
+  assert.equal(some.length - some.filter(isReal).length, WINNERS.count - 3, 'sample ones only fill the rest');
+  const many = pickWinners({ real: real(20), mock });
+  assert.equal(many.length, WINNERS.count);
+  assert.ok(many.every(isReal), 'enough real wins: no sample at all');
+  assert.deepEqual(many.map((w) => w.name).sort(), real(20).slice(0, WINNERS.count).map((w) => w.name).sort(), 'the newest real ones are kept');
+  const dup = pickWinners({ real: [{ name: mock[0].name, prize: 10, at: 1 }], mock });
+  assert.equal(dup.filter((w) => w.name === mock[0].name).length, 1, 'a sample never repeats a real name');
+  const order = (r) => pickWinners({ real: real(12), mock: [], rand: r }).map((w) => w.name).join();
+  assert.notEqual(order(() => 0), order(() => 0.99), 'the order follows the random numbers');
 });
