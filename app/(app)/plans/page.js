@@ -6,6 +6,7 @@ import { formatSerial, serialNumber } from '@/lib/contracts';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
+import BoostCard from '@/components/BoostCard';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import { markDrill, useSheetBack } from '@/lib/nav';
@@ -329,6 +330,7 @@ export default function Plans() {
         within={balUsd >= ap.price}
         onBuy={() => selectPlan({ id: 'custom' })}
       />
+      <BoostCard show={show} />
       </>
       ) : list.length ? (
         <div className="clist">
