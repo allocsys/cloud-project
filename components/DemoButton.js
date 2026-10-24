@@ -14,7 +14,7 @@ export default function DemoButton({ className = 'btn ghost', children }) {
     setBusy(true);
     try {
       await signOut();
-      router.replace('/dashboard');
+      router.replace('/plans');
     } catch {
       setBusy(false);
     }
