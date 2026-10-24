@@ -46,6 +46,10 @@ export default function Plans() {
   const [budget, setBudget] = useState('500'); // Smart Mining budget as typed, in dollars
   const [spos, setSpos] = useState(() => posFromBudget(500)); // Smart Mining slider position
   const [tab, setTab] = useState('buy');
+  // The Boost tab shows only while boost tickets are on (or a boost is still running); otherwise the page falls back to Buy plans.
+  const { data: bd } = useApi('/api/boost', { ttl: 10000 });
+  const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
+  const view = tab === 'boost' && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
   const [toast, show] = useToast();
@@ -273,12 +277,13 @@ export default function Plans() {
         <h2>Plans</h2>
       </div>
 
-      <div className="tabs" role="group" aria-label="Buy plans or your miners">
-        <button aria-pressed={tab === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
-        <button aria-pressed={tab === 'mine'} onClick={() => setTab('mine')}>My miners · {list.length}</button>
+      <div className="tabs" role="group" aria-label="Buy plans, boost or your miners">
+        <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
+        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>Boost</button>}
+        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>My miners · {list.length}</button>
       </div>
 
-      {tab === 'buy' && [...pending, ...review].map((o) => (
+      {view === 'buy' && [...pending, ...review].map((o) => (
         <div key={o.id} className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div>
@@ -302,7 +307,9 @@ export default function Plans() {
         </div>
       ))}
 
-      {tab === 'buy' ? (
+      {view === 'boost' ? (
+        <BoostCard show={show} />
+      ) : view === 'buy' ? (
       <>
       {cat?.smartOn !== false && (
         <SmartCard
@@ -330,7 +337,6 @@ export default function Plans() {
         within={balUsd >= ap.price}
         onBuy={() => selectPlan({ id: 'custom' })}
       />
-      <BoostCard show={show} />
       </>
       ) : list.length ? (
         <div className="clist">
