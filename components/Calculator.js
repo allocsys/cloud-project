@@ -48,6 +48,7 @@ export default function Calculator({ signedIn = false }) {
 
   const [budget, setBudget] = useState('500'); // as typed
   const [term, setTerm] = useState(120);
+  const [note, setNote] = useState(false); // the fine print under the button
 
   const est = smartEstimate(budget, term, cat?.smartTable); // the one formula for what a purchase pays (lib/smart.js)
   const b = est.budget;
@@ -158,10 +159,15 @@ export default function Calculator({ signedIn = false }) {
             Get started
           </AuthButton>
         )}
-        <p className="calc-fine">
-          An estimate of what you receive after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
-          <Link href="/terms">Terms</Link>.
-        </p>
+        <button type="button" className={`calc-more${note ? ' open' : ''}`} aria-expanded={note} aria-label="About this estimate" onClick={() => setNote((v) => !v)}>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
+        </button>
+        {note && (
+          <p className="calc-fine">
+            An estimate of what you receive after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
+            <Link href="/terms">Terms</Link>.
+          </p>
+        )}
       </div>
     </div>
   );
