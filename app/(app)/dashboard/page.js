@@ -109,13 +109,15 @@ function HeroChart({ rows }) {
   const line = rows.map((d, i) => `${i === 0 ? 'M' : 'L'}${((i * 300) / (n - 1)).toFixed(1)} ${y(d.usd).toFixed(1)}`).join(' ');
   return (
     <div className="hchart">
+      <div className="hplot">
       <svg viewBox="0 0 300 80" preserveAspectRatio="none" role="img" aria-label="Earnings over the last 7 days">
         <line x1="0" y1="26" x2="300" y2="26" className="hgrid" vectorEffect="non-scaling-stroke" />
         <line x1="0" y1="52" x2="300" y2="52" className="hgrid" vectorEffect="non-scaling-stroke" />
         <path d={`${line} L300 80 L0 80 Z`} className="harea" />
         <path d={line} className="hline" vectorEffect="non-scaling-stroke" />
       </svg>
-      <i className="hdot" style={{ top: `${(y(rows[n - 1].usd) / 80) * 84}px` }} />
+      <i className="hdot" style={{ top: `${(y(rows[n - 1].usd) / 80) * 100}%` }} />
+      </div>
       <div className="hdays" aria-hidden="true">
         {rows.map((d, i) => <span key={i}>{d.label}</span>)}
       </div>
