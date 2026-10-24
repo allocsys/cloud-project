@@ -39,7 +39,7 @@ before(async () => {
 });
 
 after(async () => {
-  await act({ action: 'boost-settings', enabled: false, chance: { t1: 5, t10: 5, t100: 5 } });
+  await act({ action: 'boost-settings', enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: { t1: '', t10: '', t100: '' } });
   await pool().end();
 });
 
@@ -157,6 +157,28 @@ test('a later change of the chance does not touch a running boost', async () => 
   const u = await getUser(id);
   assert.equal(u.boosts[0].chance, 100);
   assert.equal(u.boosts[0].win, true);
+});
+
+test('users see the shown chance while the draw uses the real one; empty shown means the real one', async () => {
+  const clear = { t1: '', t10: '', t100: '' };
+  try {
+    assert.equal((await chances({ chance: { t1: 100 }, shown: { t1: 5 }, confirm: true })).ok, true);
+    const id = await account('shown');
+    await credit(id, 1);
+    const r = await boost.buyBoost({ ticket: 't1' }, { userId: id });
+    assert.equal(r.ok, true);
+    assert.equal(r.boost.chance, 5, 'the buyer is told the shown chance');
+    assert.equal((await boost.getBoosts(id)).tickets.find((t) => t.id === 't1').chance, 5);
+    assert.equal((await boost.getBoosts(id)).running[0].chance, 5);
+    const u = await getUser(id);
+    assert.equal(u.boosts[0].chance, 100, 'the real chance is kept on the boost');
+    assert.equal(u.boosts[0].win, true, 'the draw used the real chance');
+    assert.equal((await act({ action: 'boost-settings', shown: { t1: 120 } })).status, 422);
+    assert.equal((await act({ action: 'boost-settings', shown: clear })).ok, true);
+    assert.equal((await boost.getBoosts(id)).tickets.find((t) => t.id === 't1').chance, 100, 'empty shows the real chance');
+  } finally {
+    await act({ action: 'boost-settings', enabled: true, chance: { t1: 5, t10: 5, t100: 5 }, shown: clear });
+  }
 });
 
 test('the admin settings: a chance that loses money needs a second confirm, bad numbers are refused, the switch flips on its own', async () => {
