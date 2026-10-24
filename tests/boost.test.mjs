@@ -1,7 +1,7 @@
 // Boost tickets, the pure part: ticket numbers, the margin, settings clean-up, the draw threshold and what finished boosts add to a balance.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOOST, TICKETS, ticketOf, normalizeBoost, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay } from '@/lib/boost';
+import { BOOST, TICKETS, ticketOf, normalizeBoost, shownOf, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay } from '@/lib/boost';
 
 test('the tickets pay th x 0.021 USD per TH/s per day for two hours', () => {
   assert.deepEqual(TICKETS.map((t) => [t.id, t.price, t.th, t.pay, t.prize, t.max]), [
@@ -23,9 +23,18 @@ test('the margin follows the chance: 29% at the default 5%, negative when the ch
 });
 
 test('settings fall back to the defaults and keep valid values', () => {
-  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 } });
-  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 } });
-  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 } });
+  const none = { t1: null, t10: null, t100: null };
+  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none });
+  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 }, shown: none });
+  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none });
+});
+
+test('the shown chance is its own number; empty or invalid means the real one is shown', () => {
+  const cfg = normalizeBoost({ chance: { t1: 8, t10: 6, t100: 4 }, shown: { t1: 5, t10: '', t100: 120 } });
+  assert.deepEqual(cfg.shown, { t1: 5, t10: null, t100: null });
+  assert.equal(shownOf(cfg, 't1'), 5);
+  assert.equal(shownOf(cfg, 't10'), 6);
+  assert.equal(shownOf(cfg, 't100'), 4);
 });
 
 test('the draw: a chance of p percent wins on p x 10,000 out of 1,000,000 rolls', () => {
