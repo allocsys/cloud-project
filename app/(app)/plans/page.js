@@ -453,7 +453,7 @@ export default function Plans() {
               {profitRange && (
                 <div className="row">
                   <span className="mute">Est. profit by term end</span>
-                  <b className="v" style={{ color: 'var(--green)' }}>About ${money(profitRange.mid)}<small>Between ${money(profitRange.low)} and ${money(profitRange.high)} after {cur.days} days · an estimate, not a promise</small></b>
+                  <b className="v" style={{ color: 'var(--green)' }}>About ${money(profitRange.mid)}<small>Range ${money(profitRange.low)} to ${money(profitRange.high)}</small></b>
                 </div>
               )}
               {profitRange && (
@@ -464,7 +464,7 @@ export default function Plans() {
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{dailyOf(cur)}/day is an estimate and {cur.smart ? 'follows the market and the coin picked each day' : 'follows BTC price and difficulty'}. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
+              All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
             {(!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
