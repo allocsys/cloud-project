@@ -255,11 +255,18 @@ function BoostCard({ bs, busy, run }) {
   const s = bs || BOOST_DEFAULTS;
   const key = JSON.stringify(s);
   const [d, setD] = useState(() => bcDraft(s));
-  useEffect(() => setD(bcDraft(JSON.parse(key))), [key]);
+  const [edited, setEdited] = useState(false); // typed and not saved yet: a reload (Turn on, Turn off) must not wipe it
+  useEffect(() => {
+    if (!edited) setD(bcDraft(JSON.parse(key)));
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const type = (id, v) => {
+    setEdited(true);
+    setD((x) => ({ ...x, [id]: v }));
+  };
   const losing = TICKETS.filter((t) => String(d[t.id]).trim() !== '' && marginOf(t, pctOf(d[t.id])) < 0);
   const save = async () => {
     if (losing.length && !window.confirm(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`)) return;
-    await run({ action: 'boost-settings', chance: d, confirm: losing.length > 0 }, 'Boost tickets saved');
+    if (await run({ action: 'boost-settings', chance: d, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
     <div className="card">
@@ -278,11 +285,12 @@ function BoostCard({ bs, busy, run }) {
               </div>
               <b style={m !== null && m < 0 ? { color: '#e5484d' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
             </div>
-            <Field id={`bc${t.id}`} label={`Chance of the prize (%) for the $${t.price} ticket`} inputMode="decimal" value={d[t.id]} onChange={(v) => setD({ ...d, [t.id]: v })} />
+            <Field id={`bc${t.id}`} label={`Chance of the prize (%) for the $${t.price} ticket`} inputMode="decimal" value={d[t.id]} onChange={(v) => type(t.id, v)} />
             {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the $${t.price} ticket loses money (each one costs more than it brings in).</p>}
           </div>
         );
       })}
+      {edited && <p className="fine" style={{ margin: '8px 0 0' }}>You have unsaved changes. Tap Save.</p>}
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-settings', enabled: !s.enabled }, s.enabled ? 'Boost tickets are off' : 'Boost tickets are on')}>
