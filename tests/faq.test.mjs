@@ -68,6 +68,8 @@ const CASES = [
   ['my plan is paused', 'paused_day'],
   ['what is the first buy bonus', 'first_bonus'],
   ['do I get a bonus on my first purchase', 'first_bonus'],
+  ['what are boost tickets', 'boost'],
+  ['how does the boost prize draw work', 'boost'],
 ];
 
 test('"mining" is not read as "min"', () => {
