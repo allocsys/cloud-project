@@ -1511,13 +1511,7 @@ main {
 .pcard .prow b { flex: none; font-size: 22px; line-height: 28px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
 .pcard .tcan { margin: -4px 0 10px; }
 
-/* Smart Mining art: coins circle the hub, the marker at the top is today's pick */
-.orbit { transform-box: fill-box; transform-origin: center; animation: spin var(--orb, 12s) linear infinite; }
-.orbit.rev { animation-direction: reverse; animation-duration: calc(var(--orb, 12s) * 0.7); }
-.orbit .cn { transform-box: fill-box; transform-origin: center; animation: spin var(--orb, 12s) linear infinite reverse; }
-.pickmark { animation: blink 2.4s ease-in-out infinite; }
-.hub { animation: glowpulse 2.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .orbit, .orbit .cn, .pickmark, .hub, .pcard .stage { animation: none; } }
+@media (prefers-reduced-motion: reduce) { .pcard .stage { animation: none; } }
 
 .art .fan { transform-box: fill-box; transform-origin: center; animation: spin var(--spd, 1.4s) linear infinite; }
 .art .led { animation: blink 1.3s ease-in-out infinite; }
