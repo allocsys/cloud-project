@@ -118,18 +118,6 @@ export default function BoostCard({ show }) {
     <div className="card">
       <h3>Boost</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{data.hours} hours of extra hashrate. Pays when it ends.</p>
-      {data.enabled &&
-        data.tickets.map((t) => (
-          <div className="row" key={t.id}>
-            <div>
-              <b>${whole(t.price)}</b> · {whole(t.th)} TH/s
-              <small style={{ display: 'block' }}>always pays ${usd(t.pay)} · plus a {t.chance}% chance to win ${whole(t.prize)}</small>
-            </div>
-            <button type="button" className={arm === t.id ? 'btn' : 'swap'} style={{ width: 'auto', margin: 0, padding: '0 14px', minHeight: 36 }} disabled={busy || t.active >= t.max} onClick={() => tap(t)}>
-              {t.active >= t.max ? 'Full' : arm === t.id ? `Pay $${whole(t.price)}` : 'Buy'}
-            </button>
-          </div>
-        ))}
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@media (prefers-reduced-motion:reduce){.boost-pulse{animation:none}}'}</style>
@@ -173,6 +161,24 @@ export default function BoostCard({ show }) {
           {b.win ? <b style={{ color: 'var(--green)' }}>You won ${whole(b.prize)}</b> : <b className="v">No prize this time. ${usd(b.pay)} added.</b>}
         </div>
       ))}
+      {data.enabled &&
+        data.tickets.map((t) => (
+          <div className="row" key={t.id}>
+            <div>
+              <b>${whole(t.price)}</b> · {whole(t.th)} TH/s
+              <small style={{ display: 'block' }}>always pays ${usd(t.pay)} · plus a {t.chance}% chance to win ${whole(t.prize)}</small>
+            </div>
+          </div>
+        ))}
+      {data.enabled && (
+        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${data.tickets.length}, 1fr)`, gap: 8, marginTop: 12 }}>
+          {data.tickets.map((t) => (
+            <button key={t.id} type="button" className={arm === t.id ? 'btn' : 'swap'} style={{ width: '100%', margin: 0, padding: '0 8px', minHeight: 44 }} disabled={busy || t.active >= t.max} onClick={() => tap(t)}>
+              {t.active >= t.max ? 'Full' : arm === t.id ? `Pay $${whole(t.price)}` : `Buy $${whole(t.price)}`}
+            </button>
+          ))}
+        </div>
+      )}
       <p className="fine" style={{ margin: '12px 0 0' }}>Each ticket has its own draw. The result shows when the boost ends. Paid from your balance.</p>
     </div>
   );
