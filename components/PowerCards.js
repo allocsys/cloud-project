@@ -34,7 +34,7 @@ const ART_CSS = `
 .sart[data-lv="2"]{--sw:4s}
 .sart[data-lv="3"]{--sw:3.2s}
 .sart[data-lv="4"]{--sw:2.6s}
-.pcard .stage .art svg.sa-svg{height:230px}
+.pcard .stage .art svg.sa-svg{height:200px}
 .sart[data-lv="1"] .sa-l2,.sart[data-lv="1"] .sa-l3,.sart[data-lv="1"] .sa-l4,.sart[data-lv="2"] .sa-l3,.sart[data-lv="2"] .sa-l4,.sart[data-lv="3"] .sa-l4{display:none}
 .sa-o{transform-origin:160px 130px}
 .sa-spin{animation:saSp var(--sw) linear infinite}
