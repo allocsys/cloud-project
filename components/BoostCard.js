@@ -130,7 +130,7 @@ export default function BoostCard({ show }) {
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{data.hours} hours of extra hashrate. Pays when it ends.</p>
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
-          <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@keyframes boostFlow{0%{transform:translateY(22px);opacity:0}15%{opacity:.3}85%{opacity:.3}100%{transform:translateY(-100px);opacity:0}}.boost-flow{animation:boostFlow 8s linear infinite}.boost-off .boost-flow,.boost-off .boost-pulse{animation-play-state:paused}'}</style>
+          <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@keyframes boostFlow{0%{transform:translateY(22px);opacity:0}15%{opacity:.45}85%{opacity:.45}100%{transform:translateY(-100px);opacity:0}}.boost-flow{animation:boostFlow 8s linear infinite}.boost-off .boost-flow,.boost-off .boost-pulse{animation-play-state:paused}'}</style>
           <svg ref={dialRef} className={seen ? undefined : 'boost-off'} viewBox="0 0 300 300" role="img" aria-label={`${running.length} boosts running`} style={{ display: 'block', width: 300, maxWidth: '100%', margin: '0 auto' }} onClick={() => setFocus(null)}>
             {slots.map((b, i) => {
               const a1 = i * 18 + 1;
@@ -149,19 +149,15 @@ export default function BoostCard({ show }) {
                   }}
                 >
                   <path d={wedge(R1, R2, a1, a2)} fill="currentColor" fillOpacity="0.06" stroke={on ? 'currentColor' : 'var(--border-strong)'} strokeWidth={on ? 1.5 : 0.5} />
-                  {p > 0 && (
-                    <>
-                      <path d={wedge(R1, R1 + (R2 - R1) * p, a1, a2)} fill={t.c} />
-                      <clipPath id={`bf${i}`}>
-                        <path d={wedge(R1, R1 + (R2 - R1) * p, a1, a2)} />
-                      </clipPath>
-                      <g clipPath={`url(#bf${i})`} style={{ pointerEvents: 'none' }}>
-                        <g transform={`rotate(${i * 18 + 9} 150 150)`}>
-                          <rect className="boost-flow" x="120" y="82" width="60" height="22" fill="#fff" style={{ animationDelay: `-${(i * 0.47).toFixed(2)}s` }} />
-                        </g>
-                      </g>
-                    </>
-                  )}
+                  {p > 0 && <path d={wedge(R1, R1 + (R2 - R1) * p, a1, a2)} fill={t.c} />}
+                  <clipPath id={`bf${i}`}>
+                    <path d={wedge(R1, R2, a1, a2)} />
+                  </clipPath>
+                  <g clipPath={`url(#bf${i})`} style={{ pointerEvents: 'none' }}>
+                    <g transform={`rotate(${i * 18 + 9} 150 150)`}>
+                      <rect className="boost-flow" x="120" y="82" width="60" height="22" fill={t.c} style={{ animationDelay: `-${(i * 0.47).toFixed(2)}s` }} />
+                    </g>
+                  </g>
                   <path d={rim(R2 + 6, a1 + 1, a2 - 1)} fill="none" stroke={t.c} strokeWidth={t.w} strokeLinecap="round" className={next && b.id === next.id && !picked ? 'boost-pulse' : undefined} />
                 </g>
               );
