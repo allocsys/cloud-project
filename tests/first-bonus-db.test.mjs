@@ -63,7 +63,7 @@ test('a first crypto buy of ASICs power gets extra TH/s, fixed on the miner, wit
   assert.equal(note.length, 1);
   assert.equal(note[0].body, `${c.serial} includes +1.5 TH/s bonus hashrate.`);
   assert.equal(u.notifications[0].title, 'First-buy bonus added');
-  assert.equal(u.history.find((h) => h.kind === 'purchase').amount, `-$${plan.price}`);
+  assert.equal(u.history.find((h) => h.kind === 'purchase').amount, `-$${plan.price.toFixed(2)}`);
 
   // A later change of the settings does not touch it, and the next buy gets nothing.
   assert.equal((await settings({ pct: 50 })).ok, true);
