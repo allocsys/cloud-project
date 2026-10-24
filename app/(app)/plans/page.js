@@ -14,6 +14,7 @@ import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
+import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -67,6 +68,8 @@ export default function Plans() {
   const canBal = !!cur && balUsd >= cur.price;
   const crypto = !!ord?.crypto;
   const methods = canBal ? ['balance', ...(crypto ? ['crypto'] : [])] : crypto ? ['crypto'] : ['balance'];
+  // The first-buy bonus is shown when crypto is the only way to pay (a first buy from the balance gets none).
+  const fb = cur && md?.firstBonus && crypto && !canBal ? applyFirstBonus(md.firstBonus, cur) : null;
 
   // Smart Mining amount box and slider keep each other in step.
   const onAmount = (v) => {
@@ -437,6 +440,12 @@ export default function Plans() {
                 <span className="mute">Miner ID</span>
                 <b className="serial">{nextId}</b>
               </div>
+              {fb && (
+                <div className="row">
+                  <span className="mute">First-buy bonus</span>
+                  <b className="v" style={{ color: 'var(--green)' }}>+{bonusText(fb.bonus)} extra hashrate<small>for the full term</small></b>
+                </div>
+              )}
               <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
