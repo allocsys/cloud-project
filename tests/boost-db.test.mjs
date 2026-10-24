@@ -131,7 +131,7 @@ test('a lost draw pays the boost only; the result shows once it ended and settle
 });
 
 test('a won draw adds the prize on top of the boost pay, with its own ledger row', async () => {
-  assert.equal((await chances({ chance: { t1: 100 } })).ok, true);
+  assert.equal((await chances({ chance: { t1: 100 }, confirm: true })).ok, true);
   const id = await account('win');
   await credit(id, 1);
   const r = await boost.buyBoost({ ticket: 't1' }, { userId: id });
@@ -148,7 +148,7 @@ test('a won draw adds the prize on top of the boost pay, with its own ledger row
 });
 
 test('a later change of the chance does not touch a running boost', async () => {
-  assert.equal((await chances({ chance: { t1: 100 } })).ok, true);
+  assert.equal((await chances({ chance: { t1: 100 }, confirm: true })).ok, true);
   const id = await account('fixed');
   await credit(id, 1);
   const r = await boost.buyBoost({ ticket: 't1' }, { userId: id });
