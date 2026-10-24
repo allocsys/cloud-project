@@ -7,6 +7,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
 
 const whole = (n) => n.toLocaleString('en-US');
+const usd = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 const COLOR = { t1: '#EF9F27', t10: '#5DCAA5', t100: '#AFA9EC' }; // the same tier colours as the dial on the Boost tab
 
 export default function BoostPromo({ signedIn = false }) {
@@ -24,7 +25,7 @@ export default function BoostPromo({ signedIn = false }) {
           <div>
             <i aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: COLOR[t.id], marginRight: 8 }} />
             <b>${whole(t.price)} ticket</b>
-            <small style={{ display: 'block' }}>mines {t.coin}{same ? '' : ` · ${t.chance}% chance`}</small>
+            <small style={{ display: 'block' }}>mines {t.coin} · pays ${usd(t.pay)} win or lose{same ? '' : ` · ${t.chance}% chance`}</small>
           </div>
           <b style={{ color: 'var(--gold2)', textAlign: 'right', fontSize: '14px' }}>chance to win ${whole(t.prize)}</b>
         </div>
