@@ -657,6 +657,16 @@ input::placeholder { color: var(--ph); }
 .authbox p { margin: 0 0 16px; font-size: 14px; }
 .authbox .btn.ghost { margin-top: 8px; }
 
+/* Sign-in sheet (components/AuthSheet.js, AuthForm.js) */
+.sheet-x { position: absolute; top: 8px; right: 12px; z-index: 1; width: 40px; height: 40px; display: grid; place-items: center; border: 0; border-radius: 20px; background: transparent; color: var(--mute); cursor: pointer; }
+.sheet-x svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.sheet-x:active { background: var(--ov-l); }
+.authform h3 { margin: 4px 40px 8px 0; }
+.authform p { margin: 0 0 16px; font-size: 14px; }
+.authform p.fine { margin: 0 0 12px; font-size: 12px; }
+.authform .btn.ghost { margin-top: 8px; }
+button.lp-signin { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
+
 .pwrap { position: relative; }
 .pwrap input { padding-right: 72px; }
 
