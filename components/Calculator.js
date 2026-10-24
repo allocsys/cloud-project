@@ -49,6 +49,15 @@ export default function Calculator({ signedIn = false }) {
   const [budget, setBudget] = useState('500'); // as typed
   const [term, setTerm] = useState(120);
   const [note, setNote] = useState(false); // the fine print under the button
+  const artRef = useRef(null);
+  const [seen, setSeen] = useState(true); // false while the miner picture is off screen, so its animations pause
+  useEffect(() => {
+    const el = artRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
 
   const est = smartEstimate(budget, term, cat?.smartTable); // the one formula for what a purchase pays (lib/smart.js)
   const b = est.budget;
@@ -76,7 +85,7 @@ export default function Calculator({ signedIn = false }) {
           </span>
         </div>
         <div className="calc-main">
-          <div className="calc-art">
+          <div ref={artRef} className={`calc-art${seen ? '' : ' off'}`}>
             <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="calc" />
           </div>
           <div className="calc-nums" aria-live="off">
