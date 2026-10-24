@@ -120,7 +120,7 @@ export default function BoostCard({ show }) {
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{data.hours} hours of extra hashrate. Pays when it ends.</p>
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
-          <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@media (prefers-reduced-motion:reduce){.boost-pulse{animation:none}}'}</style>
+          <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}'}</style>
           <svg viewBox="0 0 300 300" role="img" aria-label={`${running.length} boosts running`} style={{ display: 'block', width: 300, maxWidth: '100%', margin: '0 auto' }} onClick={() => setFocus(null)}>
             {slots.map((b, i) => {
               const a1 = i * 18 + 1;
