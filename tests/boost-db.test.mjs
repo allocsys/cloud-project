@@ -203,6 +203,24 @@ test('the winners bar: empty while off, then masked real wins with sample ones f
   assert.equal((await act({ action: 'boost-settings', chance: { t1: 5 } })).ok, true);
 });
 
+test('the winners bar shows a Telegram winner by name and skips closed accounts', async () => {
+  assert.equal((await chances()).ok, true);
+  const now = Date.now();
+  const win = { id: 'bst_x', t: 't1', price: 1, th: 120, pay: 0.21, prize: 10, chance: 5, shown: 5, win: true, rate: 100000, startAt: now - 2 * 3600_000 - 1000, endsAt: now - 1000, settled: true };
+  const tg = `tg:9${now}`;
+  const closed = `closed:${run}`;
+  const rows = [[tg, { tgName: 'Zoltan Kovacs' }], [closed, { tgName: 'Gonewoman' }]];
+  try {
+    for (const [id, extra] of rows) await q('INSERT INTO users (id, data) VALUES ($1, $2::jsonb)', [id, JSON.stringify({ id, ...extra, boosts: [win] })]);
+    const list = await boost.recentWinners({ nocache: true });
+    assert.ok(list.some((w) => w.name === 'Zol\u2022\u2022\u2022\u2022' && Math.abs(w.at - (now - 1000)) < 60_000), 'the Telegram winner shows by name');
+    assert.ok(list.every((w) => !w.name.includes('tg') || w.name === 'tg\u2022\u2022\u2022\u2022'), 'the id number is never shown');
+    assert.equal(list.some((w) => w.name.startsWith('Gone') || w.name.startsWith('closed')), false, 'a closed account never shows');
+  } finally {
+    await q('DELETE FROM users WHERE id = ANY($1::text[])', [rows.map((r) => r[0])]);
+  }
+});
+
 test('the admin settings: a chance that loses money needs a second confirm, bad numbers are refused, the switch flips on its own', async () => {
   assert.equal((await chances()).ok, true);
   const refused = await act({ action: 'boost-settings', chance: { t1: 20 } });
