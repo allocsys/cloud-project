@@ -62,7 +62,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
 
   async function submit(e) {
     e.preventDefault();
-    if (notice) return onDone('/dashboard');
+    if (notice) return onDone('/plans');
     const next = {};
     if (view !== 'reset' && !/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
     if (view !== 'forgot' && password.length < 8) next.password = 'Password needs at least 8 characters.';
@@ -106,7 +106,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
         setLoading(false);
         return;
       }
-      onDone('/dashboard');
+      onDone('/plans');
     } catch (err) {
       triggerHaptic('error');
       setLoading(false);
@@ -159,7 +159,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
         setTgBusy(false);
         return;
       }
-      onDone('/dashboard');
+      onDone('/plans');
     } catch (err) {
       triggerHaptic('error');
       setTgBusy(false);
@@ -171,7 +171,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
   async function handleSkip() {
     triggerHaptic('light');
     await signOut();
-    onDone('/dashboard');
+    onDone('/plans');
   }
 
   const title = view === 'forgot' ? 'Forgot your password?' : view === 'reset' ? 'Choose a new password' : signup ? 'Create your account' : 'Sign in';
