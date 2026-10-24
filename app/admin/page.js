@@ -218,6 +218,33 @@ function GuardCard({ guard, busy, run }) {
   );
 }
 
+// First-buy bonus: extra hashrate on a user's first purchase paid with crypto. Rules in lib/first-bonus.js, storage in lib/server/first-bonus.js.
+const fbDraft = (v) => ({ pct: String(v.pct), capTh: String(v.capTh), capUsd: String(v.capUsd), minUsd: String(v.minUsd), until: v.until ? new Date(v.until).toISOString().slice(0, 10) : '' });
+function FirstBonusCard({ fb, busy, run }) {
+  const s = fb || { enabled: false, pct: 10, capTh: 5, capUsd: 50, minUsd: 50, until: null };
+  const key = JSON.stringify(s);
+  const [d, setD] = useState(() => fbDraft(s));
+  useEffect(() => setD(fbDraft(JSON.parse(key))), [key]);
+  return (
+    <div className="card">
+      <h3>First-buy bonus</h3>
+      <div className="row"><span className="mute">Bonus</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
+      <Field id="fbp" label="Bonus (% of the purchase)" inputMode="decimal" value={d.pct} onChange={(v) => setD({ ...d, pct: v })} />
+      <Field id="fbt" label="Max bonus for ASICs (TH/s)" inputMode="decimal" value={d.capTh} onChange={(v) => setD({ ...d, capTh: v })} />
+      <Field id="fbu" label="Max bonus for Smart Mining (USD of budget)" inputMode="decimal" value={d.capUsd} onChange={(v) => setD({ ...d, capUsd: v })} />
+      <Field id="fbm" label="Min purchase (USD)" inputMode="decimal" value={d.minUsd} onChange={(v) => setD({ ...d, minUsd: v })} />
+      <Field id="fbe" label="Last day, UTC (2026-12-31, empty = no end)" value={d.until} onChange={(v) => setD({ ...d, until: v })} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'firstbonus-settings', ...d }, 'First-buy bonus saved')}>Save</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'firstbonus-settings', enabled: !s.enabled }, s.enabled ? 'First-buy bonus is off' : 'First-buy bonus is on')}>
+          {s.enabled ? 'Turn off' : 'Turn on'}
+        </button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>A user's first purchase paid with crypto gets extra hashrate for the whole term. ASICs get extra TH/s (the percent of the size, up to the TH/s cap). Smart Mining gets a higher profit rate by the same percent, up to the USD cap measured on the budget; the budget that comes back does not change. A first purchase paid from the balance gets nothing and uses up the chance. Not for renewals or admin grants. It applies to purchases made after saving, each miner keeps the bonus it started with.</p>
+    </div>
+  );
+}
+
 function Stat({ l, v, s }) {
   return (
     <div className="stat">
@@ -494,6 +521,7 @@ export default function Admin() {
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </div>
           <SmartCard smart={data.smart} busy={busy} run={run} />
+          <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <GuardCard guard={data.guard} busy={busy} run={run} />
         </div>
       )}
