@@ -13,19 +13,20 @@ export default function BoostPromo({ signedIn = false }) {
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   const b = cat?.boost;
   if (!b) return null;
+  const same = b.tickets.every((t) => t.chance === b.tickets[0].chance); // one chance for all: say it once, in the footnote
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
       <h3>Boost</h3>
-      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>Buy a ticket. Get extra hashrate for {b.hours} hours and a chance to win a prize.</p>
+      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>Extra hashrate for {b.hours} hours, paid in BTC.</p>
       {b.tickets.map((t) => (
         <div className="row" key={t.id}>
           <div>
             <i aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: COLOR[t.id], marginRight: 8 }} />
             <b>${whole(t.price)} ticket</b>
-            <small style={{ display: 'block' }}>{t.chance}% chance · mining pay included</small>
+            <small style={{ display: 'block' }}>mines {t.coin}{same ? '' : ` · ${t.chance}% chance`}</small>
           </div>
-          <b style={{ color: 'var(--gold2)' }}>Win ${whole(t.prize)}</b>
+          <b style={{ color: 'var(--gold2)', textAlign: 'right', fontSize: '14px' }}>chance to win ${whole(t.prize)}</b>
         </div>
       ))}
       {signedIn ? (
@@ -46,7 +47,7 @@ export default function BoostPromo({ signedIn = false }) {
           Get started
         </AuthButton>
       )}
-      <p className="fine" style={{ margin: '12px 0 0' }}>Each ticket has its own draw. The result shows when the boost ends. Paid from your balance.</p>
+      <p className="fine" style={{ margin: '12px 0 0' }}>Each ticket has its own draw{same ? `, ${b.tickets[0].chance}% chance` : ''}. The result shows when the boost ends.</p>
     </div>
   );
 }
