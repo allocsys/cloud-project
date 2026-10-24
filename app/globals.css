@@ -475,6 +475,7 @@ input::placeholder { color: var(--ph); }
 .calc-art { flex: none; width: 104px; padding: 6px 4px 2px; border-radius: 18px; background: var(--s2); }
 :root[data-theme="light"] .calc-art { background: var(--art); }
 .calc-art .art { margin: 0; }
+.calc-art.off * { animation-play-state: paused; }
 .calc-art .art svg { height: auto; }
 .calc-nums { min-width: 0; }
 .calc-btc { color: var(--gold2); font-size: clamp(24px, 7.4vw, 40px); line-height: 1.05; font-weight: 500; letter-spacing: -0.4px; font-variant-numeric: tabular-nums; }
