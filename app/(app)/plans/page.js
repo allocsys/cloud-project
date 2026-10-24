@@ -1,8 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { halls, contracts, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
-import { formatSerial, serialNumber } from '@/lib/contracts';
+import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
@@ -19,9 +18,6 @@ import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-// Used only until the server answers the first time.
-const seedMiners = { contracts, nextSerial: formatSerial(Math.max(...contracts.map((c) => serialNumber(c.serial))) + 1) };
-
 export default function Plans() {
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
@@ -36,8 +32,8 @@ export default function Plans() {
     const v = liveDaily(p.th, hallMap[p.hall], cat?.live);
     return v === null ? p.daily : `$${v.toFixed(2)}`;
   };
-  const list = md ? md.contracts : contracts;
-  const nextId = md ? md.nextSerial : seedMiners.nextSerial;
+  const list = md ? md.contracts : []; // nothing is shown as a miner until the server has answered
+  const nextId = md ? md.nextSerial : '';
 
   const [sel, setSel] = useState(null);
   const [pos, setPos] = useState(666); // ASICs slider position, about 100 TH/s
@@ -49,29 +45,50 @@ export default function Plans() {
   // The Boost tab shows only while boost tickets are on (or a boost is still running); otherwise the page falls back to Buy plans.
   const { data: bd } = useApi('/api/boost', { ttl: 10000 });
   const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
-  const view = tab === 'boost' && !boostOn ? 'buy' : tab;
+  // Restored on the Boost tab: wait for /api/boost before deciding, so Buy plans does not flash first.
+  const boostWait = tab === 'boost' && !bd;
+  const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
   const openerRef = useRef(null);
   const startY = useRef(null);
+  const lock = useRef(null); // what the open sheet keeps fixed once everything has loaded: plan, balance and pay options
+  const paying = useRef(false); // set at once on a tap, unlike `busy`, which only changes on the next render
+  const payKey = useRef(null); // idempotency key of the purchase in progress: { sig, key }
+  // The pay buttons wait until the catalogue, miners, wallet and orders have answered (or 4 seconds, if one never does).
+  const [slow, setSlow] = useState(false);
+  const ready = !!(cat && md && wd && ord) || slow;
+  useEffect(() => {
+    if (!sel) {
+      setSlow(false);
+      return undefined;
+    }
+    const t = setTimeout(() => setSlow(true), 4000);
+    return () => clearTimeout(t);
+  }, [sel]);
   // What the two cards show, and what the sheet confirms: the ASICs pick and the Smart Mining pick.
   const bNum = Math.min(SMART.max, Math.max(SMART.min, Math.round(Number(budget)) || SMART.min));
   const ap = customPlan(thFromPos(pos), aterm, hallMap);
   const sp = smartPlan(bNum, term, cat?.smartTable);
-  // The plan on the sheet: Smart Mining or an ASICs pick.
-  const cur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
+  // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
+  const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
+  // The plan on the sheet: Smart Mining or an ASICs pick. Once everything has loaded, the sheet keeps the plan, balance and pay
+  // options it opened with, so a price or a button never changes under a finger.
+  const liveCur = sel ? (sel.id === 'smart' ? sp : sel.id === 'custom' ? ap : sel) : null;
+  if (!sel) lock.current = null;
+  else if (ready && !lock.current) lock.current = { plan: liveCur, bal: balUsd, crypto: !!ord?.crypto };
+  const cur = sel ? lock.current?.plan || liveCur : null;
   const hall = cur ? hallMap[cur.hall] || null : null;
   const costs = cur && hall ? dailyCosts(cur.th, hall) : null; // already taken out of the mining, never billed
   // Smart Mining: the profit a day is held between the bottom and the top of the reserve band (lib/smart.js), so the term's profit
   // is estimated as that band over the whole term. An estimate, not a promise: a weak market can pay less, a strong one more.
   const money = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
   const profitRange = cur?.smart ? smartBand(cur) : null; // { low, mid, high } from lib/smart.js
-  // The balance that can pay for a plan, in USD at the live rate (the server checks again with its own rate).
-  const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * (pd?.prices?.btc ?? BTC_USD) : 0;
-  const canBal = !!cur && balUsd >= cur.price;
-  const crypto = !!ord?.crypto;
+  const sheetBal = lock.current ? lock.current.bal : balUsd;
+  const canBal = !!cur && sheetBal >= cur.price;
+  const crypto = lock.current ? lock.current.crypto : !!ord?.crypto;
   const methods = canBal ? ['balance', ...(crypto ? ['crypto'] : [])] : crypto ? ['crypto'] : ['balance'];
   // The first-buy bonus is shown when crypto is the only way to pay (a first buy from the balance gets none).
   const fb = cur && md?.firstBonus && crypto && !canBal ? applyFirstBonus(md.firstBonus, cur) : null;
@@ -94,6 +111,7 @@ export default function Plans() {
   function selectPlan(p) {
     triggerHaptic('selection');
     openerRef.current = document.activeElement;
+    payKey.current = null;
     setSel(p);
   }
 
@@ -102,6 +120,7 @@ export default function Plans() {
     setSel(null);
     setDragY(0);
     startY.current = null;
+    payKey.current = null;
     const el = openerRef.current;
     if (el && el.focus) el.focus();
   }
@@ -116,7 +135,8 @@ export default function Plans() {
 
   // Pays by the chosen method. Balance and the demo account activate at once; crypto leaves for the payment page.
   async function pay(method) {
-    if (busy) return;
+    if (paying.current || busy || !ready) return;
+    paying.current = true;
     const plan = cur;
     setBusy(true);
     let leaving = false;
@@ -126,7 +146,10 @@ export default function Plans() {
         : plan.id === 'custom'
           ? { planId: 'custom', th: plan.th, days: plan.days, pay: method }
           : { planId: plan.id, pay: method };
-      const r = await post('/api/plans/buy', body, uid());
+      // One key per plan, size, term and method: a retry after a lost answer repeats the same purchase instead of making a second one.
+      const sig = JSON.stringify(body);
+      if (payKey.current?.sig !== sig) payKey.current = { sig, key: uid() };
+      const r = await post('/api/plans/buy', body, payKey.current.key);
       if (r.pending && r.order?.url) {
         leaving = true;
         window.location.assign(r.order.url);
@@ -145,8 +168,10 @@ export default function Plans() {
     } catch (e) {
       triggerHaptic('error');
       show(e.status ? e.message : 'No connection. Try again.');
+      if (!e.status) refresh().catch(() => {}); // the answer may have been lost after the purchase went through: look
     } finally {
       if (!leaving) {
+        paying.current = false;
         setBusy(false);
         revalidate('/api/wallet').catch(() => {});
         refreshOrders().catch(() => {});
@@ -186,6 +211,19 @@ export default function Plans() {
   }, [ord]);
 
   useSheetBack(!!sel, dismiss);
+
+  // Back from the payment page can restore this page exactly as it was left (sheet open, buttons disabled): free it and show the open order.
+  useEffect(() => {
+    const back = (e) => {
+      if (!e.persisted) return;
+      paying.current = false;
+      setBusy(false);
+      dismiss();
+      refreshOrders().catch(() => {});
+    };
+    window.addEventListener('pageshow', back);
+    return () => window.removeEventListener('pageshow', back);
+  }, []);
 
   // Coming back from a miner page, or from the Boost card on the landing page: reopen on that tab.
   useEffect(() => {
@@ -281,7 +319,7 @@ export default function Plans() {
       <div className="tabs" role="group" aria-label="Buy plans, boost or your miners">
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
         {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>Boost</button>}
-        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>My miners · {list.length}</button>
+        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>My miners{md ? ` · ${list.length}` : ''}</button>
       </div>
 
       {view === 'buy' && [...pending, ...review].map((o) => (
@@ -308,7 +346,7 @@ export default function Plans() {
         </div>
       ))}
 
-      {view === 'boost' ? (
+      {view === 'boost' && boostWait ? null : view === 'boost' ? (
         <BoostCard show={show} />
       ) : view === 'buy' ? (
       <>
@@ -373,12 +411,12 @@ export default function Plans() {
             );
           })}
         </div>
-      ) : (
+      ) : md ? (
         <div className="card">
           <p className="empty">No miners yet.</p>
           <button className="swap" onClick={() => setTab('buy')}>Buy a plan</button>
         </div>
-      )}
+      ) : null}
 
       {sel && (
         <div
@@ -443,7 +481,7 @@ export default function Plans() {
               ) : null}
               <div className="row">
                 <span className="mute">Miner ID</span>
-                <b className="serial">{nextId}</b>
+                <b className="serial">{nextId || '...'}</b>
               </div>
               {fb && (
                 <div className="row">
@@ -457,7 +495,7 @@ export default function Plans() {
               </div>
               <div className="row">
                 <span className="mute">Your balance</span>
-                <b className="v">${fmtUsd(balUsd)}</b>
+                <b className="v">${fmtUsd(sheetBal)}</b>
               </div>
               <div className="row">
                 <span className="mute">Per day</span>
@@ -479,18 +517,22 @@ export default function Plans() {
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
-            {(!canBal || !crypto) && (!canBal) && (
+            {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
                 {!crypto
                   ? 'Not enough balance, and crypto payments are not switched on yet.'
-                  : `Balance is $${fmtUsd(cur.price - balUsd)} short.`}
+                  : `Balance is $${fmtUsd(cur.price - sheetBal)} short.`}
               </p>
             )}
-            {methods.map((m, i) => (
-              <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
-                {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
-              </button>
-            ))}
+            {!ready ? (
+              <button className="btn" type="button" disabled>Loading...</button>
+            ) : (
+              methods.map((m, i) => (
+                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
+                  {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
+                </button>
+              ))
+            )}
             <button className="swap" type="button" onClick={closeModal}>Cancel</button>
           </div>
         </div>
