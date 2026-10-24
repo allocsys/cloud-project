@@ -6,14 +6,13 @@ import Decrypt from '@/components/Decrypt';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
+import WinnersBar from '@/components/WinnersBar';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 
 export const metadata = {
   title: { absolute: 'Miner Opus: bitcoin cloud mining without the hardware' },
 };
-
-const MARQUEE = ['Daily earnings', 'Pay in BTC', 'Reviewed withdrawals', 'Works in Telegram', 'Install as an app', 'Invite and earn rebates'];
 
 const ICONS = {
   eye: (
@@ -53,6 +52,7 @@ const WHY = [
 
 // The page people see before they sign in. It makes no income promises and shows no made-up numbers or reviews:
 // in this market, guaranteed returns and invented proof are what people have learned to distrust.
+// The one exception is the winners bar (components/WinnersBar.js): it shows sample winners until real ones fill it. Take the samples out before launch.
 // The calculator uses the live market and the real plan prices, and says it is an estimate.
 export default async function Home() {
   const jar = await cookies();
@@ -104,20 +104,7 @@ export default async function Home() {
           </Reveal>
         </section>
 
-        <div className="lp-marq" aria-label="Highlights">
-          <div className="lp-marq-in">
-            <div className="lp-marq-g">
-              {MARQUEE.map((m) => (
-                <span key={m}>{m}</span>
-              ))}
-            </div>
-            <div className="lp-marq-g lp-marq-dup" aria-hidden="true">
-              {MARQUEE.map((m) => (
-                <span key={m}>{m}</span>
-              ))}
-            </div>
-          </div>
-        </div>
+        <WinnersBar />
 
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
