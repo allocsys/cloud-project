@@ -187,12 +187,13 @@ export default function Plans() {
 
   useSheetBack(!!sel, dismiss);
 
-  // Coming back from a miner page: reopen on the My miners tab.
+  // Coming back from a miner page, or from the Boost card on the landing page: reopen on that tab.
   useEffect(() => {
     try {
-      if (sessionStorage.getItem('opus-plans-tab') === 'mine') {
+      const t = sessionStorage.getItem('opus-plans-tab');
+      if (t === 'mine' || t === 'boost') {
         sessionStorage.removeItem('opus-plans-tab');
-        setTab('mine');
+        setTab(t);
       }
     } catch {}
   }, []);
