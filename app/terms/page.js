@@ -1,5 +1,4 @@
 'use client';
-import Link from 'next/link';
 import BackLink from '@/components/BackLink';
 import { halls as defaultHalls, MIN_WITHDRAW, MIN_WITHDRAW_USD } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
