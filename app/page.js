@@ -5,6 +5,7 @@ import Decrypt from '@/components/Decrypt';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
+import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 
 export const metadata = {
@@ -57,7 +58,7 @@ export default async function Home() {
   const signedIn = jar.has(COOKIE);
 
   return (
-    <>
+    <AuthSheetProvider signedIn={signedIn}>
       <Splash />
       <main className="lp">
       <div className="lp-in">
@@ -66,9 +67,13 @@ export default async function Home() {
             <img src="/logo.svg" alt="" width="36" height="36" />
             Miner Opus
           </Link>
-          <Link href={signedIn ? '/dashboard' : '/login'} className="lp-signin">
-            {signedIn ? 'Dashboard' : 'Sign in'}
-          </Link>
+          {signedIn ? (
+            <Link href="/dashboard" className="lp-signin">
+              Dashboard
+            </Link>
+          ) : (
+            <AuthButton className="lp-signin">Sign in</AuthButton>
+          )}
         </header>
 
         <section className="lp-hero2">
@@ -153,6 +158,6 @@ export default async function Home() {
       </div>
       {!signedIn && <StickyCta />}
       </main>
-    </>
+    </AuthSheetProvider>
   );
 }
