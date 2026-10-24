@@ -1511,8 +1511,6 @@ main {
 .pcard .prow b { flex: none; font-size: 22px; line-height: 28px; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
 .pcard .tcan { margin: -4px 0 10px; }
 
-@media (prefers-reduced-motion: reduce) { .pcard .stage { animation: none; } }
-
 .art .fan { transform-box: fill-box; transform-origin: center; animation: spin var(--spd, 1.4s) linear infinite; }
 .art .led { animation: blink 1.3s ease-in-out infinite; }
 .art .coin { animation: floaty 3s ease-in infinite; }
