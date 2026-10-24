@@ -7,7 +7,7 @@ import { guardSettings } from '@/lib/server/guard';
 import { refreshPricing, pricingGross } from '@/lib/server/pricing';
 import { PRICE_BUFFER } from '@/lib/pricing';
 import { boostSettings } from '@/lib/server/boost';
-import { BOOST, TICKETS, boostOn } from '@/lib/boost';
+import { BOOST, TICKETS, boostOn, shownOf } from '@/lib/boost';
 
 export const dynamic = 'force-dynamic';
 
@@ -33,7 +33,7 @@ export async function GET() {
       smartTable: st.table,
       pauseRule: guard.mode,
       boost: boostOn(bcfg)
-        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: bcfg.chance[t.id] })) }
+        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: shownOf(bcfg, t.id) })) }
         : null,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
