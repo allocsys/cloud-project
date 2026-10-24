@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { signup, sendVerification, setSession, clientIp, throttled, noteFail } from '@/lib/server/auth';
+import { signup, sendVerification, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,17 +9,18 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 const BASE_URL = (process.env.APP_URL || 'https://opus-cloud-mining-production.up.railway.app').replace(/\/+$/, '');
 
 export async function POST(req) {
-  const ip = clientIp(req);
-  if (await throttled(`s:${ip}`)) {
+  const key = `s:${clientIp(req)}`;
+  // Counts every sign-up from this address, so one address cannot mass-create accounts. Counted first, in one statement.
+  if (await reserve(key)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
   try {
     body = await req.json();
   } catch {
+    await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  await noteFail(`s:${ip}`); // counts every sign-up from this address, so one address cannot mass-create accounts
   const { status, ...rest } = await signup(body);
   const res = NextResponse.json(rest, { status, headers: NO_STORE });
   if (rest.ok) {

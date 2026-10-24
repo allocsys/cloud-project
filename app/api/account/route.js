@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { closePreview, closeAccount, clearSession, userId, unauthorized, throttled, noteFail, clearFails } from '@/lib/server/auth';
+import { closePreview, closeAccount, clearSession, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,23 +14,24 @@ export async function GET(req) {
 }
 
 // POST { password, code, confirm: 'DELETE', forfeit }: closes the signed-in account and signs it out.
-// Wrong passwords and codes count toward the same lockout as sign-in.
+// Wrong passwords and codes count toward the same lockout as sign-in. Counted first in one statement.
 export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const key = `c:${id}`;
-  if (await throttled(key)) {
+  if (await reserve(key)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
   try {
     body = await req.json();
   } catch {
+    await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
   const { status, ...rest } = await closeAccount(id, body);
   if (!rest.ok) {
-    if (rest.field) await noteFail(key);
+    if (!rest.field) await giveBack(key);
     return NextResponse.json(rest, { status, headers: NO_STORE });
   }
   await clearFails(key);

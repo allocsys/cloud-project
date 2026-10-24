@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, throttled, noteFail, clearFails } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, reserve, giveBack, clearFails } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -10,23 +10,24 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, off: true, error: 'Admin is off. Set ADMIN_TOKEN (12 or more characters) and redeploy.' }, { status: 503, headers: NO_STORE });
   }
   const ip = clientIp(req);
-  if (await throttled(ip)) {
+  // Counted first in one statement, so a burst of parallel guesses cannot all pass the limit.
+  if (await reserve(ip)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
   try {
     body = await req.json();
   } catch {
+    await giveBack(ip);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
   if (await needsSetup()) {
     const r = await setupAdmin(body?.token, body?.user, body?.pass);
     if (!r.ok) {
-      if (r.bad) await noteFail(ip);
+      if (!r.bad) await giveBack(ip);
       return NextResponse.json({ ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
     }
   } else if (!(await checkLogin(body?.user, body?.pass))) {
-    await noteFail(ip);
     return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
   }
   await clearFails(ip);
