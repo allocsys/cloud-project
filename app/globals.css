@@ -517,6 +517,9 @@ input::placeholder { color: var(--ph); }
 .lp-marq-g { display: flex; gap: 8px; padding-right: 8px; }
 .lp-marq-dup { display: none; }
 .lp-marq span { padding: 6px 10px; border-radius: 8px; background: var(--ov); color: var(--text); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
+.lp-win .lp-marq-in { animation-duration: 80s; }
+.lp-win.off .lp-marq-in { animation-play-state: paused; }
+.lp-win b { color: var(--gold2); font-weight: 500; }
 .lp-why { overflow: hidden; border-radius: 16px; background: var(--s2); }
 .lp-wi { display: flex; align-items: flex-start; gap: 12px; padding: 14px; }
 .lp-wi + .lp-wi { border-top: 1px solid var(--line); }
