@@ -4,6 +4,7 @@ import { fmtTh, fmtUsd } from '@/lib/data';
 import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
 import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
+import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -522,6 +523,7 @@ export default function Admin() {
           </div>
           <SmartCard smart={data.smart} busy={busy} run={run} />
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
+          <BoostCard bs={data.boost} busy={busy} run={run} />
           <GuardCard guard={data.guard} busy={busy} run={run} />
         </div>
       )}
