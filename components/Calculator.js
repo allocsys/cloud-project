@@ -15,12 +15,12 @@ import { AuthButton } from '@/components/AuthSheet';
 const TICKS = [100, 500, 1000, 5000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-// Glides a number to its new value, so the figures roll as the slider moves. Reduced motion jumps straight to it.
+// Glides a number to its new value, so the figures roll as the slider moves.
 function useGlide(target, ms = 420) {
   const [v, setV] = useState(target);
   const cur = useRef(target);
   useEffect(() => {
-    if (typeof window === 'undefined' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) {
+    if (typeof window === 'undefined') {
       cur.current = target;
       setV(target);
       return undefined;
