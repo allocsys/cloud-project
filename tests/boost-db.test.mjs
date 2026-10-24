@@ -181,6 +181,28 @@ test('users see the shown chance while the draw uses the real one; empty shown m
   }
 });
 
+test('the winners bar: empty while off, then masked real wins with sample ones filling the rest, nothing else leaked', async () => {
+  const { maskId, WINNERS } = await import('@/lib/boost');
+  assert.equal((await act({ action: 'boost-settings', enabled: false })).ok, true);
+  assert.deepEqual(await boost.recentWinners({ nocache: true }), [], 'off: nothing');
+  assert.equal((await chances({ chance: { t1: 100 }, confirm: true })).ok, true);
+  const id = await account('winbar');
+  await credit(id, 1);
+  const r = await boost.buyBoost({ ticket: 't1' }, { userId: id });
+  assert.equal(r.ok, true);
+  assert.equal((await boost.recentWinners({ nocache: true })).some((w) => w.name === maskId(id)), false, 'a running boost is not a win yet');
+  await finish(id, r.boost.id);
+  const list = await boost.recentWinners({ nocache: true });
+  assert.equal(list.length, WINNERS.count);
+  const mine = list.filter((w) => w.name === maskId(id));
+  assert.equal(mine.length, 1);
+  assert.equal(mine[0].prize, 10);
+  assert.ok(Math.abs(mine[0].at - (Date.now() - 3 * 3600_000 + 2 * 3600_000)) < 60_000, 'the time is when the boost ended');
+  for (const w of list) assert.deepEqual(Object.keys(w).sort(), ['at', 'name', 'prize'], 'only name, prize and time');
+  assert.ok(list.every((w) => !w.name.includes('@') && !w.name.includes(id)));
+  assert.equal((await act({ action: 'boost-settings', chance: { t1: 5 } })).ok, true);
+});
+
 test('the admin settings: a chance that loses money needs a second confirm, bad numbers are refused, the switch flips on its own', async () => {
   assert.equal((await chances()).ok, true);
   const refused = await act({ action: 'boost-settings', chance: { t1: 20 } });
