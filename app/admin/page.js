@@ -248,7 +248,10 @@ function FirstBonusCard({ fb, busy, run }) {
 
 // Boost tickets: a 2 hour hashrate boost with a prize draw. Rules in lib/boost.js, storage in lib/server/boost.js. The chance is typed per
 // ticket in percent; the margin is only shown (1 - (boost pay + chance x prize) / price). A negative margin turns red and asks twice before saving.
-const bcDraft = (v) => Object.fromEntries(TICKETS.map((t) => [t.id, String(v.chance[t.id])]));
+const bcDraft = (v) => ({
+  chance: Object.fromEntries(TICKETS.map((t) => [t.id, String(v.chance[t.id])])),
+  shown: Object.fromEntries(TICKETS.map((t) => [t.id, v.shown?.[t.id] == null ? '' : String(v.shown[t.id])])), // empty = users see the real chance
+});
 const pctOf = (v) => Number(String(v).trim().replace(',', '.'));
 const marginText = (m) => `${(Math.round(m * 1000) / 10).toFixed(1)}%`;
 function BoostCard({ bs, busy, run }) {
@@ -259,22 +262,22 @@ function BoostCard({ bs, busy, run }) {
   useEffect(() => {
     if (!edited) setD(bcDraft(JSON.parse(key)));
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
-  const type = (id, v) => {
+  const type = (kind, id, v) => {
     setEdited(true);
-    setD((x) => ({ ...x, [id]: v }));
+    setD((x) => ({ ...x, [kind]: { ...x[kind], [id]: v } }));
   };
-  const losing = TICKETS.filter((t) => String(d[t.id]).trim() !== '' && marginOf(t, pctOf(d[t.id])) < 0);
+  const losing = TICKETS.filter((t) => String(d.chance[t.id]).trim() !== '' && marginOf(t, pctOf(d.chance[t.id])) < 0);
   const save = async () => {
     if (losing.length && !window.confirm(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`)) return;
-    if (await run({ action: 'boost-settings', chance: d, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
+    if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
     <div className="card">
       <h3>Boost tickets</h3>
       <div className="row"><span className="mute">Tickets</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
       {TICKETS.map((t) => {
-        const x = pctOf(d[t.id]);
-        const ok = String(d[t.id]).trim() !== '' && Number.isFinite(x) && x >= 0 && x <= BOOST.maxChance;
+        const x = pctOf(d.chance[t.id]);
+        const ok = String(d.chance[t.id]).trim() !== '' && Number.isFinite(x) && x >= 0 && x <= BOOST.maxChance;
         const m = ok ? marginOf(t, x) : null;
         return (
           <div className="adm-m" key={t.id}>
@@ -285,7 +288,8 @@ function BoostCard({ bs, busy, run }) {
               </div>
               <b style={m !== null && m < 0 ? { color: '#e5484d' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
             </div>
-            <Field id={`bc${t.id}`} label={`Chance of the prize (%) for the $${t.price} ticket`} inputMode="decimal" value={d[t.id]} onChange={(v) => type(t.id, v)} />
+            <Field id={`bc${t.id}`} label={`Real chance (%) for the $${t.price} ticket`} inputMode="decimal" value={d.chance[t.id]} onChange={(v) => type('chance', t.id, v)} />
+            <Field id={`bs${t.id}`} label={`Shown chance (%) for the $${t.price} ticket, empty = same`} inputMode="decimal" value={d.shown[t.id]} onChange={(v) => type('shown', t.id, v)} />
             {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the $${t.price} ticket loses money (each one costs more than it brings in).</p>}
           </div>
         );
@@ -297,7 +301,7 @@ function BoostCard({ bs, busy, run }) {
           {s.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + chance x prize) / price, so it moves with the chance and is not typed. A new chance applies to tickets bought after saving; a running boost keeps the chance it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p>
+      <p className="fine" style={{ margin: '8px 0 0' }}>Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p>
     </div>
   );
 }
