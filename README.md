@@ -23,7 +23,7 @@ Runs `node --test` against a real Postgres (set `DATABASE_URL`, `PRICE_FEED=stat
 
 | Route | What it does |
 | --- | --- |
-| `/login` | Sign in, sign up (with referral code), password reset, Telegram Mini App login |
+| `/login` | Redirects to `/?auth=1`. Sign-in is a sheet on the home page: sign in, sign up (with referral code), password reset, Telegram Mini App login, demo |
 | `/dashboard` | Balance and total mined, earnings chart, miners, recent activity |
 | `/plans` | ASICs power (pick TH/s and a term; the price follows the live market, 2% below it, refreshed hourly and locked at purchase) and Smart Mining (pick a budget and a term). Buy from balance or by crypto invoice |
 | `/wallet` | Withdraw, deposit, history |
