@@ -70,12 +70,16 @@ test('winner names show half of the part before the @, never the domain or the w
   assert.equal(maskId('ab@x.com'), 'a\u2022\u2022\u2022\u2022');
   assert.equal(maskId('a@x.com'), 'a\u2022\u2022\u2022\u2022');
   assert.equal(maskId('averyveryverylongname@x.com'), 'averyv\u2022\u2022\u2022\u2022', 'at most 6 characters');
-  assert.equal(maskId('tg_123456'), 'tg_1\u2022\u2022\u2022\u2022');
-  for (const id of ['johnsmith@x.com', 'ab@x.com', 'tg_123456']) {
+  assert.equal(maskId('tg:123456789', 'Alexander Great'), 'Alex\u2022\u2022\u2022\u2022', 'a Telegram account shows half of its first name');
+  assert.equal(maskId('tg:123456789', 'Ali'), 'A\u2022\u2022\u2022\u2022');
+  assert.equal(maskId('tg:123456789'), 'tg\u2022\u2022\u2022\u2022', 'no name: just tg');
+  assert.equal(maskId('tg:123456789', '   '), 'tg\u2022\u2022\u2022\u2022');
+  assert.ok(!/\d|:/.test(maskId('tg:123456789', 'Alexander')) && !/\d|:/.test(maskId('tg:123456789')), 'the Telegram number is never shown');
+  for (const id of ['johnsmith@x.com', 'ab@x.com']) {
     const m = maskId(id);
     assert.ok(!m.includes('@') && !m.includes('.com') && m !== id);
   }
-  assert.equal(maskId(undefined), '1'.slice(1) + '\u2022\u2022\u2022\u2022');
+  assert.equal(maskId(undefined), '\u2022\u2022\u2022\u2022');
 });
 
 test('sample winners are masked, recent and mostly small; the count is filled', () => {
@@ -84,7 +88,7 @@ test('sample winners are masked, recent and mostly small; the count is filled', 
   assert.equal(list.length, WINNERS.count);
   assert.equal(new Set(list.map((w) => w.name)).size, list.length, 'no repeated name');
   for (const w of list) {
-    assert.ok(w.name.endsWith('\u2022\u2022\u2022\u2022') && !w.name.includes('@'));
+    assert.ok(w.name.endsWith('\u2022\u2022\u2022\u2022') && !w.name.includes('@') && !/\d|:/.test(w.name), 'no email, no number');
     assert.ok([10, 100, 1000].includes(w.prize));
     assert.ok(w.at <= now - 60_000 && w.at >= now - 60_000 - WINNERS.maxAgoMin * 60_000);
   }
