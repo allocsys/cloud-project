@@ -123,7 +123,7 @@ export default function BoostCard({ show }) {
           <div className="row" key={t.id}>
             <div>
               <b>${whole(t.price)}</b> · {whole(t.th)} TH/s
-              <small style={{ display: 'block' }}>pays ${usd(t.pay)} · {t.chance}% chance to win ${whole(t.prize)}</small>
+              <small style={{ display: 'block' }}>always pays ${usd(t.pay)} · plus a {t.chance}% chance to win ${whole(t.prize)}</small>
             </div>
             <button type="button" className={arm === t.id ? 'btn' : 'swap'} style={{ width: 'auto', margin: 0, padding: '0 14px', minHeight: 36 }} disabled={busy || t.active >= t.max} onClick={() => tap(t)}>
               {t.active >= t.max ? 'Full' : arm === t.id ? `Pay $${whole(t.price)}` : 'Buy'}
