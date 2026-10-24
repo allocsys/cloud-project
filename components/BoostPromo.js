@@ -1,7 +1,7 @@
 'use client';
 // The Boost card on the landing page, under the calculator. It reads the ticket table from /api/plans (null while boost tickets are
 // off, then nothing shows). Every figure comes from the server settings, so it always matches the Boost tab. The only motion is the small
-// miner picture (BoostArt): CSS transform and opacity only, no timers, paused while off screen, still when the device asks for less motion.
+// miner picture (BoostArt): CSS transform and opacity only, no timers, paused while off screen. It animates for everyone (owner's choice).
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useApi } from '@/lib/api';
@@ -34,7 +34,6 @@ const ART_CSS = `
 .bp-sh{animation:bpSh 6s ease-in-out infinite;animation-delay:5.2s}
 @keyframes bpSh{0%,8%{transform:translateX(-26px)}22%,100%{transform:translateX(32px)}}
 .bp-off *{animation-play-state:paused!important}
-@media (prefers-reduced-motion:reduce){.bp-fan,.bp-pk,.bp-bar,.bp-fh,.bp-sb,.bp-bg,.bp-rg,.bp-sh{animation:none!important}.bp-bar{transform:none}.bp-pk,.bp-sb,.bp-rg,.bp-fh{display:none}.bp-bg{opacity:1;transform:translateY(-32px)}}
 `;
 
 const Ray = ({ a }) => <line x1="23" y1="0" x2="31" y2="0" transform={`rotate(${a})`} />;
