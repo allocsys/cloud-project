@@ -33,7 +33,7 @@ export async function GET() {
       smartTable: st.table,
       pauseRule: guard.mode,
       boost: boostOn(bcfg)
-        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, chance: bcfg.chance[t.id] })) }
+        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: bcfg.chance[t.id] })) }
         : null,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
