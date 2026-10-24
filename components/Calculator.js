@@ -10,6 +10,7 @@ import { useApi } from '@/lib/api';
 import { BTC_USD } from '@/lib/data';
 import { SMART, smartEstimate } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
+import { AuthButton } from '@/components/AuthSheet';
 
 const TICKS = [100, 500, 1000, 5000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -61,7 +62,7 @@ export default function Calculator({ signedIn = false }) {
 
   if (cat?.smartOn === false) return null; // Smart Mining is switched off, so there is nothing to estimate
 
-  const go = signedIn ? `/plans?plan=smart&budget=${b}&days=${term}` : '/login?mode=signup';
+  const go = `/plans?plan=smart&budget=${b}&days=${term}`;
 
   return (
     <div className="calc">
@@ -148,9 +149,15 @@ export default function Calculator({ signedIn = false }) {
         </div>
         <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
 
-        <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
-          {signedIn ? 'Open this in Plans' : 'Get started'}
-        </Link>
+        {signedIn ? (
+          <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
+            Open this in Plans
+          </Link>
+        ) : (
+          <AuthButton mode="signup" className="btn calc-go">
+            Get started
+          </AuthButton>
+        )}
         <p className="calc-fine">
           An estimate of what you receive after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
           <Link href="/terms">Terms</Link>.
