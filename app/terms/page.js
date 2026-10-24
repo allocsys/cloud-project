@@ -54,6 +54,9 @@ export default function Terms() {
           You can ask for a full refund within {REFUND_HOURS} hours of buying, as long as the miner has not paid out yet (the first payout day ends at 00:00 UTC, so ask before then). The price goes back to your balance, in BTC at the rate on the day of the refund, and the miner is removed. After that, purchases are not refunded, because the machines are already working for you. Where the law of your country gives you a longer right to cancel, that right applies.
         </p>
         <p className="mute">If a machine fails or a hall goes offline, we move your hash power to another machine. If we cannot, the days lost are added to the end of your term.</p>
+        <p className="mute">
+          First-buy bonus. When it is available, the first plan you buy with crypto may include extra hashrate for its full term, shown before you pay. It is fixed when the miner starts and ends with its term. It is not cash and cannot be withdrawn. It does not apply to purchases paid from your balance or to renewals. If you refund that miner, the bonus goes with it and is not offered again. Bonuses can be stopped at any time, and users can be disqualified for many reasons.
+        </p>
 
         <h2 style={h2}>4. Deposits and withdrawals</h2>
         <p className="mute">
