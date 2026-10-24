@@ -115,7 +115,7 @@ function HeroChart({ rows }) {
         <path d={`${line} L300 80 L0 80 Z`} className="harea" />
         <path d={line} className="hline" vectorEffect="non-scaling-stroke" />
       </svg>
-      <i className="hdot" style={{ top: `${(y(rows[n - 1].usd) / 80) * 100}%` }} />
+      <i className="hdot" style={{ top: `${(y(rows[n - 1].usd) / 80) * 84}px` }} />
       <div className="hdays" aria-hidden="true">
         {rows.map((d, i) => <span key={i}>{d.label}</span>)}
       </div>
