@@ -1,5 +1,5 @@
 'use client';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
@@ -24,6 +24,23 @@ const KIND = {
 const STATUS = { pending: 'Pending approval', approved: 'Approved', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
 
 const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
+
+// True while the element is on screen, so its animation pauses when it is not.
+function useSeen() {
+  const ref = useRef(null);
+  const [seen, setSeen] = useState(true);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setSeen(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+  return [ref, seen];
+}
+
+// Wallet motion: transform and opacity only. A light band crosses the balance card, activity rows fade in one by one, the fee quote fades in.
+const WALLET_CSS = '.whero{position:relative;overflow:hidden}.wshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:wShine 8s ease-in-out infinite}@keyframes wShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.wpause .wshine{animation-play-state:paused}.wrow{animation:wRow .35s ease-out both}@keyframes wRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.quote{animation:wQuote .25s ease-out}@keyframes wQuote{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}';
 
 const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
 const ceilTo = (n, d) => Math.ceil(n * 10 ** d - 1e-9) / 10 ** d;
@@ -122,6 +139,7 @@ export default function Wallet() {
   const [filter, setFilter] = useState('all');
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
+  const [heroRef, heroSeen] = useSeen();
 
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
@@ -275,11 +293,13 @@ export default function Wallet() {
 
   return (
     <>
+      <style>{WALLET_CSS}</style>
       <div className="top">
         <h2>Wallet</h2>
       </div>
       <div className="grid">
-        <div className="card hero slim">
+        <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
+          <i className="wshine" aria-hidden="true" />
           <span className="mute eyebrow">Available balance</span>
           <div className="big">
             {ready ? formatBtc(available) : '—'}
@@ -477,7 +497,7 @@ export default function Wallet() {
               const k = KIND[h.kind] || KIND.payout;
               const hu = usdOf(h, prices);
               return (
-                <div key={`${h.date}-${i}`} className={`row${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`}>
+                <div key={`${h.date}-${i}`} className={`row wrow${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`} style={{ animationDelay: `${i * 50}ms` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
