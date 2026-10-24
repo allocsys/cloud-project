@@ -451,7 +451,7 @@ export default function Plans() {
                 <b className="v">${fmtUsd(balUsd)}</b>
               </div>
               <div className="row">
-                <span className="mute">Est. per day</span>
+                <span className="mute">Per day</span>
                 <b className="v">~{dailyOf(cur)}/day</b>
               </div>
               {profitRange && (
