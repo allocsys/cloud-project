@@ -25,7 +25,7 @@ export default function BoostPromo({ signedIn = false }) {
           <div>
             <i aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: COLOR[t.id], marginRight: 8 }} />
             <b>${whole(t.price)} ticket</b>
-            <small style={{ display: 'block' }}>mines {t.coin} · pays ${usd(t.pay)} win or lose{same ? '' : ` · ${t.chance}% chance`}</small>
+            <small style={{ display: 'block' }}>{t.coin} · pays ${usd(t.pay)}{same ? '' : ` · ${t.chance}% chance`}</small>
           </div>
           <b style={{ color: 'var(--gold2)', textAlign: 'right', fontSize: '14px' }}>chance to win ${whole(t.prize)}</b>
         </div>
