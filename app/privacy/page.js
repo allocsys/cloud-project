@@ -1,4 +1,4 @@
-import Link from 'next/link';
+import BackLink from '@/components/BackLink';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 
@@ -40,7 +40,7 @@ export default function Privacy() {
         <p className="mute">The service is for people aged 18 or older. If we change this policy, we tell you before the change takes effect.</p>
 
         <div style={{ height: '14px' }} />
-        <Link className="btn" href="/login" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Back</Link>
+        <BackLink />
       </div>
     </section>
   );
