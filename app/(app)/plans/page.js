@@ -456,13 +456,13 @@ export default function Plans() {
               </div>
               {profitRange && (
                 <div className="row">
-                  <span className="mute">Est. profit by term end</span>
+                  <span className="mute">Profit by term end</span>
                   <b className="v" style={{ color: 'var(--green)' }}>About ${money(profitRange.mid)}<small>Range ${money(profitRange.low)} to ${money(profitRange.high)}</small></b>
                 </div>
               )}
               {profitRange && (
                 <div className="row">
-                  <span className="mute">Est. total by term end</span>
+                  <span className="mute">Total by term end</span>
                   <b className="v">About ${money(cur.budget + profitRange.mid)}<small>Budget + profit</small></b>
                 </div>
               )}
