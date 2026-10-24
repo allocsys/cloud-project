@@ -450,6 +450,10 @@ export default function Plans() {
                 <span className="mute">Your balance</span>
                 <b className="v">${fmtUsd(balUsd)}</b>
               </div>
+              <div className="row">
+                <span className="mute">Est. per day</span>
+                <b className="v">~{dailyOf(cur)}/day</b>
+              </div>
               {profitRange && (
                 <div className="row">
                   <span className="mute">Est. profit by term end</span>
@@ -464,7 +468,7 @@ export default function Plans() {
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              ~{dailyOf(cur)}/day. All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
+              All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
             </p>
             {(!canBal || !crypto) && (!canBal) && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
