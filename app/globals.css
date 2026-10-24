@@ -1900,6 +1900,7 @@ a.stat:active { background: var(--s3); }
 .hsub { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 10px; font-size: 14px; }
 .hwk { font-size: 12px; font-weight: 500; color: var(--green); }
 .hchart { position: relative; margin-top: 12px; }
+.hplot { position: relative; height: 84px; }
 .hchart svg { display: block; width: 100%; height: 84px; }
 .hgrid { stroke: var(--ov-l); stroke-width: 1; stroke-dasharray: 3 5; }
 .harea { fill: var(--gold); fill-opacity: 0.14; }
