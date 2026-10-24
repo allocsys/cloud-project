@@ -591,7 +591,7 @@ export default function Admin() {
       {tab === 'overview' && (
         <div className="adm-stack">
           <div className="stats">
-            <Stat l="Users" v={stats.users} />
+            <Stat l="Users" v={stats.users} s={stats.truncated ? `first ${stats.loaded} shown` : undefined} />
             <Stat l="Miners" v={`${stats.online}/${stats.miners}`} s="online" />
             <Stat l="Hash power" v={fmtTh(stats.th)} s="TH/s" />
           </div>
