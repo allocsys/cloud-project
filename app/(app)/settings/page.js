@@ -38,6 +38,13 @@ export default function Settings() {
   const [pwErr, setPwErr] = useState({});
   const [pwBusy, setPwBusy] = useState(false);
   const [vbusy, setVbusy] = useState(false);
+  // Add-email panel (Telegram accounts): null (closed), 'form' (email and password), 'code' (waiting for the mailed code).
+  const [em, setEm] = useState(null);
+  const [emMail, setEmMail] = useState('');
+  const [emPw, setEmPw] = useState('');
+  const [emCode, setEmCode] = useState('');
+  const [emErr, setEmErr] = useState({});
+  const [emBusy, setEmBusy] = useState(false);
   // Two-factor panel: null (closed), 'setup' (key shown, waiting for the first code), 'codes' (recovery codes, shown once), 'off'.
   const [tf, setTf] = useState(null);
   const [tfKey, setTfKey] = useState({ secret: '', uri: '' });
@@ -161,6 +168,65 @@ export default function Settings() {
       show(err.status ? err.message : 'No connection. Try again.');
     } finally {
       setVbusy(false);
+    }
+  }
+
+  function closeEm() {
+    setEm(null);
+    setEmMail('');
+    setEmPw('');
+    setEmCode('');
+    setEmErr({});
+  }
+
+  function toggleEm() {
+    triggerHaptic('selection');
+    if (em) return closeEm();
+    setEm('form');
+  }
+
+  async function sendEmCode(e) {
+    e.preventDefault();
+    if (emBusy) return;
+    const next = {};
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emMail.trim())) next.email = 'Enter a valid email address.';
+    if (emPw.length < 8) next.password = 'Password needs at least 8 characters.';
+    if (next.email || next.password) {
+      triggerHaptic('error');
+      return setEmErr(next);
+    }
+    setEmErr({});
+    setEmBusy(true);
+    try {
+      await post('/api/auth/email', { action: 'start', email: emMail.trim(), password: emPw });
+      triggerHaptic('success');
+      setEmCode('');
+      setEm('code');
+    } catch (err) {
+      triggerHaptic('error');
+      setEmErr(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setEmBusy(false);
+    }
+  }
+
+  async function confirmEm(e) {
+    e.preventDefault();
+    if (emBusy) return;
+    if (emCode.replace(/\D/g, '').length !== 6) return setEmErr({ code: 'Enter the 6-digit code.' });
+    setEmErr({});
+    setEmBusy(true);
+    try {
+      await post('/api/auth/email', { action: 'confirm', code: emCode });
+      triggerHaptic('success');
+      closeEm();
+      refreshMe();
+      show('Email added');
+    } catch (err) {
+      triggerHaptic('error');
+      setEmErr(err.field === 'code' || err.field === 'email' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+    } finally {
+      setEmBusy(false);
     }
   }
 
@@ -340,6 +406,78 @@ export default function Settings() {
                 <span className="badge warn">Not verified</span>
               ))}
           </div>
+          {me?.telegram && !me.email && me.mail && (
+            <>
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Add email</div>
+                  <small>Sign in on the web too</small>
+                </div>
+                <button className="btn ghost" type="button" aria-expanded={!!em} onClick={toggleEm}>{em ? 'Cancel' : 'Add'}</button>
+              </div>
+              {em === 'form' && (
+                <form onSubmit={sendEmCode} noValidate style={{ paddingBottom: '8px' }}>
+                  <Field id="em" label="Email" error={emErr.email}>
+                    <input
+                      id="em"
+                      type="email"
+                      className={emErr.email ? 'bad' : undefined}
+                      aria-invalid={!!emErr.email}
+                      aria-describedby={emErr.email ? 'em-err' : undefined}
+                      autoComplete="email"
+                      autoCapitalize="none"
+                      value={emMail}
+                      onChange={(e) => {
+                        setEmMail(e.target.value);
+                        if (emErr.email) setEmErr({ ...emErr, email: undefined });
+                      }}
+                    />
+                  </Field>
+                  <Field id="ep" label="Password" error={emErr.password}>
+                    <input
+                      id="ep"
+                      type="password"
+                      className={emErr.password ? 'bad' : undefined}
+                      aria-invalid={!!emErr.password}
+                      aria-describedby={emErr.password ? 'ep-err' : undefined}
+                      autoComplete="new-password"
+                      placeholder="At least 8 characters"
+                      value={emPw}
+                      onChange={(e) => {
+                        setEmPw(e.target.value);
+                        if (emErr.password) setEmErr({ ...emErr, password: undefined });
+                      }}
+                    />
+                  </Field>
+                  {emErr.form && <div className="ferr" role="alert">{emErr.form}</div>}
+                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? 'Sending...' : 'Send code'}</button>
+                </form>
+              )}
+              {em === 'code' && (
+                <form onSubmit={confirmEm} noValidate style={{ paddingBottom: '8px' }}>
+                  <small style={{ display: 'block', marginBottom: '8px' }}>We sent a code to {emMail.trim().toLowerCase()}</small>
+                  <Field id="ec" label="6-digit code" error={emErr.code}>
+                    <input
+                      id="ec"
+                      className={emErr.code ? 'bad' : undefined}
+                      aria-invalid={!!emErr.code}
+                      aria-describedby={emErr.code ? 'ec-err' : undefined}
+                      inputMode="numeric"
+                      autoComplete="one-time-code"
+                      placeholder="123456"
+                      value={emCode}
+                      onChange={(e) => {
+                        setEmCode(e.target.value);
+                        if (emErr.code) setEmErr({ ...emErr, code: undefined });
+                      }}
+                    />
+                  </Field>
+                  {emErr.form && <div className="ferr" role="alert">{emErr.form}</div>}
+                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? 'Checking...' : 'Confirm'}</button>
+                </form>
+              )}
+            </>
+          )}
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
             {kyc.cta ? (
