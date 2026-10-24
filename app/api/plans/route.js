@@ -6,6 +6,8 @@ import { smartSettings } from '@/lib/server/smart-admin';
 import { guardSettings } from '@/lib/server/guard';
 import { refreshPricing, pricingGross } from '@/lib/server/pricing';
 import { PRICE_BUFFER } from '@/lib/pricing';
+import { boostSettings } from '@/lib/server/boost';
+import { BOOST, TICKETS, boostOn } from '@/lib/boost';
 
 export const dynamic = 'force-dynamic';
 
@@ -17,8 +19,9 @@ export const dynamic = 'force-dynamic';
 // `smartTable` is the pay table for new Smart Mining purchases ({ rates, bonus }, lib/smart.js smartPayout).
 // `pauseRule` is what a day the profit guard pauses does to a miner bought now: 'extend' (the term moves back a day) or 'zero'
 // (the day counts and pays nothing). It is fixed on the miner at purchase.
+// `boost` is the ticket table for the landing page ({ hours, tickets: [{ id, price, th, pay, prize, chance }] }), or null while boost tickets are off.
 export async function GET() {
-  const [{ live, smart }, st, guard] = await Promise.all([getMarket(), smartSettings(), guardSettings(), refreshPricing()]);
+  const [{ live, smart }, st, guard, bcfg] = await Promise.all([getMarket(), smartSettings(), guardSettings(), boostSettings(), refreshPricing()]);
   const best = liveBest(smart);
   return NextResponse.json(
     {
@@ -29,6 +32,9 @@ export async function GET() {
       smartOn: st.enabled,
       smartTable: st.table,
       pauseRule: guard.mode,
+      boost: boostOn(bcfg)
+        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, chance: bcfg.chance[t.id] })) }
+        : null,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
   );
