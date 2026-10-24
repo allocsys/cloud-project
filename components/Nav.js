@@ -47,18 +47,20 @@ export default function Nav() {
           <span className="lbl">{i.label}</span>
         </Link>
       ))}
-      <Link
-        href="/login"
-        replace
+      {/* Sign out ends the session first, then loads the home page fresh, so it shows the signed-out version. */}
+      <a
+        href="/"
         className="out"
-        onClick={() => {
+        onClick={async (e) => {
+          e.preventDefault();
           triggerHaptic('medium');
-          signOut();
+          await signOut();
+          window.location.assign('/');
         }}
       >
         <span className="ind">{icon('M9 4H5v16h4M16 8l4 4-4 4M20 12H9')}</span>
         Sign out
-      </Link>
+      </a>
     </nav>
   );
 }
