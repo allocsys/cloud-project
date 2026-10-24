@@ -1,5 +1,6 @@
 'use client';
 import Link from 'next/link';
+import BackLink from '@/components/BackLink';
 import { halls as defaultHalls, MIN_WITHDRAW, MIN_WITHDRAW_USD } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
 import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
@@ -103,7 +104,7 @@ export default function Terms() {
         <p className="mute">A charge that is not listed on this page is not made. If a fee ever applies, it is shown before you confirm.</p>
 
         <div style={{ height: '14px' }} />
-        <Link className="btn" href="/login" style={{ display: 'block', textAlign: 'center', textDecoration: 'none' }}>Back</Link>
+        <BackLink />
       </div>
     </section>
   );
