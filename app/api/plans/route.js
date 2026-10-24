@@ -5,7 +5,6 @@ import { liveBest } from '@/lib/smart';
 import { smartSettings } from '@/lib/server/smart-admin';
 import { guardSettings } from '@/lib/server/guard';
 import { refreshPricing, pricingGross } from '@/lib/server/pricing';
-import { PRICE_BUFFER } from '@/lib/pricing';
 import { boostSettings } from '@/lib/server/boost';
 import { BOOST, TICKETS, boostOn, shownOf } from '@/lib/boost';
 
@@ -27,7 +26,7 @@ export async function GET() {
     {
       ...getCatalog(),
       live: live ? { gross: live.gross, btc: live.btc } : null,
-      priced: pricingGross() ? { buffer: PRICE_BUFFER } : null,
+      priced: pricingGross() ? true : null,
       smart: best ? { coin: best.coin, ratio: Math.round(best.ratio * 10000) / 10000 } : null,
       smartOn: st.enabled,
       smartTable: st.table,
