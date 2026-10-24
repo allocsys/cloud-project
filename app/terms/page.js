@@ -57,6 +57,9 @@ export default function Terms() {
         <p className="mute">
           First-buy bonus. When it is available, the first plan you buy with crypto may include extra hashrate for its full term, shown before you pay. It is fixed when the miner starts and ends with its term. It is not cash and cannot be withdrawn. It does not apply to purchases paid from your balance or to renewals. If you refund that miner, the bonus goes with it and is not offered again. Bonuses can be stopped at any time, and users can be disqualified for many reasons.
         </p>
+        <p className="mute">
+          Boost tickets. A ticket starts a boost of extra hashrate that runs for 2 hours and pays a fixed amount when it ends. Each ticket also has a prize draw: the chance and the prize are shown before you buy and are fixed for that ticket. The draw is made when you buy and shown when the boost ends. Each ticket is a separate draw. Tickets are paid from your balance, and the boost pay and any prize are added to your balance when the boost ends. Tickets are not refundable.
+        </p>
 
         <h2 style={h2}>4. Deposits and withdrawals</h2>
         <p className="mute">
