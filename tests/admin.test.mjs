@@ -13,6 +13,8 @@ const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 const many = (n, fn) => Promise.all(each(n, fn));
 const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data;
 const logLen = async () => ((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || []).length;
+// Other test files write to the same audit log at the same time, so the balance tests count only the entries that name their own user.
+const logOf = async (id) => (((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data) || []).filter((e) => String(e.detail).includes(id)).length;
 const hall = (i) => ({ name: `T${run}${i}`, place: 'Test', power: 'Grid', efficiency: '30 J/TH', rig: 'S21', net: 0.02 });
 
 before(async () => {
@@ -64,8 +66,6 @@ test('balance changes by an admin are bounded, never overdraw, and are logged', 
   };
   const near = (a, b) => Math.abs(a - b) < 1e-9;
   const ask = (op, amountBtc, note = 'test') => act({ action: 'balance', userId: id, op, amountBtc, note });
-  const logBefore = await logLen();
-
   // Refused: bad input changes nothing.
   assert.equal((await ask('give', '1')).status, 400);
   assert.equal((await ask('add', '0')).status, 422);
@@ -99,7 +99,7 @@ test('balance changes by an admin are bounded, never overdraw, and are logged', 
   const rows = (await q("SELECT btc FROM ledger WHERE user_id = $1 AND kind = 'adjust'", [id])).rows;
   assert.equal(rows.length, 10);
   assert.ok(near(rows.reduce((s, r) => s + Number(r.btc), 0), 0.1));
-  assert.equal((await logLen()) - logBefore, 10);
+  assert.equal(await logOf(id), 10);
 });
 
 test('taking a balance allows the buy tolerance and no more', async () => {
@@ -166,8 +166,6 @@ test('balance changes can be typed in USD, converted at the live rate and logged
     return w.earned - w.withdrawn - w.spent;
   };
   const ask = (op, extra) => act({ action: 'balance', userId: id, op, note: 'usd test', ...extra });
-  const logBefore = await logLen();
-
   // Refused: both amounts, bad or too small USD, above the cap, and no note.
   assert.equal((await ask('add', { amountUsd: '10', amountBtc: '0.1' })).status, 400);
   for (const bad of ['0', '-5', 'abc', '0.001']) assert.equal((await ask('add', { amountUsd: bad })).status, 422, bad);
@@ -201,7 +199,7 @@ test('balance changes can be typed in USD, converted at the live rate and logged
   assert.ok(rows[0].ref.startsWith('usd test'));
   assert.ok(rows[0].ref.includes(`at $${rate}/BTC`));
   assert.equal((await getWallet(id)).history.filter((h) => h.kind === 'adjustment').length, 2);
-  assert.equal((await logLen()) - logBefore, 2);
+  assert.equal(await logOf(id), 2);
 
   // The screen gets the rate it previews with.
   assert.equal((await overview()).rate.btc, rate);
