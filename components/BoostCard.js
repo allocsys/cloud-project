@@ -45,7 +45,7 @@ export default function BoostCard({ show }) {
     if (data?.now) skew.current = data.now - Date.now();
   }, [data]);
 
-  // Ticks every few seconds so the bars and the time left move; when a boost has ended, ask the server for its result.
+  // Ticks every few seconds so the dial and the time left move; when a boost has ended, ask the server for its result.
   useEffect(() => {
     const t = setInterval(() => setNow(Date.now() + skew.current), 5000);
     return () => clearInterval(t);
