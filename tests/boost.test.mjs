@@ -19,7 +19,7 @@ test('the margin follows the chance: 29% at the default 5%, negative when the ch
   for (const t of TICKETS) assert.ok(Math.abs(marginOf(t, 5) - 0.29) < 1e-9, `${t.id} margin at 5%`);
   assert.ok(Math.abs(marginOf(TICKETS[0], 0) - 0.79) < 1e-9, 'no chance: only the boost pay is paid');
   assert.ok(marginOf(TICKETS[0], 8) < 0);
-  assert.ok(marginOf(TICKETS[0], 7.9) > 0);
+  assert.ok(marginOf(TICKETS[0], 7.8) > 0);
 });
 
 test('settings fall back to the defaults and keep valid values', () => {
