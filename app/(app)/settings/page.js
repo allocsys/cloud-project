@@ -297,8 +297,8 @@ export default function Settings() {
     try {
       await post('/api/account', { password: clPw, code: clCode.trim(), confirm: clText.trim(), forfeit: clForfeit });
       triggerHaptic('success');
-      signOut();
-      router.replace('/login');
+      await signOut();
+      window.location.assign('/'); // a fresh load, so the home page shows the signed-out version
     } catch (err) {
       triggerHaptic('error');
       setClErr(err.field === 'password' || err.field === 'code' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
@@ -313,10 +313,10 @@ export default function Settings() {
     router.push('/settings/kyc');
   }
 
-  function handleSignOut() {
+  async function handleSignOut() {
     triggerHaptic('medium');
-    signOut();
-    router.replace('/login');
+    await signOut();
+    window.location.assign('/'); // a fresh load, so the home page shows the signed-out version
   }
 
   return (
