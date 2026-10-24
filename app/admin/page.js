@@ -246,6 +246,54 @@ function FirstBonusCard({ fb, busy, run }) {
   );
 }
 
+// Boost tickets: a 2 hour hashrate boost with a prize draw. Rules in lib/boost.js, storage in lib/server/boost.js. The chance is typed per
+// ticket in percent; the margin is only shown (1 - (boost pay + chance x prize) / price). A negative margin turns red and asks twice before saving.
+const bcDraft = (v) => Object.fromEntries(TICKETS.map((t) => [t.id, String(v.chance[t.id])]));
+const pctOf = (v) => Number(String(v).trim().replace(',', '.'));
+const marginText = (m) => `${(Math.round(m * 1000) / 10).toFixed(1)}%`;
+function BoostCard({ bs, busy, run }) {
+  const s = bs || BOOST_DEFAULTS;
+  const key = JSON.stringify(s);
+  const [d, setD] = useState(() => bcDraft(s));
+  useEffect(() => setD(bcDraft(JSON.parse(key))), [key]);
+  const losing = TICKETS.filter((t) => String(d[t.id]).trim() !== '' && marginOf(t, pctOf(d[t.id])) < 0);
+  const save = async () => {
+    if (losing.length && !window.confirm(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`)) return;
+    await run({ action: 'boost-settings', chance: d, confirm: losing.length > 0 }, 'Boost tickets saved');
+  };
+  return (
+    <div className="card">
+      <h3>Boost tickets</h3>
+      <div className="row"><span className="mute">Tickets</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
+      {TICKETS.map((t) => {
+        const x = pctOf(d[t.id]);
+        const ok = String(d[t.id]).trim() !== '' && Number.isFinite(x) && x >= 0 && x <= BOOST.maxChance;
+        const m = ok ? marginOf(t, x) : null;
+        return (
+          <div className="adm-m" key={t.id}>
+            <div className="row">
+              <div>
+                ${t.price} ticket
+                <small>{t.th.toLocaleString('en-US')} TH/s for {BOOST.hours} h · pays ${t.pay.toFixed(2)} · prize ${t.prize.toLocaleString('en-US')} · up to {t.max} at once</small>
+              </div>
+              <b style={m !== null && m < 0 ? { color: '#e5484d' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
+            </div>
+            <Field id={`bc${t.id}`} label={`Chance of the prize (%) for the $${t.price} ticket`} inputMode="decimal" value={d[t.id]} onChange={(v) => setD({ ...d, [t.id]: v })} />
+            {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the $${t.price} ticket loses money (each one costs more than it brings in).</p>}
+          </div>
+        );
+      })}
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={save}>Save</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-settings', enabled: !s.enabled }, s.enabled ? 'Boost tickets are off' : 'Boost tickets are on')}>
+          {s.enabled ? 'Turn off' : 'Turn on'}
+        </button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + chance x prize) / price, so it moves with the chance and is not typed. A new chance applies to tickets bought after saving; a running boost keeps the chance it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p>
+    </div>
+  );
+}
+
 function Stat({ l, v, s }) {
   return (
     <div className="stat">
