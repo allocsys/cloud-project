@@ -6,7 +6,7 @@
     "dev": "next dev",
     "build": "node scripts/build.mjs",
     "start": "next start",
-    "test": "node --test --import ./tests/register.mjs \"tests/**/*.test.mjs\""
+    "test": "node --test --test-concurrency=1 --import ./tests/register.mjs \"tests/**/*.test.mjs\""
   },
   "dependencies": {
     "motion": "^14.4.0",
