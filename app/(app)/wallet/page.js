@@ -12,6 +12,8 @@ import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import Field from '@/components/Field';
 import { fill, useLang, useT } from '@/components/I18nProvider';
+import { CoinPicker, PayInfo } from '@/components/PayCoin';
+import { DEFAULT_PAY } from '@/lib/pay-coins';
 import { histLabel, histDate, histFee, histNet } from '@/lib/i18n/history';
 
 const KIND = {
@@ -152,6 +154,7 @@ export default function Wallet() {
   const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
   const [depUsd, setDepUsd] = useState('');
   const [depErr, setDepErr] = useState('');
+  const [payCoin, setPayCoin] = useState(DEFAULT_PAY); // the coin a top-up is paid in (our own checkout only)
   const depKey = useRef(null); // idempotency key of the top-up in progress: { usd, key }
 
   async function startDeposit() {
@@ -172,8 +175,10 @@ export default function Wallet() {
     let leaving = false;
     try {
       const usd = Math.round(v * 100) / 100;
-      if (depKey.current?.usd !== usd) depKey.current = { usd, key: uid() };
-      const r = await post('/api/wallet/deposit', { usd }, depKey.current.key);
+      const body = dod?.multi ? { usd, asset: payCoin.asset, network: payCoin.net } : { usd };
+      const sig = JSON.stringify(body);
+      if (depKey.current?.sig !== sig) depKey.current = { sig, key: uid() };
+      const r = await post('/api/wallet/deposit', body, depKey.current.key);
       if (r.pending && r.order?.url) {
         leaving = true;
         window.location.assign(r.order.url);
@@ -181,6 +186,7 @@ export default function Wallet() {
       }
       depKey.current = null;
       setDepUsd('');
+      if (r.order?.address) show(t('pay.sendExact'));
     } catch (e) {
       triggerHaptic('error');
       setDepErr(e.status ? e.message : t('common.noConnection'));
@@ -521,6 +527,7 @@ export default function Wallet() {
               </div>
             ) : cryptoOn ? (
               <div>
+                {dod?.multi && <CoinPicker value={payCoin} onChange={setPayCoin} disabled={busy} />}
                 <Field id="du" label={t('wal.depUsd')} error={depErr}>
                   <input
                     id="du"
@@ -544,7 +551,7 @@ export default function Wallet() {
                   <div key={o.id} className="row" style={{ marginTop: 12, gap: 8 }}>
                     <div style={{ minWidth: 0 }}>
                       <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('wal.depOrder', { n: formatUsd(o.usd) })}</div>
-                      <small style={{ overflowWrap: 'anywhere' }}>{o.url ? t('wal.depWait') : t('wal.depTo', { amt: o.amount, addr: o.address })}</small>
+                      {o.url ? <small style={{ overflowWrap: 'anywhere' }}>{t('wal.depWait')}</small> : <PayInfo order={o} show={show} />}
                     </div>
                     <div style={{ display: 'flex', gap: 8 }}>
                       {o.url && <a className="btn ghost" href={o.url}>{t('wal.depOpen')}</a>}
