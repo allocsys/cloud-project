@@ -10,14 +10,15 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
+import { useT } from '@/components/I18nProvider';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
 
-function ago(now, at) {
-  if (!now) return 'now';
+function ago(t, now, at) {
+  if (!now) return t('dash.now');
   const s = Math.max(0, Math.floor((now - at) / 1000));
-  return s < 60 ? `${s}s` : `${Math.floor(s / 60)}m`;
+  return s < 60 ? t('dash.sec', { n: s }) : t('dash.min', { n: Math.floor(s / 60) });
 }
 
 // Time left until the next daily payout (00:00 UTC) and how much of the day has passed.
@@ -46,6 +47,7 @@ const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25,
 
 // Where the daily earnings come from. Tap a legend row to look at one slice.
 function Split({ rows }) {
+  const t = useT();
   const [sel, setSel] = useState(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
@@ -85,10 +87,10 @@ function Split({ rows }) {
         </svg>
         <div className="mid">
           <b>${formatUsd(cur ? cur.usd : total)}</b>
-          <small>{cur ? cur.name : 'per day'}</small>
+          <small>{cur ? cur.name : t('dash.perDay')}</small>
         </div>
       </div>
-      <div className="legend" role="group" aria-label="Earnings split">
+      <div className="legend" role="group" aria-label={t('dash.split')}>
         {segs.map((s, i) => (
           <button key={s.name} type="button" aria-pressed={sel === i} onClick={() => setSel(sel === i ? null : i)}>
             <i style={{ background: s.color }} />
@@ -103,6 +105,7 @@ function Split({ rows }) {
 
 // Week area chart inside the Total mined card.
 function HeroChart({ rows }) {
+  const t = useT();
   const n = rows.length;
   const max = Math.max(...rows.map((d) => d.usd)) || 1;
   const y = (usd) => 74 - (usd / max) * 64;
@@ -110,7 +113,7 @@ function HeroChart({ rows }) {
   return (
     <div className="hchart">
       <div className="hplot">
-      <svg viewBox="0 0 300 80" preserveAspectRatio="none" role="img" aria-label="Earnings over the last 7 days">
+      <svg viewBox="0 0 300 80" preserveAspectRatio="none" role="img" aria-label={t('dash.weekAria')}>
         <line x1="0" y1="26" x2="300" y2="26" className="hgrid" vectorEffect="non-scaling-stroke" />
         <line x1="0" y1="52" x2="300" y2="52" className="hgrid" vectorEffect="non-scaling-stroke" />
         <path d={`${line} L300 80 L0 80 Z`} className="harea" />
@@ -126,6 +129,7 @@ function HeroChart({ rows }) {
 }
 
 export default function Dashboard() {
+  const t = useT();
   // The user's miners drive the live strip, the projection, the miner row and the live feed.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const miners = md ? md.contracts : [];
@@ -198,7 +202,7 @@ export default function Dashboard() {
   const weekAvg = dash.avgUsd || 0;
 
   // Split of the daily earnings, by hall or by plan.
-  const hallName = (id) => (id === 'smart' ? 'Smart Mining' : ((cat && cat.halls[id]) || halls[id])?.name || id);
+  const hallName = (id) => (id === 'smart' ? t('dash.smart') : ((cat && cat.halls[id]) || halls[id])?.name || id);
   const split = Object.values(
     online.reduce((m, c) => {
       const k = by === 'hall' ? hallName(c.hall) : c.plan;
@@ -221,7 +225,7 @@ export default function Dashboard() {
   const btc = pd?.prices?.btc ?? BTC_USD;
   // Days to the goal at today's daily earnings (online miners), rounded up. Null when nothing is earning or the goal is reached.
   const etaDays = dailyUsd > 0 && toGo > 0 ? Math.ceil((toGo * btc) / dailyUsd) : null;
-  const etaText = etaDays === null ? '' : etaDays > 365 ? 'over a year' : etaDays <= 1 ? 'about a day' : `about ${etaDays} days`;
+  const etaText = etaDays === null ? '' : etaDays > 365 ? t('dash.etaYear') : etaDays <= 1 ? t('dash.etaDay') : t('dash.etaDays', { n: etaDays });
   const tr = pd?.trend;
   const friends = rd?.friends?.length ?? 0;
   // Newest first. Rows without a timestamp (the demo's samples) keep their order, after the dated ones.
@@ -240,12 +244,12 @@ export default function Dashboard() {
   return (
     <>
       <div className="top">
-        <h2>Earnings<i className="ldot" role="img" aria-label="Live" /></h2>
+        <h2>{t('nav.earnings')}<i className="ldot" role="img" aria-label={t('dash.live')} /></h2>
         <div className="topact">
           <Link
             href="/notifications"
             className="bell"
-            aria-label={unread ? `Notifications, ${unread} new` : 'Notifications'}
+            aria-label={unread ? t('dash.notifNew', { n: unread }) : t('dash.notif')}
             onClick={() => markDrill()}
           >
             <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -260,8 +264,8 @@ export default function Dashboard() {
           <div className="crl" ref={railRef} onScroll={onRail}>
             <div className="card hero">
               <div className="hhead">
-                <span className="mute eyebrow">Total mined</span>
-                {shares[0] && <span className="hchip">+{shares[0].sats} sat · {ago(now, shares[0].at)}</span>}
+                <span className="mute eyebrow">{t('dash.total')}</span>
+                {shares[0] && <span className="hchip">+{shares[0].sats} {t('unit.sat')} · {ago(t, now, shares[0].at)}</span>}
               </div>
               <div className="big">
                 <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
@@ -269,65 +273,65 @@ export default function Dashboard() {
               </div>
               <div className="hsub">
                 <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
-                {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} this week</span>}
+                {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} {t('dash.thisWeek')}</span>}
               </div>
               {hasWeek && <HeroChart rows={week} />}
               <div className="hrow">
-                <div className="hk">{dash.totalTh > 0 || !(dash.smartBudget > 0) ? <><b>{dash.totalTh}</b><span>TH/s</span></> : <><b>${Math.round(dash.smartBudget).toLocaleString('en-US')}</b><span>Smart budget</span></>}</div>
-                <div className="hk ok"><b>{dash.uptime == null ? '–' : `${dash.uptime.toFixed(1)}%`}</b><span>Uptime</span></div>
-                <div className="hk"><b>+{Math.round(dash.todayBtc * 1e8)}</b><span>Sat today</span></div>
-                <div className="hk"><b>${formatUsd(weekAvg)}</b><span>Avg/day</span></div>
+                <div className="hk">{dash.totalTh > 0 || !(dash.smartBudget > 0) ? <><b>{dash.totalTh}</b><span>TH/s</span></> : <><b>${Math.round(dash.smartBudget).toLocaleString('en-US')}</b><span>{t('dash.smartBudget')}</span></>}</div>
+                <div className="hk ok"><b>{dash.uptime == null ? '–' : `${dash.uptime.toFixed(1)}%`}</b><span>{t('dash.uptime')}</span></div>
+                <div className="hk"><b>+{Math.round(dash.todayBtc * 1e8)}</b><span>{t('dash.satToday')}</span></div>
+                <div className="hk"><b>${formatUsd(weekAvg)}</b><span>{t('dash.avgDay')}</span></div>
               </div>
               <div className="payout">
-                <div><span>Next payout</span><b>{pay.text}</b></div>
-                <div className="bar" role="progressbar" aria-label="Time until next payout" aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
+                <div><span>{t('dash.nextPayout')}</span><b>{pay.text}</b></div>
+                <div className="bar" role="progressbar" aria-label={t('dash.payoutAria')} aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
                   <i style={{ width: `${pay.pct}%` }} />
                 </div>
               </div>
             </div>
             <div className="card">
               <div className="cardhead">
-                <h3>Earnings</h3>
-                <small className="mute" style={{ fontSize: '12px' }}>estimate</small>
+                <h3>{t('nav.earnings')}</h3>
+                <small className="mute" style={{ fontSize: '12px' }}>{t('dash.estimate')}</small>
               </div>
               {online.length ? (
                 <>
                   <div className="eprj">
-                    <svg viewBox="0 0 120 120" role="img" aria-label={`Day ${dom} of ${dim}`}>
+                    <svg viewBox="0 0 120 120" role="img" aria-label={t('dash.dayOf', { d: dom, n: dim })}>
                       <circle className="erg-track" cx="60" cy="60" r="51" />
                       <circle className="erg-fill" cx="60" cy="60" r="51" strokeDasharray={`${((dom / dim) * 320.4).toFixed(1)} 320.4`} transform="rotate(-90 60 60)" />
-                      <text className="erg-mute" x="60" y="53">Day</text>
+                      <text className="erg-mute" x="60" y="53">{t('dash.day')}</text>
                       <text className="erg-num" x="60" y="77">{dom}</text>
-                      <text className="erg-mute" x="60" y="92">of {dim}</text>
+                      <text className="erg-mute" x="60" y="92">{t('dash.of', { n: dim })}</text>
                     </svg>
                     <div className="eprj-t">
                       <div>
-                        <span>Projected this month</span>
+                        <span>{t('dash.projMonth')}</span>
                         <b>${formatUsd(monthUsd)}</b>
                         <small>≈ {formatBtc(monthUsd / BTC_USD, 5)} BTC</small>
                       </div>
                       <i className="esep" />
                       <div>
-                        <span>Next 12 months</span>
+                        <span>{t('dash.next12')}</span>
                         <b>${formatUsd(yearUsd)}</b>
                         <small>≈ {formatBtc(yearUsd / BTC_USD, 4)} BTC</small>
                       </div>
                     </div>
                   </div>
                   <div className="egrid">
-                    <div className="hcell"><span>Per day</span><b>${formatUsd(dailyUsd)}</b></div>
-                    <div className="hcell"><span>Per week</span><b>${formatUsd(dailyUsd * 7)}</b></div>
-                    <div className="hcell ok"><span>Miners</span><b>{online.length - pausedN} online{pausedN ? ` · ${pausedN} paused` : ''}</b></div>
+                    <div className="hcell"><span>{t('dash.perDayCap')}</span><b>${formatUsd(dailyUsd)}</b></div>
+                    <div className="hcell"><span>{t('dash.perWeek')}</span><b>${formatUsd(dailyUsd * 7)}</b></div>
+                    <div className="hcell ok"><span>{t('dash.miners')}</span><b>{t('dash.nOnline', { n: online.length - pausedN })}{pausedN ? ` · ${t('dash.paused', { n: pausedN })}` : ''}</b></div>
                   </div>
                 </>
               ) : (
-                <p className="empty">No online miners yet. Buy a plan to see projections.</p>
+                <p className="empty">{t('dash.noMiners')}</p>
               )}
             </div>
           </div>
           <div className="cdots">
-            <button type="button" aria-label="Total mined" aria-current={slide === 0} onClick={() => goSlide(0)} />
-            <button type="button" aria-label="Earnings projection" aria-current={slide === 1} onClick={() => goSlide(1)} />
+            <button type="button" aria-label={t('dash.total')} aria-current={slide === 0} onClick={() => goSlide(0)} />
+            <button type="button" aria-label={t('dash.projAria')} aria-current={slide === 1} onClick={() => goSlide(1)} />
           </div>
         </div>
 
@@ -347,8 +351,8 @@ export default function Dashboard() {
               <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id="live" />
               <div className="li">
                 <div className="hr">
-                  <b>{online.length - pausedN}<small>of {miners.length} miners online{pausedN ? `, ${pausedN} paused` : ''}</small></b>
-                  <span><i />{online.length ? 'Mining' : 'Idle'}</span>
+                  <b>{online.length - pausedN}<small>{t('dash.minersOnline', { n: miners.length })}{pausedN ? `, ${t('dash.paused', { n: pausedN })}` : ''}</small></b>
+                  <span><i />{online.length ? t('dash.mining') : t('dash.idle')}</span>
                 </div>
                 <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
                   {Array.from({ length: 14 }).map((_, i) => (
@@ -357,7 +361,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ticker">
                   {shares.slice(0, 3).map((s) => (
-                    <div key={s.id}><b>+{s.sats} sat</b><span>{ago(now, s.at)}</span></div>
+                    <div key={s.id}><b>+{s.sats} {t('unit.sat')}</b><span>{ago(t, now, s.at)}</span></div>
                   ))}
                 </div>
               </div>
@@ -377,9 +381,9 @@ export default function Dashboard() {
                     <RigArt kind={r.kind} units={r.units} speed={r.speed} id={`m${c.serial}`} />
                     <div className="mt">
                       <b>{c.name}</b>
-                      <em>${formatUsd(c.dailyUsd)}/day</em>
+                      <em>${formatUsd(c.dailyUsd)}/{t('calc.day')}</em>
                     </div>
-                    <i className="mdot" role="img" aria-label={c.online ? 'Online' : 'Offline'} />
+                    <i className="mdot" role="img" aria-label={c.online ? t('dash.online') : t('dash.offline')} />
                   </Link>
                 );
               })}
@@ -390,10 +394,10 @@ export default function Dashboard() {
         {split.length > 0 && (
           <div className="card" style={hideTail}>
             <div className="cardhead">
-              <h3>Earnings split</h3>
-              <div className="minitabs" role="group" aria-label="Split by">
-                <button aria-pressed={by === 'hall'} onClick={() => setBy('hall')}>Hall</button>
-                <button aria-pressed={by === 'plan'} onClick={() => setBy('plan')}>Plan</button>
+              <h3>{t('dash.split')}</h3>
+              <div className="minitabs" role="group" aria-label={t('dash.splitBy')}>
+                <button aria-pressed={by === 'hall'} onClick={() => setBy('hall')}>{t('dash.hall')}</button>
+                <button aria-pressed={by === 'plan'} onClick={() => setBy('plan')}>{t('dash.plan')}</button>
               </div>
             </div>
             <Split key={by} rows={split} />
@@ -403,20 +407,20 @@ export default function Dashboard() {
         {dash.hasMiners && (
           <div className="card" style={hideTail}>
             <div className="cardhead">
-              <h3>Next goal</h3>
-              {streak > 1 && <span className="streak">{streak}-day streak</span>}
+              <h3>{t('dash.goal')}</h3>
+              {streak > 1 && <span className="streak">{t('dash.streak', { n: streak })}</span>}
             </div>
             <div className="goal">
               <b>{formatBtc(goal, 4)}<small>BTC</small></b>
-              <span>{goal === MIN_WITHDRAW ? 'Minimum withdrawal' : 'Milestone'}</span>
+              <span>{goal === MIN_WITHDRAW ? t('dash.minWd') : t('dash.milestone')}</span>
             </div>
-            <div className="bar goalbar" role="progressbar" aria-label="Progress to the next goal" aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
+            <div className="bar goalbar" role="progressbar" aria-label={t('dash.goalAria')} aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
               <i style={{ width: `${armed ? goalPct : 0}%` }} />
             </div>
             <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
-              {formatBtc(avail, 5)} of {formatBtc(goal, 5)} BTC available · ≈ ${formatUsd(toGo * btc)} to go
+              {t('dash.goalLine', { a: formatBtc(avail, 5), g: formatBtc(goal, 5), usd: formatUsd(toGo * btc) })}
             </small>
-            {etaText && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>Est. {etaText} at your current daily earnings</small>}
+            {etaText && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>{t('dash.eta', { when: etaText })}</small>}
           </div>
         )}
 
@@ -425,37 +429,37 @@ export default function Dashboard() {
             <div>
               <b>{reinvestTitle(rein)}</b>
               <small>
-                ${formatUsd(rein.plan.price)} · {rein.plan.days} days · ~{rein.plan.daily}/day
-                {rein.left >= 1 ? ` · $${formatUsd(rein.left)} left` : ''}
+                {t('dash.reinLine', { price: formatUsd(rein.plan.price), days: rein.plan.days, daily: rein.plan.daily })}
+                {rein.left >= 1 ? ` · ${t('dash.left', { n: formatUsd(rein.left) })}` : ''}
               </small>
             </div>
-            <span className="rgo">Review</span>
+            <span className="rgo">{t('dash.review')}</span>
           </Link>
         )}
 
         <div className="pair" style={hideTail}>
           <div className="stat">
-            <span>Bitcoin</span>
+            <span>{t('dash.bitcoin')}</span>
             <b>
               ${Math.round(btc).toLocaleString('en-US')}
               {tr && <small className={`chg ${tr.change >= 0 ? 'up' : 'down'}`}>{tr.change >= 0 ? '+' : ''}{tr.change.toFixed(1)}%</small>}
             </b>
-            {tr ? <Spark values={tr.spark} color={tr.change >= 0 ? 'var(--green)' : 'var(--red)'} /> : <small className="sub">24h change unavailable</small>}
+            {tr ? <Spark values={tr.spark} color={tr.change >= 0 ? 'var(--green)' : 'var(--red)'} /> : <small className="sub">{t('dash.noChange')}</small>}
           </div>
           <Link href="/referrals" className="stat" onClick={() => markDrill()}>
-            <span>Invite friends</span>
+            <span>{t('dash.invite')}</span>
             {friends === 0 ? (
               <>
-                <b>Earn BTC</b>
-                <small className="sub">{rd?.reward || 'Invite friends'}</small>
+                <b>{t('dash.earnBtc')}</b>
+                <small className="sub">{rd?.reward || t('dash.invite')}</small>
               </>
             ) : (
               <>
                 <b>+{formatBtc(rd ? parseFloat(rd.earnedBtc) : 0, 5)}<small>BTC</small></b>
-                <small className="sub">{friends} {friends === 1 ? 'friend' : 'friends'}</small>
+                <small className="sub">{friends === 1 ? t('dash.friend', { n: friends }) : t('dash.friends', { n: friends })}</small>
               </>
             )}
-            <span className="invite">Invite</span>
+            <span className="invite">{t('dash.inviteBtn')}</span>
           </Link>
         </div>
 
@@ -471,7 +475,7 @@ export default function Dashboard() {
                   setActOpen(!actOpen);
                 }}
               >
-                <h3>Recent activity</h3>
+                <h3>{t('dash.activity')}</h3>
                 {!actOpen && latest && <span className="mute">{latest.date}</span>}
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
@@ -502,7 +506,7 @@ export default function Dashboard() {
               );
             })}
             {actOpen && (
-              <Link href="/wallet" className="mute" style={{ display: 'block', textAlign: 'center', fontSize: '12px', padding: '12px 0 4px' }}>See all activity</Link>
+              <Link href="/wallet" className="mute" style={{ display: 'block', textAlign: 'center', fontSize: '12px', padding: '12px 0 4px' }}>{t('dash.seeAll')}</Link>
             )}
           </div>
         )}
