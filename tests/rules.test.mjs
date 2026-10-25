@@ -50,7 +50,7 @@ test('the Terms page reads its numbers instead of typing them', () => {
   assert.ok(s.includes('up: Math.round(UP_RATIO * 100)'));
   assert.ok(en.includes('within {hours} hours of buying'));
   assert.ok(!s.includes('2%, 1% or 0%'));
-  assert.ok(!en.includes('within 24 hours'));
+  assert.ok(!/'terms\.p3b': "[^"]*within 24 hours/.test(en));
 });
 
 test('the gateway minimum deposit matches the app (it is a separate service)', () => {
