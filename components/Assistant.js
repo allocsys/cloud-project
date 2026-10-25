@@ -2,19 +2,25 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { post } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
+import { useT } from '@/components/I18nProvider';
 
 // Ask Miner Opus: a floating button that opens a chat sheet. Answers come from POST /api/assistant, which only
 // reads the signed-in user's own data. Nothing is stored here: the conversation lives in memory and is gone when
 // the page closes. The button stays hidden until GET /api/assistant says the feature is switched on.
 
-const CHIPS = ['How long does a withdrawal take?', 'How are earnings calculated?', 'Are returns guaranteed?'];
+// [text key, the English question that is sent]. The assistant still matches questions in English, so the chip shows the translated label but sends the English text.
+const CHIPS = [
+  ['ast.c1', 'How long does a withdrawal take?'],
+  ['ast.c2', 'How are earnings calculated?'],
+  ['ast.c3', 'Are returns guaranteed?'],
+];
 const MAX = 500;
 const LOW = 5; // show how many AI answers are left once it gets this low
 
 const NOTES = {
-  llm: 'AI-generated answer. Check important details before you act on them.',
-  'faq-guess': 'Best guess from our help topics. If it does not fit, contact support.',
-  support: 'I could not find an answer, so this one needs a person.',
+  llm: 'ast.nLlm',
+  'faq-guess': 'ast.nGuess',
+  support: 'ast.nSupport',
 };
 
 const Icon = ({ d }) => (
@@ -34,6 +40,7 @@ const AiMark = ({ busy }) => (
 );
 
 export default function Assistant() {
+  const t = useT();
   const [info, setInfo] = useState(null); // { enabled, llm, left }
   const [open, setOpen] = useState(false);
   const [msgs, setMsgs] = useState([]);
@@ -69,13 +76,13 @@ export default function Assistant() {
   }, [msgs, busy, open]);
 
   const send = useCallback(
-    async (raw) => {
+    async (raw, shown) => {
       const q = String(raw || '').replace(/\s+/g, ' ').trim().slice(0, MAX);
       if (!q || busy) return;
       const g = gen.current;
       setText('');
       setBusy(true);
-      setMsgs((m) => [...m, { role: 'me', text: q }]);
+      setMsgs((m) => [...m, { role: 'me', text: shown || q }]);
       try {
         const r = await post('/api/assistant', { question: q });
         if (typeof r.left === 'number') setInfo((i) => (i ? { ...i, left: r.left } : i));
@@ -83,13 +90,13 @@ export default function Assistant() {
         setMsgs((m) => [...m, { role: 'bot', text: r.text, source: r.source, did: r.did }]);
       } catch (e) {
         if (g !== gen.current) return;
-        const msg = e?.status === 401 ? 'Please sign in again to ask a question.' : 'Something went wrong. Please try again.';
+        const msg = e?.status === 401 ? t('ast.signIn') : t('ast.wrong');
         setMsgs((m) => [...m, { role: 'bot', text: msg, source: 'error' }]);
       } finally {
         if (g === gen.current) setBusy(false);
       }
     },
-    [busy]
+    [busy, t]
   );
 
   const newChat = () => {
@@ -106,8 +113,8 @@ export default function Assistant() {
   const leftNote =
     info.llm && typeof info.left === 'number' && info.left <= LOW
       ? info.left > 0
-        ? `${info.left} AI answer${info.left === 1 ? '' : 's'} left today`
-        : 'Daily AI limit reached. I can still answer common questions.'
+        ? t(info.left === 1 ? 'ast.left1' : 'ast.leftN', { n: info.left })
+        : t('ast.limit')
       : null;
 
   return (
@@ -115,8 +122,8 @@ export default function Assistant() {
       <button
         type="button"
         className="asst-fab"
-        aria-label="Ask Miner Opus"
-        title="Ask Miner Opus"
+        aria-label={t('ast.ask')}
+        title={t('ast.ask')}
         onClick={() => {
           triggerHaptic('selection');
           setOpen(true);
@@ -141,18 +148,18 @@ export default function Assistant() {
               <div>
                 <h3 id="asst-t" className="asst-title">
                   <AiMark busy={busy} />
-                  Ask Miner Opus
+                  {t('ast.ask')}
                 </h3>
-                <p className="asst-sub">AI assistant, not financial advice</p>
+                <p className="asst-sub">{t('ast.sub')}</p>
               </div>
               <div className="asst-actions">
                 {msgs.length > 0 && (
                   <button type="button" className="asst-new" onClick={newChat}>
                     <Icon d="M12 5v14M5 12h14" />
-                    New chat
+                    {t('ast.new')}
                   </button>
                 )}
-                <button type="button" className="asst-x" aria-label="Close" onClick={() => setOpen(false)}>
+                <button type="button" className="asst-x" aria-label={t('common.close')} onClick={() => setOpen(false)}>
                   <Icon d="M6 6l12 12M18 6L6 18" />
                 </button>
               </div>
@@ -161,11 +168,11 @@ export default function Assistant() {
             <div className="asst-log" ref={logRef} aria-live="polite">
               {msgs.length === 0 && (
                 <>
-                  <p className="asst-empty">Ask about your plans, earnings, deposits or withdrawals.</p>
+                  <p className="asst-empty">{t('ast.empty')}</p>
                   <div className="asst-chips">
-                    {CHIPS.map((c) => (
-                      <button key={c} type="button" onClick={() => send(c)}>
-                        {c}
+                    {CHIPS.map(([k, q]) => (
+                      <button key={k} type="button" onClick={() => send(q, t(k))}>
+                        {t(k)}
                       </button>
                     ))}
                   </div>
@@ -174,15 +181,15 @@ export default function Assistant() {
               {msgs.map((m, i) => (
                 <div key={i} className={`asst-m ${m.role}`}>
                   <p>{m.text}</p>
-                  {m.role === 'bot' && NOTES[m.source] && <small className="asst-note">{NOTES[m.source]}</small>}
+                  {m.role === 'bot' && NOTES[m.source] && <small className="asst-note">{t(NOTES[m.source])}</small>}
                   {m.role === 'bot' && m.did?.q && (
                     <button type="button" className="asst-did" disabled={busy} onClick={() => send(m.did.q)}>
-                      Did you mean: {m.did.q}
+                      {t('ast.did', { q: m.did.q })}
                     </button>
                   )}
                 </div>
               ))}
-              {busy && <small className="asst-note">Thinking…</small>}
+              {busy && <small className="asst-note">{t('ast.thinking')}</small>}
             </div>
 
             {leftNote && <p className="asst-left">{leftNote}</p>}
@@ -198,13 +205,13 @@ export default function Assistant() {
                 type="text"
                 value={text}
                 maxLength={MAX}
-                placeholder="Type your question"
-                aria-label="Your question"
+                placeholder={t('ast.placeholder')}
+                aria-label={t('ast.yourQ')}
                 autoComplete="off"
                 enterKeyHint="send"
                 onChange={(e) => setText(e.target.value)}
               />
-              <button type="submit" className="asst-send" aria-label="Send" disabled={busy || !text.trim()}>
+              <button type="submit" className="asst-send" aria-label={t('ast.send')} disabled={busy || !text.trim()}>
                 <Icon d="M4 12l16-8-6 16-3-7z" />
               </button>
             </form>
