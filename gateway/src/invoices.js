@@ -1,11 +1,14 @@
-// Deposit invoices: one unique address per app order (kind 'order') or wallet top-up (kind 'deposit').
-// Creating is idempotent on `ref`: the same ref returns the same invoice, and never uses a second address.
+// Deposit invoices for an app order (kind 'order') or wallet top-up (kind 'deposit').
+// A network with an extended public key gives each invoice its own address. A network in fixed-address mode gives every invoice
+// the same address and a unique exact amount instead (see alloc.js).
+// Creating is idempotent on `ref`: the same ref returns the same invoice, and never uses a second address or amount.
 import { randomBytes } from 'node:crypto';
 import { q, tx } from './db.js';
 import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { usdRate } from './rates.js';
 import { ApiError } from './http.js';
+import { quantumRule, quantumAtomic, pickAmount } from './alloc.js';
 
 const REF = /^[A-Za-z0-9_-]{1,64}$/;
 
@@ -19,7 +22,7 @@ export function fmtAtomic(atomic, dec) {
 
 export function publicInvoice(r) {
   const ch = CHAINS[r.network];
-  const amount = r.expected_atomic === null ? null : fmtAtomic(r.expected_atomic, ch.decimals);
+  const amount = r.expected_atomic === null ? null : fmtAtomic(r.expected_atomic, ch.decimalsOf(r.asset));
   return {
     id: r.id,
     ref: r.ref,
@@ -33,7 +36,7 @@ export function publicInvoice(r) {
     received_atomic: r.received_atomic,
     rate_usd: r.rate_usd === null ? null : Number(r.rate_usd),
     status: r.status,
-    uri: ch.uri(r.address, amount),
+    uri: ch.uri(r.address, amount, r.asset),
     created_at: r.created_at.toISOString(),
     expires_at: r.expires_at.toISOString(),
     paid_at: r.paid_at ? r.paid_at.toISOString() : null,
@@ -57,6 +60,7 @@ function parse(input) {
     usd = Math.round(n * 100) / 100;
   }
   if (kind === 'order' && usd === null) throw new ApiError(400, 'usd is required for an order.');
+  if (chain.shared() && usd === null) throw new ApiError(400, 'usd is required on this network.');
   const userRef = input.user_ref === undefined || input.user_ref === null ? null : String(input.user_ref).slice(0, 100);
   if (kind === 'deposit' && !userRef) throw new ApiError(400, 'user_ref is required for a deposit.');
   if (kind === 'deposit' && usd !== null && usd < MIN_DEPOSIT_USD) throw new ApiError(400, `The minimum deposit is $${MIN_DEPOSIT_USD}.`);
@@ -76,6 +80,7 @@ export async function createInvoice(input) {
   const ex = (await q('SELECT * FROM invoices WHERE ref = $1', [p.ref])).rows[0];
   if (ex) return replay(ex, p);
 
+  const dec = p.chain.decimalsOf(p.asset);
   let rate = null;
   let expected = null;
   if (p.usd !== null) {
@@ -85,8 +90,9 @@ export async function createInvoice(input) {
       console.error('[invoices] no rate:', e.message);
       throw new ApiError(503, 'Price unavailable. Try again shortly.');
     }
-    expected = BigInt(Math.ceil((p.usd / rate) * 10 ** p.chain.decimals)).toString();
+    expected = BigInt(Math.ceil((p.usd / rate) * 10 ** dec)).toString();
   }
+  const shared = p.chain.shared();
 
   const out = await tx(async (c) => {
     await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`invoice:${p.ref}`]);
@@ -100,15 +106,32 @@ export async function createInvoice(input) {
     );
     const index = Number(next.rows[0].idx);
     const address = p.chain.address(index);
+    let amount = expected;
+    if (shared) {
+      // One address for everyone: pick an amount no other open or recent invoice on this address and asset expects.
+      await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`alloc:${p.network}:${p.asset}:${address}`]);
+      const rows = (
+        await c.query(
+          `SELECT expected_atomic::text AS a FROM invoices
+           WHERE network = $1 AND asset = $2 AND address = $3 AND expected_atomic IS NOT NULL
+             AND (status IN ('pending', 'confirming', 'partial') OR created_at > now() - interval '14 days')`,
+          [p.network, p.asset, address],
+        )
+      ).rows;
+      const rule = quantumRule(p.asset);
+      const pick = pickAmount(BigInt(expected), quantumAtomic(rule.usd, rate, dec), new Set(rows.map((r) => r.a)), rule.slots);
+      if (pick === null) throw new ApiError(503, 'Too many open invoices. Try again shortly.');
+      amount = pick.toString();
+    }
     const id = `inv_${randomBytes(9).toString('base64url')}`;
     const ins = await c.query(
-      `INSERT INTO invoices (id, ref, kind, user_ref, network, asset, address, deriv_index, usd, expected_atomic, rate_usd, expires_at)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12) RETURNING *`,
-      [id, p.ref, p.kind, p.userRef, p.network, p.asset, address, index, p.usd, expected, rate, new Date(Date.now() + config().invoiceTtlMs)],
+      `INSERT INTO invoices (id, ref, kind, user_ref, network, asset, address, deriv_index, usd, expected_atomic, rate_usd, expires_at, match_amount)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13) RETURNING *`,
+      [id, p.ref, p.kind, p.userRef, p.network, p.asset, address, index, p.usd, amount, rate, new Date(Date.now() + config().invoiceTtlMs), shared],
     );
     await c.query("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('app', 'invoice.create', $1, $2::jsonb)", [
       id,
-      JSON.stringify({ ref: p.ref, network: p.network, asset: p.asset, index, usd: p.usd }),
+      JSON.stringify({ ref: p.ref, network: p.network, asset: p.asset, index, usd: p.usd, shared }),
     ]);
     return { row: ins.rows[0], created: true };
   });

@@ -1,8 +1,18 @@
 // USD rates for pricing invoices. Fails closed: with no fresh rate there is no invoice (a stale or made-up
 // price could underprice an order), unlike the app's display prices which fall back to static ones.
 import { config } from './config.js';
+import { STABLES } from './alloc.js';
 
-const IDS = { btc: 'bitcoin' };
+const IDS = {
+  btc: 'bitcoin',
+  eth: 'ethereum',
+  bnb: 'binancecoin',
+  pol: 'polygon-ecosystem-token',
+  trx: 'tron',
+  sol: 'solana',
+  usdt: 'tether',
+  usdc: 'usd-coin',
+};
 const FRESH = 30_000;
 const MAX_AGE = 300_000;
 const cache = new Map();
@@ -23,6 +33,9 @@ export async function usdRate(asset) {
   const cfg = config();
   if (cfg.rateSource === 'static') {
     if (asset === 'btc' && cfg.staticBtcUsd > 0) return cfg.staticBtcUsd;
+    const own = Number(process.env[`RATE_${String(asset).toUpperCase()}_USD`]);
+    if (own > 0) return own;
+    if (STABLES.has(asset)) return 1;
     throw new Error('No rate available.');
   }
   if (!IDS[asset]) throw new Error(`No rate source for ${asset}.`);
