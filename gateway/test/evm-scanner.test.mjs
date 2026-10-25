@@ -136,12 +136,12 @@ test('a reorg drops the payments of the removed blocks and reads the new ones', 
 });
 
 test('blocks that do not connect are refused and nothing is stored', { skip }, async () => {
-  const before = await cursor();
+  const was = await cursor();
   state.blocks[1005] = mk(1005, 'b', 'b');
   state.blocks[1006] = mk(1006, 'b', 'zzz');
   state.tip = 1006;
   await assert.rejects(scanner.scanOnce(), isExplorerError(/do not connect/));
-  assert.equal((await cursor()).height, before.height);
+  assert.equal((await cursor()).height, was.height);
 });
 
 test('the explorer refuses to answer when the scanner has not started, is behind, or is stale', { skip }, async () => {
