@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef } from 'react';
 import Decrypt from '@/components/Decrypt';
+import { useT } from '@/components/I18nProvider';
 
 // "How it works" as a small blockchain: each step is a block that gets sealed (its hash is searched for,
 // then locks in with leading zeros) as it scrolls into view. The hashes are decoration, not real data.
@@ -9,6 +10,7 @@ const HEX = '0123456789abcdef';
 const HASHES = ['0000c41e9a7b', '00003f8d52e0', '0000a97b11c6'];
 
 export default function ChainSteps({ steps }) {
+  const tr = useT();
   const ref = useRef(null);
 
   useEffect(() => {
@@ -62,7 +64,7 @@ export default function ChainSteps({ steps }) {
           </div>
           <div className="ch-t">
             <div className="ch-h">
-              <span>Block {i + 1}</span>
+              <span>{tr('chain.block', { n: i + 1 })}</span>
               <code className="ch-hash" aria-hidden="true">
                 {HASHES[i % HASHES.length]}
               </code>
