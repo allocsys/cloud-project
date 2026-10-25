@@ -146,13 +146,99 @@ export default function Wallet() {
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
+  // Deposit through the crypto provider (a hosted payment page), when it is switched on. The open top-up orders come with the same answer.
+  const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000 });
+  const cryptoOn = !!dod?.crypto;
+  const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
+  const [depUsd, setDepUsd] = useState('');
+  const [depErr, setDepErr] = useState('');
+  const depKey = useRef(null); // idempotency key of the top-up in progress: { usd, key }
+
+  async function startDeposit() {
+    if (busy) return;
+    const v = parseFloat(depUsd);
+    if (!(v > 0)) {
+      triggerHaptic('error');
+      setDepErr(t('err.depAmount'));
+      return;
+    }
+    if (v < MIN_DEPOSIT_USD) {
+      triggerHaptic('error');
+      setDepErr(t('err.wdMin', { n: MIN_DEPOSIT_USD }));
+      return;
+    }
+    setDepErr('');
+    setBusy(true);
+    let leaving = false;
+    try {
+      const usd = Math.round(v * 100) / 100;
+      if (depKey.current?.usd !== usd) depKey.current = { usd, key: uid() };
+      const r = await post('/api/wallet/deposit', { usd }, depKey.current.key);
+      if (r.pending && r.order?.url) {
+        leaving = true;
+        window.location.assign(r.order.url);
+        return;
+      }
+      depKey.current = null;
+      setDepUsd('');
+    } catch (e) {
+      triggerHaptic('error');
+      setDepErr(e.status ? e.message : t('common.noConnection'));
+    } finally {
+      if (!leaving) {
+        setBusy(false);
+        refreshDod().catch(() => {});
+      }
+    }
+  }
+
+  async function cancelDep(id) {
+    triggerHaptic('light');
+    try {
+      await post('/api/orders/cancel', { id });
+    } catch (e) {
+      show(e.status ? e.message : t('common.noConnection'));
+    }
+    refreshDod().catch(() => {});
+  }
+
+  // While a top-up is open, look for the payment every few seconds. When one turns paid, say so and refresh the balance.
+  useEffect(() => {
+    if (!depPending.length) return undefined;
+    const i = setInterval(() => refreshDod().catch(() => {}), 5000);
+    return () => clearInterval(i);
+  }, [depPending.length]);
+  const depSeen = useRef(new Set());
+  useEffect(() => {
+    if (!dod) return;
+    const ids = new Set(depPending.map((o) => o.id));
+    for (const id of depSeen.current) {
+      if (!ids.has(id) && dod.orders.find((o) => o.id === id)?.status === 'paid') {
+        triggerHaptic('success');
+        show(t('wal.depPaid'));
+        refresh().catch(() => {});
+      }
+    }
+    depSeen.current = ids;
+  }, [dod]);
+  // Back from the payment page can restore this page as it was left: free the button and start the next top-up with a fresh key.
+  useEffect(() => {
+    const back = (e) => {
+      if (!e.persisted) return;
+      setBusy(false);
+      depKey.current = null;
+      refreshDod().catch(() => {});
+    };
+    window.addEventListener('pageshow', back);
+    return () => window.removeEventListener('pageshow', back);
+  }, []);
   // The Reinvest card and the action card keep their place but stay hidden until the wallet and catalogue have answered (or 1.5 seconds), so Reinvest never pushes the action card down.
   const [calmWait, setCalmWait] = useState(true);
   useEffect(() => {
     const t = setTimeout(() => setCalmWait(false), 1500);
     return () => clearTimeout(t);
   }, []);
-  const hideCalm = wd && cat ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
+  const hideCalm = wd && cat && dod ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
 
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
@@ -346,7 +432,7 @@ export default function Wallet() {
               </button>
             </div>
 
-            <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} />
+            {!(tab === 'deposit' && cryptoOn) && <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} />}
 
             {tab === 'withdraw' ? (
               <div>
@@ -432,6 +518,40 @@ export default function Wallet() {
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? t('wal.sending') : t('wal.withdraw')}
                 </button>
+              </div>
+            ) : cryptoOn ? (
+              <div>
+                <Field id="du" label={t('wal.depUsd')} error={depErr}>
+                  <input
+                    id="du"
+                    inputMode="decimal"
+                    className={depErr ? 'bad' : undefined}
+                    aria-invalid={!!depErr}
+                    aria-describedby={depErr ? 'du-err' : undefined}
+                    placeholder="0.00"
+                    value={depUsd}
+                    onChange={(e) => {
+                      setDepUsd(e.target.value);
+                      if (depErr) setDepErr('');
+                    }}
+                  />
+                </Field>
+                <p className="fine" style={{ margin: '6px 0 10px' }}>{t('wal.depNote', { n: MIN_DEPOSIT_USD })}</p>
+                <button className="btn" type="button" onClick={startDeposit} disabled={busy || !ready}>
+                  {t('wal.depPay')}
+                </button>
+                {depPending.map((o) => (
+                  <div key={o.id} className="row" style={{ marginTop: 12, gap: 8 }}>
+                    <div style={{ minWidth: 0 }}>
+                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('wal.depOrder', { n: formatUsd(o.usd) })}</div>
+                      <small style={{ overflowWrap: 'anywhere' }}>{o.url ? t('wal.depWait') : t('wal.depTo', { amt: o.amount, addr: o.address })}</small>
+                    </div>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {o.url && <a className="btn ghost" href={o.url}>{t('wal.depOpen')}</a>}
+                      <button className="btn ghost" type="button" onClick={() => cancelDep(o.id)}>{t('wal.depCancel')}</button>
+                    </div>
+                  </div>
+                ))}
               </div>
             ) : (
               <div>
