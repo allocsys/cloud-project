@@ -11,6 +11,7 @@ import { BTC_USD } from '@/lib/data';
 import { SMART, smartEstimate } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
+import { fill, useT } from '@/components/I18nProvider';
 
 const TICKS = [100, 500, 1000, 5000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -42,6 +43,7 @@ function useGlide(target, ms = 420) {
 }
 
 export default function Calculator({ signedIn = false }) {
+  const t = useT();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   const live = cat?.live || null;
   const best = cat?.smart || null;
@@ -78,10 +80,10 @@ export default function Calculator({ signedIn = false }) {
     <div className="calc">
       <div className="calc-l">
         <div className="calc-top">
-          <span className="calc-lbl">You could earn about</span>
+          <span className="calc-lbl">{t('calc.earn')}</span>
           <span className="calc-live">
             <i className={best ? '' : 'off'} />
-            {best ? `Live market · mining ${best.coin} today` : 'Reference prices'}
+            {best ? t('calc.live', { coin: best.coin }) : t('calc.ref')}
           </span>
         </div>
         <div className="calc-main">
@@ -91,9 +93,9 @@ export default function Calculator({ signedIn = false }) {
           <div className="calc-nums" aria-live="off">
             <div className="calc-btc">
               {btcShown.toFixed(8)}
-              <small>BTC / day</small>
+              <small>BTC / {t('calc.day')}</small>
             </div>
-            <div className="calc-usd">≈ ${usd2(usdShown)} / day</div>
+            <div className="calc-usd">≈ ${usd2(usdShown)} / {t('calc.day')}</div>
           </div>
         </div>
       </div>
@@ -101,7 +103,7 @@ export default function Calculator({ signedIn = false }) {
       <div className="calc-r">
         <div className="slide">
           <div className="calc-th">
-            <span>with a budget of</span>
+            <span>{t('calc.budget')}</span>
             <b>${b.toLocaleString('en-US')}</b>
           </div>
           <input
@@ -110,27 +112,27 @@ export default function Calculator({ signedIn = false }) {
             max={SMART.max}
             step="50"
             value={b}
-            aria-label="Budget in dollars"
-            aria-valuetext={`${b} dollars`}
+            aria-label={t('calc.budgetAria')}
+            aria-valuetext={t('calc.dollars', { n: b })}
             style={{ '--p': `${((b - SMART.min) / (SMART.max - SMART.min)) * 100}%` }}
             onChange={(e) => setBudget(e.target.value)}
           />
           <div className="calc-ticks">
-            {TICKS.map((t) => (
+            {TICKS.map((v) => (
               <button
-                key={t}
+                key={v}
                 type="button"
                 onClick={() => {
                   triggerHaptic('selection');
-                  setBudget(String(t));
+                  setBudget(String(v));
                 }}
-                aria-label={`Set budget to ${t} dollars`}
+                aria-label={t('calc.setBudget', { n: v })}
               >
-                ${t.toLocaleString('en-US')}
+                ${v.toLocaleString('en-US')}
               </button>
             ))}
           </div>
-          <div className="terms" role="group" aria-label="Term">
+          <div className="terms" role="group" aria-label={t('calc.term')}>
             {SMART.terms.map((d) => (
               <button
                 key={d}
@@ -141,7 +143,7 @@ export default function Calculator({ signedIn = false }) {
                   setTerm(d);
                 }}
               >
-                {d} days
+                {t('calc.days', { d })}
               </button>
             ))}
           </div>
@@ -149,32 +151,31 @@ export default function Calculator({ signedIn = false }) {
 
         <div className="calc-grid">
           <div>
-            <span>Paid per month</span>
+            <span>{t('calc.month')}</span>
             <b>~${usd2(monthShown)}</b>
           </div>
           <div>
-            <span>Total at term end</span>
+            <span>{t('calc.total')}</span>
             <b>~${usd2(termShown)}</b>
           </div>
         </div>
-        <p className="calc-hall">We pick the most profitable coin for you every day · Paid in BTC</p>
+        <p className="calc-hall">{t('calc.hall')}</p>
 
         {signedIn ? (
           <Link href={go} className="btn calc-go" onClick={() => triggerHaptic('light')}>
-            Open this in Plans
+            {t('calc.open')}
           </Link>
         ) : (
           <AuthButton mode="signup" className="btn calc-go">
-            Get started
+            {t('common.getStarted')}
           </AuthButton>
         )}
-        <button type="button" className={`calc-more${note ? ' open' : ''}`} aria-expanded={note} aria-label="About this estimate" onClick={() => setNote((v) => !v)}>
+        <button type="button" className={`calc-more${note ? ' open' : ''}`} aria-expanded={note} aria-label={t('calc.about')} onClick={() => setNote((v) => !v)}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
         </button>
         {note && (
           <p className="calc-fine">
-            An estimate of what you receive after electricity and maintenance. It can come in lower or higher and is not a promise of earnings. See the{' '}
-            <Link href="/terms">Terms</Link>.
+            {fill(t('calc.fine'), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
           </p>
         )}
       </div>
