@@ -44,11 +44,13 @@ test('the FAQ answers carry the numbers from rules and smart', () => {
 
 test('the Terms page reads its numbers instead of typing them', () => {
   const s = read('app/terms/page.js');
-  assert.ok(s.includes('{servicePctText()}'));
-  assert.ok(s.includes('{REFUND_HOURS} hours of buying'));
-  assert.ok(s.includes('{Math.round(UP_RATIO * 100)}%'));
+  const en = read('lib/i18n/locales/en.js');
+  assert.ok(s.includes('SERVICE_TIERS'));
+  assert.ok(s.includes('hours: REFUND_HOURS'));
+  assert.ok(s.includes('up: Math.round(UP_RATIO * 100)'));
+  assert.ok(en.includes('within {hours} hours of buying'));
   assert.ok(!s.includes('2%, 1% or 0%'));
-  assert.ok(!s.includes('within 24 hours'));
+  assert.ok(!en.includes('within 24 hours'));
 });
 
 test('the gateway minimum deposit matches the app (it is a separate service)', () => {
