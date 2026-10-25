@@ -1,9 +1,17 @@
 // Web app manifest. Served at /manifest.webmanifest and linked automatically.
-export default function manifest() {
+// The description, lang and dir follow the language cookie. The name stays Miner Opus.
+import { getLang, getT } from '@/lib/i18n/server';
+import { LANGS } from '@/lib/i18n/langs';
+
+export default async function manifest() {
+  const lang = await getLang();
+  const t = await getT();
   return {
     name: 'Miner Opus',
     short_name: 'Miner Opus',
-    description: 'Rent hash power and mine bitcoin without owning a machine.',
+    description: t('meta.description'),
+    lang,
+    dir: LANGS[lang].dir,
     id: '/',
     start_url: '/dashboard',
     scope: '/',
