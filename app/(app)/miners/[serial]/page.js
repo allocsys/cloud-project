@@ -50,6 +50,7 @@ export default function ContractPage() {
   const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
 
   if (!c) {
+    if (!md) return <div className="top"><Back title="Miner" /></div>; // still loading: say nothing yet
     return (
       <>
         <div className="top"><Back title="Miner" /></div>
