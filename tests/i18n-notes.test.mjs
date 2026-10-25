@@ -32,6 +32,17 @@ test('paused and resumed build from parts', () => {
   assert.equal(noteBody(h, fa, 'fa'), 'Texas دوباره ماینینگ می‌کند: سودآور است.');
 });
 
+test('account notifications from codes', () => {
+  const rec = { code: 'recUsed', vars: { n: 7 } };
+  assert.equal(noteBody(rec, en, 'en'), '7 left. Turn two-factor off and on again for a new set.');
+  assert.match(noteBody(rec, fa, 'fa'), /^7 /);
+  for (const code of ['pwChanged', 'pwReset', 'emailAdded', 'recUsed', 'tfOn', 'tfOff']) {
+    assert.ok(!noteTitle({ code, vars: { n: 1 } }, fa, 'fa').startsWith('note.'));
+    assert.ok(!noteBody({ code, vars: { n: 1 } }, fa, 'fa').startsWith('note.'));
+  }
+  assert.equal(noteTitle({ code: 'tfOn' }, en, 'en'), 'Two-factor is on');
+});
+
 test('Persian titles and times', () => {
   assert.equal(noteTitle({ code: 'wdFailed' }, fa, 'fa'), 'برداشت ناموفق بود');
   assert.equal(noteWhen({ when: '5m ago' }, fa, 'fa'), '5 دقیقه پیش');
