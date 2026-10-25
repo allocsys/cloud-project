@@ -3,6 +3,7 @@ import { ask } from '@/lib/server/assistant-service';
 import { llmEnabled } from '@/lib/server/assistant-llm';
 import { userId, unauthorized } from '@/lib/server/auth';
 import { answersLeft } from '@/lib/assistant-limits';
+import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
 export const dynamic = 'force-dynamic';
 
@@ -35,7 +36,8 @@ export async function POST(req) {
   if (!question.trim()) return fail('Question required', 400);
 
   try {
-    return NextResponse.json(await ask(id, question), { headers: HEADERS });
+    const lang = pickLang(req.cookies?.get(LANG_COOKIE)?.value);
+    return NextResponse.json(await ask(id, question, { lang }), { headers: HEADERS });
   } catch (e) {
     console.error('[assistant] failed:', e?.name || 'error');
     return fail('Assistant unavailable', 500);
