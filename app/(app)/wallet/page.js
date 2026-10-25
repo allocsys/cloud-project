@@ -11,7 +11,8 @@ import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import Field from '@/components/Field';
-import { fill, useT } from '@/components/I18nProvider';
+import { fill, useLang } from '@/components/I18nProvider';
+import { histLabel, histDate, histFee, histNet } from '@/lib/i18n/history';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -119,7 +120,7 @@ function UnitSwitch({ sym, unit, onUnit }) {
 }
 
 export default function Wallet() {
-  const t = useT();
+  const { t, lang } = useLang();
   // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
@@ -513,8 +514,8 @@ export default function Wallet() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
-                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{[h.date, h.net !== h.coin ? h.net : null, h.status ? (STATUS[h.status] ? t(STATUS[h.status]) : h.status) : null].filter(Boolean).join(' · ')}{h.fee ? ` · ${t('wal.feeIs', { fee: h.fee })}` : ''}</small>
+                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{histLabel(h, t)}</div>
+                      <small>{[histDate(h, lang, t), h.net !== h.coin ? histNet(h.net, t) : null, h.status ? (STATUS[h.status] ? t(STATUS[h.status]) : h.status) : null].filter(Boolean).join(' · ')}{h.fee ? ` · ${t('wal.feeIs', { fee: histFee(h.fee, t) })}` : ''}</small>
                     </div>
                   </div>
                   <div style={{ textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>
