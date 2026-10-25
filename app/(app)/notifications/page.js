@@ -6,7 +6,8 @@ import { notifications } from '@/lib/data';
 import { useApi, post, revalidate } from '@/lib/api';
 import { drillBack } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
-import { useT } from '@/components/I18nProvider';
+import { useLang } from '@/components/I18nProvider';
+import { noteTitle, noteBody, noteWhen } from '@/lib/i18n/notes';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -26,7 +27,7 @@ const chev = (
 const seedItems = notifications.map((n) => ({ ...n, read: false }));
 
 export default function Notifications() {
-  const t = useT();
+  const { t, lang } = useLang();
   const router = useRouter();
   const { data: nd, mutate } = useApi('/api/notifications', { ttl: 5000 });
   const items = nd ? nd.items : seedItems;
@@ -102,13 +103,13 @@ export default function Notifications() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, minWidth: 0 }}>
                   <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                   <div>
-                    <div style={{ fontWeight: 500 }}>{n.title}</div>
-                    <small>{n.body}</small>
+                    <div style={{ fontWeight: 500 }}>{noteTitle(n, t, lang)}</div>
+                    <small>{noteBody(n, t, lang)}</small>
                   </div>
                 </div>
                 <div className="nmeta">
                   {fresh && fresh.has(n.id) && <i className="ndot" aria-label={t('not.new')} />}
-                  <small>{n.when}</small>
+                  <small>{noteWhen(n, t, lang)}</small>
                 </div>
               </div>
             );
