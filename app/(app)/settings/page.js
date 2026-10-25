@@ -8,7 +8,8 @@ import { markDrill } from '@/lib/nav';
 import { post, signOut, useApi } from '@/lib/api';
 import Field from '@/components/Field';
 import LangSwitch from '@/components/LangSwitch';
-import { useT } from '@/components/I18nProvider';
+import { useT, useLang } from '@/components/I18nProvider';
+import { translateError } from '@/lib/i18n/errors';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
@@ -351,7 +352,7 @@ export default function Settings() {
     const j = await r.json().catch(() => null);
     if (!r.ok || !j) {
       triggerHaptic('error');
-      return show(j?.error || t('set.wrong'));
+      return show(j?.error ? translateError(lang, j.error) : t('set.wrong'));
     }
     setCl(j);
   }
