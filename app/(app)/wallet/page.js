@@ -324,7 +324,7 @@ export default function Wallet() {
         {rein && (
           <Link href={reinvestHref(rein)} className="card rein" style={hideCalm}>
             <div>
-              <b>{reinvestTitle(rein)}</b>
+              <b>{reinvestTitle(rein, t)}</b>
               <small>
                 {t('dash.reinLine', { price: formatUsd(rein.plan.price), days: rein.plan.days, daily: rein.plan.daily })}
                 {rein.left >= 1 ? ` · ${t('dash.left', { n: formatUsd(rein.left) })}` : ''}
