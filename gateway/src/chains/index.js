@@ -5,6 +5,8 @@
 //  recentConfirmations  payments older than this are history, not unmatched money.
 import { deriveBtcAddress } from './btc.js';
 import { EVM, evmChain } from './evm.js';
+import { trxChain } from './trx.js';
+import { solChain } from './sol.js';
 import { config } from '../config.js';
 
 export const CHAINS = {
@@ -20,4 +22,6 @@ export const CHAINS = {
     uri: (address, amount) => (amount ? `bitcoin:${address}?amount=${amount}` : `bitcoin:${address}`),
   },
   ...Object.fromEntries(Object.keys(EVM).map((net) => [net, evmChain(net)])),
+  trx: trxChain(),
+  sol: solChain(),
 };
