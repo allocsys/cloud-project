@@ -8,6 +8,9 @@ import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
 import { SMART, smartBand } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
+import { useT } from '@/components/I18nProvider';
+
+const tierName = (t, tier) => t(`tier.${tier.id}`);
 
 const AMBER = '#EF9F27';
 const AMBER_L = '#FAC775';
@@ -174,8 +177,9 @@ function Ticks({ tiers, at, tier, label, onPick }) {
 const stop = (e) => e.stopPropagation();
 
 function TermChips({ terms, term, setTerm }) {
+  const t = useT();
   return (
-    <div className="terms" role="group" aria-label="Term">
+    <div className="terms" role="group" aria-label={t('calc.term')}>
       {terms.map((d) => (
         <button
           key={d}
@@ -186,7 +190,7 @@ function TermChips({ terms, term, setTerm }) {
             setTerm(d);
           }}
         >
-          {d} days
+          {t('calc.days', { d })}
         </button>
       ))}
     </div>
@@ -195,25 +199,27 @@ function TermChips({ terms, term, setTerm }) {
 
 // plan is the priced custom plan (customPlan), daily the live estimate for it, hall the hall it runs in.
 export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, within, onBuy }) {
+  const t = useT();
   const tier = tierOf(ASIC_TIERS, plan.th);
   const rig = rigFor(tier.id);
   useTierBuzz(tier.id);
   return (
     <div className="card pcard">
-      <div className="phead"><b>ASICs</b><span>{tier.name} · {fmtTh(plan.th)} TH/s</span></div>
+      <div className="phead"><b>ASICs</b><span>{tierName(t, tier)} · {fmtTh(plan.th)} TH/s</span></div>
       <div className="stage" key={tier.id}>
         <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={`asic-${tier.id}`} />
       </div>
       <div className="slide">
-        <div className="big"><b>{fmtTh(plan.th)} TH/s</b><span>~{daily}/day</span></div>
+        <div className="big"><b>{fmtTh(plan.th)} TH/s</b><span>~{daily}/{t('calc.day')}</span>
+        </div>
         <input
           type="range"
           min="0"
           max="1000"
           step="1"
           value={pos}
-          aria-label="Hash power in terahash"
-          aria-valuetext={`${fmtTh(plan.th)} terahash, ${tier.name}`}
+          aria-label={t('pc.hashAria')}
+          aria-valuetext={t('pc.hashText', { th: fmtTh(plan.th), tier: tierName(t, tier) })}
           style={{ '--p': `${pos / 10}%` }}
           onChange={(e) => setPos(+e.target.value)}
           onTouchStart={stop}
@@ -224,33 +230,34 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
           tiers={ASIC_TIERS}
           tier={tier}
           at={(t) => posFromTh(t.from) / 1000}
-          label={(t) => `${t.name}, from ${t.from} terahash`}
+          label={(x) => t('pc.tickTh', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => setPos(posFromTh(t.from))}
         />
         <TermChips terms={CUSTOM.terms} term={term} setTerm={setTerm} />
       </div>
       <div className="prow">
         <div>
-          <span>{hall ? hall.name : 'ASIC miners'}</span>
+          <span>{hall ? hall.name : t('pc.asicMiners')}</span>
           <small>{hall ? `${hall.rig} · ${hall.efficiency}` : ''}</small>
         </div>
         <b>${fmtUsd(plan.price)}</b>
       </div>
-      {within && <div className="tcan">✓ Within your balance</div>}
-      <button type="button" className="btn" onClick={onBuy}>Buy ASICs</button>
+      {within && <div className="tcan">{t('pc.within')}</div>}
+      <button type="button" className="btn" onClick={onBuy}>{t('pc.buyAsics')}</button>
     </div>
   );
 }
 
 // budget is the text in the amount box, bNum the budget it means; spos is the slider position (see lib/tiers.js).
 export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy }) {
+  const t = useT();
   const tier = tierOf(SMART_TIERS, bNum);
   const level = SMART_TIERS.indexOf(tier) + 1;
   const band = smartBand(plan); // profit range for the term (lib/smart.js)
   useTierBuzz(tier.id);
   return (
     <div className="card pcard">
-      <div className="phead"><b>Smart Mining</b><span>{tier.name} · best coin, daily</span></div>
+      <div className="phead"><b>{t('dash.smart')}</b><span>{tierName(t, tier)} · {t('pc.bestDaily')}</span></div>
       <div className="stage" key={tier.id}>
         <SmartArt level={level} />
       </div>
@@ -265,12 +272,12 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
               max={SMART.max}
               step="1"
               value={budget}
-              aria-label={`Budget in dollars, ${SMART.min} to ${SMART.max.toLocaleString('en-US')}`}
+              aria-label={t('pc.budgetRange', { a: SMART.min, b: SMART.max.toLocaleString('en-US') })}
               onChange={(e) => onAmount(e.target.value)}
               onBlur={onAmountBlur}
             />
           </label>
-          <span>~{plan.daily}/day</span>
+          <span>~{plan.daily}/{t('calc.day')}</span>
         </div>
         <input
           type="range"
@@ -278,8 +285,8 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
           max="1000"
           step="1"
           value={spos}
-          aria-label="Budget in dollars"
-          aria-valuetext={`${bNum} dollars, ${tier.name}`}
+          aria-label={t('calc.budgetAria')}
+          aria-valuetext={t('pc.dollarsTier', { n: bNum, tier: tierName(t, tier) })}
           style={{ '--p': `${spos / 10}%` }}
           onChange={(e) => onSlide(+e.target.value)}
           onTouchStart={stop}
@@ -290,25 +297,25 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
           tiers={SMART_TIERS}
           tier={tier}
           at={(t) => posFromBudget(t.from) / 1000}
-          label={(t) => `${t.name}, from $${t.from}`}
+          label={(x) => t('pc.tickUsd', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => onSlide(posFromBudget(t.from))}
         />
         <TermChips terms={SMART.terms} term={term} setTerm={setTerm} />
       </div>
       <div className="prow">
         <div>
-          <span>We pick the best coin every day</span>
-          <small>Paid in BTC</small>
+          <span>{t('pc.pick')}</span>
+          <small>{t('pc.paidBtc')}</small>
         </div>
         <b>${fmtUsd(plan.price)}</b>
       </div>
       {band && (
         <div className="tcan">
-          About ${fmtUsd(band.mid)} over {plan.days} days (between ${fmtUsd(band.low)} and ${fmtUsd(band.high)})
+          {t('pc.bandLine', { mid: fmtUsd(band.mid), d: plan.days, low: fmtUsd(band.low), high: fmtUsd(band.high) })}
         </div>
       )}
-      {within && <div className="tcan">✓ Within your balance</div>}
-      <button type="button" className="btn" onClick={onBuy}>Buy Smart Mining</button>
+      {within && <div className="tcan">{t('pc.within')}</div>}
+      <button type="button" className="btn" onClick={onBuy}>{t('pc.buySmart')}</button>
     </div>
   );
 }
