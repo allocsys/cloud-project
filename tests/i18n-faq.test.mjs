@@ -6,6 +6,23 @@ import { faqList } from '../lib/faq.js';
 
 const tr = (key, vars) => faqTr('fa', key, vars);
 
+test('withdrawal time: with and without a request, and an unknown status stays English', async () => {
+  const q = 'how long does a withdrawal take';
+  const none = await answerQuestion(q, { tr, ctx: { withdrawals: [] } });
+  assert.match(none.text, /^\u0628\u0631\u062f\u0627\u0634\u062a/);
+  const one = await answerQuestion(q, { tr, ctx: { withdrawals: [{ id: 'AB12CD', status: 'sent to your wallet' }] } });
+  assert.ok(one.text.includes('#AB12CD') && !one.text.includes('{'));
+  const odd = await answerQuestion(q, { tr, ctx: { withdrawals: [{ id: 'AB12CD', status: 'pending review' }] } });
+  assert.match(odd.text, /pending review/);
+});
+
+test('fee and refund answers carry their numbers', async () => {
+  const f = await answerQuestion('is there a fee for withdrawing', { tr });
+  assert.ok(!f.text.includes('{'), f.text);
+  const r = await answerQuestion('can I get a refund', { tr });
+  assert.ok(r.text.includes('24') && !r.text.includes('{'), r.text);
+});
+
 test('faqTr returns null for unknown language, key or prototype names', () => {
   assert.equal(faqTr('en', 'deposit.a'), null);
   assert.equal(faqTr('fa', 'no.such'), null);
