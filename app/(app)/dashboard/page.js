@@ -10,7 +10,8 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
-import { useT } from '@/components/I18nProvider';
+import { useT, useLang } from '@/components/I18nProvider';
+import { histLabel, histDate } from '@/lib/i18n/history';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -129,7 +130,7 @@ function HeroChart({ rows }) {
 }
 
 export default function Dashboard() {
-  const t = useT();
+  const { t, lang } = useLang();
   // The user's miners drive the live strip, the projection, the miner row and the live feed.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const miners = md ? md.contracts : [];
@@ -476,13 +477,13 @@ export default function Dashboard() {
                 }}
               >
                 <h3>{t('dash.activity')}</h3>
-                {!actOpen && latest && <span className="mute">{latest.date}</span>}
+                {!actOpen && latest && <span className="mute">{histDate(latest, lang, t)}</span>}
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
             {!actOpen && latest && (
               <div className="row" style={{ paddingTop: 4 }}>
-                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{latest.label}</div>
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{histLabel(latest, t)}</div>
                 <b className={latest.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
                   {latest.amount}{latest.coin ? ` ${latest.coin}` : ''}
                 </b>
@@ -495,8 +496,8 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
-                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{h.date}</small>
+                      <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{histLabel(h, t)}</div>
+                      <small>{histDate(h, lang, t)}</small>
                     </div>
                   </div>
                   <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px', fontVariantNumeric: 'tabular-nums' }}>
