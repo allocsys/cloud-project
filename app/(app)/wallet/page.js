@@ -11,7 +11,7 @@ import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import Field from '@/components/Field';
-import { fill, useLang } from '@/components/I18nProvider';
+import { fill, useLang, useT } from '@/components/I18nProvider';
 import { histLabel, histDate, histFee, histNet } from '@/lib/i18n/history';
 
 const KIND = {
