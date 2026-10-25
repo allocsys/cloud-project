@@ -4,6 +4,7 @@ import { config } from './config.js';
 import { hasDb } from './db.js';
 import { ApiError, json, readJson } from './http.js';
 import { createInvoice, getInvoice } from './invoices.js';
+import { adminOverview } from './admin-api.js';
 
 const digest = (s) => createHash('sha256').update(s).digest();
 
@@ -22,6 +23,9 @@ export async function handleApi(req, res, url) {
     if (url.pathname === '/v1/invoices' && req.method === 'POST') {
       const { invoice, created } = await createInvoice(await readJson(req));
       return json(res, created ? 201 : 200, { ok: true, invoice });
+    }
+    if (url.pathname === '/v1/admin/overview' && req.method === 'GET') {
+      return json(res, 200, { ok: true, ...(await adminOverview()) });
     }
     const m = /^\/v1\/invoices\/([^/]+)$/.exec(url.pathname);
     if (m && req.method === 'GET') {
