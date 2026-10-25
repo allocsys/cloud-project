@@ -7,6 +7,7 @@ import Link from 'next/link';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
+import { useT } from '@/components/I18nProvider';
 
 const whole = (n) => n.toLocaleString('en-US');
 const usd = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -109,6 +110,7 @@ function BoostArt() {
 }
 
 export default function BoostPromo({ signedIn = false }) {
+  const t = useT();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   const b = cat?.boost;
   if (!b) return null;
@@ -116,17 +118,17 @@ export default function BoostPromo({ signedIn = false }) {
 
   return (
     <div className="card" style={{ marginTop: 14 }}>
-      <h3>Boost</h3>
-      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>Extra hashrate for {b.hours} hours. Always pays, plus a chance to win.</p>
+      <h3>{t('boost.title')}</h3>
+      <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('boost.sub', { h: b.hours })}</p>
       <BoostArt />
-      {b.tickets.map((t) => (
-        <div className="row" key={t.id}>
+      {b.tickets.map((tk) => (
+        <div className="row" key={tk.id}>
           <div>
-            <i aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: COLOR[t.id], marginRight: 8 }} />
-            <b>${whole(t.price)} ticket</b>
-            <small style={{ display: 'block' }}>{t.coin} · pays ${usd(t.pay)}{same ? '' : ` · ${t.chance}% chance`}</small>
+            <i aria-hidden="true" style={{ display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: COLOR[tk.id], marginInlineEnd: 8 }} />
+            <b>{t('boost.ticket', { n: whole(tk.price) })}</b>
+            <small style={{ display: 'block' }}>{tk.coin} · {t('boost.pays', { n: usd(tk.pay) })}{same ? '' : ` · ${t('boost.chance', { n: tk.chance })}`}</small>
           </div>
-          <b style={{ color: 'var(--gold2)', textAlign: 'right', fontSize: '14px' }}>chance to win ${whole(t.prize)}</b>
+          <b style={{ color: 'var(--gold2)', textAlign: 'end', fontSize: '14px' }}>{t('boost.win', { n: whole(tk.prize) })}</b>
         </div>
       ))}
       {signedIn ? (
@@ -140,14 +142,14 @@ export default function BoostPromo({ signedIn = false }) {
             triggerHaptic('light');
           }}
         >
-          Open Boost
+          {t('boost.open')}
         </Link>
       ) : (
         <AuthButton mode="signup" className="btn boost-go">
-          Get started
+          {t('common.getStarted')}
         </AuthButton>
       )}
-      <p className="fine" style={{ margin: '12px 0 0' }}>Each ticket has its own draw{same ? `, ${b.tickets[0].chance}% chance` : ''}. The result shows when the boost ends.</p>
+      <p className="fine" style={{ margin: '12px 0 0' }}>{same ? t('boost.footChance', { n: b.tickets[0].chance }) : t('boost.foot')}</p>
     </div>
   );
 }
