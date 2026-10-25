@@ -10,6 +10,7 @@ import { handleApi } from './api.js';
 import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { btcExplorer } from './explorer.js';
+import { buildEvm, startScanner } from './evm-scanner.js';
 import { startWatcher } from './watcher.js';
 import { startOutbox, webhookTarget } from './outbox.js';
 
@@ -61,15 +62,25 @@ async function main() {
   else console.warn('[gateway] DATABASE_URL is not set: running without a database');
 
   let stopWatcher = async () => {};
+  let stopScanners = async () => {};
   const c = config();
-  if (hasDb() && c.watcherEnabled && CHAINS.btc.configured()) {
-    // Throws at boot if BTC_EXPLORER_URL is not https: better to refuse to start than to watch nothing.
-    const explorers = { btc: btcExplorer({ baseUrl: c.btcExplorerUrl }) };
-    stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs });
-    console.log(`[gateway] watching BTC invoices every ${c.pollIntervalMs / 1000}s`);
-  } else {
-    console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, BTC_XPUB, and WATCHER not off)');
+  if (hasDb() && c.watcherEnabled) {
+    // Throws at boot if an explorer or RPC URL is not https: better to refuse to start than to watch nothing.
+    const explorers = {};
+    if (CHAINS.btc.configured()) explorers.btc = btcExplorer({ baseUrl: c.btcExplorerUrl });
+    const evm = buildEvm();
+    Object.assign(explorers, evm.explorers);
+    const names = Object.keys(explorers);
+    if (names.length) {
+      const stops = evm.scanners.map((s) => startScanner(s, { intervalMs: c.evm.scanIntervalMs }));
+      stopScanners = async () => {
+        await Promise.all(stops.map((stop) => stop()));
+      };
+      stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs });
+      console.log(`[gateway] watching ${names.join(', ')} invoices every ${c.pollIntervalMs / 1000}s`);
+    }
   }
+  if (stopWatcher.name === '') console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, a BTC key or address or PAY_ADDR_EVM, and WATCHER not off)');
 
   let stopOutbox = async () => {};
   // Throws at boot when APP_WEBHOOK_URL is not https or the secret is too short: better to refuse to start than to send unsigned or exposed callbacks.
@@ -84,6 +95,7 @@ async function main() {
   server.listen(PORT, '0.0.0.0', () => console.log(`[gateway] listening on ${PORT}`));
   const stop = () => server.close(async () => {
     await stopWatcher();
+    await stopScanners();
     await stopOutbox();
     await closeDb();
     process.exit(0);
