@@ -25,7 +25,7 @@ before(async () => {
 
 after(async () => {
   if (!skip) {
-    await q('DELETE FROM unmatched_txs WHERE network = $1', [net]);
+    await q('DELETE FROM unmatched_txs WHERE address = $1', [`bc1q${run}`]);
     await q('DELETE FROM chain_cursors WHERE network = $1', [net]);
   }
   await closeDb();
