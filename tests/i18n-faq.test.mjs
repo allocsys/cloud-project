@@ -24,9 +24,9 @@ test('a Persian answer replaces the English one, with its number', async () => {
 });
 
 test('an entry without a Persian answer stays English, and fixed replies are translated', async () => {
-  const r = await answerQuestion('are returns guaranteed', { tr });
+  const r = await answerQuestion('what is smart mining', { tr });
   assert.equal(r.source, 'faq');
-  assert.match(r.text, /^No\./);
+  assert.match(r.text, /^Smart Mining lets you/);
   assert.notEqual((await answerQuestion('zzz qqq', { tr })).text, SUPPORT_TEXT);
   assert.notEqual((await answerQuestion('', { tr })).text, EMPTY_TEXT);
   assert.equal((await answerQuestion('zzz qqq', {})).text, SUPPORT_TEXT);
