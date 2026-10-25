@@ -11,6 +11,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { drillBack } from '@/lib/nav';
 import { bonusText } from '@/lib/first-bonus';
 import Spark from '@/components/Spark';
+import { useT } from '@/components/I18nProvider';
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -19,13 +20,14 @@ const chev = (
 );
 
 function Back({ title }) {
+  const t = useT();
   const router = useRouter();
   return (
     <div className="tl">
       <Link
         href="/plans"
         className="back"
-        aria-label="Back to plans"
+        aria-label={t('min.back')}
         onClick={(e) => {
           e.preventDefault();
           drillBack(router, '/plans');
@@ -40,6 +42,7 @@ function Back({ title }) {
 
 export default function ContractPage() {
   const { serial } = useParams();
+  const t = useT();
   const [all, setAll] = useState(false);
   const { data: md, mutate: mutateMiners } = useApi('/api/miners', { ttl: 10000 });
   const [toast, show] = useToast();
@@ -50,11 +53,11 @@ export default function ContractPage() {
   const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
 
   if (!c) {
-    if (!md) return <div className="top"><Back title="Miner" /></div>; // still loading: say nothing yet
+    if (!md) return <div className="top"><Back title={t('min.miner')} /></div>; // still loading: say nothing yet
     return (
       <>
-        <div className="top"><Back title="Miner" /></div>
-        <div className="card"><p className="empty">Miner not found.</p></div>
+        <div className="top"><Back title={t('min.miner')} /></div>
+        <div className="card"><p className="empty">{t('min.notFound')}</p></div>
       </>
     );
   }
@@ -72,7 +75,7 @@ export default function ContractPage() {
     } catch (err) {
       triggerHaptic('error');
       mutateMiners(was);
-      show(err.status ? err.message : 'No connection. Try again.');
+      show(err.status ? err.message : t('common.noConnection'));
     } finally {
       setRenewBusy(false);
     }
@@ -80,6 +83,12 @@ export default function ContractPage() {
 
   const hall = (cat && cat.halls[c.hall]) || halls[c.hall];
   const rig = rigFor(c);
+  // Plan names that have a translated tier name show it; any other name stays as it is.
+  const planLabel = (n) => {
+    const k = `tier.${String(n).toLowerCase()}`;
+    const v = t(k);
+    return v === k ? n : v;
+  };
   const sc = det?.contract?.coins; // Smart Mining: { today, history }
   const machine = det?.contract?.machine; // Smart Mining: { coin, hall, unit, rate }, what it runs on today
   const daily = det?.contract?.daily || [];
@@ -94,34 +103,34 @@ export default function ContractPage() {
   return (
     <>
       <div className="top">
-        <Back title={c.smart ? 'Smart Mining' : `${c.plan} miner`} />
-        <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}`}>{!c.online ? 'Offline' : c.paused ? 'Paused today' : 'Online'}</span>
+        <Back title={c.smart ? t('dash.smart') : t('min.title', { name: planLabel(c.plan) })} />
+        <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}`}>{!c.online ? t('dash.offline') : c.paused ? t('plans.pausedToday') : t('dash.online')}</span>
       </div>
       <div className="grid">
         <div className="card hero">
           <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={c.serial} />
-          <span className="mute eyebrow">Earned so far · {c.serial}</span>
+          <span className="mute eyebrow">{t('min.earned', { serial: c.serial })}</span>
           <div className="big"><span>${formatUsd(total)}</span></div>
           <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
           <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <i style={{ width: `${pct}%` }} />
           </div>
           <div className="cmeta">
-            <span>Day {c.elapsed} of {c.days}</span>
-            <span>Ends {c.ends}</span>
+            <span>{t('dash.dayOf', { d: c.elapsed, n: c.days })}</span>
+            <span>{t('plans.ends', { x: c.ends })}</span>
           </div>
-          {c.extendedDays > 0 && <span className="mute" style={{ fontSize: '13px' }}>Term extended by {c.extendedDays} paused day{c.extendedDays === 1 ? '' : 's'}</span>}
+          {c.extendedDays > 0 && <span className="mute" style={{ fontSize: '13px' }}>{c.extendedDays === 1 ? t('min.ext1') : t('min.extN', { n: c.extendedDays })}</span>}
         </div>
 
         <div className="grid cols">
           <div className="card">
             <div className="cardhead">
-              <h3>Daily earnings</h3>
-              <span className="mute">avg ${formatUsd(avg)}/day</span>
+              <h3>{t('min.daily')}</h3>
+              <span className="mute">{t('min.avg', { n: formatUsd(avg) })}</span>
             </div>
             {daily.length ? (
               <>
-                <div className="bars" role="img" aria-label={`Daily earnings for the last ${bars.length} days`}>
+                <div className="bars" role="img" aria-label={t('min.dailyAria', { n: bars.length })}>
                   {bars.map((d, i) => (
                     <i
                       key={d.day}
@@ -137,34 +146,34 @@ export default function ContractPage() {
                 </div>
                 {(all ? daily : daily.slice(0, 5)).map((d) => (
                   <div key={d.day} className="row">
-                    <div>{d.paused ? 'Paused day' : 'Daily payout'}<small>{d.day}</small></div>
-                    {d.paused ? <b className="mute">Paused</b> : <b className="up">+${formatUsd(d.usd)}</b>}
+                    <div>{d.paused ? t('min.pausedDay') : t('min.payoutDay')}<small>{d.day}</small></div>
+                    {d.paused ? <b className="mute">{t('min.paused')}</b> : <b className="up">+${formatUsd(d.usd)}</b>}
                   </div>
                 ))}
                 {daily.length > 5 && (
                   <button className="swap" onClick={() => setAll((v) => !v)}>
-                    {all ? 'Show less' : `Show all ${daily.length} days`}
+                    {all ? t('min.showLess') : t('min.showAll', { n: daily.length })}
                   </button>
                 )}
               </>
             ) : (
-              <p className="empty">{det ? 'No payouts yet. The first one lands after 24 hours.' : 'Loading…'}</p>
+              <p className="empty">{det ? t('min.noPayouts') : t('common.loading')}</p>
             )}
           </div>
 
           {(
           <div className="card">
             <div className="cardhead">
-              <h3>Uptime · 7 days</h3>
+              <h3>{t('min.uptime')}</h3>
               <span className="mute">{ch?.uptime.pct == null ? '–' : `${ch.uptime.pct.toFixed(1)}%`}</span>
             </div>
             {ch && ch.uptime.series.some((d) => d.pct !== null) ? (
               <>
-                <div className="bars" role="img" aria-label="Uptime for each of the last 7 days">
+                <div className="bars" role="img" aria-label={t('min.uptimeAria')}>
                   {ch.uptime.series.map((d, i) => (
                     <i
                       key={d.day}
-                      title={`${d.day} · ${d.pct === null ? 'no data' : `${d.pct.toFixed(1)}%`}`}
+                      title={`${d.day} · ${d.pct === null ? t('min.noData') : `${d.pct.toFixed(1)}%`}`}
                       className={i === ch.uptime.series.length - 1 ? 'last' : undefined}
                       style={{ height: `${d.pct === null ? 6 : Math.max(8, d.pct)}%`, ...(d.pct === null ? { opacity: 0.25 } : {}) }}
                     />
@@ -172,11 +181,11 @@ export default function ContractPage() {
                 </div>
                 <div className="chartlabels">
                   <span>{ch.uptime.series[0].day}</span>
-                  <span className="now">Today</span>
+                  <span className="now">{t('min.today')}</span>
                 </div>
               </>
             ) : (
-              <p className="empty">{ch ? 'No uptime data yet.' : 'Loading…'}</p>
+              <p className="empty">{ch ? t('min.noUptime') : t('common.loading')}</p>
             )}
           </div>
           )}
@@ -184,8 +193,8 @@ export default function ContractPage() {
           {c.smart && (
             <div className="card">
               <div className="cardhead">
-                <h3>Mining coin</h3>
-                <span className="mute">{sc?.today ? `Today ${sc.today}` : '–'}</span>
+                <h3>{t('min.coin')}</h3>
+                <span className="mute">{sc?.today ? t('min.coinToday', { coin: sc.today }) : '–'}</span>
               </div>
               {sc?.history?.length ? (
                 sc.history.map((h) => (
@@ -195,51 +204,51 @@ export default function ContractPage() {
                   </div>
                 ))
               ) : (
-                <p className="empty">{det ? 'The first coin is recorded after the first full day.' : 'Loading…'}</p>
+                <p className="empty">{det ? t('min.firstCoin') : t('common.loading')}</p>
               )}
             </div>
           )}
 
           <div className="card">
-            <h3>Details</h3>
+            <h3>{t('min.details')}</h3>
             <div className="hs">
               <div>
-                <span>Hashrate · 24h</span>
+                <span>{t('min.hash24')}</span>
                 {ch?.hash.hasData ? <b>{ch.hash.now}<small>{c.smart ? machine?.unit || '' : 'TH/s'}</small></b> : <b>–</b>}
               </div>
-              {ch?.hash.hasData ? <Spark values={ch.hash.series} /> : <small className="mute">{ch ? 'No data yet' : 'Loading…'}</small>}
+              {ch?.hash.hasData ? <Spark values={ch.hash.series} /> : <small className="mute">{ch ? t('min.noDataYet') : t('common.loading')}</small>}
             </div>
             {c.smart ? (
               <>
-                <div className="row"><span className="mute">Budget</span><b className="v">${formatUsd(c.budget)}</b></div>
-                <div className="row"><span className="mute">Mining</span><b className="v">Best coin, chosen daily<small>Paid in BTC</small></b></div>
+                <div className="row"><span className="mute">{t('min.budget')}</span><b className="v">${formatUsd(c.budget)}</b></div>
+                <div className="row"><span className="mute">{t('min.mining')}</span><b className="v">{t('min.bestChosen')}<small>{t('pc.paidBtc')}</small></b></div>
                 {machine && (
                   <>
-                    <div className="row"><span className="mute">Hash power</span><b className="v">{machine.rate.toLocaleString('en-US', { maximumFractionDigits: 1 })} {machine.unit}<small>{machine.coin} today</small></b></div>
-                    <div className="row"><span className="mute">Mining hall</span><b className="v">{machine.hall.name}<small>{machine.hall.place}</small></b></div>
-                    <div className="row"><span className="mute">Rig</span><b className="v">{machine.hall.rig}<small>{machine.hall.power}</small></b></div>
+                    <div className="row"><span className="mute">{t('min.hashPower')}</span><b className="v">{machine.rate.toLocaleString('en-US', { maximumFractionDigits: 1 })} {machine.unit}<small>{t('min.coinNow', { coin: machine.coin })}</small></b></div>
+                    <div className="row"><span className="mute">{t('min.hall')}</span><b className="v">{machine.hall.name}<small>{machine.hall.place}</small></b></div>
+                    <div className="row"><span className="mute">{t('min.rig')}</span><b className="v">{machine.hall.rig}<small>{machine.hall.power}</small></b></div>
                   </>
                 )}
               </>
             ) : (
               <>
-                <div className="row"><span className="mute">Hash power</span><b className="v">{c.th} TH/s</b></div>
-                <div className="row"><span className="mute">Mining hall</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
-                <div className="row"><span className="mute">Rig</span><b className="v">{hall.rig}<small>{hall.efficiency}</small></b></div>
-                <div className="row"><span className="mute">Power</span><b className="v">{hall.power}</b></div>
+                <div className="row"><span className="mute">{t('min.hashPower')}</span><b className="v">{c.th} TH/s</b></div>
+                <div className="row"><span className="mute">{t('min.hall')}</span><b className="v">{hall.name}<small>{hall.place}</small></b></div>
+                <div className="row"><span className="mute">{t('min.rig')}</span><b className="v">{hall.rig}<small>{hall.efficiency}</small></b></div>
+                <div className="row"><span className="mute">{t('min.power')}</span><b className="v">{hall.power}</b></div>
               </>
             )}
-            <div className="row"><span className="mute">Term</span><b className="v">{c.started} – {c.ends}</b></div>
+            <div className="row"><span className="mute">{t('min.term')}</span><b className="v">{c.started} – {c.ends}</b></div>
             {c.firstBonus && (
-              <div className="row"><span className="mute">First-buy bonus</span><b className="v">+{bonusText(c.firstBonus)} extra hashrate<small>for the full term</small></b></div>
+              <div className="row"><span className="mute">{t('plans.firstBonus')}</span><b className="v">{t('plans.bonusLine', { b: bonusText(c.firstBonus) })}<small>{t('plans.fullTerm')}</small></b></div>
             )}
             {c.smart && c.renewable && (
               <div className="row">
                 <div>
-                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Renew at term end</div>
-                  <small>Buys the same plan again from your balance. Turn off any time.</small>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('min.renew')}</div>
+                  <small>{t('min.renewSub')}</small>
                 </div>
-                <button type="button" role="switch" aria-checked={!!c.renew} aria-label="Renew at term end" className="switch" disabled={renewBusy} onClick={flipRenew}>
+                <button type="button" role="switch" aria-checked={!!c.renew} aria-label={t('min.renew')} className="switch" disabled={renewBusy} onClick={flipRenew}>
                   <i />
                 </button>
               </div>
