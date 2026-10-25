@@ -184,7 +184,7 @@ export default function Assistant() {
                   {m.role === 'bot' && NOTES[m.source] && <small className="asst-note">{t(NOTES[m.source])}</small>}
                   {m.role === 'bot' && m.did?.q && (
                     <button type="button" className="asst-did" disabled={busy} onClick={() => send(m.did.q)}>
-                      {t('ast.did', { q: m.did.q })}
+                      {t('ast.did', { q: m.did.label || m.did.q })}
                     </button>
                   )}
                 </div>
