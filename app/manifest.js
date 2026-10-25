@@ -9,7 +9,7 @@ export default async function manifest() {
   return {
     name: 'Miner Opus',
     short_name: 'Miner Opus',
-    description: t('meta.description'),
+    description: t('meta.manifest'),
     lang,
     dir: LANGS[lang].dir,
     id: '/',
