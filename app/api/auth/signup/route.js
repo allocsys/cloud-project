@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { signup, sendVerification, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
+import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
 export const dynamic = 'force-dynamic';
 
@@ -24,7 +25,7 @@ export async function POST(req) {
   const { status, ...rest } = await signup(body);
   const res = NextResponse.json(rest, { status, headers: NO_STORE });
   if (rest.ok) {
-    sendVerification(rest.id, BASE_URL).catch(() => {}); // not awaited: sign-up never waits for the mail
+    sendVerification(rest.id, BASE_URL, pickLang(req.cookies?.get(LANG_COOKIE)?.value)).catch(() => {}); // not awaited: sign-up never waits for the mail
     return await setSession(res, rest.id);
   }
   return res;
