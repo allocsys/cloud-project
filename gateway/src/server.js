@@ -11,6 +11,8 @@ import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { btcExplorer } from './explorer.js';
 import { buildEvm, startScanner } from './evm-scanner.js';
+import { tronExplorer } from './tron-explorer.js';
+import { solExplorer } from './sol-explorer.js';
 import { startWatcher } from './watcher.js';
 import { startOutbox, webhookTarget } from './outbox.js';
 
@@ -69,6 +71,8 @@ async function main() {
     // Throws at boot if an explorer or RPC URL is not https: better to refuse to start than to watch nothing.
     const explorers = {};
     if (CHAINS.btc.configured()) explorers.btc = btcExplorer({ baseUrl: c.btcExplorerUrl });
+    if (CHAINS.trx.configured()) explorers.trx = tronExplorer({ baseUrl: c.trx.apiUrl, apiKey: c.trx.apiKey });
+    if (CHAINS.sol.configured()) explorers.sol = solExplorer({ urls: c.sol.rpc });
     const evm = buildEvm();
     Object.assign(explorers, evm.explorers);
     const names = Object.keys(explorers);
