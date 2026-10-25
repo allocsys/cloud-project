@@ -9,6 +9,11 @@
 // EVM_RPC_ETH, EVM_RPC_BSC, EVM_RPC_POL  JSON-RPC endpoints, comma separated, https only. Tried in order; the next one is used when one fails.
 // EVM_CONF_ETH, EVM_CONF_BSC, EVM_CONF_POL  confirmations needed before an EVM payment counts (defaults 12, 15, 64)
 // EVM_SCAN_SECONDS    how often each EVM chain is scanned for new blocks (default 15, minimum 3)
+// TRON_API_URL      TronGrid-compatible API base, https only (default https://api.trongrid.io)
+// TRON_API_KEY        optional TronGrid key (sent as TRON-PRO-API-KEY; raises the rate limit)
+// TRX_CONFIRMATIONS   confirmations needed for a TRX payment (default 1; a 'confirmed' Tron payment is already solidified)
+// SOL_RPC             Solana JSON-RPC endpoints, comma separated, https only. Tried in order; may carry a provider key in the URL.
+// SOL_CONFIRMATIONS   confirmations needed for a SOL payment (default 1; only finalized payments get any)
 // BTC_CONFIRMATIONS   confirmations needed before a BTC payment counts (default 1, matching the app)
 // BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://mempool.space/api)
 // POLL_SECONDS        how often open invoices are checked on chain (default 30, minimum 5)
@@ -32,6 +37,8 @@ const EVM_RPC = {
   bsc: ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.binance.org'],
   pol: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
 };
+
+const SOL_RPC = ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com'];
 
 export const config = () => {
   const nets = csv(process.env.EVM_NETWORKS).map((s) => s.toLowerCase());
@@ -60,6 +67,15 @@ export const config = () => {
         pol: whole(process.env.EVM_CONF_POL, 64),
       },
       scanIntervalMs: Math.max(3, whole(process.env.EVM_SCAN_SECONDS, 15)) * 1000,
+    },
+    trx: {
+      apiUrl: text(process.env.TRON_API_URL) || 'https://api.trongrid.io',
+      apiKey: text(process.env.TRON_API_KEY),
+      confirmations: whole(process.env.TRX_CONFIRMATIONS, 1),
+    },
+    sol: {
+      rpc: csv(process.env.SOL_RPC).length ? csv(process.env.SOL_RPC) : SOL_RPC,
+      confirmations: whole(process.env.SOL_CONFIRMATIONS, 1),
     },
     pollIntervalMs: Math.max(5, whole(process.env.POLL_SECONDS, 30)) * 1000,
     watcherEnabled: process.env.WATCHER !== 'off',
