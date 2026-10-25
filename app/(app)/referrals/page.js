@@ -147,10 +147,12 @@ export default function Referrals() {
 
   const active = referral.friends.filter((f) => f.status === 'active').length;
 
+  const rewardText = referral.rewardV ? t('ref.reward', referral.rewardV) : referral.reward;
+  const giftText = referral.giftV ? t('ref.giftLine', referral.giftV) : referral.gift;
   const steps = [
     { icon: ICONS.share, title: t('ref.share'), sub: t('ref.sendCode') },
-    { icon: ICONS.join, title: t('ref.joins'), sub: referral.gift ? t('ref.gets', { gift: referral.gift }) : t('ref.signsUp') },
-    { icon: ICONS.gift, title: t('ref.youEarn'), sub: referral.reward },
+    { icon: ICONS.join, title: t('ref.joins'), sub: giftText ? t('ref.gets', { gift: giftText }) : t('ref.signsUp') },
+    { icon: ICONS.gift, title: t('ref.youEarn'), sub: rewardText },
   ];
 
   return (
@@ -170,7 +172,7 @@ export default function Referrals() {
           <div className="chips">
             <span>{t('ref.invited', { n: referral.friends.length })}</span>
             <span>{t('ref.active', { n: active })}</span>
-            <span>{referral.reward}</span>
+            <span>{rewardText}</span>
           </div>
         </div>
 
