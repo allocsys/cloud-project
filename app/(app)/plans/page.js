@@ -16,6 +16,8 @@ import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 import { fill, useT } from '@/components/I18nProvider';
+import { CoinPicker, PayInfo } from '@/components/PayCoin';
+import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
@@ -58,6 +60,7 @@ export default function Plans() {
   const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [coin, setCoin] = useState(DEFAULT_PAY); // the coin a crypto payment is made in (our own checkout only)
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
   const openerRef = useRef(null);
@@ -154,7 +157,11 @@ export default function Plans() {
         : plan.id === 'custom'
           ? { planId: 'custom', th: plan.th, days: plan.days, pay: method }
           : { planId: plan.id, pay: method };
-      // One key per plan, size, term and method: a retry after a lost answer repeats the same purchase instead of making a second one.
+      if (method === 'crypto' && ord?.multi) {
+        body.asset = coin.asset;
+        body.network = coin.net;
+      }
+      // One key per plan, size, term, coin and method: a retry after a lost answer repeats the same purchase instead of making a second one.
       const sig = JSON.stringify(body);
       if (payKey.current?.sig !== sig) payKey.current = { sig, key: uid() };
       const r = await post('/api/plans/buy', body, payKey.current.key);
@@ -165,7 +172,7 @@ export default function Plans() {
       }
       if (r.pending && r.order?.address) {
         await refreshOrders().catch(() => {});
-        show(t('plans.sendExact'));
+        show(t('pay.sendExact'));
         dismiss();
         return;
       }
@@ -336,17 +343,12 @@ export default function Plans() {
             <div>
               <b>{o.status === 'review' ? t('plans.needCheck') : t('plans.waiting')}</b>
               <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
-              {o.status === 'pending' && o.address && (
-                <>
-                  <small style={{ display: 'block' }}>{fill(t('plans.sendTo'), { amount: <b>{o.amount} BTC</b> })}</small>
-                  <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{o.address}</small>
-                </>
-              )}
+              {o.status === 'pending' && o.address && <PayInfo order={o} show={show} />}
             </div>
             {o.status === 'pending' && (
               <div>
                 {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.pay')}</a>}
-                {o.uri && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>}
+                {o.uri && /^[a-z][a-z0-9+.-]*:/i.test(o.uri) && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>}
                 <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>{t('common.cancel')}</button>
               </div>
             )}
@@ -531,6 +533,12 @@ export default function Plans() {
                   ? t('plans.noBalance')
                   : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
               </p>
+            )}
+            {ready && ord?.multi && methods.includes('crypto') && (
+              <>
+                <p className="fine" style={{ margin: '0 0 6px' }}>{t('pay.coin')}</p>
+                <CoinPicker value={coin} onChange={setCoin} disabled={busy} />
+              </>
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>
