@@ -107,4 +107,13 @@ CREATE TABLE unmatched_txs (
 );
 `,
   },
+  {
+    id: '003_address_unique_unless_shared',
+    sql: `
+-- A per-invoice address (extended key) is still never reused. Only fixed-address invoices (match_amount) may share one.
+DROP INDEX IF EXISTS invoices_address_idx;
+CREATE UNIQUE INDEX invoices_address_idx ON invoices (network, address) WHERE NOT match_amount;
+CREATE INDEX invoices_shared_address_idx ON invoices (network, address) WHERE match_amount;
+`,
+  },
 ];
