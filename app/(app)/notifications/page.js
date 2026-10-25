@@ -12,6 +12,7 @@ import { noteTitle, noteBody, noteWhen } from '@/lib/i18n/notes';
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
   referral: { glyph: '+', cls: 'in' },
+  deposit: { glyph: '+', cls: 'in' },
   withdrawal: { glyph: '↑', cls: 'out' },
   purchase: { glyph: '◆', cls: 'buy' },
   news: { glyph: 'i', cls: 'buy' },
