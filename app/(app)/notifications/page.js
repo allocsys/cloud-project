@@ -6,6 +6,7 @@ import { notifications } from '@/lib/data';
 import { useApi, post, revalidate } from '@/lib/api';
 import { drillBack } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
+import { useT } from '@/components/I18nProvider';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -25,6 +26,7 @@ const chev = (
 const seedItems = notifications.map((n) => ({ ...n, read: false }));
 
 export default function Notifications() {
+  const t = useT();
   const router = useRouter();
   const { data: nd, mutate } = useApi('/api/notifications', { ttl: 5000 });
   const items = nd ? nd.items : seedItems;
@@ -33,8 +35,8 @@ export default function Notifications() {
   // The list keeps its place but stays hidden until the server has answered (or 1.5 seconds), so the sample items never flash.
   const [wait, setWait] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setWait(false), 1500);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setWait(false), 1500);
+    return () => clearTimeout(tm);
   }, []);
 
   useEffect(() => {
@@ -69,7 +71,7 @@ export default function Notifications() {
           <Link
             href="/dashboard"
             className="back"
-            aria-label="Back to earnings"
+            aria-label={t('not.back')}
             onClick={(e) => {
               e.preventDefault();
               drillBack(router, '/dashboard');
@@ -77,7 +79,7 @@ export default function Notifications() {
           >
             {chev}
           </Link>
-          <h2>Notifications</h2>
+          <h2>{t('dash.notif')}</h2>
         </div>
         {items.length > 0 && (
           <button
@@ -86,7 +88,7 @@ export default function Notifications() {
             onClick={clearAll}
             style={{ width: 'auto', minHeight: 40, margin: 0, padding: '0 12px' }}
           >
-            Clear all
+            {t('not.clear')}
           </button>
         )}
       </div>
@@ -105,14 +107,14 @@ export default function Notifications() {
                   </div>
                 </div>
                 <div className="nmeta">
-                  {fresh && fresh.has(n.id) && <i className="ndot" aria-label="New" />}
+                  {fresh && fresh.has(n.id) && <i className="ndot" aria-label={t('not.new')} />}
                   <small>{n.when}</small>
                 </div>
               </div>
             );
           })
         ) : (
-          <p className="empty">No notifications yet.</p>
+          <p className="empty">{t('not.none')}</p>
         )}
       </div>
     </>
