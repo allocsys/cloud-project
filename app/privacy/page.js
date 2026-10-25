@@ -1,43 +1,48 @@
 import BackLink from '@/components/BackLink';
+import { getT } from '@/lib/i18n/server';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 
-export const metadata = { title: 'Privacy Policy' };
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: t('privacy.title') };
+}
 
 // Written from what the app really does today. If the app starts keeping ID photos, adds analytics or another
 // provider, change this page in the same commit.
-export default function Privacy() {
+export default async function Privacy() {
+  const t = await getT();
   return (
     <section id="auth">
-      <div className="authbox" style={{ textAlign: 'left', maxWidth: '560px' }}>
-        <h1>Privacy Policy</h1>
-        <p className="mute">What we collect, why, and who else handles it.</p>
+      <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
+        <h1>{t('privacy.title')}</h1>
+        <p className="mute">{t('privacy.intro')}</p>
 
-        <h2 style={h2}>1. What we collect</h2>
-        <p className="mute"><b>Account.</b> Your email address and a scrambled (hashed) form of your password; we never keep the password itself. If you sign in with Telegram, your Telegram ID and name.</p>
-        <p className="mute"><b>Identity check.</b> If you verify your identity: your name, date of birth, country and document type. The photos you send are checked and not kept; we record only their size and type.</p>
-        <p className="mute"><b>Activity.</b> Your plans, balance, earnings, deposits, withdrawals (including the addresses you withdraw to), invites and settings.</p>
-        <p className="mute"><b>Security.</b> Your sign-in sessions, your two-factor key if you turn it on, and your IP address, which is used to slow down repeated sign-in attempts.</p>
-        <p className="mute"><b>Assistant.</b> We do not save the questions you ask. When the assistant uses an AI model to answer, your question and a short summary of your own account figures are sent to the AI provider.</p>
+        <h2 style={h2}>{t('privacy.h1')}</h2>
+        <p className="mute"><b>{t('privacy.l1a')}</b> {t('privacy.p1a')}</p>
+        <p className="mute"><b>{t('privacy.l1b')}</b> {t('privacy.p1b')}</p>
+        <p className="mute"><b>{t('privacy.l1c')}</b> {t('privacy.p1c')}</p>
+        <p className="mute"><b>{t('privacy.l1d')}</b> {t('privacy.p1d')}</p>
+        <p className="mute"><b>{t('privacy.l1e')}</b> {t('privacy.p1e')}</p>
 
-        <h2 style={h2}>2. How we use it</h2>
-        <p className="mute">To run your account, plans and payouts; to send you emails such as verification and password reset; to check identity and prevent fraud; to keep the service secure; and to answer your questions. We do not sell your data.</p>
+        <h2 style={h2}>{t('privacy.h2')}</h2>
+        <p className="mute">{t('privacy.p2')}</p>
 
-        <h2 style={h2}>3. Who else handles it</h2>
-        <p className="mute">Our hosting and database provider (Railway) stores the data. Our email provider (Resend) delivers emails. The AI provider, as described above, sees assistant questions. If you use Telegram, Telegram handles that part under its own policy.</p>
-        <p className="mute">Crypto deposits and withdrawals happen on public blockchains, so the addresses and amounts involved can be seen by anyone there. We cannot remove them.</p>
+        <h2 style={h2}>{t('privacy.h3')}</h2>
+        <p className="mute">{t('privacy.p3a')}</p>
+        <p className="mute">{t('privacy.p3b')}</p>
 
-        <h2 style={h2}>4. How long we keep it</h2>
-        <p className="mute">While your account is open. You can close it yourself at any time in Settings. Closing erases your email, password, Telegram details, name and verification details, alert settings and notifications, and you are signed out everywhere. We keep your payment orders, withdrawals (with their addresses and amounts), balance records and the miners you bought, under a random identifier that no longer carries your email, for as long as the law requires us to keep financial records and to keep what your inviter earned from you correct. Those records are not used to contact you.</p>
+        <h2 style={h2}>{t('privacy.h4')}</h2>
+        <p className="mute">{t('privacy.p4')}</p>
 
-        <h2 style={h2}>5. Your choices</h2>
-        <p className="mute">You can change your alert settings, turn on two-factor sign-in, change your password and close your account in Settings. Before closing, withdraw your balance: a balance above the withdrawal minimum blocks closing, and anything below it, and any running miners, are given up with no refund. To get a copy of your data, contact support through the app.</p>
+        <h2 style={h2}>{t('privacy.h5')}</h2>
+        <p className="mute">{t('privacy.p5')}</p>
 
-        <h2 style={h2}>6. Security</h2>
-        <p className="mute">Passwords are stored hashed, sign-in can be protected with two-factor codes, and repeated wrong attempts are slowed down. No system is perfectly safe, so use a strong, unique password.</p>
+        <h2 style={h2}>{t('privacy.h6')}</h2>
+        <p className="mute">{t('privacy.p6')}</p>
 
-        <h2 style={h2}>7. Age and changes</h2>
-        <p className="mute">The service is for people aged 18 or older. If we change this policy, we tell you before the change takes effect.</p>
+        <h2 style={h2}>{t('privacy.h7')}</h2>
+        <p className="mute">{t('privacy.p7')}</p>
 
         <div style={{ height: '14px' }} />
         <BackLink />
