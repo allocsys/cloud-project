@@ -18,9 +18,9 @@ test('Persian labels use the keys', () => {
   assert.equal(histLabel({ label: 'Daily payout' }, fa), 'پرداخت روزانه');
 });
 
-test('unknown labels and unapproved text stay English', () => {
+test('unknown labels stay English, approved text is Persian', () => {
   assert.equal(histLabel({ label: 'Something new' }, fa), 'Something new');
-  assert.equal(histLabel({ label: 'Smart Mining $50' }, fa), 'Smart Mining $50');
+  assert.equal(histLabel({ label: 'Smart Mining $50' }, fa), 'ماینینگ هوشمند $50');
 });
 
 test('dates, fees and net', () => {
