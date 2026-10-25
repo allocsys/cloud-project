@@ -81,4 +81,30 @@ $$ LANGUAGE plpgsql;
 CREATE TRIGGER audit_log_no_change BEFORE UPDATE OR DELETE ON audit_log FOR EACH ROW EXECUTE FUNCTION audit_log_readonly();
 `,
   },
+  {
+    id: '002_shared_addresses',
+    sql: `
+-- Fixed-address mode: many invoices pay ONE address and are told apart by their exact amount (match_amount = true).
+-- invoices_amount_open_idx  two open invoices on the same address and asset can never expect the same amount.
+-- unmatched_txs             payments to a shared address that match no open invoice (wrong amount, late). Kept for a person to resolve.
+ALTER TABLE invoices ADD COLUMN match_amount boolean NOT NULL DEFAULT false;
+DROP INDEX IF EXISTS invoices_address_idx;
+CREATE INDEX invoices_address_idx ON invoices (network, address);
+CREATE UNIQUE INDEX invoices_amount_open_idx ON invoices (network, asset, address, expected_atomic)
+  WHERE match_amount AND status IN ('pending', 'confirming', 'partial');
+
+CREATE TABLE unmatched_txs (
+  id            bigserial PRIMARY KEY,
+  network       text NOT NULL,
+  asset         text NOT NULL,
+  address       text NOT NULL,
+  txid          text NOT NULL,
+  vout          integer NOT NULL DEFAULT 0,
+  amount_atomic numeric(38, 0) NOT NULL CHECK (amount_atomic > 0),
+  confirmations integer NOT NULL DEFAULT 0,
+  seen_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (network, txid, vout)
+);
+`,
+  },
 ];
