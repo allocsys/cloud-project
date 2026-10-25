@@ -427,6 +427,131 @@ function Login({ onDone, setup }) {
   );
 }
 
+// Gateway tab: a read-only view of the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
+const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana' };
+const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
+const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s || '');
+const agoText = (s) => (s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`);
+const WARN = { color: 'var(--gold)' };
+
+function GatewayTab() {
+  const [g, setG] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const load = useCallback(async () => {
+    setBusy(true);
+    try {
+      setG(await call('GET', '/api/admin/gateway'));
+    } catch {
+      setG({ ok: false, error: 'No connection. Try again.' });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  if (!g) return <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>;
+  if (!g.ok) {
+    return (
+      <div className="card">
+        <h3>Gateway</h3>
+        <p className="fine" style={{ margin: '0 0 12px' }}>{g.error || 'Could not load.'}</p>
+        <button className="btn" disabled={busy} onClick={load}>Retry</button>
+      </div>
+    );
+  }
+  const counts = g.invoices.counts || {};
+  return (
+    <div className="adm-stack">
+      <div className="card">
+        <div className="cardhead">
+          <h3>Networks</h3>
+          <button className="swap" style={SM} disabled={busy} onClick={load}>Refresh</button>
+        </div>
+        {g.networks.map((n) => {
+          const s = g.scanners.find((x) => x.network === n.network);
+          const lag = s ? Number(s.tip) - Number(s.height) : 0;
+          const stale = s ? s.age_s > 300 || lag > 150 : false;
+          return (
+            <div className="row adm-m" key={n.network}>
+              <div>
+                {NET[n.network] || n.network}
+                <small>{n.assets.map((a) => a.toUpperCase()).join(', ')} · {n.confirmations} conf</small>
+                {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
+                {n.configured && s && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="card">
+        <h3>Invoices</h3>
+        {Object.keys(INV).map((k) => (
+          <div className="row" key={k}><span className="mute">{INV[k]}</span><b>{counts[k] || 0}</b></div>
+        ))}
+        <span className="eyebrow adm-sub">Latest</span>
+        {g.invoices.recent.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None yet.</p>}
+        {g.invoices.recent.map((i) => (
+          <div className="row adm-m" key={i.id}>
+            <div>
+              {String(i.asset).toUpperCase()} on {NET[i.network] || i.network}{i.usd === null ? '' : ` · $${i.usd}`}
+              <small>{i.expected || '?'} expected{i.received && i.received !== '0.' && Number(i.received) > 0 ? ` · ${i.received} paid` : ''} · {when(i.created_at)}</small>
+              <small className="serial">{shortId(i.ref)}</small>
+            </div>
+            <b className={i.status === 'paid' ? 'up' : undefined}>{INV[i.status] || i.status}</b>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Unmatched payments · {g.unmatched.total}</h3>
+        <p className="fine" style={{ margin: '0 0 4px' }}>Money that reached a shared address with no invoice for that exact amount. Check each one by hand.</p>
+        {g.unmatched.recent.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None.</p>}
+        {g.unmatched.recent.map((u) => (
+          <div className="row adm-m" key={`${u.network}-${u.txid}-${u.vout}`}>
+            <div>
+              {u.amount === null ? '?' : u.amount} {String(u.asset).toUpperCase()}
+              <small>{NET[u.network] || u.network} · {when(u.seen_at)}</small>
+              <small className="serial" style={{ wordBreak: 'break-all', userSelect: 'all' }}>{u.txid}</small>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Callbacks to the app</h3>
+        <div className="row"><span className="mute">Waiting to send</span><b>{g.callbacks.pending}</b></div>
+        <div className="row"><span className="mute">Failing</span><b style={g.callbacks.failing > 0 ? WARN : undefined}>{g.callbacks.failing}</b></div>
+        {g.callbacks.stuck.map((c) => (
+          <div className="row adm-m" key={`${c.ref}-${c.event}`}>
+            <div>
+              {c.event} · {c.attempts} tries
+              <small className="serial">{shortId(c.ref)}</small>
+              {c.last_error && <small>{c.last_error}</small>}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="card">
+        <h3>Recent activity</h3>
+        {g.audit.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
+        {g.audit.map((a, i) => (
+          <div className="row adm-m" key={`${a.at}-${i}`}>
+            <div>{a.action}<small>{a.actor}{a.subject ? ` · ${shortId(a.subject)}` : ''}</small></div>
+            <span className="mute">{when(a.at)}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 const ADJ0 = { id: null, op: 'add', cur: 'btc', amount: '', note: '' };
 
 // The BTC a balance change comes to: typed in BTC, or typed in USD and converted at the current rate.
@@ -552,7 +677,7 @@ export default function Admin() {
       </div>
 
       <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['settings', 'Settings']].map(([k, l]) => (
+        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway'], ['settings', 'Settings']].map(([k, l]) => (
           <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : k === 'withdrawals' && stats.withdrawalsOpen > 0 ? `${l} · ${stats.withdrawalsOpen}` : l}</button>
         ))}
       </div>
@@ -976,6 +1101,8 @@ export default function Admin() {
           </div>
         );
       })()}
+
+      {tab === 'gateway' && <GatewayTab />}
 
       {tab === 'send' && (
         <div className="card adm-stack">
