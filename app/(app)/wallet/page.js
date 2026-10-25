@@ -11,6 +11,7 @@ import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import Field from '@/components/Field';
+import { fill, useT } from '@/components/I18nProvider';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -21,9 +22,9 @@ const KIND = {
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 
-const STATUS = { pending: 'Pending approval', approved: 'Approved', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
+const STATUS = { pending: 'wal.stPending', approved: 'wal.stApproved', sent: 'wal.stSent', failed: 'wal.stFailed', rejected: 'wal.stRejected' };
 
-const FILTERS = [['all', 'All'], ['payout', 'Payouts'], ['withdrawal', 'Withdraw'], ['deposit', 'Deposits']];
+const FILTERS = [['all', 'wal.fAll'], ['payout', 'wal.fPayouts'], ['withdrawal', 'wal.withdraw'], ['deposit', 'wal.fDeposits']];
 
 // True while the element is on screen, so its animation pauses when it is not.
 function useSeen() {
@@ -55,6 +56,7 @@ function usdOf(h, prices) {
 }
 
 function DepositQr({ value }) {
+  const t = useT();
   const qr = useMemo(() => {
     try {
       const m = qrMatrix(value);
@@ -68,7 +70,7 @@ function DepositQr({ value }) {
   const box = qr.size + pad * 2;
   return (
     <div className="qr">
-      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} role="img" aria-label="Deposit address QR code" shapeRendering="crispEdges">
+      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} role="img" aria-label={t('wal.qr')} shapeRendering="crispEdges">
         <rect x={-pad} y={-pad} width={box} height={box} fill="#fff" />
         <path d={qr.d} fill="#0b0a08" />
       </svg>
@@ -78,10 +80,11 @@ function DepositQr({ value }) {
 
 // Coin buttons, plus a network switch for coins that live on more than one chain (USDT).
 function Picker({ asset, net, onAsset, onNet }) {
+  const t = useT();
   const nets = Object.keys(ASSETS[asset].nets);
   return (
     <>
-      <div className="assets" role="group" aria-label="Coin">
+      <div className="assets" role="group" aria-label={t('wal.coin')}>
         {Object.entries(ASSETS).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={asset === id} onClick={() => onAsset(id)}>
             {a.sym}
@@ -90,8 +93,8 @@ function Picker({ asset, net, onAsset, onNet }) {
       </div>
       {nets.length > 1 && (
         <div className="netrow">
-          <span>Network</span>
-          <div className="minitabs" role="group" aria-label="Network">
+          <span>{t('wal.network')}</span>
+          <div className="minitabs" role="group" aria-label={t('wal.network')}>
             {nets.map((n) => (
               <button key={n} type="button" aria-pressed={net === n} onClick={() => onNet(n)}>
                 {NETWORKS[n].short}
@@ -106,8 +109,9 @@ function Picker({ asset, net, onAsset, onNet }) {
 
 // Enter the amount in the coin itself or in dollars.
 function UnitSwitch({ sym, unit, onUnit }) {
+  const t = useT();
   return (
-    <div className="minitabs uswitch" role="group" aria-label="Amount unit">
+    <div className="minitabs uswitch" role="group" aria-label={t('wal.unitAria')}>
       <button type="button" aria-pressed={unit === 'coin'} onClick={() => onUnit('coin')}>{sym}</button>
       <button type="button" aria-pressed={unit === 'usd'} onClick={() => onUnit('usd')}>USD</button>
     </div>
@@ -115,6 +119,7 @@ function UnitSwitch({ sym, unit, onUnit }) {
 }
 
 export default function Wallet() {
+  const t = useT();
   // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
@@ -236,11 +241,11 @@ export default function Wallet() {
     if (busy || !wd) return;
     const next = {};
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
-    if (!wq) next.amount = 'Enter an amount to withdraw.';
-    else if (wq.btc < MIN_WITHDRAW) next.amount = `Minimum is ${minText}.`;
-    else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = 'More than your available balance.';
-    else if (wq.receive <= 0) next.amount = 'Too small to cover the fees.';
-    if (!N.pattern.test(address.trim())) next.address = `Enter a valid ${N.label} address.`;
+    if (!wq) next.amount = t('wal.errAmount');
+    else if (wq.btc < MIN_WITHDRAW) next.amount = t('wal.errMin', { min: minText });
+    else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
+    else if (wq.receive <= 0) next.amount = t('wal.errSmall');
+    if (!N.pattern.test(address.trim())) next.address = t('wal.errAddr', { net: N.label });
 
     if (next.amount || next.address) {
       triggerHaptic('error');
@@ -278,12 +283,12 @@ export default function Wallet() {
       triggerHaptic('success');
       setAmount('');
       setAddress('');
-      show('Withdrawal requested. It is paid after approval.');
+      show(t('wal.requested'));
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
       triggerHaptic('error');
-      const msg = e.status ? e.message : 'No connection. Try again.';
+      const msg = e.status ? e.message : t('common.noConnection');
       setErrors({ [e.field === 'address' ? 'address' : 'amount']: msg });
     } finally {
       setBusy(false);
@@ -295,25 +300,25 @@ export default function Wallet() {
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
       navigator.clipboard.writeText(N.address);
     }
-    show('Address copied');
+    show(t('wal.copied'));
   }
 
   return (
     <>
       <style>{WALLET_CSS}</style>
       <div className="top">
-        <h2>Wallet</h2>
+        <h2>{t('nav.wallet')}</h2>
       </div>
       <div className="grid">
         <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
           <i className="wshine" aria-hidden="true" />
-          <span className="mute eyebrow">Available balance</span>
+          <span className="mute eyebrow">{t('wal.avail')}</span>
           <div className="big">
             {ready ? formatBtc(available) : '—'}
             <small>BTC</small>
           </div>
           <span className="mute" style={{ display: 'block', fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
-          <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{ready && wd.mined != null ? `Total mined ${formatBtc(wd.mined + mined)} BTC` : '\u00a0'}</span>
+          <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{ready && wd.mined != null ? t('wal.totalMined', { n: formatBtc(wd.mined + mined) }) : '\u00a0'}</span>
         </div>
 
         {rein && (
@@ -321,22 +326,22 @@ export default function Wallet() {
             <div>
               <b>{reinvestTitle(rein)}</b>
               <small>
-                ${formatUsd(rein.plan.price)} · {rein.plan.days} days · ~{rein.plan.daily}/day
-                {rein.left >= 1 ? ` · $${formatUsd(rein.left)} left` : ''}
+                {t('dash.reinLine', { price: formatUsd(rein.plan.price), days: rein.plan.days, daily: rein.plan.daily })}
+                {rein.left >= 1 ? ` · ${t('dash.left', { n: formatUsd(rein.left) })}` : ''}
               </small>
             </div>
-            <span className="rgo">Review</span>
+            <span className="rgo">{t('dash.review')}</span>
           </Link>
         )}
 
         <div className="grid wal" style={hideCalm}>
           <div className="card wcard">
-            <div className="tabs" role="group" aria-label="Wallet action">
+            <div className="tabs" role="group" aria-label={t('wal.aria')}>
               <button type="button" aria-pressed={tab === 'withdraw'} onClick={() => handleTabChange('withdraw')}>
-                Withdraw
+                {t('wal.withdraw')}
               </button>
               <button type="button" aria-pressed={tab === 'deposit'} onClick={() => handleTabChange('deposit')}>
-                Deposit
+                {t('wal.deposit')}
               </button>
             </div>
 
@@ -344,7 +349,7 @@ export default function Wallet() {
 
             {tab === 'withdraw' ? (
               <div>
-                <Field id="wa" label="Amount" className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />} error={errors.amount}>
+                <Field id="wa" label={t('wal.amount')} className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />} error={errors.amount}>
                   <input
                     id="wa"
                     inputMode="decimal"
@@ -362,12 +367,12 @@ export default function Wallet() {
                 <div className="pct-row">
                   {[0.25, 0.5, 0.75, 1].map((p) => (
                     <button key={p} type="button" className="pct-btn" onClick={() => setFraction(p)}>
-                      {p === 1 ? 'Max' : `${p * 100}%`}
+                      {p === 1 ? t('wal.max') : `${p * 100}%`}
                     </button>
                   ))}
                 </div>
 
-                <Field id="wd" label={`${A.sym} address${A.nets && Object.keys(A.nets).length > 1 ? ` (${N.short})` : ''}`} error={errors.address}>
+                <Field id="wd" label={A.nets && Object.keys(A.nets).length > 1 ? t('wal.addrNet', { sym: A.sym, net: N.short }) : t('wal.addr', { sym: A.sym })} error={errors.address}>
                   <input
                     id="wd"
                     className={errors.address ? 'bad' : undefined}
@@ -389,54 +394,54 @@ export default function Wallet() {
                   {q ? (
                     <>
                       <div className="row">
-                        <span className="mute">Amount</span>
+                        <span className="mute">{t('wal.amount')}</span>
                         <b>{usdMode ? `≈ ${coinAmt.toFixed(A.dec)} ${A.sym}` : `≈ $${formatUsd(q.usd)}`}</b>
                       </div>
                       {asset !== 'btc' && (
                         <div className="row">
-                          <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
+                          <span className="mute">{t('wal.swapFee', { n: SWAP_FEE_PCT })}</span>
                           <b>${formatUsd(q.swapUsd)}</b>
                         </div>
                       )}
                       {svcPct > 0 && (
                         <div className="row">
-                          <span className="mute">Service fee ({svcPct}%)</span>
+                          <span className="mute">{t('wal.svcFee', { n: svcPct })}</span>
                           <b>−${formatUsd(q.svcUsd)}</b>
                         </div>
                       )}
                       <div className="row">
-                        <span className="mute">Network fee</span>
+                        <span className="mute">{t('wal.netFee')}</span>
                         <b>{q.netFee} {A.sym} · ${formatUsd(q.netFeeUsd)}</b>
                       </div>
                       <div className="row total">
-                        <span className="mute">You receive</span>
-                        <b style={{ textAlign: 'right' }}>
+                        <span className="mute">{t('wal.receive')}</span>
+                        <b style={{ textAlign: 'end' }}>
                           {q.receive > 0 ? `≈ ${q.receive.toFixed(A.dec)} ${A.sym}` : '—'}
                           {q.receive > 0 && <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(q.receiveUsd)}</small>}
                         </b>
                       </div>
                     </>
                   ) : (
-                    `Min ${minText} · fee ${asset === 'btc' ? '' : `${SWAP_FEE_PCT}% swap + `}${flatFee} ${A.sym}`
+                    t('wal.hint', { min: minText, fee: asset === 'btc' ? t('wal.feeFlat', { flat: flatFee, sym: A.sym }) : t('wal.feeSwap', { n: SWAP_FEE_PCT, flat: flatFee, sym: A.sym }) })
                   )}
                 </div>
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier)}</p>}
 
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
-                  {busy ? 'Sending…' : 'Withdraw'}
+                  {busy ? t('wal.sending') : t('wal.withdraw')}
                 </button>
               </div>
             ) : (
               <div>
                 <DepositQr value={`${N.uri}${N.address}`} />
                 <div className="addr" style={{ margin: '0 0 10px' }}>{N.address}</div>
-                <button className="btn ghost" type="button" onClick={copy}>Copy address</button>
+                <button className="btn ghost" type="button" onClick={copy}>{t('wal.copy')}</button>
                 <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>
-                  {A.sym} only · {N.label} · {N.confirms} confirmation{N.confirms === 1 ? '' : 's'} · min ${MIN_DEPOSIT_USD}
+                  {t('wal.depInfo', { sym: A.sym, net: N.label, c: N.confirms === 1 ? t('wal.confirm1') : t('wal.confirmN', { n: N.confirms }), m: MIN_DEPOSIT_USD })}
                 </p>
 
-                <Field id="da" label="Amount you send" className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />}>
+                <Field id="da" label={t('wal.sendAmt')} className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />}>
                   <input
                     id="da"
                     inputMode="decimal"
@@ -449,28 +454,28 @@ export default function Wallet() {
                   {dq ? (
                     <>
                       <div className="row">
-                        <span className="mute">You send</span>
+                        <span className="mute">{t('wal.youSend')}</span>
                         <b>{usdMode ? `≈ ${depCoin.toFixed(A.dec)} ${A.sym}` : `≈ $${formatUsd(dq.usd)}`}</b>
                       </div>
                       {asset !== 'btc' && (
                         <div className="row">
-                          <span className="mute">Swap fee ({SWAP_FEE_PCT}%)</span>
+                          <span className="mute">{t('wal.swapFee', { n: SWAP_FEE_PCT })}</span>
                           <b>${formatUsd(dq.swapUsd)}</b>
                         </div>
                       )}
                       <div className="row total">
-                        <span className="mute">Credited</span>
-                        <b style={{ textAlign: 'right' }}>
+                        <span className="mute">{t('wal.credited')}</span>
+                        <b style={{ textAlign: 'end' }}>
                           ≈ {formatBtc(dq.creditedBtc)} BTC
                           <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(dq.creditedUsd)}</small>
                         </b>
                       </div>
                       {dq.usd < MIN_DEPOSIT_USD - 0.01 && (
-                        <p className="fine" role="alert" style={{ margin: '8px 0 0' }}>Below the ${MIN_DEPOSIT_USD} minimum. A smaller deposit may not be credited.</p>
+                        <p className="fine" role="alert" style={{ margin: '8px 0 0' }}>{t('wal.below', { n: MIN_DEPOSIT_USD })}</p>
                       )}
                     </>
                   ) : (
-                    `Min $${MIN_DEPOSIT_USD} · credited as BTC · ${asset === 'btc' ? 'no fee' : `${SWAP_FEE_PCT}% swap fee`}`
+                    t('wal.depHint', { n: MIN_DEPOSIT_USD, fee: asset === 'btc' ? t('wal.noFee') : t('wal.swapFeeN', { n: SWAP_FEE_PCT }) })
                   )}
                 </div>
               </div>
@@ -488,15 +493,15 @@ export default function Wallet() {
                   setOpen(!open);
                 }}
               >
-                <h3>Activity</h3>
+                <h3>{t('wal.activity')}</h3>
                 <span className="mute">{ready ? history.length : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
             {open && (
-              <div className="minitabs fill" role="group" aria-label="Filter activity">
+              <div className="minitabs fill" role="group" aria-label={t('wal.filterAria')}>
                 {FILTERS.map(([id, label]) => (
-                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{label}</button>
+                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>
                 ))}
               </div>
             )}
@@ -509,10 +514,10 @@ export default function Wallet() {
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
                       <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{h.label}</div>
-                      <small>{[h.date, h.net !== h.coin ? h.net : null, h.status ? STATUS[h.status] || h.status : null].filter(Boolean).join(' · ')}{h.fee ? ` · fee ${h.fee}` : ''}</small>
+                      <small>{[h.date, h.net !== h.coin ? h.net : null, h.status ? (STATUS[h.status] ? t(STATUS[h.status]) : h.status) : null].filter(Boolean).join(' · ')}{h.fee ? ` · ${t('wal.feeIs', { fee: h.fee })}` : ''}</small>
                     </div>
                   </div>
-                  <div style={{ textAlign: 'right', fontVariantNumeric: 'tabular-nums' }}>
+                  <div style={{ textAlign: 'end', fontVariantNumeric: 'tabular-nums' }}>
                     <b className={h.amount.startsWith('+') ? 'up' : ''} style={{ fontSize: '13.5px' }}>
                       {h.amount}{h.coin ? ` ${h.coin}` : ''}
                     </b>
@@ -521,7 +526,7 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && <p className="empty">{ready ? 'Nothing here yet.' : 'Loading…'}</p>}
+            {open && shown.length === 0 && <p className="empty">{ready ? t('wal.nothing') : t('wal.loading')}</p>}
           </div>
         </div>
       </div>
