@@ -55,6 +55,13 @@ export default function Referrals() {
   const canAdd = codes.length < (referral.limits?.maxCodes ?? 5);
   const presets = [0, 5, 10, 20].filter((p) => p <= maxPct);
   const locked = !!rd && rd.unlocked === false;
+  // The cards keep their place but stay hidden until the referral data is in (or 1.5 seconds), so the free-invites and rebate cards never pop in and sample numbers never flash.
+  const [calmWait, setCalmWait] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setCalmWait(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
+  const hideCalm = rd ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
   useSheetBack(!!sheet, () => setSheet(null));
 
   // Links use the public address the server reports (APP_URL); the current origin is only a fallback.
@@ -151,7 +158,7 @@ export default function Referrals() {
         <h2>Invite</h2>
       </div>
       <div className="grid rise">
-        <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`}>
+        <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`} style={hideCalm}>
           <i className="rshine" aria-hidden="true" />
           <span className="mute eyebrow">Referral earnings</span>
           <div className="big">
@@ -165,7 +172,7 @@ export default function Referrals() {
           </div>
         </div>
 
-        <div className="grid wal">
+        <div className="grid wal" style={hideCalm}>
           {locked && (
             <div className="card">
               <span className="mute eyebrow">Free invites</span>
@@ -225,7 +232,7 @@ export default function Referrals() {
           </div>
         </div>
 
-        <div className="linkrow">
+        <div className="linkrow" style={hideCalm}>
           <button type="button" className="linktile" onClick={() => openSheet('rules')}>
             <span className="sico"><Icon d={ICONS.rules} /></span>
             <b>Invitation rules</b>
