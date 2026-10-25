@@ -25,6 +25,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
   const [needCode, setNeedCode] = useState(false); // the account has two-factor on: ask for the code
   const [code, setCode] = useState('');
   const [ref, setRef] = useState('');
+  const [refOpen, setRefOpen] = useState(false); // the invite code field under the password, closed until asked for
   const [offer, setOffer] = useState(0); // rebate % the invite code gives, shown before sign-up
   const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
   const [tgBusy, setTgBusy] = useState(false);
@@ -51,14 +52,20 @@ export default function AuthForm({ init, onDone, onLeave }) {
 
   // What the invite code offers (its rebate), so the friend sees it before joining.
   useEffect(() => {
-    if (!ref) return undefined;
+    if (!ref) {
+      setOffer(0);
+      return undefined;
+    }
     let live = true;
-    fetch(`/api/referrals/code?c=${encodeURIComponent(ref)}`)
-      .then((r) => r.json())
-      .then((j) => live && setOffer(j.valid ? j.rebate : 0))
-      .catch(() => {});
+    const tm = setTimeout(() => {
+      fetch(`/api/referrals/code?c=${encodeURIComponent(ref)}`)
+        .then((r) => r.json())
+        .then((j) => live && setOffer(j.valid ? j.rebate : 0))
+        .catch(() => {});
+    }, 350);
     return () => {
       live = false;
+      clearTimeout(tm);
     };
   }, [ref]);
 
@@ -272,6 +279,38 @@ export default function AuthForm({ init, onDone, onLeave }) {
         </Field>
       )}
 
+      {!view && signup && (
+        <>
+          <button
+            type="button"
+            className="swap"
+            aria-expanded={refOpen}
+            aria-controls="rc"
+            onClick={() => {
+              triggerHaptic('selection');
+              setRefOpen(!refOpen);
+            }}
+          >
+            {t('auth.refToggle')}
+          </button>
+          {refOpen && (
+            <Field id="rc" label={t('auth.refLabel')}>
+              <input
+                id="rc"
+                autoComplete="off"
+                autoCapitalize="none"
+                autoCorrect="off"
+                spellCheck="false"
+                maxLength={24}
+                value={ref}
+                onChange={(e) => setRef(e.target.value.trim().slice(0, 24))}
+              />
+            </Field>
+          )}
+          {refOpen && ref && offer > 0 && <p className="fine">{t('auth.rebate', { n: offer })}</p>}
+        </>
+      )}
+
       {errors.form && <div className="ferr" role="alert">{errors.form}</div>}
 
       <div style={{ height: '14px' }} />
@@ -305,7 +344,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
         <p className="fine" role="status">{t('auth.resetSent')}</p>
       )}
       {notice && <p className="fine" role="status">{notice}</p>}
-      {!view && !notice && signup && ref && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` ${t('auth.rebate', { n: offer })}` : ''}</p>}
+      {!view && !notice && signup && ref && !refOpen && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` ${t('auth.rebate', { n: offer })}` : ''}</p>}
       {!view && signup && (
         <p className="fine" style={{ margin: '14px 0 4px', textAlign: 'center' }}>
           {fill(t('auth.agree'), {
