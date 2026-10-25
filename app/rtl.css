@@ -9,6 +9,7 @@ html[dir='rtl'] *, html[dir='rtl'] *::before, html[dir='rtl'] *::after { letter-
 /* Codes, numbers and sign-in fields type left to right but sit against the right edge */
 html[dir='rtl'] :is(input[type='email'], input[type='password'], input[inputmode='numeric'], input[inputmode='decimal'], input[type='number']) { direction: ltr; text-align: right; }
 html[dir='rtl'] :is(.addr, .serial, .ch-hash) { direction: ltr; }
+html[dir='rtl'] #rc { direction: ltr; text-align: right; }
 
 /* Sliders, tick rows, chart labels, the marquee and the swipe cards keep a left-to-right axis */
 html[dir='rtl'] :is(input[type='range'], .calc-ticks, .hdays, .chartlabels, .lp-marq, .crl, .cdots) { direction: ltr; }
