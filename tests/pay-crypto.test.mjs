@@ -306,3 +306,50 @@ test('the gateway is switched on only with an https address (or a private one), 
     await withEnv({ NOWPAYMENTS_IPN_SECRET: undefined }, async () => assert.equal(provider.cryptoEnabled(), false));
   });
 });
+
+test('gateway mode: the chosen coin and network go to the gateway and stay on the order, and the payment must match them', async () => {
+  const id = await account('gwcoin');
+  await withEnv(GW_ENV, async () => {
+    const addr = 'TVQpr1AFM8qbUT1JRbjL8KJDMuqNvP6AEH';
+    reply = (c) => json({ invoice: { id: `gw_${c.body.ref}`, address: addr, uri: addr, amount: '26.751234', expires_at: '2026-10-21T00:00:00Z' } }, 201);
+    const buy = (key) => miners.buyPlan({ ...SMALL, pay: 'crypto', asset: 'usdt', network: 'trx' }, { userId: id, key });
+    const r = await buy('k-coin');
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.equal(r.order.asset, 'usdt');
+    assert.equal(r.order.network, 'trx');
+    assert.equal(calls[0].body.network, 'trx');
+    assert.equal(calls[0].body.asset, 'usdt');
+    assert.equal((await miners.getOrders(id)).multi, true);
+
+    // Paid in another coin: held for a person, no miner.
+    assert.ok((await miners.settleOrder(hook(r.order, { pay_currency: 'trx', network: 'trx' }))).ok);
+    assert.equal((await orderRows(id)).find((o) => o.id === r.order.id).status, 'review');
+    assert.equal((await getUser(id)).contracts.length, 0);
+
+    // Paid in the chosen coin on the chosen network: the miner starts.
+    const r2 = await buy('k-coin-2');
+    assert.ok((await miners.settleOrder(hook(r2.order, { pay_currency: 'usdt', network: 'trx' }))).ok);
+    assert.equal((await getUser(id)).contracts.length, 1);
+  });
+});
+
+test('a coin we do not take is refused before any invoice, and NOWPayments leaves the coin to its own page', async () => {
+  const id = await account('coinbad');
+  await withEnv(GW_ENV, async () => {
+    reply = () => json({}, 500);
+    for (const pick of [{ asset: 'doge' }, { asset: 'usdc', network: 'trx' }, { asset: 'btc', network: 'eth' }]) {
+      const r = await miners.buyPlan({ ...SMALL, pay: 'crypto', ...pick }, { userId: id, key: 'k-bad-coin' });
+      assert.equal(r.status, 400);
+    }
+    assert.equal(calls.length, 0);
+    assert.equal((await orderRows(id)).length, 0);
+  });
+  await withEnv(NOW_ENV, async () => {
+    reply = nowInvoice;
+    const r = await miners.buyPlan({ ...SMALL, pay: 'crypto', asset: 'doge' }, { userId: id, key: 'k-now-coin' });
+    assert.equal(r.status, 200, JSON.stringify(r));
+    assert.equal(r.order.asset, null);
+    assert.equal(calls[0].body.network, undefined);
+    assert.equal((await miners.getOrders(id)).multi, false);
+  });
+});
