@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
-import { provider, cryptoEnabled, gatewayUrlOk, verifyGatewaySig, verifyCallback } from '../lib/server/pay-provider.js';
+import { provider, cryptoEnabled, gatewayUrlOk, verifyGatewaySig, verifyCallback, verifySig, callbacksEnabled, readyFor, setProviderChoice } from '../lib/server/pay-provider.js';
 
 const SECRET = 'whsec_test_secret';
 const sortDeep = (v) =>
@@ -97,10 +97,43 @@ test('rejects everything when no webhook secret is set, and non-object bodies', 
   });
 });
 
-test('verifyCallback reads the header of the active provider only', () => {
+test('verifyCallback checks the header the callback carries, whichever provider is in use', () => {
   const raw = JSON.stringify(payload);
   const gw = new Headers({ 'x-gateway-sig': sign(payload) });
-  assert.ok(withEnv({ PAY_PROVIDER: 'gateway', GATEWAY_WEBHOOK_SECRET: SECRET }, () => verifyCallback(raw, gw)));
-  // A gateway signature is not accepted while NOWPayments is the provider.
-  assert.equal(withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET, NOWPAYMENTS_IPN_SECRET: 'x' }, () => verifyCallback(raw, gw)), null);
+  const np = new Headers({ 'x-nowpayments-sig': sign(payload, 'ipn-secret') });
+  const both = { GATEWAY_WEBHOOK_SECRET: SECRET, NOWPAYMENTS_IPN_SECRET: 'ipn-secret' };
+  for (const use of ['gateway', 'nowpayments']) {
+    assert.ok(withEnv({ ...both, PAY_PROVIDER: use }, () => verifyCallback(raw, gw)), `gateway callback while ${use} is in use`);
+    assert.ok(withEnv({ ...both, PAY_PROVIDER: use }, () => verifyCallback(raw, np)), `nowpayments callback while ${use} is in use`);
+  }
+  // A provider whose secret is not set, a wrong secret, or no header at all: nothing is accepted.
+  assert.equal(withEnv({ NOWPAYMENTS_IPN_SECRET: 'ipn-secret' }, () => verifyCallback(raw, gw)), null);
+  assert.equal(withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET }, () => verifyCallback(raw, np)), null);
+  assert.equal(withEnv({ ...both }, () => verifyCallback(raw, new Headers({ 'x-gateway-sig': sign(payload, 'other') }))), null);
+  assert.equal(withEnv({ ...both }, () => verifyCallback(raw, new Headers())), null);
+  assert.equal(withEnv({ NOWPAYMENTS_IPN_SECRET: 'ipn-secret' }, () => verifySig(raw, sign(payload, 'ipn-secret'))) !== null, true);
+});
+
+test('callbacks are on when either secret is set', () => {
+  assert.equal(withEnv({}, callbacksEnabled), false);
+  assert.equal(withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET }, callbacksEnabled), true);
+  assert.equal(withEnv({ NOWPAYMENTS_IPN_SECRET: 'x' }, callbacksEnabled), true);
+});
+
+test('the admin choice wins over PAY_PROVIDER, and clearing it gives the environment back', () => {
+  try {
+    setProviderChoice('gateway');
+    assert.equal(withEnv({}, provider), 'gateway');
+    setProviderChoice('nowpayments');
+    assert.equal(withEnv({ PAY_PROVIDER: 'gateway' }, provider), 'nowpayments');
+    setProviderChoice('nonsense');
+    assert.equal(withEnv({ PAY_PROVIDER: 'gateway' }, provider), 'gateway');
+    setProviderChoice(null);
+    assert.equal(withEnv({}, provider), 'nowpayments');
+  } finally {
+    setProviderChoice(null);
+  }
+  assert.equal(withEnv({ NOWPAYMENTS_API_KEY: 'k', NOWPAYMENTS_IPN_SECRET: 's' }, () => readyFor('nowpayments')), true);
+  assert.equal(withEnv({}, () => readyFor('nowpayments')), false);
+  assert.equal(withEnv({}, () => readyFor('gateway')), false);
 });
