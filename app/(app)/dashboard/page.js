@@ -452,7 +452,7 @@ export default function Dashboard() {
             {friends === 0 ? (
               <>
                 <b>{t('dash.earnBtc')}</b>
-                <small className="sub">{rd?.reward || t('dash.invite')}</small>
+                <small className="sub">{rd?.rewardV ? t('ref.reward', rd.rewardV) : rd?.reward || t('dash.invite')}</small>
               </>
             ) : (
               <>
