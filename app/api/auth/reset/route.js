@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { requestReset, clientIp, reserve, giveBack } from '@/lib/server/auth';
+import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,6 @@ export async function POST(req) {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  const { status, ...rest } = await requestReset(body, BASE_URL);
+  const { status, ...rest } = await requestReset(body, BASE_URL, pickLang(req.cookies?.get(LANG_COOKIE)?.value));
   return NextResponse.json(rest, { status, headers: NO_STORE });
 }
