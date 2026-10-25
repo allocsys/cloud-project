@@ -1,0 +1,99 @@
+'use client';
+// Pay screens for our own gateway checkout: the coin picker, and the open payment (exact amount, address, copy, QR).
+import { useMemo, useState } from 'react';
+import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
+import { qrMatrix, qrPath } from '@/lib/qr';
+import { triggerHaptic } from '@/lib/haptics';
+import { fill, useT } from '@/components/I18nProvider';
+
+// Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
+// value and onChange use { asset, net }.
+export function CoinPicker({ value, onChange, disabled = false }) {
+  const t = useT();
+  const nets = PAY_ASSETS[value.asset].nets;
+  const pick = (next) => {
+    triggerHaptic('selection');
+    onChange(next);
+  };
+  return (
+    <>
+      <div className="assets" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }} role="group" aria-label={t('wal.coin')}>
+        {Object.entries(PAY_ASSETS).map(([id, a]) => (
+          <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: a.nets[0] })}>
+            {a.sym}
+          </button>
+        ))}
+      </div>
+      {nets.length > 1 && (
+        <>
+          <p className="fine" style={{ margin: '0 0 6px' }}>{t('wal.network')}</p>
+          <div className="assets" style={{ gridTemplateColumns: `repeat(${nets.length > 3 ? 3 : nets.length}, 1fr)` }} role="group" aria-label={t('wal.network')}>
+            {nets.map((n) => (
+              <button key={n} type="button" className="pct-btn" aria-pressed={value.net === n} disabled={disabled} onClick={() => n !== value.net && pick({ asset: value.asset, net: n })}>
+                {PAY_NETS[n]}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </>
+  );
+}
+
+function Qr({ value }) {
+  const t = useT();
+  const qr = useMemo(() => {
+    try {
+      const m = qrMatrix(value);
+      return { size: m.length, d: qrPath(m) };
+    } catch {
+      return null;
+    }
+  }, [value]);
+  if (!qr) return null;
+  const pad = 3;
+  const box = qr.size + pad * 2;
+  return (
+    <div style={{ width: 144, height: 144, margin: '10px 0 0' }}>
+      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} width="144" height="144" role="img" aria-label={t('wal.qr')} shapeRendering="crispEdges">
+        <rect x={-pad} y={-pad} width={box} height={box} fill="#fff" />
+        <path d={qr.d} fill="#0b0a08" />
+      </svg>
+    </div>
+  );
+}
+
+function copyText(text) {
+  triggerHaptic('success');
+  try {
+    const p = navigator.clipboard?.writeText(text);
+    if (p && p.catch) p.catch(() => {});
+  } catch {}
+}
+
+// An open gateway payment: send exactly this amount, to this address, on this network.
+// `show` is the page's toast function; it says the text was copied.
+export function PayInfo({ order, show }) {
+  const t = useT();
+  const [qr, setQr] = useState(false);
+  const a = PAY_ASSETS[order.asset || 'btc'];
+  const sym = a ? a.sym : 'BTC';
+  const net = PAY_NETS[order.network || 'btc'] || '';
+  const copy = (text) => {
+    copyText(text);
+    show(t('wal.copied'));
+  };
+  return (
+    <div style={{ marginTop: 6 }}>
+      <small style={{ display: 'block' }}>{fill(t('plans.sendTo'), { amount: <b>{order.amount} {sym}</b> })}</small>
+      <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
+      {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
+        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
+        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
+      </div>
+      {qr && <Qr value={order.uri || order.address} />}
+    </div>
+  );
+}
