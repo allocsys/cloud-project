@@ -63,6 +63,7 @@ async function main() {
 
   let stopWatcher = async () => {};
   let stopScanners = async () => {};
+  let watching = false;
   const c = config();
   if (hasDb() && c.watcherEnabled) {
     // Throws at boot if an explorer or RPC URL is not https: better to refuse to start than to watch nothing.
@@ -77,10 +78,11 @@ async function main() {
         await Promise.all(stops.map((stop) => stop()));
       };
       stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs });
+      watching = true;
       console.log(`[gateway] watching ${names.join(', ')} invoices every ${c.pollIntervalMs / 1000}s`);
     }
   }
-  if (stopWatcher.name === '') console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, a BTC key or address or PAY_ADDR_EVM, and WATCHER not off)');
+  if (!watching) console.warn('[gateway] payment watcher is NOT running (needs DATABASE_URL, a BTC key or address or PAY_ADDR_EVM, and WATCHER not off)');
 
   let stopOutbox = async () => {};
   // Throws at boot when APP_WEBHOOK_URL is not https or the secret is too short: better to refuse to start than to send unsigned or exposed callbacks.
