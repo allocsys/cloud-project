@@ -15,14 +15,39 @@ cd gateway && npm install && npm start      # http://localhost:4000/health
 With `DATABASE_URL` set, migrations run at boot (advisory-locked, safe with several replicas).
 
 ## Keys
-The gateway only ever holds PUBLIC keys. Deposit addresses come from an extended public key (xpub or zpub) given in `BTC_XPUB`; private keys and seed phrases never go in this service or its variables.
+The gateway only ever holds PUBLIC keys and addresses. Private keys and seed phrases never go in this service or its variables.
+
+## Two ways to receive
+- **Fixed address** (what staging uses): every invoice on a network pays the same public address (`PAY_ADDR_*`). The invoice is told apart by a unique exact amount, so the buyer must send exactly that amount. A payment with another amount, coin or network is kept aside as unmatched for a person to resolve (admin Gateway tab). A wallet that deducts its fee from the amount sent will land there too.
+- **Own address per invoice** (BTC only): an extended public key (xpub or zpub) in `BTC_XPUB` gives each invoice a fresh address. Used when `BTC_XPUB` is set.
+
+## Networks and coins
+| Network | Coins | Detection |
+| --- | --- | --- |
+| `btc` | BTC | Esplora explorer, per invoice |
+| `eth`, `bsc`, `pol` | native coin (ETH, BNB, POL), USDT, USDC | own block scanner (`evm-scanner.js`), stored in `observed_txs`, reorg safe |
+| `trx` | TRX, USDT (TRC20) | TronGrid HTTP API (`tron-explorer.js`) |
+| `sol` | SOL, USDT, USDC (SPL) | Solana JSON-RPC (`sol-explorer.js`) |
+
+A network is only offered when its address is set (and, for EVM, listed in `EVM_NETWORKS`). Only plain transfers to the address are seen on EVM chains; transfers made inside a contract call (internal transfers) are not. Token contracts and mints are in `src/chains/`: verify USDT on tether.to/en/supported-protocols before going live.
 
 ## Environment
 | Variable | Meaning |
 | --- | --- |
 | `DATABASE_URL` | the gateway's own Postgres |
 | `GATEWAY_API_SECRET` | shared secret the app sends as `Authorization: Bearer ...` |
-| `BTC_XPUB` | account-level extended public key (xpub or zpub) |
+| `BTC_XPUB` | account-level extended public key (xpub or zpub); a fresh BTC address per invoice |
+| `PAY_ADDR_BTC` | fixed-address mode: one public BTC address (used when `BTC_XPUB` is not set) |
+| `PAY_ADDR_EVM` | one public address for Ethereum, BNB Chain and Polygon |
+| `PAY_ADDR_TRX`, `PAY_ADDR_SOL` | public receiving address on Tron, on Solana |
+| `EVM_NETWORKS` | which EVM networks to accept, comma separated (default `eth,bsc,pol`) |
+| `EVM_RPC_ETH`, `EVM_RPC_BSC`, `EVM_RPC_POL` | JSON-RPC endpoints, comma separated, https only, tried in order (public nodes by default) |
+| `EVM_CONF_ETH`, `EVM_CONF_BSC`, `EVM_CONF_POL` | confirmations before an EVM payment counts (defaults 12, 15, 64) |
+| `EVM_SCAN_SECONDS` | how often each EVM chain is scanned (default 15, minimum 3) |
+| `TRON_API_URL`, `TRON_API_KEY` | TronGrid-compatible API (default `https://api.trongrid.io`), optional key |
+| `TRX_CONFIRMATIONS` | confirmations for a Tron payment (default 1) |
+| `SOL_RPC` | Solana JSON-RPC endpoints, comma separated, https only (public nodes by default; may carry a provider key) |
+| `SOL_CONFIRMATIONS` | confirmations for a Solana payment (default 1; only finalized payments count) |
 | `BTC_CONFIRMATIONS` | confirmations before a BTC payment counts (default 1) |
 | `BTC_EXPLORER_URL` | Esplora-compatible API, https only (default `https://mempool.space/api`) |
 | `POLL_SECONDS` | how often open invoices are checked on chain (default 30, minimum 5) |
@@ -35,7 +60,7 @@ The gateway only ever holds PUBLIC keys. Deposit addresses come from an extended
 | `PGSSL` | `1` to use TLS to Postgres |
 
 ## API (all under `/v1`, Bearer secret required)
-- `POST /v1/invoices` body `{ ref, usd, network: "btc", asset: "btc", kind?: "order"|"deposit", user_ref? }`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
+- `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"pol"|"trx"|"sol", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
 - `GET /v1/invoices/:ref` returns the invoice.
 
 ## Webhook to the app (the only link between the two)
@@ -56,7 +81,9 @@ Delivery rules:
 - Redirects are refused. The secret and the body are never logged.
 - Several replicas are safe: a due row is claimed with `FOR UPDATE SKIP LOCKED` and a 60 s lease before it is sent.
 
+- `GET /v1/admin/overview` read-only status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments, callbacks and the audit log.
+
 ## Status
-- Done: skeleton, health, migrations, schema 001, BTC address derivation, deposit API, settlement rules, chain watcher, signed webhook sender.
-- Next: Railway service and database, then wallet top-ups (`kind: "deposit"`), withdrawals, other networks, swaps.
+- Done: skeleton, health, migrations, BTC, fixed-address mode, EVM scanner, Tron, Solana, deposit API, settlement rules, chain watcher, signed webhook sender, admin overview, Railway service and database.
+- Next: live tests with small amounts on each network, then withdrawals and swaps.
 - No lockfile yet: run `npm install` in `gateway/` once and commit `package-lock.json`, then switch the Dockerfile to `npm ci`.
