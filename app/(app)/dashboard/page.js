@@ -165,6 +165,13 @@ export default function Dashboard() {
   const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
   const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
   const gain = useAccrued(dailyUsd, wd ? wd.asOf : null);
+  // The cards under the miner strip keep their place but stay hidden until the data they depend on has answered (or 1.5 seconds), so none pops in above the others.
+  const [tailWait, setTailWait] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setTailWait(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
+  const hideTail = md && dd && wd && cat ? undefined : tailWait ? { visibility: 'hidden' } : undefined;
 
   // Lets the goal bar grow from empty once the page is on screen.
   useEffect(() => {
@@ -381,7 +388,7 @@ export default function Dashboard() {
         </div>
 
         {split.length > 0 && (
-          <div className="card">
+          <div className="card" style={hideTail}>
             <div className="cardhead">
               <h3>Earnings split</h3>
               <div className="minitabs" role="group" aria-label="Split by">
@@ -394,7 +401,7 @@ export default function Dashboard() {
         )}
 
         {dash.hasMiners && (
-          <div className="card">
+          <div className="card" style={hideTail}>
             <div className="cardhead">
               <h3>Next goal</h3>
               {streak > 1 && <span className="streak">{streak}-day streak</span>}
@@ -414,7 +421,7 @@ export default function Dashboard() {
         )}
 
         {rein && (
-          <Link href={reinvestHref(rein)} className="card rein">
+          <Link href={reinvestHref(rein)} className="card rein" style={hideTail}>
             <div>
               <b>{reinvestTitle(rein)}</b>
               <small>
@@ -426,7 +433,7 @@ export default function Dashboard() {
           </Link>
         )}
 
-        <div className="pair">
+        <div className="pair" style={hideTail}>
           <div className="stat">
             <span>Bitcoin</span>
             <b>
@@ -453,7 +460,7 @@ export default function Dashboard() {
         </div>
 
         {history.length > 0 && (
-          <div className="card act">
+          <div className="card act" style={hideTail}>
             <div className="cardhead" style={{ marginBottom: actOpen ? 8 : 0 }}>
               <button
                 type="button"
