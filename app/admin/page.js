@@ -500,7 +500,7 @@ function GatewayTab() {
           <div className="row adm-m" key={i.id}>
             <div>
               {String(i.asset).toUpperCase()} on {NET[i.network] || i.network}{i.usd === null ? '' : ` · $${i.usd}`}
-              <small>{i.expected || '?'} expected{i.received && i.received !== '0.' && Number(i.received) > 0 ? ` · ${i.received} paid` : ''} · {when(i.created_at)}</small>
+              <small>{i.expected || '?'} expected{i.received && Number(i.received) > 0 ? ` · ${i.received} paid` : ''} · {when(i.created_at)}</small>
               <small className="serial">{shortId(i.ref)}</small>
             </div>
             <b className={i.status === 'paid' ? 'up' : undefined}>{INV[i.status] || i.status}</b>
