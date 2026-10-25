@@ -183,7 +183,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       : view === 'reset'
         ? t('auth.resetSub', { email })
         : signup
-          ? `Rent hash power, watch earnings arrive every day, and withdraw from just $${MIN_WITHDRAW_USD}.`
+          ? t('auth.signupSub', { n: MIN_WITHDRAW_USD })
           : t('auth.welcomeBack');
 
   return (
@@ -305,7 +305,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
         <p className="fine" role="status">{t('auth.resetSent')}</p>
       )}
       {notice && <p className="fine" role="status">{notice}</p>}
-      {!view && !notice && signup && ref && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
+      {!view && !notice && signup && ref && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` ${t('auth.rebate', { n: offer })}` : ''}</p>}
       {!view && signup && (
         <p className="fine" style={{ margin: '14px 0 4px', textAlign: 'center' }}>
           {fill(t('auth.agree'), {
