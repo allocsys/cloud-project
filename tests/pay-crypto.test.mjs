@@ -265,7 +265,7 @@ test('gateway mode asks the gateway for a BTC address with its secret and keeps 
     assert.equal(c.headers.authorization, `Bearer ${GATEWAY_SECRET}`);
     assert.deepEqual(c.body, { ref: r.order.id, usd: plan().price, network: 'btc', asset: 'btc', kind: 'order' });
 
-    assert.ok((await miners.settleOrder(hook(r.order))).ok);
+    assert.ok((await miners.settleOrder(hook(r.order, { pay_currency: 'btc', network: 'btc' }))).ok);
     assert.equal((await getUser(id)).contracts.length, 1);
   });
 });
