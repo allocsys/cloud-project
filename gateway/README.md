@@ -62,6 +62,7 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 ## API (all under `/v1`, Bearer secret required)
 - `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"pol"|"trx"|"sol", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
 - `GET /v1/invoices/:ref` returns the invoice.
+- `GET /v1/admin/overview` read-only status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments, callbacks and the audit log.
 
 ## Webhook to the app (the only link between the two)
 When an order invoice is settled the gateway queues one callback per invoice and event (`finished`, `partially_paid` or `expired`) and sends it with `POST APP_WEBHOOK_URL`.
@@ -80,8 +81,6 @@ Delivery rules:
 - After 24 failed attempts the callback is parked (never dropped): it stays undelivered with `last_error`, and an audit entry `webhook.gave_up` is written. A person resolves it.
 - Redirects are refused. The secret and the body are never logged.
 - Several replicas are safe: a due row is claimed with `FOR UPDATE SKIP LOCKED` and a 60 s lease before it is sent.
-
-- `GET /v1/admin/overview` read-only status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments, callbacks and the audit log.
 
 ## Status
 - Done: skeleton, health, migrations, BTC, fixed-address mode, EVM scanner, Tron, Solana, deposit API, settlement rules, chain watcher, signed webhook sender, admin overview, Railway service and database.
