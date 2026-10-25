@@ -426,7 +426,7 @@ export default function Wallet() {
                   )}
                 </div>
 
-                {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier)}</p>}
+                {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
 
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? t('wal.sending') : t('wal.withdraw')}
