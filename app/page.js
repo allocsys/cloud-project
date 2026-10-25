@@ -3,6 +3,7 @@ import { cookies } from 'next/headers';
 import Calculator from '@/components/Calculator';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
+import LandingTail from '@/components/LandingTail';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
@@ -104,6 +105,7 @@ export default async function Home() {
           </Reveal>
         </section>
 
+        <LandingTail>
         <WinnersBar />
 
         <section className="lp-sec" aria-labelledby="why">
@@ -144,6 +146,7 @@ export default async function Home() {
         </section>
 
         <p className="lp-foot">&copy; 2026 Miner Opus</p>
+        </LandingTail>
       </div>
       {!signedIn && <StickyCta />}
       </main>
