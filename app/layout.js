@@ -1,12 +1,18 @@
 import Script from 'next/script';
-import { Roboto } from 'next/font/google';
+import { Roboto, Vazirmatn } from 'next/font/google';
 import './globals.css';
+import './rtl.css';
 import PWA from '@/components/PWA';
 import Ripple from '@/components/Ripple';
 import ThemeSync from '@/components/ThemeSync';
 import TelegramInit from '@/components/TelegramInit';
+import I18nProvider from '@/components/I18nProvider';
+import { getLang } from '@/lib/i18n/server';
+import { LANGS } from '@/lib/i18n/langs';
 
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
+// Persian font: not preloaded, and the browser only fetches it when Persian text is on the page.
+const sansFa = Vazirmatn({ subsets: ['arabic', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--sans-fa', preload: false });
 
 export const metadata = {
   title: 'Miner Opus',
@@ -45,9 +51,10 @@ export const viewport = {
   colorScheme: 'dark',
 };
 
-export default function RootLayout({ children }) {
+export default async function RootLayout({ children }) {
+  const lang = await getLang();
   return (
-    <html lang="en" className={sans.variable} suppressHydrationWarning>
+    <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable}`} suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -60,11 +67,13 @@ export default function RootLayout({ children }) {
         />
       </head>
       <body>
-        {children}
-        <PWA />
-        <Ripple />
-        <ThemeSync />
-        <TelegramInit />
+        <I18nProvider lang={lang}>
+          {children}
+          <PWA />
+          <Ripple />
+          <ThemeSync />
+          <TelegramInit />
+        </I18nProvider>
       </body>
     </html>
   );

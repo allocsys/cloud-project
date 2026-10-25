@@ -1,0 +1,60 @@
+/* Right-to-left overrides (Persian, and any later RTL language). Everything here applies only when <html dir="rtl">. */
+
+/* Persian font; Roboto has no Persian letters */
+html[lang='fa'] { --sans: var(--sans-fa), Vazirmatn, Tahoma, system-ui, sans-serif; }
+
+/* Spacing between letters and capitals break joined scripts */
+html[dir='rtl'] *, html[dir='rtl'] *::before, html[dir='rtl'] *::after { letter-spacing: 0 !important; text-transform: none !important; }
+
+/* Codes, numbers and sign-in fields type left to right but sit against the right edge */
+html[dir='rtl'] :is(input[type='email'], input[type='password'], input[inputmode='numeric'], input[inputmode='decimal'], input[type='number']) { direction: ltr; text-align: right; }
+html[dir='rtl'] :is(.addr, .serial, .ch-hash) { direction: ltr; }
+
+/* Sliders, tick rows, chart labels, the marquee and the swipe cards keep a left-to-right axis */
+html[dir='rtl'] :is(input[type='range'], .calc-ticks, .hdays, .chartlabels, .lp-marq, .crl, .cdots) { direction: ltr; }
+html[dir='rtl'] :is(.lp-marq span, .crl > .card) { direction: rtl; }
+
+/* Fields */
+html[dir='rtl'] .field label { left: auto; right: 12px; }
+html[dir='rtl'] :is(.field.pw input, .pwrap input) { padding-right: 14px; padding-left: 72px; }
+html[dir='rtl'] .pwtoggle { right: auto; left: 8px; }
+html[dir='rtl'] .field.unit input { padding-right: 14px; padding-left: 124px; }
+html[dir='rtl'] .uswitch { right: auto; left: 10px; }
+html[dir='rtl'] .field select { padding: 11px 14px 11px 40px; background-position: left 14px center; }
+html[dir='rtl'] .sheet-x { right: auto; left: 12px; }
+html[dir='rtl'] .authform h3 { margin: 4px 0 8px 40px; }
+html[dir='rtl'] .tag { left: auto; right: 12px; }
+html[dir='rtl'] .bell i { right: auto; left: 9px; margin: -2px 0 0 -2px; }
+html[dir='rtl'] .asst-fab { right: auto; left: 16px; }
+@media (min-width: 760px) { html[dir='rtl'] .asst-fab { right: auto; left: 24px; } }
+
+/* Text alignment */
+html[dir='rtl'] :is(.collapse, .linktile, .tile, .legend button, .asst-chips button, .asst-did) { text-align: right; }
+html[dir='rtl'] :is(.row .v, .pcard .phead span) { text-align: left; }
+
+/* One-sided margins, padding and borders */
+html[dir='rtl'] .hs small { margin-left: 0; margin-right: 4px; }
+html[dir='rtl'] :is(.lstrip .hr b small, .goal b small) { margin-left: 0; margin-right: 6px; }
+html[dir='rtl'] .tl { margin-left: 0; margin-right: -12px; }
+html[dir='rtl'] .hk + .hk { border-left: 0; border-right: 1px solid var(--ov-l); }
+html[dir='rtl'] :is(.tabs button + button, .minitabs button + button) { border-left: 0; border-right: 1px solid var(--outline); }
+html[dir='rtl'] .codebox { padding: 10px 16px 10px 10px; }
+html[dir='rtl'] .asst-new { padding: 0 8px 0 12px; }
+html[dir='rtl'] .mrow { padding: 8px 8px 8px 14px; }
+@media (min-width: 760px) { html[dir='rtl'] nav .brand { margin: 0 8px 20px 0; } }
+
+/* Connectors and fills start from the right */
+html[dir='rtl'] .st + .st::before { right: auto; left: 50%; }
+html[dir='rtl'] .ch-b:not(:last-child)::after { left: auto; right: 31px; }
+html[dir='rtl'] :is(.bar i, .sp-bar) { transform-origin: right; }
+
+/* Switch knob: off sits on the right, on slides to the left */
+html[dir='rtl'] .switch i { left: auto; right: 6px; transition: right 0.2s, width 0.2s, height 0.2s, margin-top 0.2s, background 0.2s; }
+html[dir='rtl'] .switch[aria-checked='true'] i { left: auto; right: 20px; }
+
+/* Chat bubbles */
+html[dir='rtl'] .asst-m.me { border-bottom-right-radius: 16px; border-bottom-left-radius: 4px; }
+html[dir='rtl'] .asst-m.bot { border-bottom-left-radius: 16px; border-bottom-right-radius: 4px; }
+
+/* Arrows that point forward */
+html[dir='rtl'] :is(.back svg, .cl .go) { transform: scaleX(-1); }
