@@ -7,5 +7,6 @@ export const dynamic = 'force-dynamic';
 export async function GET(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
-  return NextResponse.json(await getOrders(id), { headers: { 'Cache-Control': 'private, no-store' } });
+  const kind = new URL(req.url).searchParams.get('kind') === 'deposit' ? 'deposit' : 'plan';
+  return NextResponse.json(await getOrders(id, kind), { headers: { 'Cache-Control': 'private, no-store' } });
 }
