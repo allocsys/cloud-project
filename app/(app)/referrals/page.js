@@ -149,6 +149,18 @@ export default function Referrals() {
 
   const rewardText = referral.rewardV ? t('ref.reward', referral.rewardV) : referral.reward;
   const giftText = referral.giftV ? t('ref.giftLine', referral.giftV) : referral.gift;
+  const rv = referral.rulesV;
+  const rulesList = rv
+    ? [
+        t('ref.rule1', rv),
+        t('ref.rule2'),
+        ...(rv.th > 0 ? [t('ref.rule3', rv)] : []),
+        t('ref.rule4', rv),
+        t('ref.rule5', rv),
+        t('ref.rule6', rv),
+        t('ref.rule7', rv),
+      ]
+    : referral.rules;
   const steps = [
     { icon: ICONS.share, title: t('ref.share'), sub: t('ref.sendCode') },
     { icon: ICONS.join, title: t('ref.joins'), sub: giftText ? t('ref.gets', { gift: giftText }) : t('ref.signsUp') },
@@ -193,7 +205,7 @@ export default function Referrals() {
               {codes.map((c) => (
                 <div key={c.code} className="icode">
                   <div className="itop">
-                    <b>{c.name}</b>
+                    <b>{c.default ? t('ref.defaultName') : c.name}</b>
                     <span className={`badge ${c.rebate ? 'ok' : ''}`}>{c.rebate ? t('ref.rebateN', { n: c.rebate }) : t('ref.noRebate')}</span>
                   </div>
                   <div className="codebox">
