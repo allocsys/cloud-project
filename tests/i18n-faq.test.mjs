@@ -23,6 +23,13 @@ test('fee and refund answers carry their numbers', async () => {
   assert.ok(r.text.includes('24') && !r.text.includes('{'), r.text);
 });
 
+test('every FAQ entry has a Persian question and answer', () => {
+  for (const e of faqList()) {
+    assert.ok(faqTr('fa', `${e.id}.q`), `${e.id}.q`);
+    assert.ok(faqTr('fa', `${e.id}.a`, { n: 1, id: 1, p: 'x', st: 'x', h: 1, a: 1, b: 1, d1: 1, d2: 1, d3: 1 }), `${e.id}.a`);
+  }
+});
+
 test('faqTr returns null for unknown language, key or prototype names', () => {
   assert.equal(faqTr('en', 'deposit.a'), null);
   assert.equal(faqTr('fa', 'no.such'), null);
@@ -43,7 +50,8 @@ test('a Persian answer replaces the English one, with its number', async () => {
 test('an entry without a Persian answer stays English, and fixed replies are translated', async () => {
   const r = await answerQuestion('what is smart mining', { tr });
   assert.equal(r.source, 'faq');
-  assert.match(r.text, /^Smart Mining lets you/);
+  assert.match(r.text, /^ماینینگ هوشمند/);
+  assert.ok(!(await answerQuestion('how does the smart mining reserve work', { tr })).text.includes('{'));
   assert.notEqual((await answerQuestion('zzz qqq', { tr })).text, SUPPORT_TEXT);
   assert.notEqual((await answerQuestion('', { tr })).text, EMPTY_TEXT);
   assert.equal((await answerQuestion('zzz qqq', {})).text, SUPPORT_TEXT);
