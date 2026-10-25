@@ -434,7 +434,30 @@ const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}`
 const agoText = (s) => (s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`);
 const WARN = { color: 'var(--gold)' };
 
-function GatewayTab() {
+// Which provider new crypto payments use. Switching takes a few seconds and needs no redeploy; open orders still finish.
+const PROVIDERS = { nowpayments: 'NOWPayments', gateway: 'Gateway' };
+function ProviderCard({ pp, busy, run }) {
+  if (!pp) return null;
+  return (
+    <div className="card">
+      <h3>Checkout</h3>
+      {Object.entries(PROVIDERS).map(([k, name]) => (
+        <div className="row adm-m" key={k}>
+          <div>
+            {name}
+            <small>{!pp.ready[k] ? 'Not set up' : pp.active === k ? 'In use' : 'Ready'}</small>
+          </div>
+          <button className="btn ghost" disabled={busy || pp.active === k || !pp.ready[k]} onClick={() => window.confirm(`Send new payments through ${name}?`) && run({ action: 'pay-provider', provider: k }, `Now using ${name}`)}>
+            {pp.active === k ? 'In use' : 'Use'}
+          </button>
+        </div>
+      ))}
+      <p className="fine" style={{ margin: '8px 0 0' }}>Orders already open finish with the provider that made them.</p>
+    </div>
+  );
+}
+
+function GatewayTab({ pp, run, lock }) {
   const [g, setG] = useState(null);
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
@@ -451,19 +474,24 @@ function GatewayTab() {
     load();
   }, [load]);
 
-  if (!g) return <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>;
+  const card = <ProviderCard pp={pp} busy={lock || busy} run={run} />;
+  if (!g) return <div className="adm-stack">{card}<p className="empty" style={{ textAlign: 'center' }}>Loading…</p></div>;
   if (!g.ok) {
     return (
-      <div className="card">
-        <h3>Gateway</h3>
-        <p className="fine" style={{ margin: '0 0 12px' }}>{g.error || 'Could not load.'}</p>
-        <button className="btn" disabled={busy} onClick={load}>Retry</button>
+      <div className="adm-stack">
+        {card}
+        <div className="card">
+          <h3>Gateway</h3>
+          <p className="fine" style={{ margin: '0 0 12px' }}>{g.error || 'Could not load.'}</p>
+          <button className="btn" disabled={busy} onClick={load}>Retry</button>
+        </div>
       </div>
     );
   }
   const counts = g.invoices.counts || {};
   return (
     <div className="adm-stack">
+      {card}
       <div className="card">
         <div className="cardhead">
           <h3>Networks</h3>
@@ -1102,7 +1130,7 @@ export default function Admin() {
         );
       })()}
 
-      {tab === 'gateway' && <GatewayTab />}
+      {tab === 'gateway' && <GatewayTab pp={data.payProvider} run={run} lock={busy} />}
 
       {tab === 'send' && (
         <div className="card adm-stack">
