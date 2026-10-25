@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { addEmailStart, addEmailConfirm, setSession, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
+import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,7 +24,7 @@ export async function POST(req) {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
   const action = String(body?.action ?? '');
-  const run = action === 'start' ? addEmailStart(id, body) : action === 'confirm' ? addEmailConfirm(id, body) : null;
+  const run = action === 'start' ? addEmailStart(id, body, pickLang(req.cookies?.get(LANG_COOKIE)?.value)) : action === 'confirm' ? addEmailConfirm(id, body) : null;
   if (!run) {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Unknown action.' }, { status: 400, headers: NO_STORE });
