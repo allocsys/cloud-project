@@ -7,8 +7,9 @@ import { drillBack, markDrill, unwind } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
 import { useApi, post, revalidate } from '@/lib/api';
 import { COUNTRIES, DOCS, MAX_PHOTO, ageOf } from '@/lib/kyc';
+import { useT } from '@/components/I18nProvider';
 
-const STEPS = ['Details', 'Document', 'Selfie', 'Review'];
+const STEPS = ['kyc.s1', 'kyc.s2', 'kyc.s3', 'kyc.s4'];
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -18,6 +19,7 @@ const chev = (
 
 // Photo picker tile. Opens the camera or gallery; shows a thumbnail once chosen.
 function Upload({ title, hint, file, onPick, capture }) {
+  const t = useT();
   const [url, setUrl] = useState('');
   useEffect(() => {
     if (!file) {
@@ -39,13 +41,14 @@ function Upload({ title, hint, file, onPick, capture }) {
       <span className="thumb" style={url ? { backgroundImage: `url(${url})` } : undefined} aria-hidden="true" />
       <span>
         <b>{file ? file.name : title}</b>
-        <small>{file ? 'Tap to replace' : hint}</small>
+        <small>{file ? t('kyc.replace') : hint}</small>
       </span>
     </label>
   );
 }
 
 export default function Kyc() {
+  const t = useT();
   const router = useRouter();
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
@@ -65,8 +68,8 @@ export default function Kyc() {
   // The card keeps its place but stays hidden until the saved status is in (or 1.5 seconds), so the form never flashes before the submitted or verified card.
   const [wait, setWait] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setWait(false), 1500);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setWait(false), 1500);
+    return () => clearTimeout(tm);
   }, []);
   const hide = kd || done || !wait ? undefined : { visibility: 'hidden' };
 
@@ -97,15 +100,15 @@ export default function Kyc() {
   function validate() {
     const e = {};
     if (step === 0) {
-      if (name.trim().split(/\s+/).length < 2) e.kn = 'Enter your first and last name.';
-      if (!dob) e.kb = 'Enter your date of birth.';
-      else if (ageOf(dob) < 18) e.kb = 'You must be 18 or older.';
-      if (!country) e.kc = 'Choose your country.';
+      if (name.trim().split(/\s+/).length < 2) e.kn = t('kyc.eName');
+      if (!dob) e.kb = t('kyc.eDob');
+      else if (ageOf(dob) < 18) e.kb = t('kyc.eAge');
+      if (!country) e.kc = t('kyc.eCountry');
     }
-    if (step === 1 && !front) e.front = 'Add a photo of your document.';
-    else if (step === 1 && front.size > MAX_PHOTO) e.front = 'Photo is too large (max 12 MB).';
-    if (step === 2 && !selfie) e.selfie = 'Add a selfie to continue.';
-    else if (step === 2 && selfie.size > MAX_PHOTO) e.selfie = 'Photo is too large (max 12 MB).';
+    if (step === 1 && !front) e.front = t('kyc.eFront');
+    else if (step === 1 && front.size > MAX_PHOTO) e.front = t('kyc.eBig');
+    if (step === 2 && !selfie) e.selfie = t('kyc.eSelfie');
+    else if (step === 2 && selfie.size > MAX_PHOTO) e.selfie = t('kyc.eBig');
     return e;
   }
 
@@ -173,7 +176,7 @@ export default function Kyc() {
           <Link
             href="/settings"
             className="back"
-            aria-label="Back to settings"
+            aria-label={t('kyc.backSettings')}
             onClick={(e) => {
               e.preventDefault();
               if (step > 0 && status === 'none') window.history.back();
@@ -182,36 +185,36 @@ export default function Kyc() {
           >
             {chev}
           </Link>
-          <h2>Verify identity</h2>
+          <h2>{t('kyc.title')}</h2>
         </div>
       </div>
 
       {status !== 'none' ? (
         <div className="card" style={hide}>
-          <h3>{status === 'verified' ? 'Verified' : 'Submitted'}</h3>
+          <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
           <p className="mute" style={{ margin: '8px 0 16px' }}>
             {status === 'verified'
-              ? 'Your identity is verified.'
-              : 'Your details are in review. We will let you know as soon as they are checked.'}
+              ? t('kyc.verifiedLine')
+              : t('kyc.reviewLine')}
           </p>
-          <button className="btn" type="button" onClick={() => drillBack(router, '/settings')}>Back to settings</button>
+          <button className="btn" type="button" onClick={() => drillBack(router, '/settings')}>{t('kyc.backSettings')}</button>
         </div>
       ) : (
         <div className="card" style={hide}>
-          <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-label="Verification progress">
+          <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-label={t('kyc.progress')}>
             {STEPS.map((s, i) => (
               <i key={s} className={i <= step ? 'on' : undefined} />
             ))}
           </div>
-          <span className="mute eyebrow">Step {step + 1} of 4 · {STEPS[step]}</span>
+          <span className="mute eyebrow">{t('kyc.step', { n: step + 1, s: t(STEPS[step]) })}</span>
 
           {step === 0 && (
             <>
-              <Field id="kn" label="Full name" error={errors.kn}>
+              <Field id="kn" label={t('kyc.fullName')} error={errors.kn}>
                 <input
                   id="kn"
                   autoComplete="name"
-                  placeholder="As shown on your document"
+                  placeholder={t('kyc.asShown')}
                   className={cls('kn')}
                   {...err('kn')}
                   value={name}
@@ -221,7 +224,7 @@ export default function Kyc() {
                   }}
                 />
               </Field>
-              <Field id="kb" label="Date of birth" error={errors.kb}>
+              <Field id="kb" label={t('kyc.dob')} error={errors.kb}>
                 <input
                   id="kb"
                   type="date"
@@ -236,7 +239,7 @@ export default function Kyc() {
                   }}
                 />
               </Field>
-              <Field id="kc" label="Country" error={errors.kc}>
+              <Field id="kc" label={t('kyc.country')} error={errors.kc}>
                 <select
                   id="kc"
                   autoComplete="country-name"
@@ -248,7 +251,7 @@ export default function Kyc() {
                     if (errors.kc) setErrors({ ...errors, kc: undefined });
                   }}
                 >
-                  <option value="" disabled>Select country</option>
+                  <option value="" disabled>{t('kyc.selectCountry')}</option>
                   {COUNTRIES.map((c) => (
                     <option key={c} value={c}>{c}</option>
                   ))}
@@ -259,14 +262,14 @@ export default function Kyc() {
 
           {step === 1 && (
             <>
-              <div className="tabs" role="group" aria-label="Document type" style={{ marginTop: 16 }}>
+              <div className="tabs" role="group" aria-label={t('kyc.docType')} style={{ marginTop: 16 }}>
                 {DOCS.map((d) => (
                   <button key={d} type="button" aria-pressed={doc === d} onClick={() => setDoc(d)}>{d}</button>
                 ))}
               </div>
               <Upload
-                title={`Photo of your ${doc.toLowerCase()}`}
-                hint="Clear, all four corners visible"
+                title={t('kyc.photoOf', { doc: doc.toLowerCase() })}
+                hint={t('kyc.clear')}
                 file={front}
                 onPick={(f) => {
                   setFront(f);
@@ -279,10 +282,10 @@ export default function Kyc() {
 
           {step === 2 && (
             <>
-              <p className="mute" style={{ margin: '12px 0 0' }}>Take a selfie in good light, face centred, no hat or sunglasses.</p>
+              <p className="mute" style={{ margin: '12px 0 0' }}>{t('kyc.selfieTip')}</p>
               <Upload
-                title="Take a selfie"
-                hint="Opens your front camera"
+                title={t('kyc.takeSelfie')}
+                hint={t('kyc.frontCam')}
                 capture="user"
                 file={selfie}
                 onPick={(f) => {
@@ -296,20 +299,20 @@ export default function Kyc() {
 
           {step === 3 && (
             <div style={{ marginTop: 8 }}>
-              <div className="row" style={{ borderTop: 0 }}><span className="mute">Name</span><b className="v">{name.trim()}</b></div>
-              <div className="row"><span className="mute">Date of birth</span><b className="v">{dob}</b></div>
-              <div className="row"><span className="mute">Country</span><b className="v">{country}</b></div>
-              <div className="row"><span className="mute">Document</span><b className="v">{doc}</b></div>
-              <div className="row"><span className="mute">Selfie</span><b className="v">Added</b></div>
+              <div className="row" style={{ borderTop: 0 }}><span className="mute">{t('ref.name')}</span><b className="v">{name.trim()}</b></div>
+              <div className="row"><span className="mute">{t('kyc.dob')}</span><b className="v">{dob}</b></div>
+              <div className="row"><span className="mute">{t('kyc.country')}</span><b className="v">{country}</b></div>
+              <div className="row"><span className="mute">{t('kyc.s2')}</span><b className="v">{doc}</b></div>
+              <div className="row"><span className="mute">{t('kyc.s3')}</span><b className="v">{t('kyc.added')}</b></div>
             </div>
           )}
 
           {fail && <div className="ferr" role="alert">{fail}</div>}
           <div style={{ height: 16 }} />
           <button className="btn" type="button" onClick={next} disabled={busy}>
-            {step === 3 ? (busy ? 'Submitting…' : 'Submit for review') : 'Continue'}
+            {step === 3 ? (busy ? t('kyc.submitting') : t('kyc.submit')) : t('common.continue')}
           </button>
-          {step > 0 && <button className="swap" type="button" onClick={prev} disabled={busy}>Back</button>}
+          {step > 0 && <button className="swap" type="button" onClick={prev} disabled={busy}>{t('kyc.back')}</button>}
         </div>
       )}
     </>
