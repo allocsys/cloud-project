@@ -15,10 +15,12 @@ import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
+import { fill, useT } from '@/components/I18nProvider';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 export default function Plans() {
+  const t = useT();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: md, refresh } = useApi('/api/miners', { ttl: 10000 });
@@ -163,17 +165,17 @@ export default function Plans() {
       }
       if (r.pending && r.order?.address) {
         await refreshOrders().catch(() => {});
-        show('Send the exact BTC amount to the address shown.');
+        show(t('plans.sendExact'));
         dismiss();
         return;
       }
       await refresh().catch(() => {});
       triggerHaptic('success');
-      show(plan.smart ? 'Smart Mining started' : plan.id === 'custom' ? 'ASICs miner activated' : `${plan.name} plan activated`);
+      show(plan.smart ? t('plans.smartStarted') : plan.id === 'custom' ? t('plans.asicsActivated') : t('plans.planActivated', { name: plan.name }));
       dismiss();
     } catch (e) {
       triggerHaptic('error');
-      show(e.status ? e.message : 'No connection. Try again.');
+      show(e.status ? e.message : t('common.noConnection'));
       if (!e.status) refresh().catch(() => {}); // the answer may have been lost after the purchase went through: look
     } finally {
       if (!leaving) {
@@ -190,7 +192,7 @@ export default function Plans() {
     try {
       await post('/api/orders/cancel', { id });
     } catch (e) {
-      show(e.status ? e.message : 'No connection. Try again.');
+      show(e.status ? e.message : t('common.noConnection'));
     }
     refreshOrders().catch(() => {});
   }
@@ -208,7 +210,7 @@ export default function Plans() {
     for (const id of seen.current) {
       if (!ids.has(id) && ord.orders.find((o) => o.id === id)?.status === 'paid') {
         triggerHaptic('success');
-        show('Payment received. Your miner is live.');
+        show(t('plans.paid'));
         refresh().catch(() => {});
         revalidate('/api/wallet').catch(() => {});
       }
@@ -319,33 +321,33 @@ export default function Plans() {
   return (
     <>
       <div className="top">
-        <h2>Plans</h2>
+        <h2>{t('nav.plans')}</h2>
       </div>
 
-      <div className="tabs" role="group" aria-label="Buy plans, boost or your miners" style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
-        <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
-        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>Boost</button>}
-        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>My miners{md ? ` · ${list.length}` : ''}</button>
+      <div className="tabs" role="group" aria-label={t('plans.aria')} style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
+        <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
+        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}</button>}
+        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
       </div>
 
       {view === 'buy' && [...pending, ...review].map((o) => (
         <div key={o.id} className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div>
-              <b>{o.status === 'review' ? 'Payment needs a check' : 'Waiting for payment'}</b>
+              <b>{o.status === 'review' ? t('plans.needCheck') : t('plans.waiting')}</b>
               <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
               {o.status === 'pending' && o.address && (
                 <>
-                  <small style={{ display: 'block' }}>Send exactly <b>{o.amount} BTC</b> to</small>
+                  <small style={{ display: 'block' }}>{fill(t('plans.sendTo'), { amount: <b>{o.amount} BTC</b> })}</small>
                   <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{o.address}</small>
                 </>
               )}
             </div>
             {o.status === 'pending' && (
               <div>
-                {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>Pay</a>}
-                {o.uri && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>Open wallet</a>}
-                <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>Cancel</button>
+                {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.pay')}</a>}
+                {o.uri && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>}
+                <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>{t('common.cancel')}</button>
               </div>
             )}
           </div>
@@ -400,9 +402,9 @@ export default function Plans() {
                     </div>
                     <span className="serial">{c.serial}</span>
                     <div className="mchips">
-                      <span>{c.smart ? `$${fmtUsd(c.budget)} budget` : `${c.th} TH/s`}</span>
-                      <span>{c.smart ? 'Best coin daily' : hallMap[c.hall].efficiency}</span>
-                      {c.paused ? <span>Paused today</span> : <span className="up">+${c.dailyUsd.toFixed(2)}/day</span>}
+                      <span>{c.smart ? t('plans.budgetN', { n: fmtUsd(c.budget) }) : `${c.th} TH/s`}</span>
+                      <span>{c.smart ? t('plans.bestCoin') : hallMap[c.hall].efficiency}</span>
+                      {c.paused ? <span>{t('plans.pausedToday')}</span> : <span className="up">+${c.dailyUsd.toFixed(2)}/{t('calc.day')}</span>}
                     </div>
                   </div>
                 </div>
@@ -410,8 +412,8 @@ export default function Plans() {
                   <i style={{ width: `${pct}%` }} />
                 </div>
                 <div className="cmeta">
-                  <span>Day {c.elapsed}/{c.days}</span>
-                  <span>Ends {c.ends}</span>
+                  <span>{t('plans.dayOf', { e: c.elapsed, d: c.days })}</span>
+                  <span>{t('plans.ends', { x: c.ends })}</span>
                 </div>
               </Link>
             );
@@ -419,8 +421,8 @@ export default function Plans() {
         </div>
       ) : md ? (
         <div className="card">
-          <p className="empty">No miners yet.</p>
-          <button className="swap" onClick={() => setTab('buy')}>Buy a plan</button>
+          <p className="empty">{t('plans.noMiners')}</p>
+          <button className="swap" onClick={() => setTab('buy')}>{t('plans.buyOne')}</button>
         </div>
       ) : null}
 
@@ -452,23 +454,23 @@ export default function Plans() {
             }}
           >
             <div className="grab" aria-hidden="true" />
-            <h3 id="st">{cur.smart ? 'Smart Mining' : cur.id === 'custom' ? 'ASICs' : `${cur.name} plan`}</h3>
+            <h3 id="st">{cur.smart ? t('dash.smart') : cur.id === 'custom' ? 'ASICs' : t('plans.planName', { name: cur.name })}</h3>
             <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>
               {cur.smart
-                ? `$${fmtUsd(cur.budget)} for ${cur.days} days. We pick the most profitable coin for you every day. Paid in BTC.`
+                ? t('plans.smartLine', { n: fmtUsd(cur.budget), d: cur.days })
                 : cur.id === 'custom'
-                  ? `${fmtTh(cur.th)} TH/s for ${cur.days} days.`
+                  ? t('plans.asicsLine', { th: fmtTh(cur.th), d: cur.days })
                   : cur.blurb}
             </p>
             <div className="sheetbody">
               {hall ? (
                 <>
                   <div className="row">
-                    <span className="mute">Hall</span>
+                    <span className="mute">{t('dash.hall')}</span>
                     <b className="v">{hall.name}<small>{hall.power}</small></b>
                   </div>
                   <div className="row">
-                    <span className="mute">Rig</span>
+                    <span className="mute">{t('plans.rig')}</span>
                     <b className="v">{hall.rig}<small>{hall.efficiency}</small></b>
                   </div>
                 </>
@@ -476,70 +478,70 @@ export default function Plans() {
               {costs ? (
                 <>
                   <div className="row">
-                    <span className="mute">Electricity</span>
-                    <b className="v">~${fmtCost(costs.elec)}/day<small>Taken out of your mining</small></b>
+                    <span className="mute">{t('plans.elec')}</span>
+                    <b className="v">~${fmtCost(costs.elec)}/{t('calc.day')}<small>{t('plans.taken')}</small></b>
                   </div>
                   <div className="row">
-                    <span className="mute">Maintenance</span>
-                    <b className="v">~${fmtCost(costs.maint)}/day<small>Taken out of your mining</small></b>
+                    <span className="mute">{t('plans.maint')}</span>
+                    <b className="v">~${fmtCost(costs.maint)}/{t('calc.day')}<small>{t('plans.taken')}</small></b>
                   </div>
                 </>
               ) : null}
               <div className="row">
-                <span className="mute">Miner ID</span>
+                <span className="mute">{t('plans.minerId')}</span>
                 <b className="serial">{nextId || '...'}</b>
               </div>
               {fb && (
                 <div className="row">
-                  <span className="mute">First-buy bonus</span>
-                  <b className="v" style={{ color: 'var(--green)' }}>+{bonusText(fb.bonus)} extra hashrate<small>for the full term</small></b>
+                  <span className="mute">{t('plans.firstBonus')}</span>
+                  <b className="v" style={{ color: 'var(--green)' }}>{t('plans.bonusLine', { b: bonusText(fb.bonus) })}<small>{t('plans.fullTerm')}</small></b>
                 </div>
               )}
               <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
-                <span className="mute" style={{ fontWeight: 600 }}>Total due</span>
+                <span className="mute" style={{ fontWeight: 600 }}>{t('plans.due')}</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>
               <div className="row">
-                <span className="mute">Your balance</span>
+                <span className="mute">{t('plans.balance')}</span>
                 <b className="v">${fmtUsd(sheetBal)}</b>
               </div>
               <div className="row">
-                <span className="mute">Per day</span>
-                <b className="v">~{dailyOf(cur)}/day</b>
+                <span className="mute">{t('dash.perDayCap')}</span>
+                <b className="v">~{dailyOf(cur)}/{t('calc.day')}</b>
               </div>
               {profitRange && (
                 <div className="row">
-                  <span className="mute">Profit by term end</span>
-                  <b className="v" style={{ color: 'var(--green)' }}>About ${money(profitRange.mid)}<small>Range ${money(profitRange.low)} to ${money(profitRange.high)}</small></b>
+                  <span className="mute">{t('plans.profit')}</span>
+                  <b className="v" style={{ color: 'var(--green)' }}>{t('plans.about', { n: money(profitRange.mid) })}<small>{t('plans.range', { a: money(profitRange.low), b: money(profitRange.high) })}</small></b>
                 </div>
               )}
               {profitRange && (
                 <div className="row">
-                  <span className="mute">Total by term end</span>
-                  <b className="v">About ${money(cur.budget + profitRange.mid)}<small>Budget + profit</small></b>
+                  <span className="mute">{t('plans.totalEnd')}</span>
+                  <b className="v">{t('plans.about', { n: money(cur.budget + profitRange.mid) })}<small>{t('plans.budgetProfit')}</small></b>
                 </div>
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              All figures are estimates, not a promise. Withdraw from ${MIN_WITHDRAW_USD} (<Link href="/terms">Terms</Link>).
+              {fill(t('plans.fine', { n: MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
             </p>
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
                 {!crypto
-                  ? 'Not enough balance, and crypto payments are not switched on yet.'
-                  : `Balance is $${fmtUsd(cur.price - sheetBal)} short.`}
+                  ? t('plans.noBalance')
+                  : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
               </p>
             )}
             {!ready ? (
-              <button className="btn" type="button" disabled>Loading...</button>
+              <button className="btn" type="button" disabled>{t('plans.loading')}</button>
             ) : (
               methods.map((m, i) => (
                 <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
-                  {m === 'balance' ? 'Pay from balance' : 'Pay with crypto'}
+                  {m === 'balance' ? t('plans.payBalance') : t('plans.payCrypto')}
                 </button>
               ))
             )}
-            <button className="swap" type="button" onClick={closeModal}>Cancel</button>
+            <button className="swap" type="button" onClick={closeModal}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
