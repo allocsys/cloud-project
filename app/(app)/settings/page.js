@@ -12,9 +12,9 @@ import { useT } from '@/components/I18nProvider';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
-  none: { label: 'Not verified', cls: 'warn', cta: 'Verify' },
-  pending: { label: 'In review', cls: '', cta: null },
-  verified: { label: 'Verified', cls: 'ok', cta: null },
+  none: { label: 'set.notVerified', cls: 'warn', cta: 'set.verify' },
+  pending: { label: 'set.inReview', cls: '', cta: null },
+  verified: { label: 'kyc.verified', cls: 'ok', cta: null },
 };
 
 function Switch({ on, onChange, label }) {
@@ -60,8 +60,8 @@ export default function Settings() {
   // Both cards keep their place but stay hidden until the account, verification and alert answers are in (or 1.5 seconds), so rows never pop in and sample values never flash.
   const [calmWait, setCalmWait] = useState(true);
   useEffect(() => {
-    const t = setTimeout(() => setCalmWait(false), 1500);
-    return () => clearTimeout(t);
+    const tm = setTimeout(() => setCalmWait(false), 1500);
+    return () => clearTimeout(tm);
   }, []);
   const hideCalm = me && kd && sd ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
   // Close-account panel: null (closed), or what the server says closing would do.
@@ -109,7 +109,7 @@ export default function Settings() {
       window.__opusInstall = null;
       setInst((s) => ({ ...s, can: false }));
     } else {
-      show('Tap Share, then Add to Home Screen');
+      show(t('set.iosHint'));
     }
   }
 
@@ -123,7 +123,7 @@ export default function Settings() {
     } catch (err) {
       triggerHaptic('error');
       mutateSettings({ ...(sd || {}), alerts: before });
-      show(err.status ? err.message : 'No connection. Try again.');
+      show(err.status ? err.message : t('common.noConnection'));
     }
   }
 
@@ -139,8 +139,8 @@ export default function Settings() {
     e.preventDefault();
     if (pwBusy) return;
     const next = {};
-    if (!cur) next.current = 'Enter your current password.';
-    if (nw.length < 8) next.password = 'New password needs at least 8 characters.';
+    if (!cur) next.current = t('set.eCur');
+    if (nw.length < 8) next.password = t('set.eNewPw');
     if (next.current || next.password) {
       triggerHaptic('error');
       setPwErr(next);
@@ -156,10 +156,10 @@ export default function Settings() {
       setPwOpen(false);
       setCur('');
       setNw('');
-      show('Password updated');
+      show(t('set.pwUpdated'));
     } catch (err) {
       triggerHaptic('error');
-      setPwErr(err.field === 'current' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setPwErr(err.field === 'current' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setPwBusy(false);
     }
@@ -172,10 +172,10 @@ export default function Settings() {
     try {
       await post('/api/auth/verify/resend', {});
       triggerHaptic('success');
-      show('Check your inbox for the link');
+      show(t('set.checkInbox'));
     } catch (err) {
       triggerHaptic('error');
-      show(err.status ? err.message : 'No connection. Try again.');
+      show(err.status ? err.message : t('common.noConnection'));
     } finally {
       setVbusy(false);
     }
@@ -199,8 +199,8 @@ export default function Settings() {
     e.preventDefault();
     if (emBusy) return;
     const next = {};
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emMail.trim())) next.email = 'Enter a valid email address.';
-    if (emPw.length < 8) next.password = 'Password needs at least 8 characters.';
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emMail.trim())) next.email = t('auth.errEmail');
+    if (emPw.length < 8) next.password = t('auth.errPassword');
     if (next.email || next.password) {
       triggerHaptic('error');
       return setEmErr(next);
@@ -214,7 +214,7 @@ export default function Settings() {
       setEm('code');
     } catch (err) {
       triggerHaptic('error');
-      setEmErr(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setEmErr(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setEmBusy(false);
     }
@@ -223,7 +223,7 @@ export default function Settings() {
   async function confirmEm(e) {
     e.preventDefault();
     if (emBusy) return;
-    if (emCode.replace(/\D/g, '').length !== 6) return setEmErr({ code: 'Enter the 6-digit code.' });
+    if (emCode.replace(/\D/g, '').length !== 6) return setEmErr({ code: t('set.eCode6') });
     setEmErr({});
     setEmBusy(true);
     try {
@@ -231,10 +231,10 @@ export default function Settings() {
       triggerHaptic('success');
       closeEm();
       refreshMe();
-      show('Email added');
+      show(t('set.emailAdded'));
     } catch (err) {
       triggerHaptic('error');
-      setEmErr(err.field === 'code' || err.field === 'email' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setEmErr(err.field === 'code' || err.field === 'email' ? { [err.field]: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setEmBusy(false);
     }
@@ -261,7 +261,7 @@ export default function Settings() {
       setTf('setup');
     } catch (err) {
       triggerHaptic('error');
-      show(err.status ? err.message : 'No connection. Try again.');
+      show(err.status ? err.message : t('common.noConnection'));
     } finally {
       setTfBusy(false);
     }
@@ -277,7 +277,7 @@ export default function Settings() {
   async function enableTf(e) {
     e.preventDefault();
     if (tfBusy) return;
-    if (!tfCode.trim()) return setTfErr({ code: 'Enter the 6-digit code from the app.' });
+    if (!tfCode.trim()) return setTfErr({ code: t('set.eCodeApp') });
     setTfErr({});
     setTfBusy(true);
     try {
@@ -290,7 +290,7 @@ export default function Settings() {
       refreshMe();
     } catch (err) {
       triggerHaptic('error');
-      setTfErr(err.field === 'code' ? { code: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setTfErr(err.field === 'code' ? { code: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setTfBusy(false);
     }
@@ -300,8 +300,8 @@ export default function Settings() {
     e.preventDefault();
     if (tfBusy) return;
     const next = {};
-    if (!tfPw) next.password = 'Enter your password.';
-    if (!tfCode.trim()) next.code = 'Enter a code from the app, or a recovery code.';
+    if (!tfPw) next.password = t('set.ePw');
+    if (!tfCode.trim()) next.code = t('set.eCodeRec');
     if (next.password || next.code) return setTfErr(next);
     setTfErr({});
     setTfBusy(true);
@@ -310,10 +310,10 @@ export default function Settings() {
       triggerHaptic('success');
       closeTf();
       refreshMe();
-      show('Two-factor is off');
+      show(t('set.tfOffToast'));
     } catch (err) {
       triggerHaptic('error');
-      setTfErr(err.field === 'code' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setTfErr(err.field === 'code' || err.field === 'password' ? { [err.field]: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setTfBusy(false);
     }
@@ -323,9 +323,9 @@ export default function Settings() {
     triggerHaptic('light');
     try {
       await navigator.clipboard.writeText(tfCodes.join('\n'));
-      show('Copied');
+      show(t('set.copied'));
     } catch {
-      show('Could not copy. Select the codes and copy them by hand.');
+      show(t('set.copyFail'));
     }
   }
 
@@ -346,12 +346,12 @@ export default function Settings() {
       r = await fetch('/api/account', { headers: { accept: 'application/json' } });
     } catch {
       triggerHaptic('error');
-      return show('No connection. Try again.');
+      return show(t('common.noConnection'));
     }
     const j = await r.json().catch(() => null);
     if (!r.ok || !j) {
       triggerHaptic('error');
-      return show(j?.error || 'Something went wrong.');
+      return show(j?.error || t('set.wrong'));
     }
     setCl(j);
   }
@@ -360,10 +360,10 @@ export default function Settings() {
     e.preventDefault();
     if (clBusy || !cl || cl.blocked) return;
     const next = {};
-    if (cl.password && !clPw) next.password = 'Enter your password.';
-    if (cl.twofa && !clCode.trim()) next.code = 'Enter a code from the app, or a recovery code.';
-    if (clText.trim().toUpperCase() !== 'DELETE') next.confirm = 'Type DELETE to confirm.';
-    if (cl.miners > 0 && !clForfeit) next.forfeit = 'Tick the box to continue.';
+    if (cl.password && !clPw) next.password = t('set.ePw');
+    if (cl.twofa && !clCode.trim()) next.code = t('set.eCodeRec');
+    if (clText.trim().toUpperCase() !== 'DELETE') next.confirm = t('set.eDel');
+    if (cl.miners > 0 && !clForfeit) next.forfeit = t('set.eTick');
     if (Object.keys(next).length) {
       triggerHaptic('error');
       return setClErr(next);
@@ -377,7 +377,7 @@ export default function Settings() {
       window.location.assign('/'); // a fresh load, so the home page shows the signed-out version
     } catch (err) {
       triggerHaptic('error');
-      setClErr(err.field === 'password' || err.field === 'code' ? { [err.field]: err.message } : { form: err.status ? err.message : 'No connection. Try again.' });
+      setClErr(err.field === 'password' || err.field === 'code' ? { [err.field]: err.message } : { form: err.status ? err.message : t('common.noConnection') });
     } finally {
       setClBusy(false);
     }
@@ -398,36 +398,36 @@ export default function Settings() {
   return (
     <>
       <div className="top">
-        <h2>Settings</h2>
+        <h2>{t('nav.settings')}</h2>
       </div>
       <div className="grid wal" style={{ alignItems: 'start' }}>
         <div className="card" style={hideCalm}>
           <div className="row" style={{ borderTop: 0 }}>
             <div>
-              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Email</div>
-              <small>{me ? me.email || (me.demo ? 'Demo account' : me.name ? `Telegram · ${me.name}` : 'Telegram account') : account.email}</small>
+              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('auth.email')}</div>
+              <small>{me ? me.email || (me.demo ? t('set.demo') : me.name ? t('set.tg', { name: me.name }) : t('set.tgAcc')) : account.email}</small>
             </div>
             {me?.email &&
               (me.verified ? (
-                <span className="badge ok">Verified</span>
+                <span className="badge ok">{t('kyc.verified')}</span>
               ) : me.mail ? (
-                <button className="btn ghost" type="button" disabled={vbusy} onClick={sendVerify}>{vbusy ? 'Sending...' : 'Verify email'}</button>
+                <button className="btn ghost" type="button" disabled={vbusy} onClick={sendVerify}>{vbusy ? t('auth.sending') : t('set.verifyEmail')}</button>
               ) : (
-                <span className="badge warn">Not verified</span>
+                <span className="badge warn">{t('set.notVerified')}</span>
               ))}
           </div>
           {me?.telegram && !me.email && me.mail && (
             <>
               <div className="row">
                 <div>
-                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Add email</div>
-                  <small>Sign in on the web too</small>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.addEmail')}</div>
+                  <small>{t('set.addEmailSub')}</small>
                 </div>
-                <button className="btn ghost" type="button" aria-expanded={!!em} onClick={toggleEm}>{em ? 'Cancel' : 'Add'}</button>
+                <button className="btn ghost" type="button" aria-expanded={!!em} onClick={toggleEm}>{em ? t('common.cancel') : t('set.add')}</button>
               </div>
               {em === 'form' && (
                 <form onSubmit={sendEmCode} noValidate style={{ paddingBottom: '8px' }}>
-                  <Field id="em" label="Email" error={emErr.email}>
+                  <Field id="em" label={t('auth.email')} error={emErr.email}>
                     <input
                       id="em"
                       type="email"
@@ -443,7 +443,7 @@ export default function Settings() {
                       }}
                     />
                   </Field>
-                  <Field id="ep" label="Password" error={emErr.password}>
+                  <Field id="ep" label={t('auth.password')} error={emErr.password}>
                     <input
                       id="ep"
                       type="password"
@@ -451,7 +451,7 @@ export default function Settings() {
                       aria-invalid={!!emErr.password}
                       aria-describedby={emErr.password ? 'ep-err' : undefined}
                       autoComplete="new-password"
-                      placeholder="At least 8 characters"
+                      placeholder={t('auth.pwPlaceholder')}
                       value={emPw}
                       onChange={(e) => {
                         setEmPw(e.target.value);
@@ -460,13 +460,13 @@ export default function Settings() {
                     />
                   </Field>
                   {emErr.form && <div className="ferr" role="alert">{emErr.form}</div>}
-                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? 'Sending...' : 'Send code'}</button>
+                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? t('auth.sending') : t('set.sendCode')}</button>
                 </form>
               )}
               {em === 'code' && (
                 <form onSubmit={confirmEm} noValidate style={{ paddingBottom: '8px' }}>
-                  <small style={{ display: 'block', marginBottom: '8px' }}>We sent a code to {emMail.trim().toLowerCase()}</small>
-                  <Field id="ec" label="6-digit code" error={emErr.code}>
+                  <small style={{ display: 'block', marginBottom: '8px' }}>{t('set.weSent', { email: emMail.trim().toLowerCase() })}</small>
+                  <Field id="ec" label={t('set.code6')} error={emErr.code}>
                     <input
                       id="ec"
                       className={emErr.code ? 'bad' : undefined}
@@ -483,36 +483,36 @@ export default function Settings() {
                     />
                   </Field>
                   {emErr.form && <div className="ferr" role="alert">{emErr.form}</div>}
-                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? 'Checking...' : 'Confirm'}</button>
+                  <button className="btn" type="submit" disabled={emBusy} style={{ marginTop: '10px' }}>{emBusy ? t('set.checking') : t('set.confirm')}</button>
                 </form>
               )}
             </>
           )}
           <div className="row">
-            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Verification</div>
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.verification')}</div>
             {kyc.cta ? (
-              <button className="btn ghost" type="button" onClick={verify}>{kyc.cta}</button>
+              <button className="btn ghost" type="button" onClick={verify}>{t(kyc.cta)}</button>
             ) : (
-              <span className={`badge ${kyc.cls}`}>{kyc.label}</span>
+              <span className={`badge ${kyc.cls}`}>{t(kyc.label)}</span>
             )}
           </div>
           {me?.email && (
             <>
               <div className="row">
                 <div>
-                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Two-factor</div>
-                  <small>{tfOn ? 'On. Sign-in asks for a code.' : 'A code from an authenticator app at sign-in'}</small>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.twofa')}</div>
+                  <small>{tfOn ? t('set.twofaOn') : t('set.twofaOff')}</small>
                 </div>
-                <Switch on={tfOn} onChange={tfOn ? openOff : startTf} label="Two-factor" />
+                <Switch on={tfOn} onChange={tfOn ? openOff : startTf} label={t('set.twofa')} />
               </div>
               {tf === 'setup' && (
                 <form onSubmit={enableTf} noValidate style={{ paddingBottom: '8px' }}>
-                  <small style={{ display: 'block', marginBottom: '8px' }}>Add this key to an authenticator app (Google Authenticator, Authy, 1Password), then type the 6-digit code it shows.</small>
+                  <small style={{ display: 'block', marginBottom: '8px' }}>{t('set.tfAdd')}</small>
                   <div style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all', userSelect: 'all', padding: '10px 12px', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>
                     {tfKey.secret.replace(/(.{4})/g, '$1 ').trim()}
                   </div>
-                  <a className="btn ghost" href={tfKey.uri} style={{ display: 'inline-block', marginTop: '8px', textDecoration: 'none', textAlign: 'center' }}>Open in authenticator app</a>
-                  <Field id="tf" label="6-digit code" error={tfErr.code}>
+                  <a className="btn ghost" href={tfKey.uri} style={{ display: 'inline-block', marginTop: '8px', textDecoration: 'none', textAlign: 'center' }}>{t('set.tfOpen')}</a>
+                  <Field id="tf" label={t('set.code6')} error={tfErr.code}>
                     <input
                       id="tf"
                       className={tfErr.code ? 'bad' : undefined}
@@ -529,24 +529,24 @@ export default function Settings() {
                     />
                   </Field>
                   {tfErr.form && <div className="ferr" role="alert">{tfErr.form}</div>}
-                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? 'Checking...' : 'Turn on'}</button>
+                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? t('set.checking') : t('set.tfOn')}</button>
                 </form>
               )}
               {tf === 'codes' && (
                 <div style={{ paddingBottom: '8px' }}>
-                  <small style={{ display: 'block' }}>Two-factor is on. Save these recovery codes somewhere safe. Each works once if you lose your phone, and they are not shown again.</small>
+                  <small style={{ display: 'block' }}>{t('set.tfCodes')}</small>
                   <div style={{ fontFamily: 'monospace', fontSize: '13px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px 12px', margin: '10px 0', userSelect: 'all' }}>
                     {tfCodes.map((c) => (
                       <span key={c}>{c}</span>
                     ))}
                   </div>
-                  <button className="btn ghost" type="button" onClick={copyCodes}>Copy codes</button>
-                  <button className="btn" type="button" onClick={() => { triggerHaptic('light'); closeTf(); }} style={{ marginTop: '10px' }}>I saved them</button>
+                  <button className="btn ghost" type="button" onClick={copyCodes}>{t('set.copyCodes')}</button>
+                  <button className="btn" type="button" onClick={() => { triggerHaptic('light'); closeTf(); }} style={{ marginTop: '10px' }}>{t('set.saved')}</button>
                 </div>
               )}
               {tf === 'off' && (
                 <form onSubmit={disableTf} noValidate style={{ paddingBottom: '8px' }}>
-                  <Field id="tp" label="Password" error={tfErr.password}>
+                  <Field id="tp" label={t('auth.password')} error={tfErr.password}>
                     <input
                       id="tp"
                       type="password"
@@ -561,7 +561,7 @@ export default function Settings() {
                       }}
                     />
                   </Field>
-                  <Field id="tk" label="Code" error={tfErr.code}>
+                  <Field id="tk" label={t('set.code')} error={tfErr.code}>
                     <input
                       id="tk"
                       className={tfErr.code ? 'bad' : undefined}
@@ -570,7 +570,7 @@ export default function Settings() {
                       inputMode="numeric"
                       autoComplete="one-time-code"
                       autoCapitalize="none"
-                      placeholder="6-digit code, or a recovery code"
+                      placeholder={t('auth.codePlaceholder')}
                       value={tfCode}
                       onChange={(e) => {
                         setTfCode(e.target.value);
@@ -579,7 +579,7 @@ export default function Settings() {
                     />
                   </Field>
                   {tfErr.form && <div className="ferr" role="alert">{tfErr.form}</div>}
-                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? 'Turning off...' : 'Turn off two-factor'}</button>
+                  <button className="btn" type="submit" disabled={tfBusy} style={{ marginTop: '10px' }}>{tfBusy ? t('set.turningOff') : t('set.turnOff')}</button>
                 </form>
               )}
             </>
@@ -587,12 +587,12 @@ export default function Settings() {
           {me?.email && (
             <>
               <div className="row">
-                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Password</div>
-                <button className="btn ghost" type="button" aria-expanded={pwOpen} onClick={togglePw}>{pwOpen ? 'Cancel' : 'Change'}</button>
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('auth.password')}</div>
+                <button className="btn ghost" type="button" aria-expanded={pwOpen} onClick={togglePw}>{pwOpen ? t('common.cancel') : t('set.change')}</button>
               </div>
               {pwOpen && (
                 <form onSubmit={savePw} noValidate style={{ paddingBottom: '8px' }}>
-                  <Field id="pc" label="Current password" error={pwErr.current}>
+                  <Field id="pc" label={t('set.curPw')} error={pwErr.current}>
                     <input
                       id="pc"
                       type="password"
@@ -607,7 +607,7 @@ export default function Settings() {
                       }}
                     />
                   </Field>
-                  <Field id="pn" label="New password" error={pwErr.password}>
+                  <Field id="pn" label={t('auth.newPassword')} error={pwErr.password}>
                     <input
                       id="pn"
                       type="password"
@@ -615,7 +615,7 @@ export default function Settings() {
                       aria-invalid={!!pwErr.password}
                       aria-describedby={pwErr.password ? 'pn-err' : undefined}
                       autoComplete="new-password"
-                      placeholder="At least 8 characters"
+                      placeholder={t('auth.pwPlaceholder')}
                       value={nw}
                       onChange={(e) => {
                         setNw(e.target.value);
@@ -625,7 +625,7 @@ export default function Settings() {
                   </Field>
                   {pwErr.form && <div className="ferr" role="alert">{pwErr.form}</div>}
                   <button className="btn" type="submit" disabled={pwBusy} style={{ marginTop: '10px' }}>
-                    {pwBusy ? 'Updating...' : 'Update password'}
+                    {pwBusy ? t('set.updating') : t('set.update')}
                   </button>
                 </form>
               )}
@@ -635,10 +635,10 @@ export default function Settings() {
             <>
               <div className="row">
                 <div>
-                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Close account</div>
-                  <small>Erases your sign-in details and personal data</small>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.close')}</div>
+                  <small>{t('set.closeSub')}</small>
                 </div>
-                <button className="btn ghost" type="button" aria-expanded={!!cl} onClick={openClose}>{cl ? 'Cancel' : 'Close'}</button>
+                <button className="btn ghost" type="button" aria-expanded={!!cl} onClick={openClose}>{cl ? t('common.cancel') : t('common.close')}</button>
               </div>
               {cl && (
                 <form onSubmit={submitClose} noValidate style={{ paddingBottom: '8px' }}>
@@ -647,19 +647,19 @@ export default function Settings() {
                   ) : (
                     <>
                       <small style={{ display: 'block', marginBottom: '8px' }}>
-                        This cannot be undone. Your email, password, name and verification details are erased and you are signed out everywhere. Payment and withdrawal records are kept without your email, as the Privacy Policy explains. Any balance below the withdrawal minimum is lost. You can sign up again later, but you start from nothing.
+                        {t('set.closeWarn')}
                       </small>
                       {cl.miners > 0 && (
                         <>
                           <label style={{ display: 'flex', gap: '8px', alignItems: 'flex-start', fontSize: '13px', margin: '8px 0' }}>
                             <input type="checkbox" checked={clForfeit} onChange={(e) => { setClForfeit(e.target.checked); if (clErr.forfeit) setClErr({ ...clErr, forfeit: undefined }); }} style={{ marginTop: '3px' }} />
-                            <span>My {cl.miners} running miner{cl.miners === 1 ? '' : 's'} will end with no refund.</span>
+                            <span>{t(cl.miners === 1 ? 'set.forfeit1' : 'set.forfeitN', { n: cl.miners })}</span>
                           </label>
                           {clErr.forfeit && <div className="ferr" role="alert">{clErr.forfeit}</div>}
                         </>
                       )}
                       {cl.password && (
-                        <Field id="cp" label="Password" error={clErr.password}>
+                        <Field id="cp" label={t('auth.password')} error={clErr.password}>
                           <input
                             id="cp"
                             type="password"
@@ -676,7 +676,7 @@ export default function Settings() {
                         </Field>
                       )}
                       {cl.twofa && (
-                        <Field id="ck" label="Code" error={clErr.code}>
+                        <Field id="ck" label={t('set.code')} error={clErr.code}>
                           <input
                             id="ck"
                             className={clErr.code ? 'bad' : undefined}
@@ -685,7 +685,7 @@ export default function Settings() {
                             inputMode="numeric"
                             autoComplete="one-time-code"
                             autoCapitalize="none"
-                            placeholder="6-digit code, or a recovery code"
+                            placeholder={t('auth.codePlaceholder')}
                             value={clCode}
                             onChange={(e) => {
                               setClCode(e.target.value);
@@ -694,7 +694,7 @@ export default function Settings() {
                           />
                         </Field>
                       )}
-                      <Field id="cd" label="Type DELETE to confirm" error={clErr.confirm}>
+                      <Field id="cd" label={t('set.delLabel')} error={clErr.confirm}>
                         <input
                           id="cd"
                           className={clErr.confirm ? 'bad' : undefined}
@@ -710,7 +710,7 @@ export default function Settings() {
                         />
                       </Field>
                       {clErr.form && <div className="ferr" role="alert">{clErr.form}</div>}
-                      <button className="btn" type="submit" disabled={clBusy} style={{ marginTop: '10px' }}>{clBusy ? 'Closing...' : 'Close my account'}</button>
+                      <button className="btn" type="submit" disabled={clBusy} style={{ marginTop: '10px' }}>{clBusy ? t('set.closing') : t('set.closeMine')}</button>
                     </>
                   )}
                 </form>
@@ -720,24 +720,24 @@ export default function Settings() {
           {!inst.standalone && (inst.can || inst.ios) && (
             <div className="row">
               <div>
-                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Install app</div>
-                <small>Add Opus to your home screen</small>
+                <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.install')}</div>
+                <small>{t('set.installSub')}</small>
               </div>
-              <button className="btn ghost" type="button" onClick={install}>Install</button>
+              <button className="btn ghost" type="button" onClick={install}>{t('set.installBtn')}</button>
             </div>
           )}
         </div>
 
         <div className="card" style={hideCalm}>
           <div className="row" style={{ borderTop: 0 }}>
-            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>Theme</div>
-            <div className="minitabs" role="group" aria-label="Theme">
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.theme')}</div>
+            <div className="minitabs" role="group" aria-label={t('set.theme')}>
               {[
-                ['dark', 'Dark'],
-                ['light', 'Light'],
-                ['system', 'Auto'],
+                ['dark', 'set.dark'],
+                ['light', 'set.light'],
+                ['system', 'set.auto'],
               ].map(([v, label]) => (
-                <button key={v} type="button" aria-pressed={theme === v} onClick={() => pickTheme(v)}>{label}</button>
+                <button key={v} type="button" aria-pressed={theme === v} onClick={() => pickTheme(v)}>{t(label)}</button>
               ))}
             </div>
           </div>
@@ -746,16 +746,16 @@ export default function Settings() {
             <LangSwitch />
           </div>
           {[
-            ['payouts', 'Payout alerts'],
-            ['withdrawals', 'Withdrawal alerts'],
-            ['news', 'Product news'],
+            ['payouts', 'set.alPayouts'],
+            ['withdrawals', 'set.alWd'],
+            ['news', 'set.alNews'],
           ].map(([key, title]) => (
             <div key={key} className="row">
-              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{title}</div>
-              <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={title} />
+              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t(title)}</div>
+              <Switch on={alerts[key]} onChange={() => flipAlert(key)} label={t(title)} />
             </div>
           ))}
-          <button className="btn ghost" type="button" onClick={handleSignOut} style={{ marginTop: '8px' }}>Sign out</button>
+          <button className="btn ghost" type="button" onClick={handleSignOut} style={{ marginTop: '8px' }}>{t('nav.signOut')}</button>
         </div>
       </div>
       {toast}
