@@ -116,4 +116,33 @@ CREATE UNIQUE INDEX invoices_address_idx ON invoices (network, address) WHERE NO
 CREATE INDEX invoices_shared_address_idx ON invoices (network, address) WHERE match_amount;
 `,
   },
+  {
+    id: '004_chain_scanner',
+    sql: `
+-- chain_cursors  where the block scanner of each network stopped: the last block read, its hash (to spot a reorg) and the chain tip then.
+-- observed_txs   every payment the scanner saw to our receiving address. (network, txid, vout) is unique; vout is 0 for a native
+--                transfer and the log index + 1 for a token transfer. Dropped again when a reorg removes its block.
+CREATE TABLE chain_cursors (
+  network    text PRIMARY KEY,
+  height     bigint NOT NULL,
+  hash       text NOT NULL,
+  tip        bigint NOT NULL,
+  updated_at timestamptz NOT NULL DEFAULT now()
+);
+
+CREATE TABLE observed_txs (
+  id            bigserial PRIMARY KEY,
+  network       text NOT NULL,
+  txid          text NOT NULL,
+  vout          integer NOT NULL DEFAULT 0,
+  address       text NOT NULL,
+  asset         text NOT NULL,
+  amount_atomic numeric(38, 0) NOT NULL CHECK (amount_atomic > 0),
+  block_height  bigint NOT NULL,
+  seen_at       timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (network, txid, vout)
+);
+CREATE INDEX observed_txs_address_idx ON observed_txs (network, address, block_height);
+`,
+  },
 ];
