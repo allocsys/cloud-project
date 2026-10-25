@@ -277,7 +277,7 @@ export default function Referrals() {
             <h3 id="rs">{sheet === 'rules' ? t('ref.rules') : sheet === 'history' ? t('ref.history') : sheet === 'new' ? t('ref.new') : edit?.name}</h3>
             <div className="sheetbody">
               {sheet === 'rules' &&
-                referral.rules.map((r) => (
+                rulesList.map((r) => (
                   <div key={r} className="row" style={{ alignItems: 'flex-start' }}>
                     <span>{r}</span>
                   </div>
