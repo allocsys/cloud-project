@@ -7,6 +7,8 @@ import { triggerHaptic } from '@/lib/haptics';
 import { markDrill } from '@/lib/nav';
 import { post, signOut, useApi } from '@/lib/api';
 import Field from '@/components/Field';
+import LangSwitch from '@/components/LangSwitch';
+import { useT } from '@/components/I18nProvider';
 import { applyTheme, readTheme } from '@/lib/theme';
 
 const KYC = {
@@ -25,6 +27,7 @@ function Switch({ on, onChange, label }) {
 
 export default function Settings() {
   const router = useRouter();
+  const t = useT();
   const [toast, show] = useToast();
   const { data: sd, mutate: mutateSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
@@ -737,6 +740,10 @@ export default function Settings() {
                 <button key={v} type="button" aria-pressed={theme === v} onClick={() => pickTheme(v)}>{label}</button>
               ))}
             </div>
+          </div>
+          <div className="row">
+            <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('settings.language')}</div>
+            <LangSwitch />
           </div>
           {[
             ['payouts', 'Payout alerts'],
