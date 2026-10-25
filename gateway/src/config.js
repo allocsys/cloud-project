@@ -5,6 +5,10 @@
 // BTC_XPUB            account-level extended PUBLIC key (xpub or zpub). Never a private key or seed. A fresh address per invoice.
 // PAY_ADDR_BTC        fixed-address mode: one public BTC address; invoices are told apart by exact amount. Used when BTC_XPUB is not set.
 // PAY_ADDR_EVM, PAY_ADDR_TRX, PAY_ADDR_SOL  public receiving addresses (EVM chains share one) for the fixed-address networks.
+// EVM_NETWORKS        which EVM networks to accept, comma separated (default eth,bsc,pol). Needs PAY_ADDR_EVM.
+// EVM_RPC_ETH, EVM_RPC_BSC, EVM_RPC_POL  JSON-RPC endpoints, comma separated, https only. Tried in order; the next one is used when one fails.
+// EVM_CONF_ETH, EVM_CONF_BSC, EVM_CONF_POL  confirmations needed before an EVM payment counts (defaults 12, 15, 64)
+// EVM_SCAN_SECONDS    how often each EVM chain is scanned for new blocks (default 15, minimum 3)
 // BTC_CONFIRMATIONS   confirmations needed before a BTC payment counts (default 1, matching the app)
 // BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://mempool.space/api)
 // POLL_SECONDS        how often open invoices are checked on chain (default 30, minimum 5)
@@ -16,24 +20,54 @@
 // RATE_SOURCE         'coingecko' (default) or 'static' (staging and tests: uses RATE_BTC_USD, or RATE_<ASSET>_USD)
 const whole = (v, dflt) => (Number(v) >= 1 ? Math.floor(Number(v)) : dflt);
 const text = (v) => String(v || '').trim();
+const csv = (v) =>
+  text(v)
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean);
 
-export const config = () => ({
-  apiSecret: process.env.GATEWAY_API_SECRET || '',
-  btcXpub: text(process.env.BTC_XPUB),
-  btcConfirmations: whole(process.env.BTC_CONFIRMATIONS, 1),
-  btcExplorerUrl: text(process.env.BTC_EXPLORER_URL) || 'https://mempool.space/api',
-  payAddr: {
-    btc: text(process.env.PAY_ADDR_BTC),
-    evm: text(process.env.PAY_ADDR_EVM),
-    trx: text(process.env.PAY_ADDR_TRX),
-    sol: text(process.env.PAY_ADDR_SOL),
-  },
-  pollIntervalMs: Math.max(5, whole(process.env.POLL_SECONDS, 30)) * 1000,
-  watcherEnabled: process.env.WATCHER !== 'off',
-  invoiceTtlMs: (Number(process.env.INVOICE_TTL_HOURS) > 0 ? Number(process.env.INVOICE_TTL_HOURS) : 72) * 3_600_000,
-  appWebhookUrl: text(process.env.APP_WEBHOOK_URL),
-  webhookSecret: process.env.GATEWAY_WEBHOOK_SECRET || '',
-  outboxIntervalMs: whole(process.env.OUTBOX_SECONDS, 10) * 1000,
-  rateSource: process.env.RATE_SOURCE === 'static' ? 'static' : 'coingecko',
-  staticBtcUsd: Number(process.env.RATE_BTC_USD) || 0,
-});
+// Public nodes, used until EVM_RPC_<NET> says otherwise.
+const EVM_RPC = {
+  eth: ['https://ethereum-rpc.publicnode.com', 'https://cloudflare-eth.com'],
+  bsc: ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.binance.org'],
+  pol: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
+};
+
+export const config = () => {
+  const nets = csv(process.env.EVM_NETWORKS).map((s) => s.toLowerCase());
+  const rpc = {};
+  for (const n of Object.keys(EVM_RPC)) {
+    const own = csv(process.env[`EVM_RPC_${n.toUpperCase()}`]);
+    rpc[n] = own.length ? own : EVM_RPC[n];
+  }
+  return {
+    apiSecret: process.env.GATEWAY_API_SECRET || '',
+    btcXpub: text(process.env.BTC_XPUB),
+    btcConfirmations: whole(process.env.BTC_CONFIRMATIONS, 1),
+    btcExplorerUrl: text(process.env.BTC_EXPLORER_URL) || 'https://mempool.space/api',
+    payAddr: {
+      btc: text(process.env.PAY_ADDR_BTC),
+      evm: text(process.env.PAY_ADDR_EVM),
+      trx: text(process.env.PAY_ADDR_TRX),
+      sol: text(process.env.PAY_ADDR_SOL),
+    },
+    evm: {
+      networks: nets.length ? nets : ['eth', 'bsc', 'pol'],
+      rpc,
+      confirmations: {
+        eth: whole(process.env.EVM_CONF_ETH, 12),
+        bsc: whole(process.env.EVM_CONF_BSC, 15),
+        pol: whole(process.env.EVM_CONF_POL, 64),
+      },
+      scanIntervalMs: Math.max(3, whole(process.env.EVM_SCAN_SECONDS, 15)) * 1000,
+    },
+    pollIntervalMs: Math.max(5, whole(process.env.POLL_SECONDS, 30)) * 1000,
+    watcherEnabled: process.env.WATCHER !== 'off',
+    invoiceTtlMs: (Number(process.env.INVOICE_TTL_HOURS) > 0 ? Number(process.env.INVOICE_TTL_HOURS) : 72) * 3_600_000,
+    appWebhookUrl: text(process.env.APP_WEBHOOK_URL),
+    webhookSecret: process.env.GATEWAY_WEBHOOK_SECRET || '',
+    outboxIntervalMs: whole(process.env.OUTBOX_SECONDS, 10) * 1000,
+    rateSource: process.env.RATE_SOURCE === 'static' ? 'static' : 'coingecko',
+    staticBtcUsd: Number(process.env.RATE_BTC_USD) || 0,
+  };
+};
