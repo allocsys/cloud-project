@@ -29,6 +29,7 @@ function Switch({ on, onChange, label }) {
 export default function Settings() {
   const router = useRouter();
   const t = useT();
+  const { lang } = useLang();
   const [toast, show] = useToast();
   const { data: sd, mutate: mutateSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
