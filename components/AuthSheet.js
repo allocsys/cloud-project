@@ -8,6 +8,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import AuthForm from '@/components/AuthForm';
+import { useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 
 const Ctx = createContext(null);
@@ -63,6 +64,7 @@ function parseQuery() {
 
 export function AuthSheetProvider({ signedIn = false, children }) {
   const router = useRouter();
+  const t = useT();
   const [auth, setAuth] = useState(null); // null: closed. Otherwise how it opened: { signup } or { reset }
   const [n, setN] = useState(0); // a fresh form each time the sheet opens
   const leaving = useRef(false); // set when the sheet closes because the page is being left
@@ -162,7 +164,7 @@ export function AuthSheetProvider({ signedIn = false, children }) {
         >
           <div className="card" ref={card} tabIndex={-1} style={{ outline: 0 }}>
             <div className="grab" aria-hidden="true" />
-            <button type="button" className="sheet-x" aria-label="Close" onClick={close}>
+            <button type="button" className="sheet-x" aria-label={t('common.close')} onClick={close}>
               <svg viewBox="0 0 24 24" aria-hidden="true">
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
