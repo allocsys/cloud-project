@@ -47,6 +47,12 @@ export default function Plans() {
   const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
   // Restored on the Boost tab: wait for /api/boost before deciding, so Buy plans does not flash first.
   const boostWait = tab === 'boost' && !bd;
+  // The tab row keeps its place but stays hidden until /api/boost has answered (or 1.5 seconds), so the Boost tab never pops in between the others.
+  const [tabsWait, setTabsWait] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setTabsWait(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
   const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -316,7 +322,7 @@ export default function Plans() {
         <h2>Plans</h2>
       </div>
 
-      <div className="tabs" role="group" aria-label="Buy plans, boost or your miners">
+      <div className="tabs" role="group" aria-label="Buy plans, boost or your miners" style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>Buy plans</button>
         {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>Boost</button>}
         <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>My miners{md ? ` · ${list.length}` : ''}</button>
