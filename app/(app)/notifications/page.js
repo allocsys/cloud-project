@@ -30,6 +30,12 @@ export default function Notifications() {
   const items = nd ? nd.items : seedItems;
   // Ids that were new when the screen opened. They keep their dot while you read, then count as read.
   const [fresh, setFresh] = useState(null);
+  // The list keeps its place but stays hidden until the server has answered (or 1.5 seconds), so the sample items never flash.
+  const [wait, setWait] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setWait(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
 
   useEffect(() => {
     if (!nd || fresh) return;
@@ -85,7 +91,7 @@ export default function Notifications() {
         )}
       </div>
 
-      <div className="card">
+      <div className="card" style={nd || !wait ? undefined : { visibility: 'hidden' }}>
         {items.length ? (
           items.map((n, i) => {
             const k = KIND[n.kind] || KIND.news;
