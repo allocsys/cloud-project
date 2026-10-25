@@ -1,6 +1,7 @@
 'use client';
-import { useEffect, useState } from 'react';
 import { AuthButton } from '@/components/AuthSheet';
+import { useEffect, useState } from 'react';
+import { useT } from '@/components/I18nProvider';
 
 // A Get started button pinned to the bottom of the landing page from the first screen. It slides away while the
 // calculator's own button (or the Boost card's, which shows up once its data has loaded) is on screen (so there are never two buttons),
@@ -8,6 +9,7 @@ import { AuthButton } from '@/components/AuthSheet';
 // It watches that button instead of the scroll position, so it does not flicker when the phone's address bar
 // resizes the screen or the page height changes. It opens the sign-in sheet on Create account.
 export default function StickyCta() {
+  const t = useT();
   const [on, setOn] = useState(true);
 
   useEffect(() => {
@@ -38,7 +40,7 @@ export default function StickyCta() {
   return (
     <div className={`lp-sticky${on ? ' on' : ''}`} aria-hidden={!on}>
       <AuthButton mode="signup" className="btn" tabIndex={on ? 0 : -1}>
-        Get started
+        {t('common.getStarted')}
       </AuthButton>
     </div>
   );

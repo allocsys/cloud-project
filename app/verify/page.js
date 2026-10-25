@@ -1,12 +1,14 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache } from '@/lib/api';
 
 // Opened from the link in the verification email: /verify?token=...&email=...
 export default function Verify() {
   const router = useRouter();
+  const t = useT();
   const ran = useRef(false);
   const [state, setState] = useState('checking'); // checking | ok | bad
   const [msg, setMsg] = useState('');
@@ -24,7 +26,7 @@ export default function Verify() {
     } catch {}
     if (!token || !email) {
       setState('bad');
-      setMsg('This link is incomplete. Open the link from your email again.');
+      setMsg(t('verify.incomplete'));
       return;
     }
     post('/api/auth/verify', { email, token })
@@ -36,8 +38,9 @@ export default function Verify() {
       .catch((err) => {
         triggerHaptic('error');
         setState('bad');
-        setMsg(err.status ? err.message : 'No connection. Try the link again.');
+        setMsg(err.status ? err.message : t('verify.noConnection'));
       });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -46,27 +49,27 @@ export default function Verify() {
         <div className="mark">O</div>
         {state === 'checking' && (
           <>
-            <h1>Confirming your email</h1>
-            <p className="mute">One moment.</p>
+            <h1>{t('verify.checking')}</h1>
+            <p className="mute">{t('verify.moment')}</p>
           </>
         )}
         {state === 'ok' && (
           <>
-            <h1>Email confirmed</h1>
-            <p className="mute">Thanks. Your email address is now verified.</p>
+            <h1>{t('verify.ok')}</h1>
+            <p className="mute">{t('verify.okSub')}</p>
           </>
         )}
         {state === 'bad' && (
           <>
-            <h1>Link not valid</h1>
+            <h1>{t('verify.bad')}</h1>
             <p className="mute">{msg}</p>
-            <p className="fine">You can ask for a new link in Settings after you sign in.</p>
+            <p className="fine">{t('verify.askNew')}</p>
           </>
         )}
         <div style={{ height: '14px' }} />
         {state !== 'checking' && (
           <button className="btn" type="button" onClick={() => router.replace('/dashboard')}>
-            Continue
+            {t('common.continue')}
           </button>
         )}
       </div>

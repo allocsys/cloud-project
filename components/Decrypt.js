@@ -5,9 +5,17 @@ import { useEffect, useRef } from 'react';
 // always in the markup (readable without JavaScript, and the layout never jumps): while a letter is still
 // "encrypted" it is only painted over with a random digit.
 //   when="load" starts right away; when="view" waits until the text scrolls into view.
+// Latin text is scrambled letter by letter. Persian and other joined scripts are scrambled word by word,
+// because a letter on its own would break the joining.
 const G = '0123456789ABCDEF';
 const SCRAMBLE = /[A-Za-z0-9]/;
+const JOINED = /[\u0590-\u08FF]/;
 const glyph = () => G[Math.floor(Math.random() * 16)];
+const glyphs = (n) => {
+  let s = '';
+  for (let i = 0; i < n; i += 1) s += glyph();
+  return s;
+};
 
 export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
   const ref = useRef(null);
@@ -20,9 +28,12 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
     let io = null;
     let onDone = null;
     let dead = false;
+    const paint = (e) => {
+      e.dataset.g = glyphs(+e.dataset.n || 1);
+    };
 
     els.forEach((e) => {
-      e.dataset.g = glyph();
+      paint(e);
       e.classList.add('dc-s');
     });
 
@@ -44,7 +55,7 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
         if (t - last > 110) {
           last = t;
           const end = Math.min(n, p + 6);
-          for (let k = p; k < end; k += 1) els[order[k]].dataset.g = glyph();
+          for (let k = p; k < end; k += 1) paint(els[order[k]]);
         }
         if (p < n) raf = requestAnimationFrame(tick);
       };
@@ -80,17 +91,28 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
     };
   }, [text, when, delay, pace]);
 
+  const words = JOINED.test(text);
   return (
     <span ref={ref}>
-      {Array.from(text).map((c, i) =>
-        SCRAMBLE.test(c) ? (
-          <span className="dc" key={i}>
-            {c}
-          </span>
-        ) : (
-          c
-        ),
-      )}
+      {words
+        ? text.split(/(\s+)/).map((w, i) =>
+            /\S/.test(w) ? (
+              <span className="dc" data-n={Math.min(w.length, 8)} key={i}>
+                {w}
+              </span>
+            ) : (
+              w
+            ),
+          )
+        : Array.from(text).map((c, i) =>
+            SCRAMBLE.test(c) ? (
+              <span className="dc" key={i}>
+                {c}
+              </span>
+            ) : (
+              c
+            ),
+          )}
     </span>
   );
 }

@@ -1,16 +1,18 @@
 'use client';
-// The sign-in form that lives inside the sheet (components/AuthSheet.js): sign in, sign up, forgot and reset password,
-// Telegram sign-in and the demo. `init` says how it opens: { signup } or { reset: { token, email } }.
-// `onDone(path)` is called when the person is signed in (or chose the demo). `onLeave()` is called before a link
-// to another page is followed, so the sheet does not undo its history entry on the way out.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Field from '@/components/Field';
+import { fill, useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache, signOut } from '@/lib/api';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
 
+// The sign-in form that lives inside the sheet (components/AuthSheet.js): sign in, sign up, forgot and reset password,
+// Telegram sign-in and the demo. `init` says how it opens: { signup } or { reset: { token, email } }.
+// `onDone(path)` is called when the person is signed in (or chose the demo). `onLeave()` is called before a link
+// to another page is followed, so the sheet does not undo its history entry on the way out.
 export default function AuthForm({ init, onDone, onLeave }) {
+  const t = useT();
   const [signup, setSignup] = useState(!!init?.signup);
   const [view, setView] = useState(init?.reset ? 'reset' : null); // null: sign in or sign up. 'forgot': ask for a reset link. 'reset': choose a new password.
   const [rtoken] = useState(init?.reset?.token || ''); // the token from the emailed link
@@ -33,10 +35,10 @@ export default function AuthForm({ init, onDone, onLeave }) {
     let n = 0;
     const look = () => {
       if (window.Telegram?.WebApp?.initData) return setTg(true);
-      if (++n < 10) t = setTimeout(look, 300);
+      if (++n < 10) tm = setTimeout(look, 300);
     };
-    let t = setTimeout(look, 0);
-    return () => clearTimeout(t);
+    let tm = setTimeout(look, 0);
+    return () => clearTimeout(tm);
   }, []);
 
   // The invite code kept from an invite link (the sheet's opener stores it), so the form can send it with sign-up.
@@ -64,8 +66,8 @@ export default function AuthForm({ init, onDone, onLeave }) {
     e.preventDefault();
     if (notice) return onDone('/plans');
     const next = {};
-    if (view !== 'reset' && !/^\S+@\S+\.\S+$/.test(email.trim())) next.email = 'Enter a valid email address.';
-    if (view !== 'forgot' && password.length < 8) next.password = 'Password needs at least 8 characters.';
+    if (view !== 'reset' && !/^\S+@\S+\.\S+$/.test(email.trim())) next.email = t('auth.errEmail');
+    if (view !== 'forgot' && password.length < 8) next.password = t('auth.errPassword');
     if (next.email || next.password) {
       triggerHaptic('error');
       setErrors(next);
@@ -76,7 +78,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
 
     if (needCode && view !== 'forgot' && !signup && !code.trim()) {
       triggerHaptic('error');
-      setErrors({ code: 'Enter the 6-digit code from your authenticator app.' });
+      setErrors({ code: t('auth.errCode') });
       const el = document.getElementById('tc');
       if (el) el.focus();
       return;
@@ -102,7 +104,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       } catch {}
       triggerHaptic('success');
       if (!view && signup && res?.ref === 'invalid') {
-        setNotice(`Account created. Invite code ${ref} was not recognised.`);
+        setNotice(t('auth.createdInvalid', { code: ref }));
         setLoading(false);
         return;
       }
@@ -155,7 +157,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       } catch {}
       triggerHaptic('success');
       if (res?.ref === 'invalid') {
-        setNotice(`Account created. Invite code ${ref} was not recognised.`);
+        setNotice(t('auth.createdInvalid', { code: ref }));
         setTgBusy(false);
         return;
       }
@@ -174,15 +176,15 @@ export default function AuthForm({ init, onDone, onLeave }) {
     onDone('/plans');
   }
 
-  const title = view === 'forgot' ? 'Forgot your password?' : view === 'reset' ? 'Choose a new password' : signup ? 'Create your account' : 'Sign in';
+  const title = view === 'forgot' ? t('auth.forgotTitle') : view === 'reset' ? t('auth.resetTitle') : signup ? t('auth.signupTitle') : t('auth.signIn');
   const sub =
     view === 'forgot'
-      ? 'Enter your email and we will send you a reset link.'
+      ? t('auth.forgotSub')
       : view === 'reset'
-        ? `For ${email}. You will be signed in afterwards.`
+        ? t('auth.resetSub', { email })
         : signup
           ? `Rent hash power, watch earnings arrive every day, and withdraw from just $${MIN_WITHDRAW_USD}.`
-          : 'Welcome back.';
+          : t('auth.welcomeBack');
 
   return (
     <form className="authform" onSubmit={submit} noValidate>
@@ -190,7 +192,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       <p className="mute">{sub}</p>
 
       {view !== 'reset' && (
-        <Field id="em" label="Email" error={errors.email}>
+        <Field id="em" label={t('auth.email')} error={errors.email}>
           <input
             id="em"
             type="email"
@@ -214,7 +216,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       {view !== 'forgot' && (
         <Field
           id="pw"
-          label={view === 'reset' ? 'New password' : 'Password'}
+          label={view === 'reset' ? t('auth.newPassword') : t('auth.password')}
           error={errors.password}
           className="pw"
           side={
@@ -227,7 +229,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
                 setShow(!show);
               }}
             >
-              {show ? 'Hide' : 'Show'}
+              {show ? t('auth.hide') : t('auth.show')}
             </button>
           }
         >
@@ -238,7 +240,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
             aria-invalid={!!errors.password}
             aria-describedby={errors.password ? 'pw-err' : undefined}
             autoComplete={signup || view === 'reset' ? 'new-password' : 'current-password'}
-            placeholder="At least 8 characters"
+            placeholder={t('auth.pwPlaceholder')}
             value={password}
             onChange={(e) => {
               setPassword(e.target.value);
@@ -249,7 +251,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       )}
 
       {needCode && view !== 'forgot' && !signup && (
-        <Field id="tc" label="Authentication code" error={errors.code}>
+        <Field id="tc" label={t('auth.codeLabel')} error={errors.code}>
           <input
             id="tc"
             className={errors.code ? 'bad' : undefined}
@@ -260,7 +262,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck="false"
-            placeholder="6-digit code, or a recovery code"
+            placeholder={t('auth.codePlaceholder')}
             value={code}
             onChange={(e) => {
               setCode(e.target.value);
@@ -277,54 +279,59 @@ export default function AuthForm({ init, onDone, onLeave }) {
       <button className="btn" type="submit" disabled={loading}>
         {loading
           ? view === 'forgot'
-            ? 'Sending...'
-            : 'Authenticating...'
+            ? t('auth.sending')
+            : t('auth.authenticating')
           : view === 'forgot'
             ? sent
-              ? 'Send again'
-              : 'Send reset link'
+              ? t('auth.sendAgain')
+              : t('auth.sendLink')
             : view === 'reset'
-              ? 'Set new password'
+              ? t('auth.setNew')
               : notice
-                ? 'Continue'
+                ? t('common.continue')
                 : signup
-                  ? 'Create account'
-                  : 'Sign in'}
+                  ? t('auth.createAccount')
+                  : t('auth.signIn')}
       </button>
 
       {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
       {!view && (
         <button className="btn ghost" type="button" style={{ marginTop: '12px' }} onClick={handleSkip}>
-          Explore the demo first
+          {t('auth.demo')}
         </button>
       )}
 
       {view === 'forgot' && sent && (
-        <p className="fine" role="status">If an account exists for that email, a reset link is on its way. It works for 30 minutes.</p>
+        <p className="fine" role="status">{t('auth.resetSent')}</p>
       )}
       {notice && <p className="fine" role="status">{notice}</p>}
-      {!view && !notice && signup && ref && <p className="fine">Invite code {ref} will be used at sign-up.{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
+      {!view && !notice && signup && ref && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` It gives you a ${offer}% rebate.` : ''}</p>}
       {!view && signup && (
         <p className="fine" style={{ margin: '14px 0 4px', textAlign: 'center' }}>
-          By creating an account you agree to the{' '}
-          <Link href="/terms" onClick={onLeave} style={{ color: 'var(--gold2)' }}>Terms</Link> and{' '}
-          <Link href="/privacy" onClick={onLeave} style={{ color: 'var(--gold2)' }}>Privacy Policy</Link>.
+          {fill(t('auth.agree'), {
+            terms: (
+              <Link href="/terms" onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.terms')}</Link>
+            ),
+            privacy: (
+              <Link href="/privacy" onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.privacy')}</Link>
+            ),
+          })}
         </p>
       )}
 
       {!view && !signup && (
         <button className="swap" type="button" onClick={handleForgot}>
-          Forgot password?
+          {t('auth.forgot')}
         </button>
       )}
 
       <button className="swap" type="button" onClick={handleSwap}>
-        {view ? 'Back to sign in' : signup ? 'Have an account? Sign in' : 'New here? Create an account'}
+        {view ? t('auth.swapBack') : signup ? t('auth.swapSignin') : t('auth.swapSignup')}
       </button>
 
       {!view && tg && (
         <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
-          {tgBusy ? 'Connecting...' : 'Continue with Telegram'}
+          {tgBusy ? t('auth.connecting') : t('auth.telegram')}
         </button>
       )}
     </form>

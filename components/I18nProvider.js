@@ -1,5 +1,5 @@
 'use client';
-import { createContext, useContext, useMemo } from 'react';
+import { Fragment, createContext, useContext, useMemo } from 'react';
 import { DEFAULT_LANG, LANGS, LANG_COOKIE, translate } from '@/lib/i18n/langs';
 
 const fallback = { lang: DEFAULT_LANG, dir: 'ltr', t: (key, vars) => translate(DEFAULT_LANG, key, vars) };
@@ -24,4 +24,12 @@ export function useLang() {
     window.location.reload();
   }
   return { ...c, setLang };
+}
+
+// Puts elements (links, bold text) into a sentence: fill(t('auth.agree'), { terms: <Link .../>, privacy: <Link .../> })
+// where the text holds {terms} and {privacy}. The word order then follows each language.
+export function fill(text, nodes) {
+  return String(text)
+    .split(/\{(\w+)\}/g)
+    .map((part, i) => (i % 2 ? <Fragment key={i}>{nodes[part]}</Fragment> : part));
 }

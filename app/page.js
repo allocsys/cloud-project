@@ -4,16 +4,19 @@ import Calculator from '@/components/Calculator';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
 import LandingTail from '@/components/LandingTail';
+import { LangToggle } from '@/components/LangSwitch';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
 import WinnersBar from '@/components/WinnersBar';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
+import { getT } from '@/lib/i18n/server';
 
-export const metadata = {
-  title: { absolute: 'Miner Opus: bitcoin cloud mining without the hardware' },
-};
+export async function generateMetadata() {
+  const t = await getT();
+  return { title: { absolute: t('meta.home.title') } };
+}
 
 const ICONS = {
   eye: (
@@ -44,13 +47,6 @@ const ICONS = {
   ),
 };
 
-const WHY = [
-  { i: 'eye', t: 'See what you own', d: 'Every miner has its own page, so you can see exactly what it has earned.' },
-  { i: 'shield', t: 'Withdrawals with a paper trail', d: 'Every withdrawal is reviewed, and you can follow it from pending to sent.' },
-  { i: 'users', t: 'Invite friends', d: 'Share your invite code. Friends who join with it get a rebate.' },
-  { i: 'phone', t: 'Made for your phone', d: 'Install it like an app, or open it right inside Telegram.' },
-];
-
 // The page people see before they sign in. It makes no income promises and shows no made-up numbers or reviews:
 // in this market, guaranteed returns and invented proof are what people have learned to distrust.
 // The one exception is the winners bar (components/WinnersBar.js): it shows sample winners until real ones fill it. Take the samples out before launch.
@@ -58,6 +54,15 @@ const WHY = [
 export default async function Home() {
   const jar = await cookies();
   const signedIn = jar.has(COOKIE);
+  const t = await getT();
+
+  // Two of the four cards (withdrawals, invites) are still English until their wording is approved.
+  const WHY = [
+    { i: 'eye', t: t('landing.why.see.t'), d: t('landing.why.see.d') },
+    { i: 'shield', t: 'Withdrawals with a paper trail', d: 'Every withdrawal is reviewed, and you can follow it from pending to sent.' },
+    { i: 'users', t: 'Invite friends', d: 'Share your invite code. Friends who join with it get a rebate.' },
+    { i: 'phone', t: t('landing.why.phone.t'), d: t('landing.why.phone.d') },
+  ];
 
   return (
     <AuthSheetProvider signedIn={signedIn}>
@@ -69,28 +74,31 @@ export default async function Home() {
             <img src="/logo.svg" alt="" width="36" height="36" />
             Miner Opus
           </Link>
-          {signedIn ? (
-            <Link href="/dashboard" className="lp-signin">
-              Dashboard
-            </Link>
-          ) : (
-            <AuthButton className="lp-signin">Sign in</AuthButton>
-          )}
+          <div className="topact">
+            <LangToggle className="lp-signin" />
+            {signedIn ? (
+              <Link href="/dashboard" className="lp-signin">
+                {t('landing.dashboard')}
+              </Link>
+            ) : (
+              <AuthButton className="lp-signin">{t('auth.signIn')}</AuthButton>
+            )}
+          </div>
         </header>
 
         <section className="lp-hero2">
           <div className="lp-hero">
             <span className="lp-eyebrow">
-              <Decrypt text="Cloud mining, made simple" />
+              <Decrypt text={t('landing.eyebrow')} />
             </span>
             <h1>
-              <Decrypt text="Bitcoin mining" delay={400} pace={0.55} />{' '}
+              <Decrypt text={t('landing.h1a')} delay={400} pace={0.55} />{' '}
               <span>
-                <Decrypt text="without the machines." delay={1100} pace={0.55} />
+                <Decrypt text={t('landing.h1b')} delay={1100} pace={0.55} />
               </span>
             </h1>
             <p className="lp-sub">
-              <Decrypt text="Rent hash power, pay in bitcoin and follow your earnings every day. No hardware, no setup, no noise." delay={1500} pace={0.5} />
+              <Decrypt text={t('landing.sub')} delay={1500} pace={0.5} />
             </p>
           </div>
         </section>
@@ -111,11 +119,11 @@ export default async function Home() {
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
             <h2 id="why">
-              <Decrypt when="view" text="Why Miner Opus" />
+              <Decrypt when="view" text={t('landing.why')} />
             </h2>
             <div className="lp-why">
               {WHY.map((w) => (
-                <div className="lp-wi" key={w.t}>
+                <div className="lp-wi" key={w.i}>
                   <div className="lp-ic">
                     <svg viewBox="0 0 24 24" aria-hidden="true">
                       {ICONS[w.i]}
