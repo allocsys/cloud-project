@@ -56,11 +56,10 @@ export default async function Home() {
   const signedIn = jar.has(COOKIE);
   const t = await getT();
 
-  // Two of the four cards (withdrawals, invites) are still English until their wording is approved.
   const WHY = [
     { i: 'eye', t: t('landing.why.see.t'), d: t('landing.why.see.d') },
-    { i: 'shield', t: 'Withdrawals with a paper trail', d: 'Every withdrawal is reviewed, and you can follow it from pending to sent.' },
-    { i: 'users', t: 'Invite friends', d: 'Share your invite code. Friends who join with it get a rebate.' },
+    { i: 'shield', t: t('landing.why.wd.t'), d: t('landing.why.wd.d') },
+    { i: 'users', t: t('landing.why.inv.t'), d: t('landing.why.inv.d') },
     { i: 'phone', t: t('landing.why.phone.t'), d: t('landing.why.phone.d') },
   ];
 
@@ -106,7 +105,7 @@ export default async function Home() {
         <section className="lp-sec" aria-labelledby="calc">
           <Reveal>
             <h2 id="calc">
-              <Decrypt when="view" text="Estimate your mining" />
+              <Decrypt when="view" text={t('calc.heading')} />
             </h2>
             <Calculator signedIn={signedIn} />
             <BoostPromo signedIn={signedIn} />
@@ -144,11 +143,8 @@ export default async function Home() {
         <section className="lp-sec" aria-labelledby="know">
           <Reveal>
             <div className="lp-note">
-              <h3 id="know">Know before you start</h3>
-              <p>
-                Mining returns follow the bitcoin price and network difficulty, so they change over time. Earnings are not guaranteed. Only buy what you are
-                comfortable with. You pay in bitcoin to your own personal payment address, and your miner starts once the payment confirms.
-              </p>
+              <h3 id="know">{t('landing.know.t')}</h3>
+              <p>{t('landing.know.d')}</p>
             </div>
           </Reveal>
         </section>
