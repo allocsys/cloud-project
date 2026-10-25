@@ -157,7 +157,7 @@ test('a payment that does not match the order is held for review and credits not
   });
 });
 
-test('an open top-up can be cancelled, and unpaid top-ups do not use up the limit for plan orders', async () => {
+test('three unpaid top-ups are the limit, and cancelling one makes room', async () => {
   const id = await account('cancel');
   await withEnv(NOW_ENV, async () => {
     const made = [];
