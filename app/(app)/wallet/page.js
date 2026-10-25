@@ -140,6 +140,13 @@ export default function Wallet() {
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
+  // The Reinvest card and the action card keep their place but stay hidden until the wallet and catalogue have answered (or 1.5 seconds), so Reinvest never pushes the action card down.
+  const [calmWait, setCalmWait] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setCalmWait(false), 1500);
+    return () => clearTimeout(t);
+  }, []);
+  const hideCalm = wd && cat ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
 
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
@@ -310,7 +317,7 @@ export default function Wallet() {
         </div>
 
         {rein && (
-          <Link href={reinvestHref(rein)} className="card rein">
+          <Link href={reinvestHref(rein)} className="card rein" style={hideCalm}>
             <div>
               <b>{reinvestTitle(rein)}</b>
               <small>
@@ -322,7 +329,7 @@ export default function Wallet() {
           </Link>
         )}
 
-        <div className="grid wal">
+        <div className="grid wal" style={hideCalm}>
           <div className="card wcard">
             <div className="tabs" role="group" aria-label="Wallet action">
               <button type="button" aria-pressed={tab === 'withdraw'} onClick={() => handleTabChange('withdraw')}>
