@@ -155,6 +155,7 @@ export default function Referrals() {
         t('ref.rule1', rv),
         t('ref.rule2'),
         ...(rv.th > 0 ? [t('ref.rule3', rv)] : []),
+        ...(rv.tickets > 0 ? [t('ref.rule8', rv)] : []),
         t('ref.rule4', rv),
         t('ref.rule5', rv),
         t('ref.rule6', rv),
