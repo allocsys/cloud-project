@@ -55,7 +55,10 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | `APP_WEBHOOK_URL` | the app's `/api/payments/webhook`. https only (http only for localhost) |
 | `GATEWAY_WEBHOOK_SECRET` | signs every callback, at least 16 characters, same value in the app |
 | `OUTBOX_SECONDS` | how often due callbacks are sent (default 10, minimum 1) |
-| `INVOICE_TTL_HOURS` | how long an invoice stays open (default 72) |
+| `INVOICE_TTL_MINUTES` | how long an invoice stays open before it expires (default 10) |
+| `INVOICE_BUFFER_PERCENT` | extra added to every invoice amount for fees, commissions and price moves (default 2, from 0 to 20) |
+| `EVM_CATCHUP_HOURS` | an idle EVM scanner wakes when an invoice opens and reads back at most this many hours (default 6) |
+| `IDLE_POLL_SECONDS` | how often the watcher looks for new invoices while none is open (default 60) |
 | `RATE_SOURCE` | `coingecko` (default) or `static` (staging only, uses `RATE_BTC_USD`) |
 | `PGSSL` | `1` to use TLS to Postgres |
 
