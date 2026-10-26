@@ -1,6 +1,6 @@
 'use client';
 // Pay screens for our own gateway checkout: the coin picker, and the open payment (exact amount, address, copy, QR).
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { triggerHaptic } from '@/lib/haptics';
@@ -71,6 +71,37 @@ function copyText(text) {
   } catch {}
 }
 
+// Time left on an open payment, as m:ss (h:mm:ss from an hour up). `at` is the invoice's expiry. It ticks once a second, only while the
+// tab is visible, and stops by itself at zero. Digits are fixed width, so the line does not jitter.
+function Countdown({ at }) {
+  const t = useT();
+  const end = at ? Date.parse(at) : NaN;
+  const [now, setNow] = useState(() => Date.now());
+  const live = Number.isFinite(end) && end > now;
+  useEffect(() => {
+    if (!live) return undefined;
+    const tick = () => {
+      if (!document.hidden) setNow(Date.now());
+    };
+    const id = setInterval(tick, 1000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(id);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [live]);
+  if (!Number.isFinite(end)) return null;
+  if (!live) return <small style={{ display: 'block', color: 'var(--red)' }}>{t('pay.expired')}</small>;
+  const s = Math.max(0, Math.ceil((end - now) / 1000));
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(s >= 3600 ? 2 : 1, '0');
+  const time = `${s >= 3600 ? `${Math.floor(s / 3600)}:` : ''}${mm}:${String(s % 60).padStart(2, '0')}`;
+  return (
+    <small style={{ display: 'block', fontVariantNumeric: 'tabular-nums', color: s < 60 ? 'var(--gold)' : undefined }}>
+      {t('pay.expiresIn', { time })}
+    </small>
+  );
+}
+
 // An open gateway payment: send exactly this amount, to this address, on this network.
 // `show` is the page's toast function; it says the text was copied.
 export function PayInfo({ order, show }) {
@@ -85,6 +116,7 @@ export function PayInfo({ order, show }) {
   };
   return (
     <div style={{ marginTop: 6 }}>
+      <Countdown at={order.expiresAt} />
       <small style={{ display: 'block' }}>{fill(t('plans.sendTo'), { amount: <b>{order.amount} {sym}</b> })}</small>
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
