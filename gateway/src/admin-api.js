@@ -1,8 +1,10 @@
-// Read-only overview for the app's admin Gateway tab. Called by the app (never by a browser) with the same Bearer secret as /v1/invoices.
-// It changes nothing. Amounts are shown in coin units; txids, addresses and invoice ids are public chain or random data.
-import { q } from './db.js';
+// Overview for the app's admin Gateway tab. Called by the app (never by a browser) with the same Bearer secret as /v1/invoices.
+// The overview changes nothing. The one write is handleUnmatched(): a person returned an unmatched payment by hand and marks it
+// done (the gateway holds no keys and sends no money). Amounts are shown in coin units; txids, addresses and invoice ids are public chain or random data.
+import { q, tx } from './db.js';
 import { CHAINS } from './chains/index.js';
 import { fmtAtomic } from './invoices.js';
+import { ApiError } from './http.js';
 
 // Atomic units as a decimal string in the coin's own unit, or null when the network or asset is not known.
 function coin(network, asset, atomic) {
@@ -27,6 +29,27 @@ function networks() {
   });
 }
 
+// Marks one unmatched payment handled, with a short note (how it was returned). Repeating it is fine: nothing changes the second time.
+// The watcher never re-opens it (recordUnmatched only updates confirmations on a conflict).
+export async function handleUnmatched(input) {
+  const network = typeof input?.network === 'string' ? input.network : '';
+  const txid = typeof input?.txid === 'string' ? input.txid : '';
+  const vout = input?.vout;
+  const note = typeof input?.note === 'string' ? input.note.trim().slice(0, 80) : '';
+  if (!Object.hasOwn(CHAINS, network) || !txid || txid.length > 128 || !Number.isInteger(vout) || vout < 0) throw new ApiError(400, 'Invalid request.');
+  return tx(async (c) => {
+    const row = (await c.query('SELECT id, handled_at FROM unmatched_txs WHERE network = $1 AND txid = $2 AND vout = $3 FOR UPDATE', [network, txid, vout])).rows[0];
+    if (!row) throw new ApiError(404, 'Not found.');
+    if (row.handled_at) return { handled: true, already: true };
+    await c.query('UPDATE unmatched_txs SET handled_at = now(), handled_note = $2 WHERE id = $1', [row.id, note || null]);
+    await c.query("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('admin', 'unmatched.handled', $1, $2::jsonb)", [
+      `${network}:${txid}`,
+      JSON.stringify({ vout, note }),
+    ]);
+    return { handled: true, already: false };
+  });
+}
+
 export async function adminOverview() {
   const [cursors, counts, recent, unmatched, unmatchedCount, outbox, failing, audit] = await Promise.all([
     q('SELECT network, height::text AS height, tip::text AS tip, EXTRACT(EPOCH FROM now() - updated_at)::int AS age_s FROM chain_cursors ORDER BY network'),
@@ -35,8 +58,8 @@ export async function adminOverview() {
       `SELECT id, ref, kind, network, asset, usd, expected_atomic::text AS expected, received_atomic::text AS received, status, created_at, expires_at, paid_at
        FROM invoices ORDER BY created_at DESC LIMIT 25`,
     ),
-    q('SELECT network, asset, address, txid, vout, amount_atomic::text AS amount, confirmations, seen_at FROM unmatched_txs ORDER BY seen_at DESC LIMIT 50'),
-    q('SELECT count(*)::int AS n FROM unmatched_txs'),
+    q('SELECT network, asset, address, txid, vout, amount_atomic::text AS amount, confirmations, seen_at FROM unmatched_txs WHERE handled_at IS NULL ORDER BY seen_at DESC LIMIT 50'),
+    q('SELECT count(*)::int AS n FROM unmatched_txs WHERE handled_at IS NULL'),
     q(
       `SELECT count(*) FILTER (WHERE delivered_at IS NULL)::int AS pending,
               count(*) FILTER (WHERE delivered_at IS NULL AND attempts > 0)::int AS failing
