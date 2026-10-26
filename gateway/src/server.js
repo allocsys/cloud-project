@@ -77,11 +77,11 @@ async function main() {
     Object.assign(explorers, evm.explorers);
     const names = Object.keys(explorers);
     if (names.length) {
-      const stops = evm.scanners.map((s) => startScanner(s, { intervalMs: c.evm.scanIntervalMs }));
+      const stops = evm.scanners.map((s) => startScanner(s, { intervalMs: c.evm.scanIntervalMs, catchupMs: c.evm.catchupMs }));
       stopScanners = async () => {
         await Promise.all(stops.map((stop) => stop()));
       };
-      stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs });
+      stopWatcher = startWatcher({ explorers, intervalMs: c.pollIntervalMs, idleMs: c.idlePollMs });
       watching = true;
       console.log(`[gateway] watching ${names.join(', ')} invoices every ${c.pollIntervalMs / 1000}s`);
     }
