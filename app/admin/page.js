@@ -580,6 +580,19 @@ function GatewayTab({ pp, run, lock, g, reload }) {
     await load();
   };
 
+  // A waiting invoice nobody will pay: expire it so its order closes too.
+  const closeInv = async (i) => {
+    if (!(await ask('Close this invoice? The order is cancelled. Do it only if nobody will pay.', { ok: 'Close' }))) return;
+    setBusy(true);
+    try {
+      const r = await call('POST', '/api/admin/gateway', { close: i.id });
+      if (!r.ok) await tell(r.error || 'Could not save.');
+    } catch {
+      await tell('No connection. Try again.');
+    }
+    await load();
+  };
+
   // Pause a network that is not in use (no new invoices, no scanning) or bring it back.
   const toggle = async (n) => {
     const name = NET[n.network] || n.network;
@@ -659,7 +672,12 @@ function GatewayTab({ pp, run, lock, g, reload }) {
               <small>{trimAmount(i.expected) || '?'} expected{i.received && Number(i.received) > 0 ? ` · ${trimAmount(i.received)} paid` : ''} · {when(i.created_at)}</small>
               <small className="serial">{shortId(i.ref)}</small>
             </div>
-            <Pill tone={i.status === 'paid' ? 'ok' : i.status === 'confirming' || i.status === 'partial' ? 'warn' : i.status === 'failed' ? 'bad' : ''}>{INV[i.status] || i.status}</Pill>
+            <div style={{ textAlign: 'right' }}>
+              <div><Pill tone={i.status === 'paid' ? 'ok' : i.status === 'confirming' || i.status === 'partial' ? 'warn' : i.status === 'failed' ? 'bad' : ''}>{INV[i.status] || i.status}</Pill></div>
+              {i.kind === 'order' && i.status === 'pending' && (
+                <button className="swap" style={{ ...SM, marginTop: 6 }} disabled={busy || lock} onClick={() => closeInv(i)}>Close</button>
+              )}
+            </div>
           </div>
         ))}
       </Fold>
