@@ -4,7 +4,7 @@ import { useEffect } from 'react';
 // Material-style press ripple. One listener for the whole app: when a tappable element
 // from the list below is pressed, a circle grows out from the touch point and fades.
 const SEL =
-  '.btn,.swap,.pct-btn,.tabs button,.minitabs button,.linktile,.cl,nav a .ind,.back,.pwtoggle,.upload,.collapse,.bell';
+  '.btn,.swap,.pct-btn,.tabs button,.adm-tabs button,.minitabs button,.linktile,.cl,nav a .ind,.back,.pwtoggle,.upload,.collapse,.bell';
 
 export default function Ripple() {
   useEffect(() => {
