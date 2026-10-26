@@ -62,7 +62,8 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 ## API (all under `/v1`, Bearer secret required)
 - `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"pol"|"trx"|"sol", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
 - `GET /v1/invoices/:ref` returns the invoice.
-- `GET /v1/admin/overview` read-only status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments, callbacks and the audit log.
+- `GET /v1/admin/overview` status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments (handled ones are hidden), callbacks and the audit log.
+- `POST /v1/admin/unmatched/handle` body `{ network, txid, vout, note? }` marks an unmatched payment as handled after a person returned the money by hand (the gateway holds no keys and sends nothing). `note` is at most 80 characters. Writes an `unmatched.handled` audit row. Repeating it is fine (`already: true`); an unknown payment is `404`. The scanner never re-opens a handled row.
 
 ## Webhook to the app (the only link between the two)
 When an order invoice is settled the gateway queues one callback per invoice and event (`finished`, `partially_paid` or `expired`) and sends it with `POST APP_WEBHOOK_URL`.
