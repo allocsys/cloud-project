@@ -580,6 +580,23 @@ function GatewayTab({ pp, run, lock, g, reload }) {
     await load();
   };
 
+  // Pause a network that is not in use (no new invoices, no scanning) or bring it back.
+  const toggle = async (n) => {
+    const name = NET[n.network] || n.network;
+    const text = n.paused
+      ? `Resume ${name}? It takes new payments again and scanning starts from the current block.`
+      : `Pause ${name}? It takes no new payments and is not scanned. Payments sent to its address while paused may not be tracked.`;
+    if (!(await ask(text, { ok: n.paused ? 'Resume' : 'Pause' }))) return;
+    setBusy(true);
+    try {
+      const r = await call('POST', '/api/admin/gateway', { network: n.network, paused: !n.paused });
+      if (!r.ok) await tell(r.error || 'Could not save.');
+    } catch {
+      await tell('No connection. Try again.');
+    }
+    await load();
+  };
+
   const card = <ProviderCard pp={pp} busy={lock || busy} run={run} />;
   if (!g) return <div className="adm-stack">{card}<p className="empty" style={{ textAlign: 'center' }}>Loading…</p></div>;
   if (!g.ok) {
@@ -606,7 +623,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
         {g.networks.map((n) => {
           const s = g.scanners.find((x) => x.network === n.network);
           const lag = s ? Number(s.tip) - Number(s.height) : 0;
-          const stale = s ? s.age_s > 300 || lag > 150 : false;
+          const stale = s && !n.paused ? s.age_s > 300 || lag > 150 : false;
           return (
             <div className="row adm-m" key={n.network}>
               <div>
@@ -615,8 +632,14 @@ function GatewayTab({ pp, run, lock, g, reload }) {
                 {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
-                {n.configured && s && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
+                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
+                {n.configured && s && !n.paused && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
+                {n.configured && !n.paused && n.open > 0 && <small>{n.open} open invoice{n.open === 1 ? '' : 's'}</small>}
+                {n.configured && (
+                  <button className="swap" style={{ ...SM, marginTop: 6 }} disabled={busy || lock || (!n.paused && n.open > 0)} onClick={() => toggle(n)}>
+                    {n.paused ? 'Resume' : 'Pause'}
+                  </button>
+                )}
               </div>
             </div>
           );
