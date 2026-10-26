@@ -5,6 +5,7 @@ import { q, tx } from './db.js';
 import { CHAINS } from './chains/index.js';
 import { fmtAtomic } from './invoices.js';
 import { ApiError } from './http.js';
+import { payload } from './settle.js';
 
 // Atomic units as a decimal string in the coin's own unit, or null when the network or asset is not known.
 function coin(network, asset, atomic) {
@@ -48,6 +49,31 @@ export async function handleUnmatched(input) {
       JSON.stringify({ vout, note }),
     ]);
     return { handled: true, already: false };
+  });
+}
+
+// Closes one order invoice that is still waiting and that nobody will pay: it becomes 'expired' and the usual 'expired' callback is queued,
+// so the app closes the order too. Refused when a payment was seen on it (let the watcher finish) or when its outcome is already queued.
+// Repeating it is fine. The row lock pairs with observe(), so the watcher and this never both decide.
+// A payment sent after closing is not tracked for the invoice; on a shared address it shows up as unmatched.
+export async function closeInvoice(input) {
+  const id = typeof input?.id === 'string' ? input.id : '';
+  if (!id || id.length > 80) throw new ApiError(400, 'Invalid request.');
+  return tx(async (c) => {
+    const inv = (await c.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [id])).rows[0];
+    if (!inv || inv.kind !== 'order' || inv.expected_atomic === null) throw new ApiError(404, 'Not found.');
+    const queued = (await c.query('SELECT event FROM webhook_outbox WHERE invoice_id = $1', [id])).rows;
+    if (inv.status === 'expired' && queued.some((r) => r.event === 'expired')) return { closed: true, already: true };
+    if (inv.status !== 'pending' || queued.length > 0) throw new ApiError(409, 'This invoice is not waiting any more.');
+    if ((await c.query('SELECT 1 FROM chain_txs WHERE invoice_id = $1 LIMIT 1', [id])).rowCount > 0) throw new ApiError(409, 'A payment was seen on it. Let it finish.');
+    await c.query("UPDATE invoices SET status = 'expired' WHERE id = $1", [id]);
+    await c.query('INSERT INTO webhook_outbox (invoice_id, event, payload) VALUES ($1, $2, $3::jsonb) ON CONFLICT (invoice_id, event) DO NOTHING', [
+      id,
+      'expired',
+      JSON.stringify(payload(inv, 'expired', 0n)),
+    ]);
+    await c.query("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('admin', 'invoice.closed', $1, $2::jsonb)", [id, JSON.stringify({ from: inv.status })]);
+    return { closed: true, already: false };
   });
 }
 
