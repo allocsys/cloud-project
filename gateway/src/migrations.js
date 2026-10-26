@@ -145,4 +145,12 @@ CREATE TABLE observed_txs (
 CREATE INDEX observed_txs_address_idx ON observed_txs (network, address, block_height);
 `,
   },
+  {
+    id: '005_unmatched_handled',
+    sql: `
+-- A person returns an unmatched payment by hand and marks it handled. The row stays (history); the overview then hides it.
+-- recordUnmatched() only ever updates confirmations on a conflict, so a handled row is never re-opened.
+ALTER TABLE unmatched_txs ADD COLUMN handled_at timestamptz, ADD COLUMN handled_note text;
+`,
+  },
 ];
