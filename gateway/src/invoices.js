@@ -98,6 +98,9 @@ export async function createInvoice(input) {
     await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`invoice:${p.ref}`]);
     const again = (await c.query('SELECT * FROM invoices WHERE ref = $1', [p.ref])).rows[0];
     if (again) return { row: again, created: false };
+    // Pausing a network takes the same lock exclusively and refuses while invoices are open, so no invoice can slip in as it pauses.
+    await c.query('SELECT pg_advisory_xact_lock_shared(hashtext($1))', [`pause:${p.network}`]);
+    if ((await c.query('SELECT 1 FROM paused_networks WHERE network = $1', [p.network])).rows.length) throw new ApiError(503, 'This network is paused.');
     const next = await c.query(
       `INSERT INTO address_counters (network, next_index) VALUES ($1, 1)
        ON CONFLICT (network) DO UPDATE SET next_index = address_counters.next_index + 1
