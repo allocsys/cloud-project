@@ -18,7 +18,10 @@
 // BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://mempool.space/api)
 // POLL_SECONDS        how often open invoices are checked on chain (default 30, minimum 5)
 // WATCHER             'off' stops this process from watching the chain (default: on when a database and a BTC key or address are set)
-// INVOICE_TTL_HOURS   how long an invoice stays open (default 72, matching the app's 3 days)
+// INVOICE_TTL_MINUTES  how long an invoice stays open before it expires (default 10)
+// INVOICE_BUFFER_PERCENT  extra added to every invoice amount for fees, commissions and price moves (default 2, 0 to 20)
+// EVM_CATCHUP_HOURS   an idle EVM scanner wakes when an invoice opens and reads back at most this many hours (default 6)
+// IDLE_POLL_SECONDS   how often the watcher looks for new invoices while none is open (default 60, minimum 5)
 // APP_WEBHOOK_URL    where signed payment callbacks go (the app's /api/payments/webhook). https only (http only for localhost).
 // GATEWAY_WEBHOOK_SECRET  signs every callback (x-gateway-sig). At least 16 characters. Same value in the app.
 // OUTBOX_SECONDS      how often due callbacks are sent (default 10, minimum 1)
@@ -30,6 +33,9 @@ const csv = (v) =>
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean);
+
+// A percentage from 0 to 20; anything else gives the default.
+const pct = (v, dflt) => (text(v) !== '' && Number.isFinite(Number(v)) && Number(v) >= 0 && Number(v) <= 20 ? Number(v) : dflt);
 
 // Public nodes, used until EVM_RPC_<NET> says otherwise.
 const EVM_RPC = {
@@ -67,6 +73,7 @@ export const config = () => {
         pol: whole(process.env.EVM_CONF_POL, 64),
       },
       scanIntervalMs: Math.max(3, whole(process.env.EVM_SCAN_SECONDS, 15)) * 1000,
+      catchupMs: whole(process.env.EVM_CATCHUP_HOURS, 6) * 3_600_000,
     },
     trx: {
       apiUrl: text(process.env.TRON_API_URL) || 'https://api.trongrid.io',
@@ -78,8 +85,10 @@ export const config = () => {
       confirmations: whole(process.env.SOL_CONFIRMATIONS, 1),
     },
     pollIntervalMs: Math.max(5, whole(process.env.POLL_SECONDS, 30)) * 1000,
+    idlePollMs: Math.max(5, whole(process.env.IDLE_POLL_SECONDS, 60)) * 1000,
     watcherEnabled: process.env.WATCHER !== 'off',
-    invoiceTtlMs: (Number(process.env.INVOICE_TTL_HOURS) > 0 ? Number(process.env.INVOICE_TTL_HOURS) : 72) * 3_600_000,
+    invoiceTtlMs: (Number(process.env.INVOICE_TTL_MINUTES) > 0 ? Number(process.env.INVOICE_TTL_MINUTES) : 10) * 60_000,
+    invoiceBufferPct: pct(process.env.INVOICE_BUFFER_PERCENT, 2),
     appWebhookUrl: text(process.env.APP_WEBHOOK_URL),
     webhookSecret: process.env.GATEWAY_WEBHOOK_SECRET || '',
     outboxIntervalMs: whole(process.env.OUTBOX_SECONDS, 10) * 1000,
