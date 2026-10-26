@@ -14,7 +14,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
 import { fill, useT } from '@/components/I18nProvider';
 
-const TICKS = [100, 500, 1000, 5000];
+const TICKS = [100, 1000, 5000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Glides a number to its new value, so the figures roll as the slider moves.
@@ -127,7 +127,7 @@ export default function Calculator({ signedIn = false }) {
               <button
                 key={v}
                 type="button"
-                style={{ left: `${posFromBudget(v) / 10}%` }}
+                style={{ '--t': posFromBudget(v) / 1000 }}
                 onClick={() => {
                   triggerHaptic('selection');
                   setBudget(String(v));
