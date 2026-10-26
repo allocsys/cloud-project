@@ -910,7 +910,7 @@ export default function Admin() {
               <div className="row">
                 <div>
                   {b.userId}
-                  <small>${b.price} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
+                  <small>${b.price}{b.gift ? ' (free)' : ''} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
                 </div>
                 <b>{b.win ? (b.forced ? 'Win set' : 'Wins') : 'No win'}</b>
               </div>
