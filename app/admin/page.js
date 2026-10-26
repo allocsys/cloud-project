@@ -5,6 +5,7 @@ import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
 import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
 import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
+import { trimAmount } from '@/lib/pay-coins';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -528,7 +529,7 @@ function GatewayTab({ pp, run, lock }) {
           <div className="row adm-m" key={i.id}>
             <div>
               {String(i.asset).toUpperCase()} on {NET[i.network] || i.network}{i.usd === null ? '' : ` · $${i.usd}`}
-              <small>{i.expected || '?'} expected{i.received && Number(i.received) > 0 ? ` · ${i.received} paid` : ''} · {when(i.created_at)}</small>
+              <small>{trimAmount(i.expected) || '?'} expected{i.received && Number(i.received) > 0 ? ` · ${trimAmount(i.received)} paid` : ''} · {when(i.created_at)}</small>
               <small className="serial">{shortId(i.ref)}</small>
             </div>
             <b className={i.status === 'paid' ? 'up' : undefined}>{INV[i.status] || i.status}</b>
@@ -543,7 +544,7 @@ function GatewayTab({ pp, run, lock }) {
         {g.unmatched.recent.map((u) => (
           <div className="row adm-m" key={`${u.network}-${u.txid}-${u.vout}`}>
             <div>
-              {u.amount === null ? '?' : u.amount} {String(u.asset).toUpperCase()}
+              {u.amount === null ? '?' : trimAmount(u.amount)} {String(u.asset).toUpperCase()}
               <small>{NET[u.network] || u.network} · {when(u.seen_at)}</small>
               <small className="serial" style={{ wordBreak: 'break-all', userSelect: 'all' }}>{u.txid}</small>
             </div>
