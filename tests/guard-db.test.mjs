@@ -128,8 +128,8 @@ test('the admin overview lists each scope\'s paused days of the last 14, newest 
   assert.deepEqual(by['is-2'], []);
   const sm = o.scopes.find((s) => s.id === 'smart');
   assert.equal(sm.lastPaused, d(1));
-  assert.equal(sm.tiers.length, 2);
-  assert.deepEqual(sm.tiers.map((t) => t.pausedDays), [[d(1)], [d(1)]], 'both ends of the Smart range were under their break-even');
+  assert.equal(sm.tiers.length, 4);
+  assert.deepEqual(sm.tiers.map((t) => t.pausedDays), [[d(1)], [d(1)], [d(1)], [d(1)]], 'every term of the Smart range was under its break-even');
 });
 
 test('the backtest replays the rule over the last 30 days with the typed settings and changes nothing', async () => {
