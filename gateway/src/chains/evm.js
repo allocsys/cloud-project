@@ -3,7 +3,9 @@
 //  maxBlocks  the most blocks one scan reads.
 //  maxLag     how many blocks behind the scanner may fall before its answers stop being trusted (a stale answer must never expire an invoice).
 //  recent     about 14 days of blocks: older payments are history, not unmatched money.
-// Token contracts: USDC is from Circle's list. VERIFY USDT against tether.to/en/supported-protocols before going live.
+// Token contracts, checked 26 Oct 2026. ETH: USDT (tether.to/en/supported-protocols) and USDC (Circle's list) match.
+// POL: USDC is Circle's native USDC; USDT is the usual Polygon USDT (6 decimals), which Tether's page does not list. Bridged USDC.e is NOT watched.
+// BSC: Tether and Circle issue nothing here. Both are the Binance-Peg tokens that wallets and exchanges call USDT/USDC (BEP20), 18 decimals.
 import { config } from '../config.js';
 
 export const EVM = {
