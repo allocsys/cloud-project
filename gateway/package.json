@@ -8,7 +8,7 @@
   "scripts": {
     "start": "node src/server.js",
     "migrate": "node -e \"import('./src/migrate.js').then((m) => m.migrate()).then(() => process.exit(0))\"",
-    "test": "node --test \"test/**/*.test.mjs\""
+    "test": "INVOICE_BUFFER_PERCENT=0 node --test \"test/**/*.test.mjs\""
   },
   "dependencies": {
     "@noble/hashes": "1.7.1",
