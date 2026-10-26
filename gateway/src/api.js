@@ -4,7 +4,7 @@ import { config } from './config.js';
 import { hasDb } from './db.js';
 import { ApiError, json, readJson } from './http.js';
 import { createInvoice, getInvoice } from './invoices.js';
-import { adminOverview, handleUnmatched, setNetworkPaused } from './admin-api.js';
+import { adminOverview, closeInvoice, handleUnmatched, setNetworkPaused } from './admin-api.js';
 
 const digest = (s) => createHash('sha256').update(s).digest();
 
@@ -29,6 +29,9 @@ export async function handleApi(req, res, url) {
     }
     if (url.pathname === '/v1/admin/unmatched/handle' && req.method === 'POST') {
       return json(res, 200, { ok: true, ...(await handleUnmatched(await readJson(req))) });
+    }
+    if (url.pathname === '/v1/admin/invoice/close' && req.method === 'POST') {
+      return json(res, 200, { ok: true, ...(await closeInvoice(await readJson(req))) });
     }
     if (url.pathname === '/v1/admin/network/pause' && req.method === 'POST') {
       return json(res, 200, { ok: true, ...(await setNetworkPaused(await readJson(req))) });
