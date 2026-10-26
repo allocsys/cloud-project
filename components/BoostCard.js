@@ -170,7 +170,7 @@ export default function BoostCard({ show }) {
               {picked ? left(t, picked.endsAt - now) : running.length}
             </text>
             <text x="150" y="170" textAnchor="middle" fontSize="11" fill="currentColor" fillOpacity="0.65" style={{ pointerEvents: 'none' }}>
-              {picked ? t('bst.boostN', { n: whole(picked.price) }) : t('bst.runningLbl')}
+              {picked ? t('bst.boostN', { n: whole(picked.price) }) + (picked.gift ? ` · ${t('bst.free')}` : '') : t('bst.runningLbl')}
             </text>
           </svg>
           <p className="mute" style={{ textAlign: 'center', fontSize: '13px', margin: '4px 0 0' }}>{t('bst.nextEnds', { when: nextIn })}</p>
@@ -178,7 +178,7 @@ export default function BoostCard({ show }) {
       )}
       {finished.map((b) => (
         <div className="row" key={b.id}>
-          <span className="mute">{t('bst.boostN', { n: whole(b.price) })}</span>
+          <span className="mute">{t('bst.boostN', { n: whole(b.price) })}{b.gift ? ` · ${t('bst.free')}` : ''}</span>
           {b.win ? <b style={{ color: 'var(--green)' }}>{t('bst.won', { n: whole(b.prize) })}</b> : <b className="v">{t('bst.noPrize', { n: usd(b.pay) })}</b>}
         </div>
       ))}
