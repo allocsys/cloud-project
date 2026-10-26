@@ -14,7 +14,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
 import { fill, useT } from '@/components/I18nProvider';
 
-const TICKS = [100, 1000, 5000];
+const TICKS = [100, 1000, 5000, 10000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 // Glides a number to its new value, so the figures roll as the slider moves.
