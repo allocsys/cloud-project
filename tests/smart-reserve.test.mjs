@@ -7,14 +7,15 @@ const flat = (n, r) => Array.from({ length: n }, () => r);
 const total = (c, ratios) => smartSeries(c, ratios).days.reduce((s, v) => s + v, 0);
 const P = 0.003; // a flat 0.3% a day, so the maths below stays easy to follow
 
-test('terms are 90, 120 and 150 days', () => {
-  assert.deepEqual(SMART.terms, [90, 120, 150]);
+test('terms are 90, 120, 150 and 180 days', () => {
+  assert.deepEqual(SMART.terms, [90, 120, 150, 180]);
   assert.equal(resolveSmart({ budget: 100, days: 365 }), null);
   assert.ok(resolveSmart({ budget: 100, days: 120 }));
+  assert.ok(resolveSmart({ budget: 100, days: 180 }));
 });
 
-test('0.3% a day net: $100 pays back 127, 136 and 145', () => {
-  for (const [days, back] of [[90, 127], [120, 136], [150, 145]]) {
+test('0.3% a day net: $100 pays back 127, 136, 145 and 154', () => {
+  for (const [days, back] of [[90, 127], [120, 136], [150, 145], [180, 154]]) {
     near(100 * smartBaseYield(days, P) * days, back);
   }
 });
@@ -34,14 +35,17 @@ test('the pay table: waypoints, interpolation on the log of the budget, flat abo
   near(smartPayout(10, 90), 0.0021, 1e-9);
 });
 
-test('the term bonus: +0.01pp on 120 days, +0.02pp on 150 days', () => {
+test('the term bonus: +0.01pp on 120 days, +0.02pp on 150 days, +0.03pp on 180 days', () => {
   near(smartPayout(500, 90), 0.00295, 1e-9);
   near(smartPayout(500, 120), 0.00305, 1e-9);
   near(smartPayout(500, 150), 0.00315, 1e-9);
+  near(smartPayout(500, 180), 0.00325, 1e-9);
   near(smartPayout(10000, 150), 0.0042, 1e-9);
-  // $50 on 90 days: 18.9% profit; $10,000 on 150 days: 63% profit
+  near(smartPayout(10000, 180), 0.0043, 1e-9);
+  // $50 on 90 days: 18.9% profit; $10,000 on 150 days: 63% profit; $10,000 on 180 days: 77.4% profit
   near(smartPayout(50, 90) * 90, 0.189, 1e-9);
   near(smartPayout(10000, 150) * 150, 0.63, 1e-9);
+  near(smartPayout(10000, 180) * 180, 0.774, 1e-9);
 });
 
 test('a payout is a multiple of 0.001% a day, and a bad table falls back to the defaults', () => {
@@ -51,7 +55,8 @@ test('a payout is a multiple of 0.001% a day, and a bad table falls back to the 
   }
   assert.deepEqual(normalizeSmartTable(undefined), { rates: SMART_RATES, bonus: SMART_BONUS });
   assert.deepEqual(normalizeSmartTable({ rates: [0.003], bonus: { 120: 5 } }), { rates: SMART_RATES, bonus: SMART_BONUS });
-  assert.deepEqual(normalizeSmartTable({ rates: SMART_RATES.map(() => 0.004), bonus: { 120: 0, 150: 0.001 } }), { rates: SMART_RATES.map(() => 0.004), bonus: { 90: 0, 120: 0, 150: 0.001 } });
+  assert.deepEqual(normalizeSmartTable({ rates: SMART_RATES.map(() => 0.004), bonus: { 120: 0, 150: 0.001, 180: 0.002 } }), { rates: SMART_RATES.map(() => 0.004), bonus: { 90: 0, 120: 0, 150: 0.001, 180: 0.002 } });
+  assert.equal(normalizeSmartTable({ rates: SMART_RATES, bonus: { 120: 0, 150: 0.001 } }).bonus[180], SMART_BONUS[180], 'a saved table with no 180 bonus takes the default');
   near(smartPayout(500, 150, { rates: SMART_RATES.map(() => 0.0099), bonus: { 120: 0, 150: 0.005 } }), SMART.payoutMax, 1e-9);
 });
 
