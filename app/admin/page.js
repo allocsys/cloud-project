@@ -475,6 +475,20 @@ function GatewayTab({ pp, run, lock }) {
     load();
   }, [load]);
 
+  // The money was returned by hand: ask for a short note, mark it, reload.
+  const handle = async (u) => {
+    const note = window.prompt('Note (how it was returned)', '');
+    if (note === null) return;
+    setBusy(true);
+    try {
+      const r = await call('POST', '/api/admin/gateway', { network: u.network, txid: u.txid, vout: u.vout, note });
+      if (!r.ok) window.alert(r.error || 'Could not save.');
+    } catch {
+      window.alert('No connection. Try again.');
+    }
+    await load();
+  };
+
   const card = <ProviderCard pp={pp} busy={lock || busy} run={run} />;
   if (!g) return <div className="adm-stack">{card}<p className="empty" style={{ textAlign: 'center' }}>Loading…</p></div>;
   if (!g.ok) {
@@ -539,7 +553,7 @@ function GatewayTab({ pp, run, lock }) {
 
       <div className="card">
         <h3>Unmatched payments · {g.unmatched.total}</h3>
-        <p className="fine" style={{ margin: '0 0 4px' }}>Money that reached a shared address with no invoice for that exact amount. Check each one by hand.</p>
+        <p className="fine" style={{ margin: '0 0 4px' }}>Money that reached a shared address with no invoice for that exact amount. Return it by hand, then tap Handled.</p>
         {g.unmatched.recent.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None.</p>}
         {g.unmatched.recent.map((u) => (
           <div className="row adm-m" key={`${u.network}-${u.txid}-${u.vout}`}>
@@ -548,6 +562,7 @@ function GatewayTab({ pp, run, lock }) {
               <small>{NET[u.network] || u.network} · {when(u.seen_at)}</small>
               <small className="serial" style={{ wordBreak: 'break-all', userSelect: 'all' }}>{u.txid}</small>
             </div>
+            <button className="swap" style={SM} disabled={busy} onClick={() => handle(u)}>Handled</button>
           </div>
         ))}
       </div>
