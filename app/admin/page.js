@@ -86,6 +86,7 @@ const REF_FIELDS = [
   ['monthlyLimit', 'Rewarded friends per month'],
   ['maxRebate', 'Largest rebate a code can give (%)'],
   ['maxCodes', 'Codes per user (with the default)'],
+  ['ticketCap', 'Free tickets per inviter (0 = off)'],
 ];
 
 // Smart Mining: sell on/off, the pay table for new purchases (ten rates by budget on a 90 day term, plus what 120, 150 and 180 days add;
