@@ -1343,13 +1343,24 @@ export default function Admin() {
             </div>
 
             <div className="card">
+              <h3>Free tickets · {(R.tickets || []).length}</h3>
+              {(R.tickets || []).length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No free tickets given to inviters yet.</p>}
+              {(R.tickets || []).map((x) => (
+                <div className="row" key={x.id}>
+                  <span>{x.id}</span>
+                  <b>{x.n} / {R.settings.ticketCap}</b>
+                </div>
+              ))}
+            </div>
+
+            <div className="card">
               <h3>Friends · {R.links.length}</h3>
               {R.links.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No invited friends yet.</p>}
               {R.links.map((l) => (
                 <div className="row" key={l.friend}>
                   <div>
                     {l.friend}
-                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
+                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.ticket ? ' · free ticket' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${l.rewardUsd.toFixed(2)}</b>
