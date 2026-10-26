@@ -21,6 +21,53 @@ async function call(method, url, body) {
   return { ...j, status: r.status };
 }
 
+// Confirm, text and notice sheets, in the page instead of the browser's dialogs. The Admin page mounts one <AskHost />;
+// ask() resolves true/false, askText() resolves the typed text or null, tell() resolves when closed. Without a host they fall back to the browser's own.
+let askHost = null;
+const ask = (text, o = {}) => (askHost ? askHost({ kind: 'confirm', text, ...o }) : Promise.resolve(window.confirm(text)));
+const askText = (text, o = {}) => (askHost ? askHost({ kind: 'text', text, ...o }) : Promise.resolve(window.prompt(text, '')));
+const tell = (text) => (askHost ? askHost({ kind: 'alert', text }) : Promise.resolve(window.alert(text)));
+
+function AskHost() {
+  const [q, setQ] = useState(null);
+  const [val, setVal] = useState('');
+  useEffect(() => {
+    askHost = (o) =>
+      new Promise((resolve) => {
+        setVal('');
+        setQ({ ...o, resolve });
+      });
+    return () => {
+      askHost = null;
+    };
+  }, []);
+  if (!q) return null;
+  const text = q.kind === 'text';
+  const done = (v) => {
+    q.resolve(v);
+    setQ(null);
+  };
+  const cancel = () => done(text ? null : q.kind === 'alert' ? undefined : false);
+  const okOff = text && q.required && !val.trim();
+  return (
+    <div className="adm-ask" role="presentation" onClick={cancel}>
+      <div className="adm-ask-box" role="dialog" aria-modal="true" onClick={(e) => e.stopPropagation()}>
+        <p>{q.text}</p>
+        {text && (
+          <div className="field" style={{ marginTop: 14 }}>
+            <input id="askv" autoFocus placeholder=" " maxLength={q.maxLength} value={val} onChange={(e) => setVal(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && !okOff && done(val.trim())} />
+            <label htmlFor="askv">{q.label || 'Note'}</label>
+          </div>
+        )}
+        <div className="adm-actions">
+          {q.kind !== 'alert' && <button className="btn ghost" onClick={cancel}>Cancel</button>}
+          <button className={`btn${q.danger ? ' danger' : ''}`} disabled={okOff} onClick={() => done(text ? val.trim() : q.kind === 'alert' ? undefined : true)}>{q.ok || 'OK'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cancelled: 'Closed', expired: 'Expired', failed: 'Failed' };
@@ -266,7 +313,7 @@ function BoostCard({ bs, busy, run }) {
   };
   const losing = TICKETS.filter((t) => String(d.chance[t.id]).trim() !== '' && marginOf(t, pctOf(d.chance[t.id])) < 0);
   const save = async () => {
-    if (losing.length && !window.confirm(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`)) return;
+    if (losing.length && !(await ask(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`, { ok: 'Save', danger: true }))) return;
     if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
@@ -494,7 +541,7 @@ function ProviderCard({ pp, busy, run }) {
             {name}
             <small>{!pp.ready[k] ? 'Not set up' : pp.active === k ? 'In use' : 'Ready'}</small>
           </div>
-          <button className="btn ghost" disabled={busy || pp.active === k || !pp.ready[k]} onClick={() => window.confirm(`Send new payments through ${name}?`) && run({ action: 'pay-provider', provider: k }, `Now using ${name}`)}>
+          <button className="btn ghost" disabled={busy || pp.active === k || !pp.ready[k]} onClick={() => ask(`Send new payments through ${name}?`, { ok: 'Switch' }).then((yes) => yes && run({ action: 'pay-provider', provider: k }, `Now using ${name}`))}>
             {pp.active === k ? 'In use' : 'Use'}
           </button>
         </div>
@@ -523,14 +570,14 @@ function GatewayTab({ pp, run, lock }) {
 
   // The money was returned by hand: ask for a short note, mark it, reload.
   const handle = async (u) => {
-    const note = window.prompt('Note (how it was returned)', '');
+    const note = await askText('Mark this payment as handled?', { label: 'Note (how it was returned)', maxLength: 80, ok: 'Handled' });
     if (note === null) return;
     setBusy(true);
     try {
       const r = await call('POST', '/api/admin/gateway', { network: u.network, txid: u.txid, vout: u.vout, note });
-      if (!r.ok) window.alert(r.error || 'Could not save.');
+      if (!r.ok) await tell(r.error || 'Could not save.');
     } catch {
-      window.alert('No connection. Try again.');
+      await tell('No connection. Try again.');
     }
     await load();
   };
@@ -794,9 +841,9 @@ export default function Admin() {
               <button
                 className="btn"
                 disabled={busy}
-                onClick={() => {
+                onClick={async () => {
                   const toReal = charts.mock;
-                  if (toReal && !charts.feed.samples && !window.confirm('No samples have come in from the halls yet, so the charts will say "No data yet". Switch anyway?')) return;
+                  if (toReal && !charts.feed.samples && !(await ask('No samples have come in from the halls yet, so the charts will say "No data yet". Switch anyway?', { ok: 'Switch' }))) return;
                   run({ action: 'charts-mock', mode: toReal ? 'real' : 'mock' }, toReal ? 'Charts now show real data' : 'Charts now show mock data');
                 }}
               >
@@ -815,8 +862,8 @@ export default function Admin() {
               <button
                 className="btn"
                 disabled={busy}
-                onClick={() => {
-                  if (!window.confirm('Wipe the demo account? Its miners, activity, balance and test friends are deleted. This cannot be undone.')) return;
+                onClick={async () => {
+                  if (!(await ask('Wipe the demo account? Its miners, activity, balance and test friends are deleted. This cannot be undone.', { ok: 'Wipe', danger: true }))) return;
                   run({ action: 'demo-reset' }, (r) => `Demo account cleaned · ${r.miners} miner${r.miners === 1 ? '' : 's'} removed`);
                 }}
               >
@@ -925,7 +972,7 @@ export default function Admin() {
                       className="btn"
                       disabled={busy || !adj.amount.trim() || !adj.note.trim() || (adj.op === 'subtract' && adjBtc(adj, rate?.btc) > u.available)}
                       onClick={async () => {
-                        if (!window.confirm(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} ${adj.cur === 'usd' ? `USD (about ${adjBtc(adj, rate?.btc).toFixed(8)} BTC)` : 'BTC'} ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`)) return;
+                        if (!(await ask(`${adj.op === 'add' ? 'Add' : 'Take'} ${adj.amount.trim()} ${adj.cur === 'usd' ? `USD (about ${adjBtc(adj, rate?.btc).toFixed(8)} BTC)` : 'BTC'} ${adj.op === 'add' ? 'to' : 'from'} ${u.id}?`, { ok: 'Apply' }))) return;
                         const amountField = adj.cur === 'usd' ? { amountUsd: adj.amount } : { amountBtc: adj.amount };
                         if (await run({ action: 'balance', userId: u.id, op: adj.op, ...amountField, note: adj.note }, (r) => `Balance updated · ${adj.op === 'add' ? '+' : '-'}${r.btc.toFixed(8)} BTC`)) setAdj(ADJ0);
                       }}
@@ -955,7 +1002,7 @@ export default function Admin() {
                   )}
                   <p className="fine" style={{ margin: '4px 0 0' }}>Photos are not stored yet, so this review uses the details only.</p>
                   <div className="adm-actions">
-                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Reject verification for ${u.id}?`) && run({ action: 'kyc', userId: u.id, decision: 'reject' }, 'Rejected')}>Reject</button>
+                    <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Reject verification for ${u.id}?`, { ok: 'Reject', danger: true }).then((yes) => yes && run({ action: 'kyc', userId: u.id, decision: 'reject' }, 'Rejected'))}>Reject</button>
                     <button className="btn" disabled={busy} onClick={() => run({ action: 'kyc', userId: u.id, decision: 'approve' }, 'Approved')}>Approve</button>
                   </div>
                 </>
@@ -968,7 +1015,7 @@ export default function Admin() {
                     className="swap danger"
                     style={SM}
                     disabled={busy}
-                    onClick={() => window.confirm(`Remove all ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} from ${u.id}? This cannot be undone.`) && run({ action: 'miners-clear', userId: u.id }, (r) => `${r.removed} removed`)}
+                    onClick={() => ask(`Remove all ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} from ${u.id}? This cannot be undone.`, { ok: 'Remove all', danger: true }).then((yes) => yes && run({ action: 'miners-clear', userId: u.id }, (r) => `${r.removed} removed`))}
                   >
                     Remove all
                   </button>
@@ -988,10 +1035,10 @@ export default function Admin() {
                     <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'miner', userId: u.id, serial: m.serial, op: m.online ? 'offline' : 'online' }, m.online ? 'Set offline' : 'Set online')}>
                       {m.online ? 'Offline' : 'Online'}
                     </button>
-                    <button className="btn ghost" disabled={busy} onClick={() => window.confirm(`Refund ${m.serial}? The miner is removed and its price goes back to the balance. Only allowed within 24 hours, before the first payout day.`) && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'refund' }, (r) => `Refunded ${r.btc.toFixed(8)} BTC ($${r.usd.toFixed(2)})`)}>
+                    <button className="btn ghost" disabled={busy} onClick={() => ask(`Refund ${m.serial}? The miner is removed and its price goes back to the balance. Only allowed within 24 hours, before the first payout day.`, { ok: 'Refund' }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'refund' }, (r) => `Refunded ${r.btc.toFixed(8)} BTC ($${r.usd.toFixed(2)})`))}>
                       Refund
                     </button>
-                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Remove ${m.serial}? This cannot be undone.`) && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'delete' }, 'Miner removed')}>
+                    <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Remove ${m.serial}? This cannot be undone.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'delete' }, 'Miner removed'))}>
                       Remove
                     </button>
                   </div>
@@ -1021,8 +1068,8 @@ export default function Admin() {
               {o.invoiceId && <div className="row"><span className="mute">Invoice</span><b className="serial">{o.invoiceId}</b></div>}
               {(o.status === 'review' || o.status === 'pending') && (
                 <div className="adm-actions">
-                  <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Close this order for ${o.userId}?`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Order closed')}>Close</button>
-                  <button className="btn" disabled={busy} onClick={() => window.confirm(`Start the miner for ${o.userId}? Only do this once you have checked the payment with the payment provider (or on the blockchain).`) && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`)}>Start miner</button>
+                  <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Close this order for ${o.userId}?`, { ok: 'Close', danger: true }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Order closed'))}>Close</button>
+                  <button className="btn" disabled={busy} onClick={() => ask(`Start the miner for ${o.userId}? Only do this once you have checked the payment with the payment provider (or on the blockchain).`, { ok: 'Start miner' }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`))}>Start miner</button>
                 </div>
               )}
             </div>
@@ -1051,19 +1098,19 @@ export default function Admin() {
                 {w.txid && <div className="row"><span className="mute">Transaction</span><b className="serial" style={{ wordBreak: 'break-all', textAlign: 'right' }}>{w.txid}</b></div>}
                 {w.status === 'pending' && (
                   <div className="adm-actions">
-                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Reject this withdrawal for ${w.userId}? The amount goes back to their balance.`) && act('reject', 'Rejected and refunded')}>Reject</button>
-                    <button className="btn" disabled={busy} onClick={() => window.confirm(`Approve ${w.amount} ${String(w.asset).toUpperCase()} to ${w.address}?`) && act('approve', 'Approved')}>Approve</button>
+                    <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Reject this withdrawal for ${w.userId}? The amount goes back to their balance.`, { ok: 'Reject', danger: true }).then((yes) => yes && act('reject', 'Rejected and refunded'))}>Reject</button>
+                    <button className="btn" disabled={busy} onClick={() => ask(`Approve ${w.amount} ${String(w.asset).toUpperCase()} to ${w.address}?`, { ok: 'Approve' }).then((yes) => yes && act('approve', 'Approved'))}>Approve</button>
                   </div>
                 )}
                 {w.status === 'approved' && (
                   <div className="adm-actions">
-                    <button className="btn ghost danger" disabled={busy} onClick={() => window.confirm(`Mark as failed? The amount goes back to ${w.userId}'s balance.`) && act('fail', 'Marked failed and refunded')}>Failed</button>
+                    <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Mark as failed? The amount goes back to ${w.userId}'s balance.`, { ok: 'Mark failed', danger: true }).then((yes) => yes && act('fail', 'Marked failed and refunded'))}>Failed</button>
                     <button
                       className="btn"
                       disabled={busy}
-                      onClick={() => {
-                        const txid = window.prompt('Paste the transaction id of the payout you made:');
-                        if (txid && txid.trim()) act('sent', 'Marked as sent', txid.trim());
+                      onClick={async () => {
+                        const txid = await askText('Mark this withdrawal as sent?', { label: 'Transaction id of your payout', ok: 'Mark sent', required: true });
+                        if (txid) act('sent', 'Marked as sent', txid);
                       }}
                     >
                       Mark sent
@@ -1099,7 +1146,7 @@ export default function Admin() {
                     onSave={saveHall}
                     onCancel={() => setEdit(null)}
                     onDelete={async () => {
-                      if (window.confirm(`Delete ${h.name}? This only works when no miner uses it.`) && (await run({ action: 'hall-delete', id }, 'Hall deleted'))) setEdit(null);
+                      if ((await ask(`Delete ${h.name}? This only works when no miner uses it.`, { ok: 'Delete', danger: true })) && (await run({ action: 'hall-delete', id }, 'Hall deleted'))) setEdit(null);
                     }}
                   />
                 </div>
@@ -1144,7 +1191,7 @@ export default function Admin() {
               className="btn ghost"
               disabled={busy}
               onClick={async () => {
-                if (window.confirm('Reset the Smart Mining halls to the built-in details?') && (await run({ action: 'smart-halls-reset' }, 'Smart halls reset'))) setEdit(null);
+                if ((await ask('Reset the Smart Mining halls to the built-in details?', { ok: 'Reset' })) && (await run({ action: 'smart-halls-reset' }, 'Smart halls reset'))) setEdit(null);
               }}
             >
               Reset Smart halls
@@ -1155,7 +1202,7 @@ export default function Admin() {
             className="btn ghost danger"
             disabled={busy}
             onClick={async () => {
-              if (window.confirm('Reset the halls to the built-in defaults? Hall rates of existing miners follow the defaults again.') && (await run({ action: 'catalog-reset' }, 'Reset to defaults'))) setEdit(null);
+              if ((await ask('Reset the halls to the built-in defaults? Hall rates of existing miners follow the defaults again.', { ok: 'Reset', danger: true })) && (await run({ action: 'catalog-reset' }, 'Reset to defaults'))) setEdit(null);
             }}
           >
             Reset to defaults
@@ -1247,6 +1294,7 @@ export default function Admin() {
           </button>
         </div>
       )}
+      <AskHost />
       {toast}
     </>
   );
