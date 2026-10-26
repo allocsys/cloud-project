@@ -9,12 +9,15 @@
 //  - evmExplorer() refuses to answer while the scanner is stale or far behind: an empty answer from a sleeping scanner would expire invoices.
 //  - Only plain transfers TO the address are seen. Transfers made inside a contract call (internal transfers) are not.
 //  - Several replicas may run this: a per-network advisory lock lets only one scan at a time, and every write is idempotent.
+//  - Idle: while the network has no open invoice (or is paused) startScanner() makes no node calls at all. When an invoice opens, wake() moves a
+//    cursor older than the catch-up window forward, so a long sleep never means reading every block it missed (default 6 hours back).
+//    Payments older than that are not tracked.
 import { q, tx } from './db.js';
 import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { EVM, evmAddress } from './chains/evm.js';
 import { ExplorerError } from './explorer.js';
-import { isPaused } from './pause.js';
+import { isPaused, hasOpenInvoices } from './pause.js';
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -161,6 +164,36 @@ export function evmScanner({ network, native, tokens = {}, address, rpc, confirm
     return out;
   }
 
+  // Called when the scanner goes from idle to active. A cursor read within windowMs is kept (scanOnce reads on from it). A cursor that is
+  // older, or missing, jumps to the block windowMs ago: the block time is measured from the chain itself (the last 1000 blocks).
+  async function wake(windowMs) {
+    return tx(async (c) => {
+      const lock = await c.query('SELECT pg_try_advisory_xact_lock(hashtext($1)) AS ok', [`scan:${network}`]);
+      if (!lock.rows[0].ok) return { skipped: true };
+      const cur = (await c.query('SELECT (EXTRACT(EPOCH FROM now() - updated_at) * 1000)::bigint AS age_ms FROM chain_cursors WHERE network = $1', [network])).rows[0];
+      if (cur && Number(cur.age_ms) <= windowMs) return { kept: true };
+      const tip = num(await rpc.call('eth_blockNumber'), 'block number');
+      const span = Math.min(tip, 1000);
+      if (span < 1) throw bad('block');
+      const [old, now] = await rpc.batch([
+        { method: 'eth_getBlockByNumber', params: [hex(tip - span), false] },
+        { method: 'eth_getBlockByNumber', params: [hex(tip), false] },
+      ]);
+      if (!old || !now) throw bad('block');
+      const secs = num(now.timestamp, 'block') - num(old.timestamp, 'block');
+      if (!(secs > 0)) throw bad('block');
+      const back = Math.min(200_000, Math.ceil(((windowMs / 1000) * span) / secs));
+      const start = Math.max(0, tip - back);
+      const [b] = await blocks(start, start, false);
+      await c.query(
+        `INSERT INTO chain_cursors (network, height, hash, tip) VALUES ($1, $2, $3, $4)
+         ON CONFLICT (network) DO UPDATE SET height = EXCLUDED.height, hash = EXCLUDED.hash, tip = EXCLUDED.tip, updated_at = now()`,
+        [network, b.number, b.hash, tip],
+      );
+      return { jumped: true, from: b.number, tip };
+    });
+  }
+
   // One step. Returns { skipped | started | reorg | scanned, found, more }.
   async function scanOnce() {
     return tx(async (c) => {
@@ -208,19 +241,22 @@ export function evmScanner({ network, native, tokens = {}, address, rpc, confirm
     });
   }
 
-  return { network, scanOnce };
+  return { network, scanOnce, wake };
 }
 
 // What the watcher asks: every payment seen to this address, with confirmations counted from the last block the scanner read.
+// A scanner that is not ready yet (waking from idle, catching up) is not a sick node: the watcher sees catchingUp and does not back off.
+const waiting = (msg) => Object.assign(new ExplorerError(msg), { catchingUp: true });
+
 export function evmExplorer({ network, maxLagBlocks, staleMs = 300_000 }) {
   async function addressPayments(address) {
     const cur = (
       await q('SELECT height, tip, (EXTRACT(EPOCH FROM now() - updated_at) * 1000)::bigint AS age_ms FROM chain_cursors WHERE network = $1', [network])
     ).rows[0];
-    if (!cur) throw new ExplorerError('the chain scanner has not started yet');
-    if (Number(cur.age_ms) > staleMs) throw new ExplorerError('the chain scanner is not keeping up');
+    if (!cur) throw waiting('the chain scanner has not started yet');
+    if (Number(cur.age_ms) > staleMs) throw waiting('the chain scanner is not keeping up');
     const height = Number(cur.height);
-    if (Number(cur.tip) - height > maxLagBlocks) throw new ExplorerError('the chain scanner is behind');
+    if (Number(cur.tip) - height > maxLagBlocks) throw waiting('the chain scanner is behind');
     const rows = (
       await q(
         `SELECT txid, vout, asset, amount_atomic::text AS amount, block_height FROM observed_txs
@@ -243,11 +279,12 @@ export function evmExplorer({ network, maxLagBlocks, staleMs = 300_000 }) {
 
 // One independent loop per scanner. A failure backs off (up to a minute) without slowing the other chains.
 // While a scan hit its block cap it runs again after a second, to catch up.
-export function startScanner(scanner, { intervalMs, log = console }) {
+export function startScanner(scanner, { intervalMs, catchupMs = 6 * 3_600_000, log = console }) {
   let stopped = false;
   let timer = null;
   let running = Promise.resolve();
   let failed = 0;
+  let awake = false; // false while idle: nothing on this network needs watching, so no node calls
 
   async function tick() {
     let delay = intervalMs;
@@ -255,8 +292,19 @@ export function startScanner(scanner, { intervalMs, log = console }) {
       try {
         // Paused from the admin screen: no node calls at all, only a cheap look at the flag now and then.
         if (await isPaused(scanner.network)) {
+          awake = false;
           delay = Math.max(intervalMs, 15_000);
           return;
+        }
+        // Idle: no open invoice here, so nothing to find. Only a cheap database look every interval.
+        if (!(await hasOpenInvoices(scanner.network))) {
+          awake = false;
+          return;
+        }
+        if (!awake) {
+          const w = await scanner.wake(catchupMs);
+          awake = true;
+          note(log, 'info', 'scanner.wake', { network: scanner.network, ...w });
         }
         const r = await scanner.scanOnce();
         failed = 0;
