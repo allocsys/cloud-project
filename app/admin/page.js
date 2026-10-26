@@ -898,8 +898,30 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
       />
+
+      {tab === 'boosts' && (
+        <div className="adm-stack">
+          {(data.boosts || []).length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No boosts running.</p>}
+          {(data.boosts || []).map((b) => (
+            <div className="card" key={b.id}>
+              <div className="row">
+                <div>
+                  {b.userId}
+                  <small>${b.price} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
+                </div>
+                <b>{b.win ? (b.forced ? 'Win set' : 'Wins') : 'No win'}</b>
+              </div>
+              {!b.win && (
+                <div className="adm-actions">
+                  <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-win', userId: b.userId, id: b.id }, 'Boost will win')}>Make it win</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
 
       {tab === 'settings' && (
         <div className="adm-stack">
