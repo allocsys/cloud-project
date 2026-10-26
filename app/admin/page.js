@@ -1,5 +1,5 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { fmtTh, fmtUsd } from '@/lib/data';
 import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
@@ -428,7 +428,30 @@ function Login({ onDone, setup }) {
   );
 }
 
-// Gateway tab: a read-only view of the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
+// Section tabs: one scrolling row of pills. The open one slides to the middle. items: [key, label, badge?].
+function Tabs({ items, value, onPick }) {
+  const box = useRef(null);
+  useEffect(() => {
+    const b = box.current;
+    const el = b?.querySelector('[aria-pressed=true]');
+    if (b && el) b.scrollTo({ left: el.offsetLeft - (b.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' });
+  }, [value]);
+  return (
+    <div className="adm-tabs" role="group" aria-label="Admin sections" ref={box}>
+      {items.map(([k, l, n]) => (
+        <button key={k} aria-pressed={value === k} onClick={() => onPick(k)}>
+          {l}
+          {n > 0 && <b>{n}</b>}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+// Small status label: tone is ok (green), warn (gold), bad (red) or empty (grey).
+const Pill = ({ tone, children }) => <span className={`adm-pill${tone ? ` ${tone}` : ''}`}>{children}</span>;
+
+// Gateway tab: the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
 const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana' };
 const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
 const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s || '');
@@ -546,7 +569,7 @@ function GatewayTab({ pp, run, lock }) {
               <small>{trimAmount(i.expected) || '?'} expected{i.received && Number(i.received) > 0 ? ` · ${trimAmount(i.received)} paid` : ''} · {when(i.created_at)}</small>
               <small className="serial">{shortId(i.ref)}</small>
             </div>
-            <b className={i.status === 'paid' ? 'up' : undefined}>{INV[i.status] || i.status}</b>
+            <Pill tone={i.status === 'paid' ? 'ok' : i.status === 'confirming' || i.status === 'partial' ? 'warn' : i.status === 'failed' ? 'bad' : ''}>{INV[i.status] || i.status}</Pill>
           </div>
         ))}
       </div>
@@ -720,11 +743,11 @@ export default function Admin() {
         <button className="swap" style={SM} onClick={signOut}>Sign out</button>
       </div>
 
-      <div className="tabs" role="group" aria-label="Admin sections">
-        {[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway'], ['settings', 'Settings']].map(([k, l]) => (
-          <button key={k} aria-pressed={tab === k} onClick={() => setTab(k)}>{k === 'orders' && stats.ordersReview > 0 ? `${l} · ${stats.ordersReview}` : k === 'withdrawals' && stats.withdrawalsOpen > 0 ? `${l} · ${stats.withdrawalsOpen}` : l}</button>
-        ))}
-      </div>
+      <Tabs
+        value={tab}
+        onPick={setTab}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway'], ['settings', 'Settings']]}
+      />
 
       {tab === 'settings' && (
         <div className="adm-stack">
@@ -754,37 +777,6 @@ export default function Admin() {
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
           <GuardCard guard={data.guard} busy={busy} run={run} />
-        </div>
-      )}
-
-      {tab === 'overview' && (
-        <div className="adm-stack">
-          <div className="stats">
-            <Stat l="Users" v={stats.users} s={stats.truncated ? `first ${stats.loaded} shown` : undefined} />
-            <Stat l="Miners" v={`${stats.online}/${stats.miners}`} s="online" />
-            <Stat l="Hash power" v={fmtTh(stats.th)} s="TH/s" />
-          </div>
-          <div className="stats">
-            <Stat l="Daily payouts" v={`$${stats.dailyUsd.toFixed(2)}`} />
-            <Stat l="Withdrawn" v={stats.withdrawnBtc.toFixed(4)} s="BTC" />
-            <Stat l="KYC pending" v={stats.kycPending} />
-          </div>
-          {stats.withdrawalsOpen > 0 && (
-            <button className="card adm-click" onClick={() => setTab('withdrawals')}>
-              <b style={{ color: 'var(--gold)' }}>{stats.withdrawalsOpen} withdrawal{stats.withdrawalsOpen === 1 ? '' : 's'} to handle</b>
-            </button>
-          )}
-          {stats.ordersReview > 0 && (
-            <button className="card adm-click" onClick={() => setTab('orders')}>
-              <b style={{ color: 'var(--gold)' }}>{stats.ordersReview} order{stats.ordersReview === 1 ? '' : 's'} need a check</b>
-            </button>
-          )}
-          <div className="card">
-            <h3>System</h3>
-            <div className="row"><span className="mute">Storage</span><b>{mode}</b></div>
-            <div className="row"><span className="mute">BTC fallback price</span><b>${btcUsd.toLocaleString()}</b></div>
-            <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{formatSerial(serial)}</b></div>
-          </div>
           <div className="card">
             <h3>Demo account</h3>
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
@@ -810,6 +802,39 @@ export default function Admin() {
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Other signed-in browsers are signed out.</p>
           </div>
+        </div>
+      )}
+
+      {tab === 'overview' && (
+        <div className="adm-stack">
+          <div className="stats">
+            <Stat l="Users" v={stats.users} s={stats.truncated ? `first ${stats.loaded} shown` : undefined} />
+            <Stat l="Miners" v={`${stats.online}/${stats.miners}`} s="online" />
+            <Stat l="Hash power" v={fmtTh(stats.th)} s="TH/s" />
+          </div>
+          <div className="stats">
+            <Stat l="Daily payouts" v={`$${stats.dailyUsd.toFixed(2)}`} />
+            <Stat l="Withdrawn" v={stats.withdrawnBtc.toFixed(4)} s="BTC" />
+            <Stat l="KYC pending" v={stats.kycPending} />
+          </div>
+          {stats.withdrawalsOpen > 0 && (
+            <button className="card adm-alert" onClick={() => setTab('withdrawals')}>
+              <b>{stats.withdrawalsOpen} withdrawal{stats.withdrawalsOpen === 1 ? '' : 's'} to handle</b>
+              <span className="mute">Open ›</span>
+            </button>
+          )}
+          {stats.ordersReview > 0 && (
+            <button className="card adm-alert" onClick={() => setTab('orders')}>
+              <b>{stats.ordersReview} order{stats.ordersReview === 1 ? '' : 's'} need a check</b>
+              <span className="mute">Open ›</span>
+            </button>
+          )}
+          <div className="card">
+            <h3>System</h3>
+            <div className="row"><span className="mute">Storage</span><b>{mode}</b></div>
+            <div className="row"><span className="mute">BTC fallback price</span><b>${btcUsd.toLocaleString()}</b></div>
+            <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{formatSerial(serial)}</b></div>
+          </div>
           <div className="card">
             <h3>Recent changes</h3>
             {log.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
@@ -829,7 +854,7 @@ export default function Admin() {
             <div className="card" key={u.id}>
               <div className="cardhead">
                 <h3>{u.id}</h3>
-                <span className={u.kyc.status === 'verified' ? 'up' : 'mute'}>{KYC[u.kyc.status] || u.kyc.status}</span>
+                <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
               </div>
               <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
@@ -943,7 +968,7 @@ export default function Admin() {
             <div className="card" key={o.id}>
               <div className="cardhead">
                 <h3>{o.label} · ${o.usd}</h3>
-                <span className={o.status === 'paid' ? 'up' : o.status === 'review' ? '' : 'mute'} style={o.status === 'review' ? { color: 'var(--gold)' } : undefined}>{ORDER[o.status] || o.status}</span>
+                <Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>
               </div>
               <div className="row"><span className="mute">User</span><b>{o.userId}</b></div>
               <div className="row"><span className="mute">Created</span><b>{when(o.at)}</b></div>
@@ -971,7 +996,7 @@ export default function Admin() {
               <div className="card" key={w.id}>
                 <div className="cardhead">
                   <h3>{w.amount} {String(w.asset).toUpperCase()}</h3>
-                  <span className={w.status === 'sent' ? 'up' : open ? '' : 'mute'} style={open ? { color: 'var(--gold)' } : undefined}>{WD[w.status] || w.status}</span>
+                  <Pill tone={w.status === 'sent' ? 'ok' : open ? 'warn' : 'bad'}>{WD[w.status] || w.status}</Pill>
                 </div>
                 <div className="row"><span className="mute">User</span><b>{w.userId}</b></div>
                 <div className="row"><span className="mute">Network</span><b>{String(w.net).toUpperCase()}</b></div>
