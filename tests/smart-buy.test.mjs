@@ -104,12 +104,12 @@ test('the admin switch turns Smart Mining off for new purchases and back on', as
 test('a new pay table applies to purchases made afterwards and each miner keeps its own', async () => {
   const id = await account('payout');
   await credit(id, 1);
-  const flatTable = { rates: SMART_RATES.map(() => 0.004), bonus: { 120: 0.0005, 150: 0.001 } };
+  const flatTable = { rates: SMART_RATES.map(() => 0.004), bonus: { 120: 0.0005, 150: 0.001, 180: 0.0015 } };
   try {
     const first = await buy(id, { budget: 100, days: 120 });
     assert.equal(first.ok, true);
     assert.equal((await act({ action: 'smart-settings', enabled: true, ...flatTable })).ok, true);
-    assert.deepEqual((await smartSettings()).table, { rates: flatTable.rates, bonus: { 90: 0, 120: 0.0005, 150: 0.001 } });
+    assert.deepEqual((await smartSettings()).table, { rates: flatTable.rates, bonus: { 90: 0, 120: 0.0005, 150: 0.001, 180: 0.0015 } });
     const second = await buy(id, { budget: 100, days: 120 });
     assert.equal(second.ok, true);
     const was = smartBaseYield(120, smartPayout(100, 120));
@@ -119,7 +119,7 @@ test('a new pay table applies to purchases made afterwards and each miner keeps 
     const u = await getUser(id);
     assert.ok(Math.abs(u.contracts[0].baseYield - was) < 1e-12);
   } finally {
-    await act({ action: 'smart-settings', enabled: true, rates: SMART_RATES, bonus: { 120: SMART_BONUS[120], 150: SMART_BONUS[150] } });
+    await act({ action: 'smart-settings', enabled: true, rates: SMART_RATES, bonus: { 120: SMART_BONUS[120], 150: SMART_BONUS[150], 180: SMART_BONUS[180] } });
   }
 });
 
@@ -131,9 +131,11 @@ test('a pay table outside the allowed range is refused and nothing changes', asy
     { rates: [...SMART_RATES.slice(0, 9), 'x'] },
     { rates: [...SMART_RATES.slice(0, 9), ''] },
     { rates: 'x' },
-    { bonus: { 120: 0.5, 150: 0 } },
-    { bonus: { 120: 0, 150: -0.001 } },
-    { bonus: { 120: 'x', 150: 0 } },
+    { bonus: { 120: 0.5, 150: 0, 180: 0 } },
+    { bonus: { 120: 0, 150: -0.001, 180: 0 } },
+    { bonus: { 120: 'x', 150: 0, 180: 0 } },
+    { bonus: { 120: 0, 150: 0, 180: -0.001 } },
+    { bonus: { 120: 0, 150: 0 } },
   ];
   for (const body of bad) {
     const r = await act({ action: 'smart-settings', enabled: true, ...body });
