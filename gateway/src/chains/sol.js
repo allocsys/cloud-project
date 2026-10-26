@@ -1,6 +1,6 @@
 // Solana: native SOL plus USDC and USDT (SPL tokens) to ONE fixed receiving address (PAY_ADDR_SOL), invoices told apart by exact amount.
 // Detection lives in ../sol-explorer.js. SOL has 9 decimals (lamports); the tokens have 6.
-// Mints: USDC from Circle's list. VERIFY the USDT mint on tether.to/en/supported-protocols before going live.
+// Mints, checked 26 Oct 2026: USDC against Circle's list, USDT against tether.to/en/supported-protocols. Both match.
 import { base58 } from '@scure/base';
 import { config } from '../config.js';
 
