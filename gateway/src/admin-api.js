@@ -52,8 +52,8 @@ export async function handleUnmatched(input) {
 }
 
 // Pauses or resumes one network. A paused network refuses new invoices, the watcher skips it and its block scanner stops calling the node.
-// Pausing is refused while invoices are open on it (nothing would check them). Resuming drops the scanner cursor, so the scanner starts
-// again from the current block instead of reading every block it missed (payments sent while paused are not tracked).
+// Pausing is refused while invoices are open on it (nothing would check them). Resuming changes nothing else: when an invoice opens the
+// scanner wakes and reads back at most EVM_CATCHUP_HOURS (payments older than that are not tracked).
 // The exclusive lock pairs with the shared lock createInvoice() takes, so an invoice cannot slip in while the network is pausing.
 export async function setNetworkPaused(input) {
   const network = typeof input?.network === 'string' ? input.network : '';
@@ -64,12 +64,20 @@ export async function setNetworkPaused(input) {
     const was = (await c.query('SELECT 1 FROM paused_networks WHERE network = $1', [network])).rows.length > 0;
     if (paused === was) return { paused, already: true };
     if (paused) {
-      const open = Number((await c.query("SELECT count(*) AS n FROM invoices WHERE network = $1 AND status IN ('pending', 'confirming', 'partial')", [network])).rows[0].n);
+      const open = Number(
+        (
+          await c.query(
+            `SELECT count(*) AS n FROM invoices i
+             WHERE i.kind = 'order' AND i.network = $1 AND i.status IN ('pending', 'confirming', 'partial')
+               AND NOT EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)`,
+            [network],
+          )
+        ).rows[0].n,
+      );
       if (open > 0) throw new ApiError(409, `${open} open invoice${open === 1 ? '' : 's'} on this network. Wait until ${open === 1 ? 'it is' : 'they are'} paid or expired.`);
       await c.query('INSERT INTO paused_networks (network) VALUES ($1)', [network]);
     } else {
       await c.query('DELETE FROM paused_networks WHERE network = $1', [network]);
-      await c.query('DELETE FROM chain_cursors WHERE network = $1', [network]);
     }
     await c.query("INSERT INTO audit_log (actor, action, subject) VALUES ('admin', $1, $2)", [paused ? 'network.pause' : 'network.resume', network]);
     return { paused, already: false };
@@ -98,7 +106,12 @@ export async function adminOverview() {
     ),
     q('SELECT at, actor, action, subject FROM audit_log ORDER BY id DESC LIMIT 20'),
     q('SELECT network FROM paused_networks'),
-    q("SELECT network, count(*)::int AS n FROM invoices WHERE status IN ('pending', 'confirming', 'partial') GROUP BY network"),
+    q(
+      `SELECT network, count(*)::int AS n FROM invoices i
+       WHERE i.kind = 'order' AND i.status IN ('pending', 'confirming', 'partial')
+         AND NOT EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)
+       GROUP BY network`,
+    ),
   ]);
   return {
     now: new Date().toISOString(),
