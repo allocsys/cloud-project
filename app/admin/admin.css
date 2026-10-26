@@ -44,3 +44,4 @@
 .adm-fh i { flex: none; width: 8px; height: 8px; margin: 0 4px 2px 0; border-right: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(45deg); transition: transform 0.2s; }
 .adm-fold[data-open=true] .adm-fh i { transform: translateY(3px) rotate(-135deg); }
 .adm-fb { padding: 0 14px 14px; }
+.adm-filter { justify-self: start; }
