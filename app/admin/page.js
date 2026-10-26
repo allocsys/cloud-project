@@ -57,8 +57,7 @@ function SmartCard({ smart, busy, run }) {
   const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
   const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150) } }, 'Smart Mining pay table saved');
   return (
-    <div className="card">
-      <h3>Smart Mining</h3>
+    <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'}>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
       <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
       {SMART_BUDGETS.map((b, i) => (
@@ -101,7 +100,7 @@ function SmartCard({ smart, busy, run }) {
         </div>
       ))}
       <p className="fine" style={{ margin: '8px 0 0' }}>A tick means the coin is locked in for that finished day. Today is still moving, so the coin shown is only the one in the lead.</p>
-    </div>
+    </Fold>
   );
 }
 
@@ -158,8 +157,7 @@ function GuardCard({ guard, busy, run }) {
   const lastText = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'never');
   const daysText = (list) => (list && list.length ? list.map(lastText).join(', ') : 'none');
   return (
-    <div className="card">
-      <h3>Profit guard</h3>
+    <Fold title="Profit guard" sub={(guard.scopes || []).some((sc) => sc.pausedToday) ? `${(guard.scopes || []).filter((sc) => sc.pausedToday).length} paused today` : 'All running'}>
       <p className="fine" style={{ margin: '0 0 4px' }}>Switches a hall off for a whole UTC day when that day would not be profitable. A paused day pays nothing. Each day is decided once it is over, from its final market, and then never changes.</p>
       <Pick id="gpa" label="ASICs: automatic guard" value={d.asicsAuto ? 'on' : 'off'} onChange={(v) => put('asicsAuto', v === 'on')}>
         <option value="on">On</option>
@@ -216,7 +214,7 @@ function GuardCard({ guard, busy, run }) {
           </div>
         </div>
       ))}
-    </div>
+    </Fold>
   );
 }
 
@@ -228,8 +226,7 @@ function FirstBonusCard({ fb, busy, run }) {
   const [d, setD] = useState(() => fbDraft(s));
   useEffect(() => setD(fbDraft(JSON.parse(key))), [key]);
   return (
-    <div className="card">
-      <h3>First-buy bonus</h3>
+    <Fold title="First-buy bonus" sub={s.enabled ? `On · ${s.pct}%` : 'Off'}>
       <div className="row"><span className="mute">Bonus</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
       <Field id="fbp" label="Bonus (% of the purchase)" inputMode="decimal" value={d.pct} onChange={(v) => setD({ ...d, pct: v })} />
       <Field id="fbt" label="Max bonus for ASICs (TH/s)" inputMode="decimal" value={d.capTh} onChange={(v) => setD({ ...d, capTh: v })} />
@@ -243,7 +240,7 @@ function FirstBonusCard({ fb, busy, run }) {
         </button>
       </div>
       <p className="fine" style={{ margin: '8px 0 0' }}>A user's first purchase paid with crypto gets extra hashrate for the whole term. ASICs get extra TH/s (the percent of the size, up to the TH/s cap). Smart Mining gets a higher profit rate by the same percent, up to the USD cap measured on the budget; the budget that comes back does not change. A first purchase paid from the balance gets nothing and uses up the chance. Not for renewals or admin grants. It applies to purchases made after saving, each miner keeps the bonus it started with.</p>
-    </div>
+    </Fold>
   );
 }
 
@@ -273,8 +270,7 @@ function BoostCard({ bs, busy, run }) {
     if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
-    <div className="card">
-      <h3>Boost tickets</h3>
+    <Fold title="Boost tickets" sub={s.enabled ? 'On' : 'Off'}>
       <div className="row"><span className="mute">Tickets</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
       {TICKETS.map((t) => {
         const x = pctOf(d.chance[t.id]);
@@ -303,6 +299,23 @@ function BoostCard({ bs, busy, run }) {
         </button>
       </div>
       <p className="fine" style={{ margin: '8px 0 0' }}>Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p>
+    </Fold>
+  );
+}
+
+// A card that stays closed until tapped: the title and a one-line summary show, the body opens below. Drafts live in the parent, so closing keeps them.
+function Fold({ title, sub, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="card adm-fold" data-open={open}>
+      <button type="button" className="adm-fh" aria-expanded={open} onClick={() => setOpen(!open)}>
+        <span>
+          <span className="adm-ft">{title}</span>
+          {sub && <small>{sub}</small>}
+        </span>
+        <i aria-hidden="true" />
+      </button>
+      {open && <div className="adm-fb">{children}</div>}
     </div>
   );
 }
@@ -751,8 +764,7 @@ export default function Admin() {
 
       {tab === 'settings' && (
         <div className="adm-stack">
-          <div className="card">
-            <h3>Hashrate and uptime charts</h3>
+          <Fold title="Hashrate and uptime charts" sub={charts.mock ? 'Mock data' : 'Real data'}>
             <div className="row"><span className="mute">Showing</span><b>{charts.mock ? 'Mock data' : 'Real data'}</b></div>
             <div className="row">
               <span className="mute">Hall feed</span>
@@ -772,13 +784,12 @@ export default function Admin() {
               </button>
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
-          </div>
+          </Fold>
           <SmartCard smart={data.smart} busy={busy} run={run} />
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
           <GuardCard guard={data.guard} busy={busy} run={run} />
-          <div className="card">
-            <h3>Demo account</h3>
+          <Fold title="Demo account" sub="Wipe to a clean slate">
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
             <div className="adm-actions">
               <button
@@ -792,16 +803,15 @@ export default function Admin() {
                 Clean up demo account
               </button>
             </div>
-          </div>
-          <div className="card">
-            <h3>Admin password</h3>
+          </Fold>
+          <Fold title="Admin password" sub="Change the sign-in password">
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
             <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
             <div className="adm-actions">
               <button className="btn" disabled={busy || !pw.cur || pw.next.length < 10} onClick={async () => (await run({ action: 'admin-password', current: pw.cur, next: pw.next }, 'Password changed')) && setPw({ cur: '', next: '' })}>Change password</button>
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Other signed-in browsers are signed out.</p>
-          </div>
+          </Fold>
         </div>
       )}
 
