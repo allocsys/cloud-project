@@ -334,7 +334,7 @@ function BoostCard({ bs, busy, run }) {
             </div>
             <Field id={`bc${t.id}`} label={`Real chance (%) for the $${t.price} ticket`} inputMode="decimal" value={d.chance[t.id]} onChange={(v) => type('chance', t.id, v)} />
             <Field id={`bs${t.id}`} label={`Shown chance (%) for the $${t.price} ticket, empty = same`} inputMode="decimal" value={d.shown[t.id]} onChange={(v) => type('shown', t.id, v)} />
-            {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the $${t.price} ticket loses money (each one costs more than it brings in).</p>}
+            {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the ${t.price} ticket loses money (each one costs more than it brings in).</p>}
           </div>
         );
       })}
