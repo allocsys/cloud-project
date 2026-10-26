@@ -14,6 +14,7 @@ import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { EVM, evmAddress } from './chains/evm.js';
 import { ExplorerError } from './explorer.js';
+import { isPaused } from './pause.js';
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -252,6 +253,11 @@ export function startScanner(scanner, { intervalMs, log = console }) {
     let delay = intervalMs;
     running = (async () => {
       try {
+        // Paused from the admin screen: no node calls at all, only a cheap look at the flag now and then.
+        if (await isPaused(scanner.network)) {
+          delay = Math.max(intervalMs, 15_000);
+          return;
+        }
         const r = await scanner.scanOnce();
         failed = 0;
         if (r.reorg) note(log, 'info', 'scanner.reorg', { network: scanner.network, height: r.height });
