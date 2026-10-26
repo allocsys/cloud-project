@@ -88,10 +88,10 @@ const REF_FIELDS = [
   ['maxCodes', 'Codes per user (with the default)'],
 ];
 
-// Smart Mining: sell on/off, the pay table for new purchases (ten rates by budget on a 90 day term, plus what 120 and 150 days add;
+// Smart Mining: sell on/off, the pay table for new purchases (ten rates by budget on a 90 day term, plus what 120, 150 and 180 days add;
 // shown in percent, stored as fractions), and which coins may be picked. See lib/server/smart-admin.js.
 const pctText = (p) => String(Math.round(p * 1e6) / 1e4);
-const draftOf = (t) => ({ rates: t.rates.map(pctText), b120: pctText(t.bonus[120]), b150: pctText(t.bonus[150]) });
+const draftOf = (t) => ({ rates: t.rates.map(pctText), b120: pctText(t.bonus[120]), b150: pctText(t.bonus[150]), b180: pctText(t.bonus[180]) });
 function SmartCard({ smart, busy, run }) {
   const set = smart?.settings || { enabled: true, table: SMART_TABLE };
   const table = set.table || SMART_TABLE;
@@ -102,7 +102,7 @@ function SmartCard({ smart, busy, run }) {
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
   const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
-  const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150) } }, 'Smart Mining pay table saved');
+  const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150), 180: asFraction(d.b180) } }, 'Smart Mining pay table saved');
   return (
     <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'} start>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
@@ -112,6 +112,7 @@ function SmartCard({ smart, busy, run }) {
       ))}
       <Field id="smb1" label="Added on 120 days (% a day)" inputMode="decimal" value={d.b120} onChange={(v) => setD({ ...d, b120: v })} />
       <Field id="smb2" label="Added on 150 days (% a day)" inputMode="decimal" value={d.b150} onChange={(v) => setD({ ...d, b150: v })} />
+      <Field id="smb3" label="Added on 180 days (% a day)" inputMode="decimal" value={d.b180} onChange={(v) => setD({ ...d, b180: v })} />
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save pay table</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
