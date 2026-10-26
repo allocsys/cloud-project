@@ -8,9 +8,9 @@ const { migrate } = await import('@/lib/server/migrate');
 const { ensureGuardDays, guardState, guardOverview, guardBacktest, saveGuardSettings, setGuardManual } = await import('@/lib/server/guard');
 const { isPaused } = await import('@/lib/guard');
 
-// The Smart scopes the default pay table gives: the plan that pauses first (90 days at 0.21%) and the one that pauses last (150 days at 0.42%).
+// The Smart scopes the default pay table gives: the plan that pauses first (90 days at 0.21%) and the one that pauses last (180 days at 0.43%).
 const FIRST = 'smart:90:210';
-const LAST = 'smart:150:420';
+const LAST = 'smart:180:430';
 
 const DAY = 86400000;
 const today = Math.floor(Date.now() / DAY) * DAY;
