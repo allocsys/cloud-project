@@ -22,7 +22,7 @@ export async function POST(req) {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  const { status, ...rest } = await signup(body);
+  const { status, ...rest } = await signup(body, clientIp(req));
   const res = NextResponse.json(rest, { status, headers: NO_STORE });
   if (rest.ok) {
     sendVerification(rest.id, BASE_URL, pickLang(req.cookies?.get(LANG_COOKIE)?.value)).catch(() => {}); // not awaited: sign-up never waits for the mail
