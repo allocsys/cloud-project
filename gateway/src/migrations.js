@@ -153,4 +153,15 @@ CREATE INDEX observed_txs_address_idx ON observed_txs (network, address, block_h
 ALTER TABLE unmatched_txs ADD COLUMN handled_at timestamptz, ADD COLUMN handled_note text;
 `,
   },
+  {
+    id: '006_paused_networks',
+    sql: `
+-- A network a person paused from the admin Gateway tab (not in use): no new invoices, no watching, no block scanning.
+-- A row means paused. Pausing is refused while invoices are open on the network (see admin-api.js setNetworkPaused).
+CREATE TABLE paused_networks (
+  network   text PRIMARY KEY,
+  paused_at timestamptz NOT NULL DEFAULT now()
+);
+`,
+  },
 ];
