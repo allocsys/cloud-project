@@ -45,7 +45,7 @@ function clean(t) {
   };
 }
 
-function payload(inv, status, confirmed) {
+export function payload(inv, status, confirmed) {
   const dec = CHAINS[inv.network].decimalsOf(inv.asset);
   return {
     order_id: inv.ref,
