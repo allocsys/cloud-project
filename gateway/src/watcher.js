@@ -5,6 +5,7 @@
 // After a tick with failures the delay doubles (up to 5 minutes) so a sick explorer is not hammered; a clean tick resets it.
 // Several replicas may run this at once: observe() locks the invoice row and is idempotent, so that is safe (just redundant).
 import { openInvoices, observe, paymentsFor, recordUnmatched } from './settle.js';
+import { pausedNetworks } from './pause.js';
 
 const note = (log, level, msg, data) => log[level](JSON.stringify({ level, msg, ...data }));
 
@@ -12,7 +13,9 @@ const note = (log, level, msg, data) => log[level](JSON.stringify({ level, msg, 
 export async function pollOnce({ explorers, now, log = console }) {
   const out = { checked: 0, failures: [], settled: [] };
   const groups = new Map();
+  const paused = await pausedNetworks(); // a paused network is not looked at (none should have open invoices; this is the safety net)
   for (const inv of await openInvoices()) {
+    if (paused.has(inv.network)) continue;
     const ex = Object.hasOwn(explorers, inv.network) ? explorers[inv.network] : null;
     if (!ex) continue;
     const key = `${inv.network}|${inv.address}`;
