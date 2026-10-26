@@ -584,7 +584,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
   const toggle = async (n) => {
     const name = NET[n.network] || n.network;
     const text = n.paused
-      ? `Resume ${name}? It takes new payments again and scanning starts from the current block.`
+      ? `Resume ${name}? It takes new payments again.`
       : `Pause ${name}? It takes no new payments and is not scanned. Payments sent to its address while paused may not be tracked.`;
     if (!(await ask(text, { ok: n.paused ? 'Resume' : 'Pause' }))) return;
     setBusy(true);
@@ -623,7 +623,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
         {g.networks.map((n) => {
           const s = g.scanners.find((x) => x.network === n.network);
           const lag = s ? Number(s.tip) - Number(s.height) : 0;
-          const stale = s && !n.paused ? s.age_s > 300 || lag > 150 : false;
+          const stale = s && !n.paused && n.open > 0 ? s.age_s > 300 || lag > 150 : false;
           return (
             <div className="row adm-m" key={n.network}>
               <div>
@@ -632,9 +632,9 @@ function GatewayTab({ pp, run, lock, g, reload }) {
                 {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
               </div>
               <div style={{ textAlign: 'right' }}>
-                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
-                {n.configured && s && !n.paused && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
-                {n.configured && !n.paused && n.open > 0 && <small>{n.open} open invoice{n.open === 1 ? '' : 's'}</small>}
+                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : n.open === 0 ? 'Idle' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
+                {n.configured && s && !n.paused && n.open > 0 && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
+                {n.configured && !n.paused && <small>{n.open > 0 ? `${n.open} open invoice${n.open === 1 ? '' : 's'}` : 'No open invoices'}</small>}
                 {n.configured && (
                   <button className="swap" style={{ ...SM, marginTop: 6 }} disabled={busy || lock || (!n.paused && n.open > 0)} onClick={() => toggle(n)}>
                     {n.paused ? 'Resume' : 'Pause'}
