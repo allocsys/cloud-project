@@ -9,6 +9,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { BTC_USD } from '@/lib/data';
 import { SMART, smartEstimate } from '@/lib/smart';
+import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { triggerHaptic } from '@/lib/haptics';
 import { AuthButton } from '@/components/AuthSheet';
 import { fill, useT } from '@/components/I18nProvider';
@@ -49,6 +50,7 @@ export default function Calculator({ signedIn = false }) {
   const best = cat?.smart || null;
 
   const [budget, setBudget] = useState('500'); // as typed
+  const [pos, setPos] = useState(posFromBudget(500)); // slider position 0 to 1000, the same curve as the Plans screen
   const [term, setTerm] = useState(120);
   const [note, setNote] = useState(false); // the fine print under the button
   const artRef = useRef(null);
@@ -108,23 +110,28 @@ export default function Calculator({ signedIn = false }) {
           </div>
           <input
             type="range"
-            min={SMART.min}
-            max={SMART.max}
-            step="50"
-            value={b}
+            min="0"
+            max="1000"
+            step="1"
+            value={pos}
             aria-label={t('calc.budgetAria')}
             aria-valuetext={t('calc.dollars', { n: b })}
-            style={{ '--p': `${((b - SMART.min) / (SMART.max - SMART.min)) * 100}%` }}
-            onChange={(e) => setBudget(e.target.value)}
+            style={{ '--p': `${pos / 10}%` }}
+            onChange={(e) => {
+              setPos(+e.target.value);
+              setBudget(String(budgetFromPos(e.target.value)));
+            }}
           />
           <div className="calc-ticks">
             {TICKS.map((v) => (
               <button
                 key={v}
                 type="button"
+                style={{ left: `${posFromBudget(v) / 10}%` }}
                 onClick={() => {
                   triggerHaptic('selection');
                   setBudget(String(v));
+                  setPos(posFromBudget(v));
                 }}
                 aria-label={t('calc.setBudget', { n: v })}
               >
