@@ -28,9 +28,9 @@ after(async () => {
   await pool().end();
 });
 
-test('the seeded coins are BTC (asic) and three gpu_cpu coins, all enabled', async () => {
+test('the seeded coins are BTC (asic) and four gpu_cpu coins, all enabled', async () => {
   const r = await q('SELECT symbol, kind, enabled FROM smart_coins ORDER BY sort');
-  assert.deepEqual(r.rows.map((x) => x.symbol), ['BTC', 'KAS', 'RVN', 'XMR']);
+  assert.deepEqual(r.rows.map((x) => x.symbol), ['BTC', 'KAS', 'RVN', 'XMR', 'ETC']);
   assert.equal(r.rows[0].kind, 'asic');
   assert.ok(r.rows.slice(1).every((x) => x.kind === 'gpu_cpu'));
   assert.ok(r.rows.every((x) => x.enabled));
