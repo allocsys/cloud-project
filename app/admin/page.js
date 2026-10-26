@@ -104,7 +104,7 @@ function SmartCard({ smart, busy, run }) {
   const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
   const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150) } }, 'Smart Mining pay table saved');
   return (
-    <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'}>
+    <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'} start>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
       <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
       {SMART_BUDGETS.map((b, i) => (
@@ -897,7 +897,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
       />
 
       {tab === 'settings' && (
@@ -923,7 +923,6 @@ export default function Admin() {
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </Fold>
-          <SmartCard smart={data.smart} busy={busy} run={run} />
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
           <GuardCard guard={data.guard} busy={busy} run={run} />
@@ -1277,6 +1276,12 @@ export default function Admin() {
           >
             Reset to defaults
           </button>
+        </div>
+      )}
+
+      {tab === 'smart' && (
+        <div className="adm-stack">
+          <SmartCard smart={data.smart} busy={busy} run={run} />
         </div>
       )}
 
