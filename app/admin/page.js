@@ -464,6 +464,16 @@ function Tabs({ items, value, onPick }) {
 // Small status label: tone is ok (green), warn (gold), bad (red) or empty (grey).
 const Pill = ({ tone, children }) => <span className={`adm-pill${tone ? ` ${tone}` : ''}`}>{children}</span>;
 
+// Open / All switch for a list of things to act on.
+function Filter({ value, onPick, open, all }) {
+  return (
+    <div className="minitabs adm-filter" role="group" aria-label="Filter">
+      <button aria-pressed={value === 'open'} onClick={() => onPick('open')}>Open · {open}</button>
+      <button aria-pressed={value === 'all'} onClick={() => onPick('all')}>All · {all}</button>
+    </div>
+  );
+}
+
 // Gateway tab: the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
 const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana' };
 const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
@@ -658,6 +668,7 @@ export default function Admin() {
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [uq, setUq] = useState(''); // user search text
   const [openU, setOpenU] = useState(null); // the user card that is open
+  const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -735,6 +746,11 @@ export default function Admin() {
   const sendDisabled = busy || !title.trim();
   const needle = uq.trim().toLowerCase();
   const shownUsers = needle ? users.filter((u) => String(u.id).toLowerCase().includes(needle)) : users;
+  const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
+  const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
+  const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
+  const shownOrders = flt === 'open' ? orders.filter(orderOpen) : [...orders].sort(openFirst(orderOpen));
+  const shownWds = flt === 'open' ? withdrawals.filter(wdOpen) : [...withdrawals].sort(openFirst(wdOpen));
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
   const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
@@ -990,8 +1006,9 @@ export default function Admin() {
 
       {tab === 'orders' && (
         <div className="adm-stack">
-          {orders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No crypto orders yet.</p>}
-          {orders.map((o) => (
+          <Filter value={flt} onPick={setFlt} open={orders.filter(orderOpen).length} all={orders.length} />
+          {shownOrders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{orders.length === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
+          {shownOrders.map((o) => (
             <div className="card" key={o.id}>
               <div className="cardhead">
                 <h3>{o.label} · ${o.usd}</h3>
@@ -1015,8 +1032,9 @@ export default function Admin() {
 
       {tab === 'withdrawals' && (
         <div className="adm-stack">
-          {withdrawals.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No withdrawals yet.</p>}
-          {withdrawals.map((w) => {
+          <Filter value={flt} onPick={setFlt} open={withdrawals.filter(wdOpen).length} all={withdrawals.length} />
+          {shownWds.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{withdrawals.length === 0 ? 'No withdrawals yet.' : 'Nothing open.'}</p>}
+          {shownWds.map((w) => {
             const act = (decision, okText, txid) => run({ action: 'withdrawal', userId: w.userId, withdrawalId: w.id, decision, txid }, okText);
             const open = w.status === 'pending' || w.status === 'approved';
             return (
