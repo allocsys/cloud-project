@@ -30,8 +30,9 @@ export async function pollOnce({ explorers, now, log = console }) {
       seen = await g.ex.addressPayments(first.address, { assets: [...new Set(g.invs.map((i) => i.asset))] });
     } catch (e) {
       for (const inv of g.invs) {
-        out.failures.push({ id: inv.id, error: e.message });
-        note(log, 'error', 'watcher.lookup_failed', { invoice: inv.id, network: inv.network, error: e.message });
+        // A chain scanner that is still waking or catching up is not a sick explorer: say so quietly and do not back off.
+        out.failures.push({ id: inv.id, error: e.message, catchingUp: !!e.catchingUp });
+        note(log, e.catchingUp ? 'info' : 'error', 'watcher.lookup_failed', { invoice: inv.id, network: inv.network, error: e.message });
       }
       continue;
     }
@@ -62,15 +63,17 @@ export async function pollOnce({ explorers, now, log = console }) {
 }
 
 // Starts the loop. Returns stop(), which waits for a tick in progress to finish.
-export function startWatcher({ explorers, intervalMs, maxBackoffMs = 300_000, log = console }) {
+// idleMs: the delay while no invoice is open (default: the normal interval). A new invoice is first looked at within one idle delay.
+export function startWatcher({ explorers, intervalMs, idleMs = intervalMs, maxBackoffMs = 300_000, log = console }) {
   let stopped = false;
   let timer = null;
   let running = Promise.resolve();
   let failedTicks = 0;
+  let idle = false;
 
   const schedule = () => {
     if (stopped) return;
-    const delay = Math.min(intervalMs * 2 ** failedTicks, Math.max(maxBackoffMs, intervalMs));
+    const delay = failedTicks ? Math.min(intervalMs * 2 ** failedTicks, Math.max(maxBackoffMs, intervalMs)) : idle ? Math.max(idleMs, intervalMs) : intervalMs;
     timer = setTimeout(tick, delay);
     timer.unref?.();
   };
@@ -79,7 +82,8 @@ export function startWatcher({ explorers, intervalMs, maxBackoffMs = 300_000, lo
     running = (async () => {
       try {
         const r = await pollOnce({ explorers, log });
-        failedTicks = r.failures.length ? Math.min(failedTicks + 1, 10) : 0;
+        failedTicks = r.failures.some((f) => !f.catchingUp) ? Math.min(failedTicks + 1, 10) : 0;
+        idle = r.checked === 0 && r.failures.length === 0;
       } catch (e) {
         failedTicks = Math.min(failedTicks + 1, 10);
         note(log, 'error', 'watcher.tick_failed', { error: e.message });
