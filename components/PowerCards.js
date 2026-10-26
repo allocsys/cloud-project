@@ -16,19 +16,20 @@ const AMBER = '#EF9F27';
 const AMBER_L = '#FAC775';
 const TEAL = '#5DCAA5';
 const PURPLE = '#AFA9EC';
-const COINS = ['BTC', 'KAS', 'RVN', 'XMR'];
-// The four coins sit on the ring: top, right, bottom, left (x, y is the coin centre). px, py is where its first mining packet starts and
+const COINS = ['BTC', 'KAS', 'RVN', 'XMR', 'ETC'];
+// The five coins sit on the ring, 72 degrees apart, the first at the top (x, y is the coin centre). px, py is where its first mining packet starts and
 // dx, dy the way that packet travels to the hub.
 const SPOTS = [
   { x: 160, y: 48, px: 160, py: 68, dx: 0, dy: 40 },
-  { x: 242, y: 130, px: 222, py: 130, dx: -40, dy: 0 },
-  { x: 160, y: 212, px: 160, py: 192, dx: 0, dy: -40 },
-  { x: 78, y: 130, px: 98, py: 130, dx: 40, dy: 0 },
+  { x: 238, y: 104.7, px: 219, py: 110.8, dx: -38, dy: 12.4 },
+  { x: 208.2, y: 196.3, px: 196.4, py: 180.2, dx: -23.5, dy: -32.4 },
+  { x: 111.8, y: 196.3, px: 123.6, py: 180.2, dx: 23.5, dy: -32.4 },
+  { x: 82, y: 104.7, px: 101, py: 110.8, dx: 38, dy: 12.4 },
 ];
 const RAYS = [[160, 105, 160, 98], [160, 155, 160, 162], [135, 130, 128, 130], [185, 130, 192, 130], [142, 112, 137, 107], [178, 112, 183, 107], [142, 148, 137, 153], [178, 148, 183, 153]];
 const LEDS = [[22, 22, AMBER_L, 0], [298, 22, TEAL, 0.35], [22, 238, TEAL, 0.7], [298, 238, AMBER_L, 1.05]];
 
-// Smart Mining art, all CSS transform and opacity (no timers). A scanner sweeps the four coins and flashes each as it passes; every 8 s
+// Smart Mining art, all CSS transform and opacity (no timers). A scanner sweeps the five coins and flashes each as it passes; every 8 s
 // the green marker hops to the next coin (the day's pick), mining packets flow from it into the hub, and a bitcoin bubble floats out.
 // The scanner speeds up with each tier (--sw). Tier 2 adds the inner ring, a second ripple and the bubble; tier 3 small coins and a glow;
 // tier 4 blinking lights and rays. Paused while off screen. No reduced-motion rule (owner's choice).
@@ -44,16 +45,16 @@ const ART_CSS = `
 .sa-ring{animation:saSp 40s linear infinite}
 .sa-rev{animation:saSp 9s linear infinite reverse}
 @keyframes saSp{to{transform:rotate(360deg)}}
-.sa-fl{opacity:0;animation:saFl var(--sw) linear infinite;animation-delay:calc(var(--sw)*.25*var(--i))}
+.sa-fl{opacity:0;animation:saFl var(--sw) linear infinite;animation-delay:calc(var(--sw)*.2*var(--i))}
 @keyframes saFl{0%{opacity:0}3%{opacity:1}16%,100%{opacity:0}}
-.sa-slot{opacity:0;animation:saSlot 32s linear infinite;animation-delay:calc(var(--i)*8s)}
-@keyframes saSlot{0%{opacity:0}2%,22%{opacity:1}25%,100%{opacity:0}}
+.sa-slot{opacity:0;animation:saSlot 40s linear infinite;animation-delay:calc(var(--i)*8s)}
+@keyframes saSlot{0%{opacity:0}1.6%,17.6%{opacity:1}20%,100%{opacity:0}}
 .sa-pk{transform-box:fill-box;transform-origin:center;animation:saPk 1.6s ease-in-out infinite}
 @keyframes saPk{0%,100%{transform:scale(1)}50%{transform:scale(1.1)}}
 .sa-pkt{opacity:0;animation:saPt 1.1s linear infinite}
 @keyframes saPt{0%{opacity:0;transform:translate(0,0)}20%,80%{opacity:1}100%{opacity:0;transform:translate(var(--dx),var(--dy))}}
-.sa-ptr{animation:saPtr 32s ease-in-out infinite}
-@keyframes saPtr{0%,21%{transform:rotate(0)}25%,46%{transform:rotate(90deg)}50%,71%{transform:rotate(180deg)}75%,96%{transform:rotate(270deg)}100%{transform:rotate(360deg)}}
+.sa-ptr{animation:saPtr 40s ease-in-out infinite}
+@keyframes saPtr{0%,16.8%{transform:rotate(0)}20%,36.8%{transform:rotate(72deg)}40%,56.8%{transform:rotate(144deg)}60%,76.8%{transform:rotate(216deg)}80%,96.8%{transform:rotate(288deg)}100%{transform:rotate(360deg)}}
 .sa-rip{opacity:0;animation:saRip 2.4s ease-out infinite}
 @keyframes saRip{0%{opacity:.55;transform:scale(1)}100%{opacity:0;transform:scale(2.5)}}
 .sa-mc{opacity:0;animation:saFloat 2.6s ease-out infinite}
