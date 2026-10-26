@@ -2,9 +2,11 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
+import { randomBytes } from 'node:crypto';
 import { q, closeDb } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
-import { adminOverview } from '../src/admin-api.js';
+import { adminOverview, handleUnmatched } from '../src/admin-api.js';
+import { recordUnmatched } from '../src/settle.js';
 import { handler } from '../src/server.js';
 
 const skip = process.env.DATABASE_URL ? false : 'DATABASE_URL not set';
@@ -64,4 +66,77 @@ test('the overview lists networks, scanners, invoices, unmatched payments, callb
   assert.equal(typeof o.callbacks.failing, 'number');
   assert.ok(Array.isArray(o.callbacks.stuck));
   assert.ok(Array.isArray(o.audit));
+});
+
+test('the handle route needs the Bearer secret', async () => {
+  const s = await serve();
+  try {
+    const url = `http://127.0.0.1:${s.address().port}/v1/admin/unmatched/handle`;
+    const body = JSON.stringify({ network: 'btc', txid: 'a'.repeat(64), vout: 0 });
+    assert.equal((await fetch(url, { method: 'POST', body })).status, 401);
+    assert.equal((await fetch(url, { method: 'POST', body, headers: { authorization: 'Bearer wrong-secret-0123456789' } })).status, 401);
+  } finally {
+    s.close();
+  }
+});
+
+test('Handled hides an unmatched payment, audits it once and the scanner seeing it again does not bring it back', { skip }, async () => {
+  const addr = `bc1q${run}h`;
+  const txid = randomBytes(32).toString('hex');
+  const txid2 = randomBytes(32).toString('hex');
+  const insert = (id) =>
+    q("INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations) VALUES ('btc', 'btc', $1, $2, 0, 777, 1)", [addr, id]);
+  const shown = async (id) => (await adminOverview()).unmatched.recent.some((x) => x.txid === id);
+  const audits = async (id) => (await q("SELECT detail FROM audit_log WHERE action = 'unmatched.handled' AND subject = $1", [`btc:${id}`])).rows;
+  const s = await serve();
+  try {
+    await insert(txid);
+    await insert(txid2);
+    assert.ok(await shown(txid));
+    const before = (await adminOverview()).unmatched.total;
+
+    assert.deepEqual(await handleUnmatched({ network: 'btc', txid, vout: 0, note: '  sent back  ' }), { handled: true, already: false });
+    assert.equal(await shown(txid), false);
+    assert.equal((await adminOverview()).unmatched.total, before - 1);
+    let a = await audits(txid);
+    assert.equal(a.length, 1);
+    assert.equal(a[0].detail.note, 'sent back');
+
+    // Repeating changes nothing and writes no second audit row.
+    assert.deepEqual(await handleUnmatched({ network: 'btc', txid, vout: 0, note: 'again' }), { handled: true, already: true });
+    assert.equal((await audits(txid)).length, 1);
+
+    // The scanner sees the payment again: it stays handled and is not counted as new.
+    const added = await recordUnmatched({
+      network: 'btc',
+      address: addr,
+      defaultAsset: 'btc',
+      payments: [{ txid, vout: 0, amount: '777', confirmations: 2, height: 10 }],
+      claimed: new Set(),
+    });
+    assert.equal(added, 0);
+    const row = (await q('SELECT handled_at, handled_note, confirmations FROM unmatched_txs WHERE txid = $1', [txid])).rows[0];
+    assert.ok(row.handled_at);
+    assert.equal(row.handled_note, 'sent back');
+    assert.equal(row.confirmations, 2);
+    assert.equal(await shown(txid), false);
+
+    // Bad input is 400, an unknown payment is 404.
+    await assert.rejects(handleUnmatched({ network: 'nope', txid, vout: 0 }), (e) => e.status === 400);
+    await assert.rejects(handleUnmatched({ network: 'btc', txid, vout: -1 }), (e) => e.status === 400);
+    await assert.rejects(handleUnmatched({ network: 'btc', txid: randomBytes(32).toString('hex'), vout: 0 }), (e) => e.status === 404);
+
+    // Over HTTP with the secret.
+    const url = `http://127.0.0.1:${s.address().port}/v1/admin/unmatched/handle`;
+    const headers = { authorization: `Bearer ${SECRET}`, 'content-type': 'application/json' };
+    const ok = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ network: 'btc', txid: txid2, vout: 0, note: 'x' }) });
+    assert.equal(ok.status, 200);
+    assert.deepEqual(await ok.json(), { ok: true, handled: true, already: false });
+    assert.equal(await shown(txid2), false);
+    const gone = await fetch(url, { method: 'POST', headers, body: JSON.stringify({ network: 'btc', txid: randomBytes(32).toString('hex'), vout: 0 }) });
+    assert.equal(gone.status, 404);
+  } finally {
+    s.close();
+    await q('DELETE FROM unmatched_txs WHERE address = $1', [addr]);
+  }
 });
