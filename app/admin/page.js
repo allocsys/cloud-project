@@ -351,8 +351,8 @@ function BoostCard({ bs, busy, run }) {
 }
 
 // A card that stays closed until tapped: the title and a one-line summary show, the body opens below. Drafts live in the parent, so closing keeps them.
-function Fold({ title, sub, children }) {
-  const [open, setOpen] = useState(false);
+function Fold({ title, sub, pill, start, children }) {
+  const [open, setOpen] = useState(!!start);
   return (
     <div className="card adm-fold" data-open={open}>
       <button type="button" className="adm-fh" aria-expanded={open} onClick={() => setOpen(!open)}>
@@ -360,6 +360,7 @@ function Fold({ title, sub, children }) {
           <span className="adm-ft">{title}</span>
           {sub && <small>{sub}</small>}
         </span>
+        {pill}
         <i aria-hidden="true" />
       </button>
       {open && <div className="adm-fb">{children}</div>}
@@ -551,19 +552,16 @@ function ProviderCard({ pp, busy, run }) {
   );
 }
 
-function GatewayTab({ pp, run, lock }) {
-  const [g, setG] = useState(null);
+function GatewayTab({ pp, run, lock, g, reload }) {
   const [busy, setBusy] = useState(false);
   const load = useCallback(async () => {
     setBusy(true);
     try {
-      setG(await call('GET', '/api/admin/gateway'));
-    } catch {
-      setG({ ok: false, error: 'No connection. Try again.' });
+      await reload();
     } finally {
       setBusy(false);
     }
-  }, []);
+  }, [reload]);
   useEffect(() => {
     load();
   }, [load]);
@@ -625,8 +623,7 @@ function GatewayTab({ pp, run, lock }) {
         })}
       </div>
 
-      <div className="card">
-        <h3>Invoices</h3>
+      <Fold title="Invoices" sub={`${(counts.pending || 0) + (counts.confirming || 0) + (counts.partial || 0)} open · ${counts.paid || 0} paid`}>
         {Object.keys(INV).map((k) => (
           <div className="row" key={k}><span className="mute">{INV[k]}</span><b>{counts[k] || 0}</b></div>
         ))}
@@ -642,10 +639,9 @@ function GatewayTab({ pp, run, lock }) {
             <Pill tone={i.status === 'paid' ? 'ok' : i.status === 'confirming' || i.status === 'partial' ? 'warn' : i.status === 'failed' ? 'bad' : ''}>{INV[i.status] || i.status}</Pill>
           </div>
         ))}
-      </div>
+      </Fold>
 
-      <div className="card">
-        <h3>Unmatched payments · {g.unmatched.total}</h3>
+      <Fold title="Unmatched payments" sub={g.unmatched.total ? `${g.unmatched.total} to return` : 'None'} start={g.unmatched.total > 0}>
         <p className="fine" style={{ margin: '0 0 4px' }}>Money that reached a shared address with no invoice for that exact amount. Return it by hand, then tap Handled.</p>
         {g.unmatched.recent.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None.</p>}
         {g.unmatched.recent.map((u) => (
@@ -658,10 +654,9 @@ function GatewayTab({ pp, run, lock }) {
             <button className="swap" style={SM} disabled={busy} onClick={() => handle(u)}>Handled</button>
           </div>
         ))}
-      </div>
+      </Fold>
 
-      <div className="card">
-        <h3>Callbacks to the app</h3>
+      <Fold title="Callbacks to the app" sub={`${g.callbacks.pending} waiting · ${g.callbacks.failing} failing`} start={g.callbacks.failing > 0}>
         <div className="row"><span className="mute">Waiting to send</span><b>{g.callbacks.pending}</b></div>
         <div className="row"><span className="mute">Failing</span><b style={g.callbacks.failing > 0 ? WARN : undefined}>{g.callbacks.failing}</b></div>
         {g.callbacks.stuck.map((c) => (
@@ -673,10 +668,9 @@ function GatewayTab({ pp, run, lock }) {
             </div>
           </div>
         ))}
-      </div>
+      </Fold>
 
-      <div className="card">
-        <h3>Recent activity</h3>
+      <Fold title="Recent activity" sub={`${g.audit.length} entr${g.audit.length === 1 ? 'y' : 'ies'}`}>
         {g.audit.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
         {g.audit.map((a, i) => (
           <div className="row adm-m" key={`${a.at}-${i}`}>
@@ -684,7 +678,7 @@ function GatewayTab({ pp, run, lock }) {
             <span className="mute">{when(a.at)}</span>
           </div>
         ))}
-      </div>
+      </Fold>
     </div>
   );
 }
@@ -739,6 +733,25 @@ export default function Admin() {
     load();
   }, [load]);
 
+  // The payment gateway, read once the screen is ready: the Gateway tab badge and the Overview alert come from it.
+  // Overview stays hidden for up to 1.5 s while the first answer is on its way, so nothing shifts when it arrives.
+  const [gw, setGw] = useState(null);
+  const [gwWait, setGwWait] = useState(true);
+  const loadGw = useCallback(async () => {
+    try {
+      setGw(await call('GET', '/api/admin/gateway'));
+    } catch {
+      setGw({ ok: false, error: 'No connection. Try again.' });
+    }
+  }, []);
+  const isReady = state === 'ready';
+  useEffect(() => {
+    if (!isReady) return undefined;
+    const t = setTimeout(() => setGwWait(false), 1500);
+    loadGw().finally(() => setGwWait(false));
+    return () => clearTimeout(t);
+  }, [isReady, loadGw]);
+
   // Runs one admin action, tells the result, then refreshes. Returns true when it worked.
   // `okText` is a string, or a function of the server's answer.
   async function run(body, okText) {
@@ -791,6 +804,20 @@ export default function Admin() {
 
   const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
+  // Gateway items that need a person: unmatched payments to return and callbacks that keep failing.
+  const gwUn = gw?.ok ? gw.unmatched.total : 0;
+  const gwFail = gw?.ok ? gw.callbacks.failing : 0;
+  const gwN = gwUn + gwFail;
+  const gwText = [gwUn > 0 && `${gwUn} unmatched payment${gwUn === 1 ? '' : 's'}`, gwFail > 0 && `${gwFail} failing callback${gwFail === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
+  // Miners per ASIC hall (Smart Mining miners have no hall of their own).
+  const hallStat = {};
+  users.forEach((u) => u.miners.forEach((m) => {
+    if (!m.hall) return;
+    const s = (hallStat[m.hall] = hallStat[m.hall] || { n: 0, on: 0 });
+    s.n += 1;
+    if (m.online) s.on += 1;
+  }));
+  const hallLine = (id) => (hallStat[id] ? `${hallStat[id].on}/${hallStat[id].n} miners online` : 'No miners');
   const needle = uq.trim().toLowerCase();
   const shownUsers = needle ? users.filter((u) => String(u.id).toLowerCase().includes(needle)) : users;
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
@@ -825,8 +852,11 @@ export default function Admin() {
 
       <Tabs
         value={tab}
-        onPick={setTab}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway'], ['settings', 'Settings']]}
+        onPick={(k) => {
+          setTab(k);
+          window.scrollTo({ top: 0 });
+        }}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['halls', 'Halls'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
       />
 
       {tab === 'settings' && (
@@ -883,7 +913,7 @@ export default function Admin() {
       )}
 
       {tab === 'overview' && (
-        <div className="adm-stack">
+        <div className="adm-stack" style={gwWait ? { visibility: 'hidden' } : undefined}>
           <div className="stats">
             <Stat l="Users" v={stats.users} s={stats.truncated ? `first ${stats.loaded} shown` : undefined} />
             <Stat l="Miners" v={`${stats.online}/${stats.miners}`} s="online" />
@@ -903,6 +933,12 @@ export default function Admin() {
           {stats.ordersReview > 0 && (
             <button className="card adm-alert" onClick={() => setTab('orders')}>
               <b>{stats.ordersReview} order{stats.ordersReview === 1 ? '' : 's'} need a check</b>
+              <span className="mute">Open ›</span>
+            </button>
+          )}
+          {gwN > 0 && (
+            <button className="card adm-alert" onClick={() => setTab('gateway')}>
+              <b>{gwText}</b>
               <span className="mute">Open ›</span>
             </button>
           )}
@@ -1056,11 +1092,7 @@ export default function Admin() {
           <Filter value={flt} onPick={setFlt} open={orders.filter(orderOpen).length} all={orders.length} />
           {shownOrders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{orders.length === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
           {shownOrders.map((o) => (
-            <div className="card" key={o.id}>
-              <div className="cardhead">
-                <h3>{o.label} · ${o.usd}</h3>
-                <Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>
-              </div>
+            <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
               <div className="row"><span className="mute">User</span><b>{o.userId}</b></div>
               <div className="row"><span className="mute">Created</span><b>{when(o.at)}</b></div>
               {o.paidAt && <div className="row"><span className="mute">Paid</span><b>{when(o.paidAt)}</b></div>}
@@ -1072,7 +1104,7 @@ export default function Admin() {
                   <button className="btn" disabled={busy} onClick={() => ask(`Start the miner for ${o.userId}? Only do this once you have checked the payment with the payment provider (or on the blockchain).`, { ok: 'Start miner' }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, (r) => `Miner ${r.serial} started`))}>Start miner</button>
                 </div>
               )}
-            </div>
+            </Fold>
           ))}
         </div>
       )}
@@ -1085,11 +1117,7 @@ export default function Admin() {
             const act = (decision, okText, txid) => run({ action: 'withdrawal', userId: w.userId, withdrawalId: w.id, decision, txid }, okText);
             const open = w.status === 'pending' || w.status === 'approved';
             return (
-              <div className="card" key={w.id}>
-                <div className="cardhead">
-                  <h3>{w.amount} {String(w.asset).toUpperCase()}</h3>
-                  <Pill tone={w.status === 'sent' ? 'ok' : open ? 'warn' : 'bad'}>{WD[w.status] || w.status}</Pill>
-                </div>
+              <Fold key={w.id} title={`${w.amount} ${String(w.asset).toUpperCase()}`} sub={`${w.userId} · ${when(w.at)}`} start={open} pill={<Pill tone={w.status === 'sent' ? 'ok' : open ? 'warn' : 'bad'}>{WD[w.status] || w.status}</Pill>}>
                 <div className="row"><span className="mute">User</span><b>{w.userId}</b></div>
                 <div className="row"><span className="mute">Network</span><b>{String(w.net).toUpperCase()}</b></div>
                 <div className="row"><span className="mute">Pay out</span><b>{w.receive} {String(w.asset).toUpperCase()}</b></div>
@@ -1117,7 +1145,7 @@ export default function Admin() {
                     </button>
                   </div>
                 )}
-              </div>
+              </Fold>
             );
           })}
         </div>
@@ -1155,6 +1183,7 @@ export default function Admin() {
                   <div>
                     {h.name}
                     <small>{h.rig} · {h.efficiency} · {h.place}</small>
+                    <small>{hallLine(id)}</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${h.net}</b>
@@ -1263,7 +1292,7 @@ export default function Admin() {
         );
       })()}
 
-      {tab === 'gateway' && <GatewayTab pp={data.payProvider} run={run} lock={busy} />}
+      {tab === 'gateway' && <GatewayTab pp={data.payProvider} run={run} lock={busy} g={gw} reload={loadGw} />}
 
       {tab === 'send' && (
         <div className="card adm-stack">
