@@ -8,6 +8,7 @@ test('every coin has a hall of the right kind', () => {
   assert.equal(smartHallFor('BTC').kind, 'asic');
   assert.equal(smartHallFor('KAS').kind, 'gpu');
   assert.equal(smartHallFor('RVN').kind, 'gpu');
+  assert.equal(smartHallFor('ETC').kind, 'gpu');
   assert.equal(smartHallFor('XMR').kind, 'cpu');
   assert.equal(smartHallFor('BTC').id, 'sm-asic');
 });
