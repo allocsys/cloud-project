@@ -221,7 +221,7 @@ function GuardCard({ guard, busy, run }) {
       </Pick>
       <Field id="gpg" label="Profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
       <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
-      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Each Smart Mining plan is judged on its own payout and term, so the plans with the lowest rates and shortest terms pause first; the Smart row shows the first and the last to pause. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
+      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Each Smart Mining plan is judged on its own payout and term, so the plans with the lowest rates and shortest terms pause first; the Smart row lists every term. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
       <div className="adm-actions">
         <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
         <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
