@@ -18,7 +18,7 @@ export async function POST(req) {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
-  const { status, ...rest } = await telegramLogin(body?.initData, body?.ref);
+  const { status, ...rest } = await telegramLogin(body?.initData, body?.ref, clientIp(req));
   if (!rest.ok) {
     if (status !== 401) await giveBack(key);
     return NextResponse.json(rest, { status, headers: NO_STORE });
