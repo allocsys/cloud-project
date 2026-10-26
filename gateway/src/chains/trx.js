@@ -1,6 +1,6 @@
 // Tron network: native TRX and USDT (TRC20) to ONE fixed receiving address (PAY_ADDR_TRX), invoices told apart by exact amount.
 // Detection lives in ../tron-explorer.js (TronGrid HTTP API). Amounts are in sun (6 decimals) for TRX and for USDT.
-// USDT contract: VERIFY on tether.to/en/supported-protocols before going live.
+// USDT contract, checked 26 Oct 2026 against tether.to/en/supported-protocols: matches.
 import { sha256 } from '@noble/hashes/sha256';
 import { createBase58check } from '@scure/base';
 import { config } from '../config.js';
