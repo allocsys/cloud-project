@@ -101,6 +101,17 @@ test('withLiveDaily shows today\'s estimate, and leaves miners alone without a l
   assert.equal(withLiveDaily([miner], null)[0], miner);
 });
 
+test('a bought miner\'s day count comes from its start date, minus paused days when it extends', () => {
+  const now = Date.now();
+  const s = Math.floor((now - 5 * DAY) / DAY) * DAY; // UTC midnight of the start day
+  const bought = { ...miner, startedAt: now - 5 * DAY, elapsed: 0 };
+  const guard = { paused: { [s + DAY]: ['is-2'], [s + 2 * DAY]: ['is-2'] }, manual: {} };
+  const mk = { halls, days: {}, live: null, guard };
+  assert.equal(withLiveDaily([bought], { halls, days: {}, live: null })[0].elapsed, 5);
+  assert.equal(withLiveDaily([bought], mk)[0].elapsed, 3);
+  assert.equal(withLiveDaily([{ ...bought, pauseRule: 'zero' }], mk)[0].elapsed, 5);
+});
+
 test('minerDaily lists the live finished days, a zero day included, with the BTC they came to', () => {
   const m = minerDaily(miner, NOW, market);
   assert.deepEqual(m.rows.map((r) => [r.day, r.usd]), [['19 Oct', 0], ['18 Oct', 1], ['17 Oct', 2]]);
