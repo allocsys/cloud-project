@@ -33,7 +33,7 @@ const fakeRpc = () => {
       if (r.method === 'eth_getBlockByNumber') {
         const n = parseInt(r.params[0], 16);
         const b = state.blocks[n];
-        return b ? { number: hex(n), hash: b.hash, parentHash: b.parent, transactions: b.txs } : null;
+        return b ? { number: hex(n), hash: b.hash, parentHash: b.parent, transactions: b.txs, timestamp: hex(n * 12) } : null;
       }
       if (r.method === 'eth_getLogs') {
         const lo = parseInt(r.params[0].fromBlock, 16);
@@ -198,4 +198,33 @@ test('EVM networks are configured only with a well-formed address and when liste
     if (keep.n === undefined) delete process.env.EVM_NETWORKS;
     else process.env.EVM_NETWORKS = keep.n;
   }
+});
+
+test('wake keeps a recent cursor and moves a stale or missing one back by the catch-up window only', { skip }, async () => {
+  const wnet = `${net}-wake`;
+  const sc = evmScanner({ network: wnet, native: 'eth', tokens: {}, address: ADDR, rpc: fakeRpc(), confirmations: 1, maxBlocks: 50, log: quiet });
+  state.tip = 5000;
+  state.blocks = { 4000: mk(4000, 'a', 'a'), 4700: mk(4700, 'a', 'a'), 5000: mk(5000, 'a', 'a') };
+  const hour = 3_600_000;
+  const height = async () => Number((await q('SELECT height FROM chain_cursors WHERE network = $1', [wnet])).rows[0].height);
+
+  // No cursor. The fake chain makes a block every 12 s, so one hour is 300 blocks.
+  const first = await sc.wake(hour);
+  assert.equal(first.jumped, true);
+  assert.equal(first.from, 4700);
+  assert.equal(await height(), 4700);
+
+  // A cursor read a moment ago is kept.
+  assert.deepEqual(await sc.wake(hour), { kept: true });
+  assert.equal(await height(), 4700);
+
+  // A cursor older than the window jumps forward again instead of reading every block it missed.
+  await q("UPDATE chain_cursors SET height = 100, updated_at = now() - interval '2 hours' WHERE network = $1", [wnet]);
+  const again = await sc.wake(hour);
+  assert.equal(again.from, 4700);
+  assert.equal(await height(), 4700);
+});
+
+test('a scanner that is not ready says it is catching up, so the watcher does not back off', { skip }, async () => {
+  await assert.rejects(evmExplorer({ network: `${net}-never`, maxLagBlocks: 10 }).addressPayments(ADDR), (e) => e instanceof ExplorerError && e.catchingUp === true);
 });
