@@ -656,6 +656,8 @@ export default function Admin() {
   const [tf, setTf] = useState({ code: '', th: '15' }); // test friend form
   const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
+  const [uq, setUq] = useState(''); // user search text
+  const [openU, setOpenU] = useState(null); // the user card that is open
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -731,6 +733,8 @@ export default function Admin() {
 
   const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
+  const needle = uq.trim().toLowerCase();
+  const shownUsers = needle ? users.filter((u) => String(u.id).toLowerCase().includes(needle)) : users;
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
   const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
@@ -860,12 +864,23 @@ export default function Admin() {
 
       {tab === 'users' && (
         <div className="adm-stack">
-          {users.map((u) => (
-            <div className="card" key={u.id}>
-              <div className="cardhead">
-                <h3>{u.id}</h3>
+          <div className="field" style={{ marginTop: 0 }}>
+            <input id="usq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={uq} onChange={(e) => setUq(e.target.value)} />
+            <label htmlFor="usq">Search users</label>
+          </div>
+          {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
+          {shownUsers.map((u) => (
+            <div className="card adm-fold" data-open={openU === u.id} key={u.id}>
+              <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => setOpenU(openU === u.id ? null : u.id)}>
+                <span>
+                  <span className="adm-ft">{u.id}</span>
+                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}</small>
+                </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
-              </div>
+                <i aria-hidden="true" />
+              </button>
+              {openU === u.id && (
+              <div className="adm-fb">
               <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
               <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
@@ -966,6 +981,8 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+              </div>
+              )}
             </div>
           ))}
         </div>
