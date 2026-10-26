@@ -90,7 +90,11 @@ export async function createInvoice(input) {
       console.error('[invoices] no rate:', e.message);
       throw new ApiError(503, 'Price unavailable. Try again shortly.');
     }
-    expected = BigInt(Math.ceil((p.usd / rate) * 10 ** dec)).toString();
+    // The payer sends a little more than the price (default 2%) so fees, commissions and a price move do not leave the invoice short.
+    // Any extra stays with us: the order is settled at its dollar price.
+    const base = (p.usd / rate) * 10 ** dec;
+    const margin = config().invoiceBufferPct;
+    expected = BigInt(Math.ceil(margin > 0 ? (base * (100 + margin)) / 100 : base)).toString();
   }
   const shared = p.chain.shared();
 
