@@ -7,6 +7,7 @@ import { fill, useT } from '@/components/I18nProvider';
 import { ConnectBtn } from '@/components/ConnectPay';
 import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
+import { evmTx } from '@/lib/wc-tx';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
 // value and onChange use { asset, net }.
@@ -110,6 +111,9 @@ export function PayInfo({ order, show }) {
   const [qr, setQr] = useState(false);
   const [more, setMore] = useState(false);
   const [panel, setPanel] = useState(false);
+  const [failed, setFailed] = useState(false);
+  // On EVM coins Connect wallet does the job: Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
+  const hideEvm = !!order.wc && !!evmTx(order.uri) && !failed;
   const a = PAY_ASSETS[order.asset || 'btc'];
   const sym = a ? a.sym : 'BTC';
   const net = PAY_NETS[order.network || 'btc'] || '';
@@ -140,14 +144,17 @@ export function PayInfo({ order, show }) {
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        <ConnectBtn order={order} show={show} onPanel={setPanel} />
-        {!panel && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+        <ConnectBtn order={order} show={show} onPanel={setPanel} onFail={() => setFailed(true)} />
+        {!panel && !hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
           <a className="pct-btn" href={order.uri} onClick={openWallet} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
         )}
-        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
+        {!hideEvm && (
+          <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
+        )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
           <>
+            {hideEvm && <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>}
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
             {trust && (
