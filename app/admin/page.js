@@ -726,6 +726,130 @@ function GatewayTab({ pp, run, lock, g, reload }) {
   );
 }
 
+// Database tab: a read-only look at the app's own Postgres (lib/server/db-admin.js). Nothing here changes data; JSON and secret-looking columns are not shown in full.
+const bytesText = (n) => (n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
+const secsText = (s) => (s < 90 ? `${s}s` : `${Math.round(s / 60)} min`);
+
+function DatabaseTab() {
+  const [d, setD] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(null); // the table whose rows are shown
+  const [rows, setRows] = useState(null);
+  const load = useCallback(async () => {
+    setBusy(true);
+    try {
+      setD(await call('GET', '/api/admin/database'));
+    } catch {
+      setD({ ok: false, error: 'No connection. Try again.' });
+    } finally {
+      setBusy(false);
+    }
+  }, []);
+  useEffect(() => {
+    load();
+  }, [load]);
+  const pickTable = async (name) => {
+    if (open === name) {
+      setOpen(null);
+      setRows(null);
+      return;
+    }
+    setOpen(name);
+    setRows(null);
+    try {
+      setRows(await call('GET', `/api/admin/database?table=${encodeURIComponent(name)}`));
+    } catch {
+      setRows({ ok: false, error: 'No connection. Try again.' });
+    }
+  };
+  if (!d) return <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>;
+  if (!d.ok) {
+    return (
+      <div className="adm-stack">
+        <div className="card">
+          <h3>Database</h3>
+          <p className="fine" style={{ margin: '0 0 12px' }}>{d.error || 'Could not load.'}</p>
+          <button className="btn" disabled={busy} onClick={load}>Retry</button>
+        </div>
+      </div>
+    );
+  }
+  const m = d.migrations;
+  const connWarn = d.connections.max > 0 && d.connections.total / d.connections.max > 0.8;
+  return (
+    <div className="adm-stack">
+      <div className="card">
+        <div className="cardhead">
+          <h3>Database</h3>
+          <button className="swap" style={SM} disabled={busy} onClick={load}>Refresh</button>
+        </div>
+        <div className="row"><span className="mute">Status</span><Pill tone={d.ping > 500 ? 'warn' : 'ok'}>Connected · {d.ping} ms</Pill></div>
+        <div className="row"><span className="mute">Server</span><b>{d.version}</b></div>
+        <div className="row"><span className="mute">Size</span><b>{bytesText(d.bytes)}</b></div>
+        <div className="row"><span className="mute">Connections</span><b style={connWarn ? WARN : undefined}>{d.connections.total} of {d.connections.max} · {d.connections.active} busy</b></div>
+        <div className="row"><span className="mute">This server's pool</span><b style={d.pool.waiting > 0 ? WARN : undefined}>{d.pool.total} open · {d.pool.idle} idle · {d.pool.waiting} waiting</b></div>
+        <div className="row"><span className="mute">Migrations</span><b style={m.pending.length ? WARN : undefined}>{m.pending.length ? `${m.pending.length} not applied` : `${m.applied} applied`}</b></div>
+      </div>
+
+      <Fold title="Tables" sub={`${d.tables.length} tables`} start>
+        {d.tables.map((t) => (
+          <div key={t.name}>
+            <button type="button" className="row adm-click" aria-expanded={open === t.name} onClick={() => pickTable(t.name)}>
+              <div>
+                {t.name}
+                <small>{t.approx ? '~' : ''}{t.rows.toLocaleString('en-US')} row{t.rows === 1 ? '' : 's'} · {bytesText(t.bytes)}</small>
+              </div>
+              <span className="mute">{open === t.name ? 'Close' : 'Rows ›'}</span>
+            </button>
+            {open === t.name && (
+              <div className="adm-form">
+                {!rows && <p className="fine" style={{ margin: 0 }}>Loading…</p>}
+                {rows && !rows.ok && <p className="fine" style={{ margin: 0 }}>{rows.error || 'Could not load.'}</p>}
+                {rows?.ok && (
+                  <>
+                    <p className="fine" style={{ margin: '0 0 4px' }}>{rows.rows.length === 0 ? 'Empty.' : `Newest ${rows.rows.length} of ${rows.total.toLocaleString('en-US')}${rows.newest ? ` (by ${rows.newest})` : ''}. JSON shows its keys and size only.`}</p>
+                    {rows.rows.map((r, i) => (
+                      <div className="row adm-m" key={i}>
+                        <div>
+                          {rows.columns.map((k) => (
+                            <small key={k} className="serial" style={{ wordBreak: 'break-all' }}>{k}: {r[k] === null || r[k] === undefined ? '—' : String(r[k])}</small>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        ))}
+      </Fold>
+
+      <Fold title="Running now" sub={d.running.length ? `${d.running.length} busy` : 'Nothing busy'}>
+        {d.running.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No query is running.</p>}
+        {d.running.map((r, i) => (
+          <div className="row adm-m" key={i}>
+            <div>
+              {r.state}
+              <small className="serial" style={{ wordBreak: 'break-all' }}>{r.query}</small>
+            </div>
+            <b style={r.secs > 30 ? WARN : undefined}>{secsText(r.secs)}</b>
+          </div>
+        ))}
+      </Fold>
+
+      <Fold title="Migrations" sub={m.pending.length ? `${m.pending.length} not applied` : `${m.applied} of ${m.total} applied`} start={m.pending.length > 0}>
+        {m.pending.map((id) => (
+          <div className="row adm-m" key={id}><div>{id}<small>Not applied yet</small></div><Pill tone="warn">Waiting</Pill></div>
+        ))}
+        {m.list.map((x) => (
+          <div className="row adm-m" key={x.id}><div>{x.id}</div><span className="mute">{when(x.at)}</span></div>
+        ))}
+      </Fold>
+    </div>
+  );
+}
+
 const ADJ0 = { id: null, op: 'add', cur: 'btc', amount: '', note: '' };
 
 // The BTC a balance change comes to: typed in BTC, or typed in USD and converted at the current rate.
@@ -899,7 +1023,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
@@ -1375,6 +1499,8 @@ export default function Admin() {
       })()}
 
       {tab === 'gateway' && <GatewayTab pp={data.payProvider} run={run} lock={busy} g={gw} reload={loadGw} />}
+
+      {tab === 'database' && <DatabaseTab />}
 
       {tab === 'send' && (
         <div className="card adm-stack">
