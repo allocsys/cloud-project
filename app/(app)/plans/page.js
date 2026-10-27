@@ -439,11 +439,11 @@ export default function Plans() {
           }}
         >
           <div
-            className="card"
+            className="card pinned"
             ref={sheetRef}
             style={dragY ? { transform: `translateY(${dragY}px)`, transition: 'none' } : undefined}
             onTouchStart={(e) => {
-              startY.current = e.touches[0].clientY;
+              startY.current = e.target.closest?.('.sheetscroll')?.scrollTop > 0 ? null : e.touches[0].clientY;
             }}
             onTouchMove={(e) => {
               if (startY.current === null) return;
@@ -455,6 +455,7 @@ export default function Plans() {
               startY.current = null;
             }}
           >
+            <div className="sheetscroll">
             <div className="grab" aria-hidden="true" />
             <h3 id="st">{cur.smart ? t('dash.smart') : cur.id === 'custom' ? 'ASICs' : t('plans.planName', { name: cur.name })}</h3>
             <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>
@@ -527,6 +528,8 @@ export default function Plans() {
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               {fill(t('plans.fine', { n: MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
             </p>
+            </div>
+            <div className="sheetfoot">
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 12px' }}>
                 {!crypto
@@ -550,6 +553,7 @@ export default function Plans() {
               ))
             )}
             <button className="swap" type="button" onClick={closeModal}>{t('common.cancel')}</button>
+            </div>
           </div>
         </div>
       )}
