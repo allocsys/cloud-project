@@ -401,7 +401,10 @@ export default function Plans() {
                       <b>{c.plan}</b>
                       <svg className="go" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 5l7 7-7 7" /></svg>
                     </div>
-                    <span className="serial">{c.serial}</span>
+                    <div className="sline">
+                      <span className="serial">{c.serial}</span>
+                      {c.smart && c.coin && !c.paused && <small className="mcoin">{c.coin}</small>}
+                    </div>
                     <div className="mchips">
                       <span>{c.smart ? t('plans.budgetN', { n: fmtUsd(c.budget) }) : `${c.th} TH/s`}</span>
                       <span>{c.smart ? t('plans.bestCoin') : hallMap[c.hall].efficiency}</span>
