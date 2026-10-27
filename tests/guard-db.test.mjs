@@ -56,8 +56,8 @@ test('losing days are paused for every hall, Smart is kept per plan, a good day 
   await market(d(3), 0.0001); // far below any hall's costs
   await market(d(2), 0.0001);
   await market(d(1), 1); // far above
-  await coin(d(3), 0.5); // below the Smart break-even ratio
-  await coin(d(2), 0.5);
+  await coin(d(3), 0.3); // under the Smart floor (0.5)
+  await coin(d(2), 0.3);
   await coin(d(1), 2);
   assert.equal(await ensureGuardDays(Date.now()), 3);
   const g = metaGet('guarddays');
@@ -65,9 +65,9 @@ test('losing days are paused for every hall, Smart is kept per plan, a good day 
   assert.deepEqual([...g.paused[d(3)]].sort(), ['is-2', 'no-1', 'tx-1']);
   assert.deepEqual([...g.paused[d(2)]].sort(), ['is-2', 'no-1', 'tx-1']);
   assert.equal(g.paused[d(1)], undefined, 'a profitable day pauses nothing');
-  assert.deepEqual(g.smart[d(3)], [0.5, 0, 0.02], 'Smart keeps the day\'s best ratio with the rule in force');
-  assert.deepEqual(g.smart[d(2)], [0.5, 0, 0.02]);
-  assert.deepEqual(g.smart[d(1)], [2, 0, 0.02]);
+  assert.deepEqual(g.smart[d(3)], [0.3, 0.5, 0.02, 1], 'Smart keeps the day\'s best ratio with the rule in force');
+  assert.deepEqual(g.smart[d(2)], [0.3, 0.5, 0.02, 1]);
+  assert.deepEqual(g.smart[d(1)], [2, 0.5, 0.02, 1]);
   const s = await guardState();
   for (const scope of [FIRST, LAST]) {
     assert.equal(isPaused(s, scope, d(3)), true, `${scope} is below its break-even`);
@@ -89,17 +89,17 @@ test('a decided day is locked, and a second run does nothing', async () => {
   assert.equal(JSON.stringify(metaGet('guarddays')), before);
   const s = await guardState();
   assert.ok(s.paused[d(3)].includes('tx-1'));
-  assert.deepEqual(s.smart[d(3)], [0.5, 0, 0.02]);
+  assert.deepEqual(s.smart[d(3)], [0.3, 0.5, 0.02, 1]);
 });
 
 test('switching a scope off stops new pauses for it, and hand flips are saved by scope', async () => {
   await metaSet('guarddays', { upto: d(2), paused: {} });
   await q('UPDATE market_days SET gross_per_th = 0.0001 WHERE day = $1', [d(1)]);
-  await q('UPDATE coin_days SET gross_per_unit = 0.5, net_per_rig = 0.5 WHERE day = $1', [d(1)]);
+  await q('UPDATE coin_days SET gross_per_unit = 0.3, net_per_rig = 0.3 WHERE day = $1', [d(1)]);
   assert.equal((await saveGuardSettings({ asicsAuto: false, smartAuto: true, mode: 'zero', margin: 0, buffer: 2 })).ok, true);
   assert.equal(await ensureGuardDays(Date.now()), 1);
   assert.equal(metaGet('guarddays').paused[d(1)], undefined, 'ASICs auto is off');
-  assert.deepEqual(metaGet('guarddays').smart[d(1)], [0.5, 0, 0.02], 'Smart is still guarded: its ratio is kept');
+  assert.deepEqual(metaGet('guarddays').smart[d(1)], [0.3, 0.5, 0.02, 1], 'Smart is still guarded: its ratio is kept');
   assert.equal((await setGuardManual({ scope: 'tx-1', state: 'paused', when: 'now' })).ok, true);
   assert.equal((await setGuardManual({ scope: 'nope', state: 'paused' })).ok, false);
   assert.equal((await setGuardManual({ scope: 'tx-1', state: 'maybe' })).ok, false);
@@ -107,8 +107,16 @@ test('switching a scope off stops new pauses for it, and hand flips are saved by
   assert.deepEqual(s.manual['tx-1'], [{ from: today, state: 'paused' }]);
 });
 
-test('settings are checked: margin and buffer have limits', async () => {
+test('settings are checked: margin, buffer and the Smart floor have limits', async () => {
   assert.equal((await saveGuardSettings({ margin: 80, buffer: 1 })).ok, false);
+  assert.equal((await saveGuardSettings({ margin: 1, buffer: 1, smartFloor: 5 })).ok, false);
+  assert.equal((await saveGuardSettings({ margin: 1, buffer: 1, smartFloor: 'abc' })).ok, false);
+  const f = await saveGuardSettings({ margin: 0, buffer: 2, smartFloor: '0,6' });
+  assert.equal(f.ok, true);
+  assert.equal(f.smartFloor, 0.6);
+  assert.equal(metaGet('guard').smartFloor, 0.6);
+  assert.equal((await saveGuardSettings({ margin: 0, buffer: 2 })).smartFloor, 0.6, 'a save that leaves the floor out keeps it');
+  assert.equal((await saveGuardSettings({ margin: 0, buffer: 2, smartFloor: 0.5 })).smartFloor, 0.5);
   assert.equal((await saveGuardSettings({ margin: 1, buffer: 50 })).ok, false);
   const r = await saveGuardSettings({ margin: '2,5', buffer: 1, mode: 'extend' });
   assert.equal(r.ok, true);
