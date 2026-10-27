@@ -862,7 +862,7 @@ export default function Admin() {
   }));
   const hallLine = (id) => (hallStat[id] ? `${hallStat[id].on}/${hallStat[id].n} miners online` : 'No miners');
   const needle = uq.trim().toLowerCase();
-  const shownUsers = needle ? users.filter((u) => String(u.id).toLowerCase().includes(needle)) : users;
+  const shownUsers = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
   const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
   const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
@@ -1036,7 +1036,7 @@ export default function Admin() {
             <div className="card adm-fold" data-open={openU === u.id} key={u.id}>
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => setOpenU(openU === u.id ? null : u.id)}>
                 <span>
-                  <span className="adm-ft">{u.id}</span>
+                  <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
                   <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}</small>
                 </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
@@ -1044,6 +1044,7 @@ export default function Admin() {
               </button>
               {openU === u.id && (
               <div className="adm-fb">
+              {u.tg && <div className="row"><span className="mute">Account ID</span><b>{u.id}</b></div>}
               <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
               <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
