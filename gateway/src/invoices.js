@@ -36,7 +36,7 @@ export function publicInvoice(r) {
     received_atomic: r.received_atomic,
     rate_usd: r.rate_usd === null ? null : Number(r.rate_usd),
     status: r.status,
-    uri: ch.uri(r.address, amount, r.asset),
+    uri: ch.uri(r.address, amount, r.asset, r.expected_atomic),
     created_at: r.created_at.toISOString(),
     expires_at: r.expires_at.toISOString(),
     paid_at: r.paid_at ? r.paid_at.toISOString() : null,
