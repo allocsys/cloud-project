@@ -36,6 +36,12 @@ test('the seeded coins are BTC (asic) and four gpu_cpu coins, all enabled', asyn
   assert.ok(r.rows.every((x) => x.enabled));
 });
 
+test('the Kaspa reference rig is the Antminer KS7: 40000 GH/s and 3080 W', async () => {
+  const r = await q("SELECT rig_hash, rig_watts FROM smart_coins WHERE symbol = 'KAS'");
+  assert.equal(Number(r.rows[0].rig_hash), 40000);
+  assert.equal(Number(r.rows[0].rig_watts), 3080);
+});
+
 test('picks follow each day, hold inside the hysteresis, keep the coin on a day without data, and lock', async () => {
   await q("UPDATE smart_coins SET ref_gross = 1, ref_net = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
   const d = (k) => today - k * DAY;
