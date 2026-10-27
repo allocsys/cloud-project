@@ -21,7 +21,12 @@ export function useLang() {
   function setLang(code) {
     if (!LANGS[code]) return;
     document.cookie = `${LANG_COOKIE}=${code}; path=/; max-age=31536000; samesite=lax`;
-    window.location.reload();
+    // A ?lang in the address (from a search result) would put the old language back, so it goes first.
+    const u = new URL(window.location.href);
+    if (u.searchParams.has('lang')) {
+      u.searchParams.delete('lang');
+      window.location.replace(u.toString());
+    } else window.location.reload();
   }
   return { ...c, setLang };
 }
