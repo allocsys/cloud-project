@@ -16,7 +16,7 @@ import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 import { fill, useT } from '@/components/I18nProvider';
-import { CoinPicker, PayInfo } from '@/components/PayCoin';
+import { CoinSelect, PayInfo } from '@/components/PayCoin';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -528,20 +528,17 @@ export default function Plans() {
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               {fill(t('plans.fine', { n: MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
             </p>
-            </div>
-            <div className="sheetfoot">
             {ready && !canBal && (
-              <p className="fine" style={{ margin: '-4px 0 12px' }}>
+              <p className="fine" style={{ margin: '-4px 0 0' }}>
                 {!crypto
                   ? t('plans.noBalance')
                   : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
               </p>
             )}
+            </div>
+            <div className="sheetfoot">
             {ready && ord?.multi && methods.includes('crypto') && (
-              <>
-                <p className="fine" style={{ margin: '0 0 6px' }}>{t('pay.coin')}</p>
-                <CoinPicker value={coin} onChange={setCoin} disabled={busy} />
-              </>
+              <CoinSelect value={coin} onChange={setCoin} disabled={busy} />
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>
