@@ -201,7 +201,7 @@ function GuardCard({ guard, busy, run }) {
   const [from, setFrom] = useState('tomorrow');
   const [test, setTest] = useState(null); // the last backtest: what the rule would have done over the last 30 days
   if (!s) return null;
-  const d = draft || { asicsAuto: s.asicsAuto, smartAuto: s.smartAuto, mode: s.mode, margin: String(s.margin), buffer: String(s.buffer) };
+  const d = draft || { asicsAuto: s.asicsAuto, smartAuto: s.smartAuto, mode: s.mode, margin: String(s.margin), buffer: String(s.buffer), smartFloor: String(s.smartFloor ?? 0.5) };
   const put = (k, v) => setDraft({ ...d, [k]: v });
   const lastText = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'never');
   const daysText = (list) => (list && list.length ? list.map(lastText).join(', ') : 'none');
@@ -220,16 +220,17 @@ function GuardCard({ guard, busy, run }) {
         <option value="extend">Extends the term by a day</option>
         <option value="zero">Uses up a day and pays zero</option>
       </Pick>
-      <Field id="gpg" label="Profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
+      <Field id="gpg" label="ASICs: profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
       <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
-      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Each Smart Mining plan is judged on its own payout and term, so the plans with the lowest rates and shortest terms pause first; the Smart row lists a typical plan for every term. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
+      <Field id="gpf" label="Smart Mining: pause floor (best ratio, 0 = never pause)" inputMode="decimal" value={d.smartFloor} onChange={(v) => put('smartFloor', v)} />
+      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Smart Mining pauses for a day when the best coin's ratio is under the floor (1 = the anchor day, 0.5 = half of it) and resumes only above the floor plus the buffer as ratio points (2% = 0.02); it is the same for every plan, and days decided before this rule keep the old break-even rule. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
       <div className="adm-actions">
-        <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
+        <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer, smartFloor: d.smartFloor }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
         <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
       </div>
       {test && (
         <div style={{ marginTop: 8 }}>
-          <p className="fine" style={{ margin: '0 0 4px' }}>Last {test.days} days ({test.withData} with market data), margin {test.margin}% and buffer {test.buffer}%. The rule only; hand flips are not counted. Nothing was saved.</p>
+          <p className="fine" style={{ margin: '0 0 4px' }}>Last {test.days} days ({test.withData} with market data), margin {test.margin}%, buffer {test.buffer}% and Smart floor {test.smartFloor}. The rule only; hand flips are not counted. Nothing was saved.</p>
           {test.scopes.map((x) => (
             <div className="row adm-m" key={x.id}>
               <div>
