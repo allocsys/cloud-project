@@ -6,7 +6,9 @@ const smart = { smart: true, budget: 1000, baseYield: 0.01 }; // $10 a day at th
 
 test('every coin has a hall of the right kind', () => {
   assert.equal(smartHallFor('BTC').kind, 'asic');
-  assert.equal(smartHallFor('KAS').kind, 'gpu');
+  assert.equal(smartHallFor('KAS').kind, 'asic');
+  assert.equal(smartHallFor('KAS').id, 'sm-kas');
+  assert.equal(smartHallFor('KAS').rig, 'Antminer KS7');
   assert.equal(smartHallFor('RVN').kind, 'gpu');
   assert.equal(smartHallFor('ETC').kind, 'gpu');
   assert.equal(smartHallFor('XMR').kind, 'cpu');
@@ -61,7 +63,7 @@ test('smartHallFor and machineOn use the saved halls when given', () => {
 
 test('machineOn: hall, unit and rate together, or null when either is missing', () => {
   const m = machineOn(smart, 'KAS', 0.05, 'GH/s');
-  assert.equal(m.hall.id, 'sm-gpu');
+  assert.equal(m.hall.id, 'sm-kas');
   assert.equal(m.unit, 'GH/s');
   assert.equal(m.rate, 200);
   assert.equal(machineOn(smart, 'DOGE', 0.05, 'GH/s'), null);
