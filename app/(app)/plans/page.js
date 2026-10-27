@@ -348,7 +348,6 @@ export default function Plans() {
             {o.status === 'pending' && (
               <div>
                 {o.url && <a className="linkbtn" href={o.url} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.pay')}</a>}
-                {o.uri && /^[a-z][a-z0-9+.-]*:/i.test(o.uri) && <a className="linkbtn" href={o.uri} style={{ display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>}
                 <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>{t('common.cancel')}</button>
               </div>
             )}
