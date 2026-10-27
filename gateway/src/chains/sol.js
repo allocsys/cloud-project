@@ -29,5 +29,11 @@ export const solChain = () => ({
   shared: () => true,
   configured: () => !!solAddress(),
   address: () => solAddress(),
-  uri: (address) => address,
+  // Solana Pay link 'solana:<to>?amount=<coins>[&spl-token=<mint>]'. No amount: the plain address.
+  uri: (address, amount, asset) => {
+    const a = /^\d+\.\d+$/.test(String(amount ?? '')) ? String(amount).replace(/0+$/, '').replace(/\.$/, '') : String(amount ?? '');
+    if (!/^\d+(\.\d+)?$/.test(a) || Number(a) <= 0) return address;
+    const t = SOL_TOKENS[asset];
+    return `solana:${address}?amount=${a}${t ? `&spl-token=${t.mint}` : ''}`;
+  },
 });
