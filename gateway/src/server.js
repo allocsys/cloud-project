@@ -13,6 +13,7 @@ import { btcExplorer } from './explorer.js';
 import { buildEvm, startScanner } from './evm-scanner.js';
 import { tronExplorer } from './tron-explorer.js';
 import { solExplorer } from './sol-explorer.js';
+import { tonExplorer } from './ton-explorer.js';
 import { startWatcher } from './watcher.js';
 import { startOutbox, webhookTarget } from './outbox.js';
 
@@ -73,6 +74,7 @@ async function main() {
     if (CHAINS.btc.configured()) explorers.btc = btcExplorer({ baseUrl: c.btcExplorerUrl });
     if (CHAINS.trx.configured()) explorers.trx = tronExplorer({ baseUrl: c.trx.apiUrl, apiKey: c.trx.apiKey });
     if (CHAINS.sol.configured()) explorers.sol = solExplorer({ urls: c.sol.rpc });
+    if (CHAINS.ton.configured()) explorers.ton = tonExplorer({ baseUrl: c.ton.apiUrl, apiKey: c.ton.apiKey });
     const evm = buildEvm();
     Object.assign(explorers, evm.explorers);
     const names = Object.keys(explorers);
