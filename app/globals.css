@@ -1463,6 +1463,8 @@ main {
 .cl .mt b { flex: 1; font-size: 15px; line-height: 22px; font-weight: 500; }
 .cl .go { width: 24px; height: 24px; flex: none; stroke: var(--gold); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
 .cl .mchips { margin: 0; }
+.cl .sline { display: flex; align-items: baseline; justify-content: space-between; gap: 8px; }
+.cl .mcoin { font-size: 11px; line-height: 16px; font-weight: 600; letter-spacing: 0.4px; color: var(--green); }
 .cl .bar, .cl .cmeta { margin: 0; }
 @media (hover: hover) { .cl:hover { background: var(--s3); } }
 @media (min-width: 760px) { .clist { grid-template-columns: repeat(2, 1fr); } }
