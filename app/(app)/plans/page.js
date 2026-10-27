@@ -404,6 +404,7 @@ export default function Plans() {
                     <div className="sline">
                       <span className="serial">{c.serial}</span>
                       {c.smart && c.coin && !c.paused && <small className="mcoin">{c.coin}</small>}
+                      {c.paused && <small className="mcoin off">{t('plans.pausedToday')}</small>}
                     </div>
                     <div className="mchips">
                       <span>{c.smart ? t('plans.budgetN', { n: fmtUsd(c.budget) }) : `${c.th} TH/s`}</span>
