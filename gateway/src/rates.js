@@ -10,6 +10,7 @@ const IDS = {
   pol: 'polygon-ecosystem-token',
   trx: 'tron',
   sol: 'solana',
+  ton: 'the-open-network',
   usdt: 'tether',
   usdc: 'usd-coin',
 };
