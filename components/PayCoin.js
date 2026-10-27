@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
 import { triggerHaptic } from '@/lib/haptics';
 import { fill, useT } from '@/components/I18nProvider';
-import { ConnectBtn } from '@/components/ConnectPay';
+import { ConnectBtn, Spin, tryOpen } from '@/components/ConnectPay';
 import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
 import { evmTx } from '@/lib/wc-tx';
@@ -110,7 +110,7 @@ export function PayInfo({ order, show }) {
   const t = useT();
   const [qr, setQr] = useState(false);
   const [more, setMore] = useState(false);
-  const [panel, setPanel] = useState(false);
+  const [opening, setOpening] = useState(false);
   const [failed, setFailed] = useState(false);
   // On EVM coins Connect wallet does the job: Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
   const hideEvm = !!order.wc && (!!evmTx(order.uri) || (order.network === 'sol' && !!order.id)) && !failed;
@@ -122,28 +122,18 @@ export function PayInfo({ order, show }) {
     show(t('wal.copied'));
   };
   const trust = trustLink(order);
-  // A payment link only opens a wallet that registered its scheme. If the page is still in front after 1.5 s, nothing opened: copy the address instead.
-  const openWallet = () => {
-    let left = false;
-    const gone = () => {
-      left = true;
-    };
-    const evs = ['pagehide', 'blur', 'visibilitychange'];
-    evs.forEach((e) => window.addEventListener(e, gone));
-    // Loaded in a hidden frame, not as the page: a scheme the webview does not know (net::ERR_UNKNOWN_URL_SCHEME) then fails inside the frame only.
-    try {
-      const f = document.createElement('iframe');
-      f.style.display = 'none';
-      f.src = order.uri;
-      document.body.appendChild(f);
-      setTimeout(() => f.remove(), 3000);
-    } catch {}
-    setTimeout(() => {
-      evs.forEach((e) => window.removeEventListener(e, gone));
-      if (left || document.hidden) return;
-      copyText(order.address);
-      show(t('pay.noWallet'));
-    }, 1500);
+  // A payment link only opens a wallet that registered its scheme. If the page is still in front after 1.5 s, nothing opened:
+  // copy the address, and show Copy address, Copy amount and the rest under More.
+  const openWallet = async () => {
+    if (opening) return;
+    setOpening(true);
+    const ok = await tryOpen(order.uri);
+    setOpening(false);
+    if (ok) return;
+    copyText(order.address);
+    show(t('pay.noWallet'));
+    setFailed(true);
+    setMore(true);
   };
   return (
     <div style={{ marginTop: 6 }}>
@@ -152,9 +142,19 @@ export function PayInfo({ order, show }) {
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        <ConnectBtn order={order} show={show} onPanel={setPanel} onFail={() => setFailed(true)} />
-        {!panel && !hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
-          <button type="button" className="pct-btn" onClick={openWallet} style={{ padding: '0 12px' }}>{t('plans.openWallet')}</button>
+        <ConnectBtn
+          order={order}
+          show={show}
+          onFail={(auto) => {
+            setFailed(true);
+            if (auto) openWallet();
+          }}
+        />
+        {!hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+          <button type="button" className="pct-btn" onClick={openWallet} disabled={opening} style={{ padding: '0 12px' }}>
+            {opening && <Spin />}
+            {t('plans.openWallet')}
+          </button>
         )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
