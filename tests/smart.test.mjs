@@ -107,3 +107,54 @@ test('smartSeries: with a reserve, flat days keep the principal share and clip o
   assert.ok(Math.abs(s.days[0] - (50 / 90 + 50 * 0.0021 * 1.3)) < 1e-9);
   assert.ok(s.left > 1);
 });
+
+const D = 86400000;
+const flatDays = (from, n, nets) => Object.fromEntries(Array.from({ length: n }, (_, i) => [from + i * D, nets]));
+
+test('bestNet: the highest net, 0 when every coin loses', () => {
+  assert.equal(bestNet({ BTC: 1.3, KAS: 1.6, RVN: -0.5 }), 1.6);
+  assert.equal(bestNet({ BTC: -1, KAS: -2 }), 0);
+  assert.equal(bestNet({}), 0);
+});
+
+test('anchorOn: before 28 Oct it is the seed, so old days keep their meaning', () => {
+  assert.equal(anchorOn(ANCHOR_FROM - D, flatDays(ANCHOR_FROM - 40 * D, 40, { KAS: 5 }), 1.43), 1.43);
+  assert.equal(anchorOn(SMART_FLAT_FROM, {}, 1.43), 1.43);
+});
+
+test('anchorOn: from 28 Oct it is the average of the best coin over the 30 finished days before', () => {
+  const days = flatDays(ANCHOR_FROM - 30 * D, 30, { BTC: 1, KAS: 2 });
+  assert.equal(anchorOn(ANCHOR_FROM, days, 1.43), 2);
+});
+
+test('anchorOn: days with no data count as the seed, so a young history moves it gently', () => {
+  const days = flatDays(ANCHOR_FROM - 3 * D, 3, { KAS: 3 });
+  const a = anchorOn(ANCHOR_FROM, days, 1.43);
+  assert.ok(Math.abs(a - (3 * 3 + 27 * 1.43) / 30) < 1e-9);
+});
+
+test('anchorOn: never below the floor, and a losing day counts as 0', () => {
+  const days = flatDays(ANCHOR_FROM - 30 * D, 30, { BTC: -1, KAS: -2 });
+  assert.equal(anchorOn(ANCHOR_FROM, days, 1.43), ANCHOR_FLOOR);
+});
+
+test('anchorOn: a finished day never changes when later days arrive; the day itself is not counted', () => {
+  const days = flatDays(ANCHOR_FROM - 30 * D, 30, { KAS: 2 });
+  const before = anchorOn(ANCHOR_FROM, days, 1.43);
+  days[ANCHOR_FROM] = { KAS: 99 };
+  days[ANCHOR_FROM + D] = { KAS: 99 };
+  assert.equal(anchorOn(ANCHOR_FROM, days, 1.43), before);
+});
+
+test('anchorOn: no seed, no anchor', () => {
+  assert.equal(anchorOn(ANCHOR_FROM, {}, null), null);
+  assert.equal(seedOf({}), null);
+  assert.equal(seedOf({ BTC: 1.43, KAS: 1.43 }), 1.43);
+});
+
+test('anchorFor: reads the seed from refs and follows anchorOn', () => {
+  const sm = { refs: { BTC: 1.43, KAS: 1.43 }, days: flatDays(ANCHOR_FROM - 30 * D, 30, { KAS: 2 }) };
+  assert.equal(anchorFor(sm, ANCHOR_FROM - D), 1.43);
+  assert.equal(anchorFor(sm, ANCHOR_FROM), 2);
+  assert.equal(anchorFor({ refs: {}, days: {} }, ANCHOR_FROM), null);
+});
