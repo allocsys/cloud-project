@@ -162,3 +162,20 @@ test('the backtest replays the rule over the last 30 days with the typed setting
   assert.equal((await guardBacktest({ margin: 80, buffer: 1 })).ok, false, 'limits apply');
   assert.equal(JSON.stringify([metaGet('guard'), metaGet('guarddays')]), stored, 'nothing is saved or decided');
 });
+
+test('a day when every Smart coin loses money is kept as ratio 0 and paused; a day with no coin data keeps nothing', async () => {
+  assert.equal((await saveGuardSettings({ asicsAuto: true, smartAuto: true, mode: 'extend', margin: 0, buffer: 2, smartFloor: 0.5 })).ok, true);
+  await metaSet('guarddays', { upto: d(6), paused: {}, smart: {} });
+  // d(5) has no coin rows at all; on d(4) the only coin loses money (net per rig is negative, so it has no ratio of its own).
+  await q("INSERT INTO coin_days (day, coin, price_usd, gross_per_unit, net_per_rig, at) VALUES ($1, 'BTC', 1, 0.1, -2, $2)", [d(4), d(4) + 1000]);
+  assert.equal(await ensureGuardDays(Date.now()), 5);
+  const g = metaGet('guarddays');
+  assert.equal(g.smart[d(5)], undefined, 'no market data: nothing is kept, nothing is paused');
+  assert.deepEqual(g.smart[d(4)], [0, 0.5, 0.02, 1], 'every coin lost money: ratio 0 under the floor');
+  const s = await guardState();
+  for (const scope of [FIRST, LAST]) {
+    assert.equal(isPaused(s, scope, d(5)), false, `${scope} is not paused on a day with no data`);
+    assert.equal(isPaused(s, scope, d(4)), true, `${scope} is paused when every coin loses money`);
+  }
+  await q('DELETE FROM coin_days WHERE day = $1', [d(4)]);
+});
