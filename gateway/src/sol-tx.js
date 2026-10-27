@@ -103,5 +103,7 @@ export async function buildSolTx(inv, from, rpc, now = Date.now()) {
 
 export async function solTransferTx(ref, from) {
   const inv = (await q('SELECT network, asset, address, expected_atomic::text AS expected_atomic, status, expires_at FROM invoices WHERE ref = $1', [String(ref)])).rows[0];
-  return buildSolTx(inv, from, rpcClient({ urls: config().sol.rpc }));
+  let client;
+  const lazy = () => (client ??= rpcClient({ urls: config().sol.rpc }));
+  return buildSolTx(inv, from, { call: (...a) => lazy().call(...a), batch: (...a) => lazy().batch(...a) });
 }
