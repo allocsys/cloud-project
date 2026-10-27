@@ -1626,6 +1626,11 @@ a.stat:active { background: var(--s3); }
   animation: slideup 0.3s cubic-bezier(0.2, 0, 0, 1);
 }
 
+/* Sheets with pinned pay buttons: the details scroll, the coin picker and buttons stay in view above the phone's bottom bar (Telegram insets included) */
+.sheet .card.pinned { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.sheet .card.pinned .sheetscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.sheet .card.pinned .sheetfoot { flex: none; padding: 12px 0 max(52px, calc(env(safe-area-inset-bottom, 0px) + 20px), calc(var(--tg-safe-area-inset-bottom, 0px) + 20px)); }
+
 .sheet h3 { font-size: 20px; line-height: 28px; font-weight: 400; letter-spacing: 0; }
 
 .grab {
