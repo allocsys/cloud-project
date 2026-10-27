@@ -5,6 +5,7 @@ import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { triggerHaptic } from '@/lib/haptics';
 import { fill, useT } from '@/components/I18nProvider';
+import { ConnectBtn } from '@/components/ConnectPay';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
 // value and onChange use { asset, net }.
@@ -143,6 +144,7 @@ export function PayInfo({ order, show }) {
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        <ConnectBtn order={order} show={show} />
         {order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
           <a className="pct-btn" href={order.uri} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
         )}
