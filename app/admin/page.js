@@ -111,6 +111,7 @@ function SmartCard({ smart, busy, run }) {
   return (
     <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'} start>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
+      <Fold title="Pay table" sub="Net profit a day by budget">
       <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
       {SMART_BUDGETS.map((b, i) => (
         <Field key={b} id={`smr${i}`} label={`$${b.toLocaleString('en-US')}`} inputMode="decimal" value={d.rates[i]} onChange={(v) => setD({ ...d, rates: d.rates.map((x, j) => (j === i ? v : x)) })} />
@@ -118,6 +119,7 @@ function SmartCard({ smart, busy, run }) {
       <Field id="smb1" label="Added on 120 days (% a day)" inputMode="decimal" value={d.b120} onChange={(v) => setD({ ...d, b120: v })} />
       <Field id="smb2" label="Added on 150 days (% a day)" inputMode="decimal" value={d.b150} onChange={(v) => setD({ ...d, b150: v })} />
       <Field id="smb3" label="Added on 180 days (% a day)" inputMode="decimal" value={d.b180} onChange={(v) => setD({ ...d, b180: v })} />
+      </Fold>
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save pay table</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: !set.enabled }, set.enabled ? 'Smart Mining is off' : 'Smart Mining is on')}>
