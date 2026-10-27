@@ -116,7 +116,7 @@ export async function adminOverview() {
     q('SELECT status, count(*)::int AS n FROM invoices GROUP BY status'),
     q(
       `SELECT id, ref, kind, network, asset, usd, expected_atomic::text AS expected, received_atomic::text AS received, status, created_at, expires_at, paid_at
-       FROM invoices ORDER BY created_at DESC LIMIT 25`,
+       FROM invoices ORDER BY (status IN ('pending', 'confirming', 'partial')) DESC, created_at DESC LIMIT 25`,
     ),
     q('SELECT network, asset, address, txid, vout, amount_atomic::text AS amount, confirmations, seen_at FROM unmatched_txs WHERE handled_at IS NULL ORDER BY seen_at DESC LIMIT 50'),
     q('SELECT count(*)::int AS n FROM unmatched_txs WHERE handled_at IS NULL'),
