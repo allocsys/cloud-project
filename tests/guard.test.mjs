@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, decideDay, replayGuard, replaySmart, smartReplay, smartPausedDays, parseSmartScope, contractPayout, scopeOf } from '../lib/guard.js';
+import { DAY, GUARD_DEFAULT, normalizeGuard, manualState, isPaused, termEnd, pausedDays, profitShareAsic, profitShareSmart, autoPaused, decideDay, replayGuard, replaySmart, smartReplay, smartPausedDays, parseSmartScope, contractPayout, scopeOf, bestSmartRatio } from '../lib/guard.js';
 import { usdPerDay } from '../lib/earnings.js';
 
 const D0 = 20000 * DAY; // some UTC midnight
@@ -175,4 +175,23 @@ test('replaySmart: the backtest follows the same rule, and a day with no data re
   assert.deepEqual(replaySmart(days, { settings: { ...settings, smartFloor: 0 }, scope: scopeOf(smallSmart) }), [], 'floor 0 never pauses');
   assert.deepEqual(replaySmart(days, { settings: { ...settings, smartAuto: false }, scope: scopeOf(smallSmart) }), []);
   assert.deepEqual(replaySmart(days, { settings, scope: 'tx-1' }), []);
+});
+
+test('bestSmartRatio: the best coin, a losing day is 0, no usable data is null', () => {
+  assert.equal(bestSmartRatio([{ net: 1.43, ref: 1.43 }, { net: 2.86, ref: 1.43 }, { net: -1, ref: 1.43 }]), 2, 'the best coin wins');
+  assert.equal(bestSmartRatio([{ net: -1.5, ref: 1.43 }, { net: -0.2, ref: 1.43 }]), 0, 'every coin loses money: ratio 0');
+  assert.equal(bestSmartRatio([{ net: 0, ref: 1.43 }]), 0, 'a coin that earns nothing is 0');
+  assert.equal(bestSmartRatio([{ net: -1, ref: 1.43 }, { net: 0.7, ref: 1.43 }]), 0.7 / 1.43 > 0 ? 0.7 / 1.43 : 0, 'one profitable coin is enough');
+  assert.equal(bestSmartRatio([]), null, 'no coins: no data');
+  assert.equal(bestSmartRatio(undefined), null);
+  assert.equal(bestSmartRatio([{ net: NaN, ref: 1.43 }, { net: 1, ref: null }, { net: 1, ref: 0 }]), null, 'unusable numbers are skipped');
+});
+
+test('replaySmart: a day when every coin loses money (ratio 0) pauses under the floor, a day with no data does not', () => {
+  const days = [{ day: N(1), best: 1.2 }, { day: N(2), best: 0 }, { day: N(3), best: 0.52 }, { day: N(4), best: 0.6 }, { day: N(5), best: null }];
+  const settings = { smartAuto: true, margin: 0, buffer: 0.003, smartFloor: 0.5 };
+  assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(smallSmart) }), [N(2)], 'ratio 0 pauses; 0.52 is over the floor, so the plan is back');
+  assert.deepEqual(replaySmart(days, { settings: { ...settings, smartFloor: 0 }, scope: scopeOf(smallSmart) }), [], 'floor 0 never pauses, even at ratio 0');
+  assert.deepEqual(replaySmart([{ day: N(1), best: null }], { settings, scope: scopeOf(smallSmart) }), [], 'no data pauses nothing');
+  assert.equal(isPaused({ smart: { [N(2)]: [0, 0.5, 0.003, 1] }, manual: {} }, scopeOf(bigSmart), N(2)), true, 'stored as [0, floor, buffer, 1], every plan is paused');
 });
