@@ -525,7 +525,7 @@ function Filter({ value, onPick, open, all }) {
 }
 
 // Gateway tab: the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
-const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana' };
+const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana', ton: 'TON' };
 const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
 const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s || '');
 const agoText = (s) => (s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`);
