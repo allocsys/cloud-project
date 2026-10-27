@@ -143,6 +143,9 @@ export function PayInfo({ order, show }) {
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
+        {order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+          <a className="pct-btn" href={order.uri} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
+        )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
