@@ -40,6 +40,28 @@ export function CoinPicker({ value, onChange, disabled = false }) {
   );
 }
 
+// Compact version for tight sheets: one row showing the chosen coin, tap to open the full picker. A coin with one network closes it on pick;
+// USDT and USDC stay open so the network can be chosen next, and close when it is.
+export function CoinSelect({ value, onChange, disabled = false }) {
+  const t = useT();
+  const [open, setOpen] = useState(false);
+  const a = PAY_ASSETS[value.asset];
+  const label = a.nets.length > 1 ? `${a.sym} \u00b7 ${PAY_NETS[value.net]}` : a.sym;
+  const change = (next) => {
+    onChange(next);
+    if (PAY_ASSETS[next.asset].nets.length === 1 || next.asset === value.asset) setOpen(false);
+  };
+  return (
+    <>
+      <button type="button" className="coinrow" aria-expanded={open} disabled={disabled} onClick={() => setOpen(!open)}>
+        <span>{t('pay.coin')}</span>
+        <b>{label}<i aria-hidden="true" /></b>
+      </button>
+      {open && <CoinPicker value={value} onChange={change} disabled={disabled} />}
+    </>
+  );
+}
+
 function Qr({ value }) {
   const t = useT();
   const qr = useMemo(() => {
