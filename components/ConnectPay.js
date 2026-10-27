@@ -1,17 +1,15 @@
 'use client';
 // Connect wallet (WalletConnect): the buyer picks a wallet, and it is asked to send this invoice's exact amount to its address.
-// EVM coins and tokens only. Needs NEXT_PUBLIC_WC_PROJECT_ID (a free Reown project id); without it the button is not shown.
+// EVM coins and tokens only. The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 import { useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 import { evmTx, WC_CHAINS } from '@/lib/wc-tx';
 
-const PROJECT_ID = process.env.NEXT_PUBLIC_WC_PROJECT_ID || '';
-
-async function sendWith(tx) {
+async function sendWith(tx, projectId) {
   const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
   const p = await EthereumProvider.init({
-    projectId: PROJECT_ID,
+    projectId,
     chains: [tx.chainId],
     optionalChains: WC_CHAINS,
     showQrModal: true,
@@ -37,14 +35,14 @@ async function sendWith(tx) {
 export function ConnectBtn({ order, show }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
-  const tx = PROJECT_ID ? evmTx(order.uri) : null;
+  const tx = order.wc ? evmTx(order.uri) : null;
   if (!tx) return null;
   const go = async () => {
     if (busy) return;
     triggerHaptic('selection');
     setBusy(true);
     try {
-      await sendWith(tx);
+      await sendWith(tx, order.wc);
       show(t('pay.sent'));
     } catch {
       show(t('pay.notSent'));
