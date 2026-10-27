@@ -513,7 +513,22 @@ export default function Settings() {
                   <div style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all', userSelect: 'all', padding: '10px 12px', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>
                     {tfKey.secret.replace(/(.{4})/g, '$1 ').trim()}
                   </div>
-                  <a className="btn ghost" href={tfKey.uri} style={{ display: 'inline-block', marginTop: '8px', textDecoration: 'none', textAlign: 'center' }}>{t('set.tfOpen')}</a>
+                  <button
+                    type="button"
+                    className="btn ghost"
+                    style={{ display: 'inline-block', marginTop: '8px', textAlign: 'center' }}
+                    onClick={() => {
+                      try {
+                        const f = document.createElement('iframe');
+                        f.style.display = 'none';
+                        f.src = tfKey.uri;
+                        document.body.appendChild(f);
+                        setTimeout(() => f.remove(), 3000);
+                      } catch {}
+                    }}
+                  >
+                    {t('set.tfOpen')}
+                  </button>
                   <Field id="tf" label={t('set.code6')} error={tfErr.code}>
                     <input
                       id="tf"
