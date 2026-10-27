@@ -7,6 +7,7 @@ import { deriveBtcAddress } from './btc.js';
 import { EVM, evmChain } from './evm.js';
 import { trxChain } from './trx.js';
 import { solChain } from './sol.js';
+import { tonChain } from './ton.js';
 import { config } from '../config.js';
 
 export const CHAINS = {
@@ -24,4 +25,5 @@ export const CHAINS = {
   ...Object.fromEntries(Object.keys(EVM).map((net) => [net, evmChain(net)])),
   trx: trxChain(),
   sol: solChain(),
+  ton: tonChain(),
 };
