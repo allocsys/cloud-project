@@ -99,7 +99,7 @@ function SmartCard({ smart, busy, run }) {
   const coins = smart?.coins || [];
   const days = smart?.days || [];
   const cost = smart?.cost;
-  const anchor = coins.find((c) => c.ref !== null)?.ref;
+  const anchor = days[0]?.anchor ?? coins.find((c) => c.ref !== null)?.ref;
   const key = JSON.stringify(table);
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
@@ -130,7 +130,7 @@ function SmartCard({ smart, busy, run }) {
           {set.kwhAuto !== false ? 'Use each coin\'s own price' : 'Use the live price'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{coins.find((c) => c.ref !== null) ? ` (${usd2(coins.find((c) => c.ref !== null).ref)} a day)` : ''}. The rig figures are editable defaults, and a change only applies to new readings.</p>
+      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{anchor > 0 ? ` (${usd2(anchor)} a day now)` : ''}: the average of the best coin over the last 30 finished days, never below $1.00. The rig figures are editable defaults, and a change only applies to new readings.</p>
       {coins.map((c) => (
         <CoinRow key={c.symbol} c={c} busy={busy} run={run} />
       ))}
@@ -142,7 +142,7 @@ function SmartCard({ smart, busy, run }) {
             {dayText(r.day)}
             <small>
               {coins.map((c) => (
-                <span key={c.symbol} style={{ marginRight: 10, fontWeight: (r.pick || r.best) === c.symbol ? 700 : 400 }}>{c.symbol} {r.nets[c.symbol] === undefined || r.nets[c.symbol] === null ? 'n/a' : `${usd2(r.nets[c.symbol])} ×${anchor > 0 ? Math.max(0, r.nets[c.symbol] / anchor).toFixed(2) : '?'}`}</span>
+                <span key={c.symbol} style={{ marginRight: 10, fontWeight: (r.pick || r.best) === c.symbol ? 700 : 400 }}>{c.symbol} {r.nets[c.symbol] === undefined || r.nets[c.symbol] === null ? 'n/a' : `${usd2(r.nets[c.symbol])} ×${(r.anchor ?? anchor) > 0 ? Math.max(0, r.nets[c.symbol] / (r.anchor ?? anchor)).toFixed(2) : '?'}`}</span>
               ))}
             </small>
           </div>
