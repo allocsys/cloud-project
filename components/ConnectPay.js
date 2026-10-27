@@ -60,7 +60,7 @@ async function sendSol(order, onUri) {
   }
 }
 
-export function ConnectBtn({ order, show, onPanel }) {
+export function ConnectBtn({ order, show, onPanel, onFail }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [uri, setUri] = useState('');
@@ -82,6 +82,7 @@ export function ConnectBtn({ order, show, onPanel }) {
       show(t('pay.sent'));
     } catch {
       show(t('pay.notSent'));
+      if (onFail) onFail();
     } finally {
       setUri('');
       setBusy(false);
@@ -97,7 +98,7 @@ export function ConnectBtn({ order, show, onPanel }) {
   };
   return (
     <>
-      <button type="button" className="pct-btn" style={{ padding: '0 12px', flex: '1 0 100%' }} disabled={busy} onClick={go}>
+      <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={busy} onClick={go}>
         {t('pay.connect')}
       </button>
       {uri && (
