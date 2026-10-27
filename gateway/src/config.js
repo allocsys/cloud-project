@@ -4,7 +4,7 @@
 // GATEWAY_API_SECRET  shared secret the app sends as a Bearer token
 // BTC_XPUB            account-level extended PUBLIC key (xpub or zpub). Never a private key or seed. A fresh address per invoice.
 // PAY_ADDR_BTC        fixed-address mode: one public BTC address; invoices are told apart by exact amount. Used when BTC_XPUB is not set.
-// PAY_ADDR_EVM, PAY_ADDR_TRX, PAY_ADDR_SOL  public receiving addresses (EVM chains share one) for the fixed-address networks.
+// PAY_ADDR_EVM, PAY_ADDR_TRX, PAY_ADDR_SOL, PAY_ADDR_TON  public receiving addresses (EVM chains share one) for the fixed-address networks.
 // EVM_NETWORKS        which EVM networks to accept, comma separated (default eth,bsc,pol). Needs PAY_ADDR_EVM.
 // EVM_RPC_ETH, EVM_RPC_BSC, EVM_RPC_POL  JSON-RPC endpoints, comma separated, https only. Tried in order; the next one is used when one fails.
 // EVM_CONF_ETH, EVM_CONF_BSC, EVM_CONF_POL  confirmations needed before an EVM payment counts (defaults 12, 15, 64)
@@ -14,6 +14,9 @@
 // TRX_CONFIRMATIONS   confirmations needed for a TRX payment (default 1; a 'confirmed' Tron payment is already solidified)
 // SOL_RPC             Solana JSON-RPC endpoints, comma separated, https only. Tried in order; may carry a provider key in the URL.
 // SOL_CONFIRMATIONS   confirmations needed for a SOL payment (default 1; only finalized payments get any)
+// TON_API_URL         toncenter-compatible API base (v3), https only (default https://toncenter.com)
+// TON_API_KEY         optional toncenter key (sent as X-API-Key; without one the limit is 1 request per second)
+// TON_CONFIRMATIONS   confirmations needed for a TON payment (default 1; a payment in a masterchain block, or older than 30 s, shows 1)
 // BTC_CONFIRMATIONS   confirmations needed before a BTC payment counts (default 1, matching the app)
 // BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://mempool.space/api)
 // POLL_SECONDS        how often open invoices are checked on chain (default 30, minimum 5)
@@ -63,6 +66,7 @@ export const config = () => {
       evm: text(process.env.PAY_ADDR_EVM),
       trx: text(process.env.PAY_ADDR_TRX),
       sol: text(process.env.PAY_ADDR_SOL),
+      ton: text(process.env.PAY_ADDR_TON),
     },
     evm: {
       networks: nets.length ? nets : ['eth', 'bsc', 'pol'],
@@ -83,6 +87,11 @@ export const config = () => {
     sol: {
       rpc: csv(process.env.SOL_RPC).length ? csv(process.env.SOL_RPC) : SOL_RPC,
       confirmations: whole(process.env.SOL_CONFIRMATIONS, 1),
+    },
+    ton: {
+      apiUrl: text(process.env.TON_API_URL) || 'https://toncenter.com',
+      apiKey: text(process.env.TON_API_KEY),
+      confirmations: whole(process.env.TON_CONFIRMATIONS, 1),
     },
     pollIntervalMs: Math.max(5, whole(process.env.POLL_SECONDS, 30)) * 1000,
     idlePollMs: Math.max(5, whole(process.env.IDLE_POLL_SECONDS, 60)) * 1000,
