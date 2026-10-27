@@ -1,11 +1,11 @@
 'use client';
 // Pay screens for our own gateway checkout: the coin picker, and the open payment (exact amount, address, copy, QR).
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
-import { qrMatrix, qrPath } from '@/lib/qr';
 import { triggerHaptic } from '@/lib/haptics';
 import { fill, useT } from '@/components/I18nProvider';
 import { ConnectBtn } from '@/components/ConnectPay';
+import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
@@ -61,29 +61,6 @@ export function CoinSelect({ value, onChange, disabled = false }) {
       </button>
       {open && <CoinPicker value={value} onChange={change} disabled={disabled} />}
     </>
-  );
-}
-
-function Qr({ value }) {
-  const t = useT();
-  const qr = useMemo(() => {
-    try {
-      const m = qrMatrix(value);
-      return { size: m.length, d: qrPath(m) };
-    } catch {
-      return null;
-    }
-  }, [value]);
-  if (!qr) return null;
-  const pad = 3;
-  const box = qr.size + pad * 2;
-  return (
-    <div style={{ width: 144, height: 144, margin: '10px 0 0' }}>
-      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} width="144" height="144" role="img" aria-label={t('wal.qr')} shapeRendering="crispEdges">
-        <rect x={-pad} y={-pad} width={box} height={box} fill="#fff" />
-        <path d={qr.d} fill="#0b0a08" />
-      </svg>
-    </div>
   );
 }
 
