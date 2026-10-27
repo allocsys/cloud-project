@@ -168,9 +168,11 @@ test('a Smart plan paused by the rule has its term pushed back and earns nothing
 
 test('replaySmart: the backtest follows the same rule, and a day with no data resets it', () => {
   const days = [{ day: N(1), best: 0.9 }, { day: N(2), best: 0.7 }, { day: N(3), best: null }, { day: N(4), best: 1.2 }];
-  const settings = { smartAuto: true, margin: 0, buffer: 0.02 };
+  const settings = { smartAuto: true, margin: 0, buffer: 0.02, smartFloor: 0.8 };
   assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(smallSmart) }), [N(2)]);
-  assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(bigSmart) }), []);
+  assert.deepEqual(replaySmart(days, { settings, scope: scopeOf(bigSmart) }), [N(2)], 'the floor is the same for every plan');
+  assert.deepEqual(replaySmart(days, { settings: { ...settings, smartFloor: 0.5 }, scope: scopeOf(smallSmart) }), [], 'under the default floor 0.5 none of these pause');
+  assert.deepEqual(replaySmart(days, { settings: { ...settings, smartFloor: 0 }, scope: scopeOf(smallSmart) }), [], 'floor 0 never pauses');
   assert.deepEqual(replaySmart(days, { settings: { ...settings, smartAuto: false }, scope: scopeOf(smallSmart) }), []);
   assert.deepEqual(replaySmart(days, { settings, scope: 'tx-1' }), []);
 });
