@@ -159,7 +159,6 @@ export function PayInfo({ order, show }) {
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
           <>
-            <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
             {trust && (
