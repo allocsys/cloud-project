@@ -1037,6 +1037,7 @@ export default function Admin() {
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => setOpenU(openU === u.id ? null : u.id)}>
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
+                  {u.tg && <small>{u.id}</small>}
                   <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}</small>
                 </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
@@ -1044,7 +1045,6 @@ export default function Admin() {
               </button>
               {openU === u.id && (
               <div className="adm-fb">
-              {u.tg && <div className="row"><span className="mute">Account ID</span><b>{u.id}</b></div>}
               <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
               <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
