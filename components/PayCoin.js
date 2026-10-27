@@ -130,6 +130,14 @@ export function PayInfo({ order, show }) {
     };
     const evs = ['pagehide', 'blur', 'visibilitychange'];
     evs.forEach((e) => window.addEventListener(e, gone));
+    // Loaded in a hidden frame, not as the page: a scheme the webview does not know (net::ERR_UNKNOWN_URL_SCHEME) then fails inside the frame only.
+    try {
+      const f = document.createElement('iframe');
+      f.style.display = 'none';
+      f.src = order.uri;
+      document.body.appendChild(f);
+      setTimeout(() => f.remove(), 3000);
+    } catch {}
     setTimeout(() => {
       evs.forEach((e) => window.removeEventListener(e, gone));
       if (left || document.hidden) return;
@@ -146,7 +154,7 @@ export function PayInfo({ order, show }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
         <ConnectBtn order={order} show={show} onPanel={setPanel} onFail={() => setFailed(true)} />
         {!panel && !hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
-          <a className="pct-btn" href={order.uri} onClick={openWallet} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
+          <button type="button" className="pct-btn" onClick={openWallet} style={{ padding: '0 12px' }}>{t('plans.openWallet')}</button>
         )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
