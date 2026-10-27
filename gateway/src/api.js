@@ -5,6 +5,7 @@ import { hasDb } from './db.js';
 import { ApiError, json, readJson } from './http.js';
 import { createInvoice, getInvoice } from './invoices.js';
 import { adminOverview, closeInvoice, handleUnmatched, setNetworkPaused } from './admin-api.js';
+import { solTransferTx } from './sol-tx.js';
 
 const digest = (s) => createHash('sha256').update(s).digest();
 
@@ -35,6 +36,14 @@ export async function handleApi(req, res, url) {
     }
     if (url.pathname === '/v1/admin/network/pause' && req.method === 'POST') {
       return json(res, 200, { ok: true, ...(await setNetworkPaused(await readJson(req))) });
+    }
+    const sm = /^\/v1\/invoices\/([^/]+)\/sol-tx$/.exec(url.pathname);
+    if (sm && req.method === 'GET') {
+      let ref = sm[1];
+      try {
+        ref = decodeURIComponent(ref);
+      } catch {}
+      return json(res, 200, { ok: true, tx: await solTransferTx(ref, url.searchParams.get('from')) });
     }
     const m = /^\/v1\/invoices\/([^/]+)$/.exec(url.pathname);
     if (m && req.method === 'GET') {
