@@ -9,6 +9,7 @@
     "test": "node --test --test-concurrency=1 --import ./tests/register.mjs \"tests/**/*.test.mjs\""
   },
   "dependencies": {
+    "@walletconnect/ethereum-provider": "2.26.0",
     "motion": "^14.4.0",
     "next": "^15.0.0",
     "pg": "^8.23.1",
