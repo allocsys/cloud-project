@@ -41,6 +41,8 @@ export const EVM = {
   },
 };
 
+export const EVM_CHAIN_ID = { eth: 1, bsc: 56, pol: 137 };
+
 // The receiving address, or '' when it is missing or not a well-formed EVM address.
 export const evmAddress = () => (/^0x[0-9a-fA-F]{40}$/.test(config().payAddr.evm) ? config().payAddr.evm : '');
 
@@ -57,6 +59,14 @@ export function evmChain(net) {
     shared: () => true,
     configured: () => !!evmAddress() && config().evm.networks.includes(net),
     address: () => evmAddress(),
-    uri: (address) => address, // plain address: wallets disagree on amount-carrying links for tokens
+    // EIP-681 link that opens the wallet with address and exact amount filled in: native coin 'ethereum:<to>@<chain>?value=<wei>',
+    // token 'ethereum:<contract>@<chain>/transfer?address=<to>&uint256=<atomic>'. No amount (or an odd one): the plain address.
+    uri: (address, amount, asset, atomic) => {
+      const a = String(atomic ?? '');
+      if (!/^[1-9]\d*$/.test(a)) return address;
+      if (asset === e.native) return `ethereum:${address}@${EVM_CHAIN_ID[net]}?value=${a}`;
+      const t = e.tokens[asset];
+      return t ? `ethereum:${t.contract}@${EVM_CHAIN_ID[net]}/transfer?address=${address}&uint256=${a}` : address;
+    },
   };
 }
