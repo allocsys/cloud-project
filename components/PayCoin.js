@@ -113,7 +113,7 @@ export function PayInfo({ order, show }) {
   const [panel, setPanel] = useState(false);
   const [failed, setFailed] = useState(false);
   // On EVM coins Connect wallet does the job: Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
-  const hideEvm = !!order.wc && !!evmTx(order.uri) && !failed;
+  const hideEvm = !!order.wc && (!!evmTx(order.uri) || (order.network === 'sol' && !!order.id)) && !failed;
   const a = PAY_ASSETS[order.asset || 'btc'];
   const sym = a ? a.sym : 'BTC';
   const net = PAY_NETS[order.network || 'btc'] || '';
