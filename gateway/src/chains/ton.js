@@ -1,6 +1,7 @@
 // TON network: native TON to ONE fixed receiving address (PAY_ADDR_TON), invoices told apart by exact amount.
 // Detection lives in ../ton-explorer.js (toncenter v3 HTTP API). Amounts are in nanoton (9 decimals).
 // Only the main network, workchain 0. Not built: USDT on TON (a jetton, read from different data).
+import { config } from '../config.js';
 
 // CRC16-XMODEM, the checksum inside a user-friendly TON address.
 export function crc16(bytes) {
@@ -40,7 +41,7 @@ export function tonFriendly(hash, bounceable = false) {
 }
 
 export function tonAddress() {
-  const a = String(process.env.PAY_ADDR_TON || '').trim();
+  const a = config().payAddr.ton;
   try {
     tonParse(a);
     return a;
@@ -53,7 +54,7 @@ export const tonChain = () => ({
   assets: ['ton'],
   decimals: 9,
   decimalsOf: () => 9,
-  confirmations: () => Math.max(1, Math.floor(Number(process.env.TON_CONFIRMATIONS)) || 1),
+  confirmations: () => config().ton.confirmations,
   recentConfirmations: 1000, // a TON payment shows 0 or 1 confirmation; the explorer's 14 day window is what keeps this recent
   shared: () => true,
   configured: () => !!tonAddress(),
