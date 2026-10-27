@@ -99,6 +99,7 @@ function SmartCard({ smart, busy, run }) {
   const coins = smart?.coins || [];
   const days = smart?.days || [];
   const cost = smart?.cost;
+  const anchor = coins.find((c) => c.ref !== null)?.ref;
   const key = JSON.stringify(table);
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
@@ -141,7 +142,7 @@ function SmartCard({ smart, busy, run }) {
             {dayText(r.day)}
             <small>
               {coins.map((c) => (
-                <span key={c.symbol} style={{ marginRight: 10, fontWeight: (r.pick || r.best) === c.symbol ? 700 : 400 }}>{c.symbol} {r.nets[c.symbol] === undefined || r.nets[c.symbol] === null ? 'n/a' : usd2(r.nets[c.symbol])}</span>
+                <span key={c.symbol} style={{ marginRight: 10, fontWeight: (r.pick || r.best) === c.symbol ? 700 : 400 }}>{c.symbol} {r.nets[c.symbol] === undefined || r.nets[c.symbol] === null ? 'n/a' : `${usd2(r.nets[c.symbol])} ×${anchor > 0 ? Math.max(0, r.nets[c.symbol] / anchor).toFixed(2) : '?'}`}</span>
               ))}
             </small>
           </div>
