@@ -108,6 +108,8 @@ function Countdown({ at }) {
 export function PayInfo({ order, show }) {
   const t = useT();
   const [qr, setQr] = useState(false);
+  const [more, setMore] = useState(false);
+  const [panel, setPanel] = useState(false);
   const a = PAY_ASSETS[order.asset || 'btc'];
   const sym = a ? a.sym : 'BTC';
   const net = PAY_NETS[order.network || 'btc'] || '';
@@ -138,16 +140,21 @@ export function PayInfo({ order, show }) {
       <small className="serial" style={{ display: 'block', wordBreak: 'break-all', userSelect: 'all' }}>{order.address}</small>
       {net && <small style={{ display: 'block' }}>{t('pay.onNet', { net })}</small>}
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-        <ConnectBtn order={order} show={show} />
-        {order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+        <ConnectBtn order={order} show={show} onPanel={setPanel} />
+        {!panel && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
           <a className="pct-btn" href={order.uri} onClick={openWallet} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
         )}
-        {trust && (
-          <a className="pct-btn" href={trust} target="_blank" rel="noopener noreferrer" style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('pay.trust')}</a>
-        )}
-        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
-        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
+        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
+        {more && (
+          <>
+            <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
+            <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
+            {trust && (
+              <a className="pct-btn" href={trust} target="_blank" rel="noopener noreferrer" style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('pay.trust')}</a>
+            )}
+          </>
+        )}
       </div>
       {qr && <Qr value={order.uri || order.address} />}
     </div>
