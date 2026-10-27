@@ -32,6 +32,16 @@ test('paused and resumed build from parts', () => {
   assert.equal(noteBody(h, fa, 'fa'), 'Texas دوباره ماینینگ می‌کند: سودآور است.');
 });
 
+test('Smart notices decided under the floor rule talk about market returns', () => {
+  const day = Date.UTC(2026, 9, 28);
+  const p = { code: 'paused', vars: { who: 'smart', floor: true, day, tail: 'extend' } };
+  assert.equal(noteBody(p, en, 'en'), 'Smart Mining was switched off on 28 Oct because market returns were too low. It paid nothing and your term is extended by a day.');
+  const r = { code: 'resumed', vars: { who: 'one', floor: true } };
+  assert.equal(noteBody(r, en, 'en'), 'One of your Smart Mining plans is mining again: market returns have recovered.');
+  assert.equal(noteBody({ ...p, vars: { ...p.vars, floor: false } }, en, 'en'), 'Smart Mining was switched off on 28 Oct because that day would not have been profitable. It paid nothing and your term is extended by a day.', 'older notices keep their text');
+  for (const n of [p, r]) assert.ok(!noteBody(n, fa, 'fa').startsWith('note.'), 'Persian text exists');
+});
+
 test('account notifications from codes', () => {
   const rec = { code: 'recUsed', vars: { n: 7 } };
   assert.equal(noteBody(rec, en, 'en'), '7 left. Turn two-factor off and on again for a new set.');
