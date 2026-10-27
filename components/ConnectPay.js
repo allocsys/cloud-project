@@ -3,7 +3,7 @@
 // EVM coins and tokens, and Solana (SOL, USDT, USDC). The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 // EVM uses the ready-made wallet picker. Solana has none in its provider, so a small panel shows the connect link as a QR code, with copy and open buttons.
 // The Solana provider (@walletconnect/universal-provider) is already installed as part of the EVM one, which is built on it.
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { Qr } from '@/components/Qr';
 import { post } from '@/lib/api';
@@ -60,10 +60,14 @@ async function sendSol(order, onUri) {
   }
 }
 
-export function ConnectBtn({ order, show }) {
+export function ConnectBtn({ order, show, onPanel }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
   const [uri, setUri] = useState('');
+  // The page hides its own Open wallet while this panel shows its own, so there is only one.
+  useEffect(() => {
+    if (onPanel) onPanel(!!uri);
+  }, [uri, onPanel]);
   const evm = order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
   if (!evm && !sol) return null;
@@ -93,7 +97,7 @@ export function ConnectBtn({ order, show }) {
   };
   return (
     <>
-      <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={busy} onClick={go}>
+      <button type="button" className="pct-btn" style={{ padding: '0 12px', flex: '1 0 100%' }} disabled={busy} onClick={go}>
         {t('pay.connect')}
       </button>
       {uri && (
