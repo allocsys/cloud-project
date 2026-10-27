@@ -9,6 +9,7 @@ import TelegramInit from '@/components/TelegramInit';
 import I18nProvider from '@/components/I18nProvider';
 import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
+import { SITE_URL } from '@/lib/site';
 
 const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 // Persian font: not preloaded, and the browser only fetches it when Persian text is on the page.
@@ -17,7 +18,8 @@ const sansFa = Vazirmatn({ subsets: ['arabic', 'latin'], weight: ['400', '500'],
 export async function generateMetadata() {
   const t = await getT();
   return {
-    title: 'Miner Opus',
+    metadataBase: new URL(SITE_URL),
+    title: { default: 'Miner Opus', template: '%s · Miner Opus' },
     description: t('meta.description'),
     applicationName: 'Miner Opus',
     openGraph: {
@@ -26,6 +28,7 @@ export async function generateMetadata() {
       siteName: 'Miner Opus',
       type: 'website',
     },
+    twitter: { card: 'summary_large_image' },
     icons: {
       icon: [
         { url: '/logo.svg', type: 'image/svg+xml' },
