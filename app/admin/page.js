@@ -109,7 +109,7 @@ function SmartCard({ smart, busy, run }) {
   const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
   const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150), 180: asFraction(d.b180) } }, 'Smart Mining pay table saved');
   return (
-    <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'} start>
+    <Fold title="Smart Mining" sub={set.enabled ? 'Selling' : 'Off'}>
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
       <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
       {SMART_BUDGETS.map((b, i) => (
