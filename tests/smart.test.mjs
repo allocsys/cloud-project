@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { grossPerUnit, ratioOf, pickCoin, dailyUsd, HYSTERESIS, smartDaily, SMART_FLAT_FROM, smartSeries, smartBaseYield } from '@/lib/smart';
+import { grossPerUnit, ratioOf, pickCoin, dailyUsd, HYSTERESIS, smartDaily, SMART_FLAT_FROM, smartSeries, smartBaseYield, anchorOn, anchorFor, bestNet, seedOf, ANCHOR_FROM, ANCHOR_FLOOR } from '@/lib/smart';
 
 test('grossPerUnit: reward x blocks per day x price x unit / nethash', () => {
   // 10 coins a block, a block every 60 s (1440 a day), $2 a coin, network 1e12 H/s, one unit = 1e6 H/s (MH/s)
