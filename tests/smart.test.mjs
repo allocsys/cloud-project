@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { grossPerUnit, ratioOf, pickCoin, dailyUsd, HYSTERESIS, smartDaily, SMART_FLAT_FROM, smartSeries, smartBaseYield, anchorOn, anchorFor, bestNet, seedOf, ANCHOR_FROM, ANCHOR_FLOOR } from '@/lib/smart';
+import { grossPerUnit, ratioOf, pickCoin, dailyUsd, HYSTERESIS, smartDaily, SMART_FLAT_FROM, smartSeries, smartBaseYield, anchorOn, anchorFor, bestNet, seedOf, ANCHOR_FROM, ANCHOR_FLOOR, floorOn, normalizeFloors } from '@/lib/smart';
 
 test('grossPerUnit: reward x blocks per day x price x unit / nethash', () => {
   // 10 coins a block, a block every 60 s (1440 a day), $2 a coin, network 1e12 H/s, one unit = 1e6 H/s (MH/s)
@@ -157,4 +157,29 @@ test('anchorFor: reads the seed from refs and follows anchorOn', () => {
   assert.equal(anchorFor(sm, ANCHOR_FROM - D), 1.43);
   assert.equal(anchorFor(sm, ANCHOR_FROM), 2);
   assert.equal(anchorFor({ refs: {}, days: {} }, ANCHOR_FROM), null);
+});
+
+test('floorOn: the last saved floor that started on or before the day, else the default', () => {
+  const floors = [{ from: ANCHOR_FROM + 2 * D, floor: 2 }, { from: ANCHOR_FROM + 5 * D, floor: 3 }];
+  assert.equal(floorOn(ANCHOR_FROM, floors), ANCHOR_FLOOR);
+  assert.equal(floorOn(ANCHOR_FROM + 2 * D, floors), 2);
+  assert.equal(floorOn(ANCHOR_FROM + 4 * D, floors), 2);
+  assert.equal(floorOn(ANCHOR_FROM + 9 * D, floors), 3);
+  assert.equal(floorOn(ANCHOR_FROM, null), ANCHOR_FLOOR);
+});
+
+test('normalizeFloors: drops invalid entries and sorts', () => {
+  assert.deepEqual(normalizeFloors(null), []);
+  const list = normalizeFloors([{ from: 5, floor: 2 }, { from: 1, floor: 1.5 }, { from: 3, floor: 0 }, { from: 'x', floor: 2 }, { from: 4, floor: 99 }]);
+  assert.deepEqual(list, [{ from: 1, floor: 1.5 }, { from: 5, floor: 2 }]);
+});
+
+test('anchorOn: a floor change only moves the days from its start; earlier days keep theirs', () => {
+  const days = flatDays(ANCHOR_FROM - 30 * D, 40, { KAS: 0.5 });
+  const floors = [{ from: ANCHOR_FROM + 3 * D, floor: 2 }];
+  assert.equal(anchorOn(ANCHOR_FROM + 2 * D, days, 1.43, floors), ANCHOR_FLOOR);
+  assert.equal(anchorOn(ANCHOR_FROM + 3 * D, days, 1.43, floors), 2);
+  const sm = { refs: { KAS: 1.43 }, days, floors };
+  assert.equal(anchorFor(sm, ANCHOR_FROM + 2 * D), ANCHOR_FLOOR);
+  assert.equal(anchorFor(sm, ANCHOR_FROM + 3 * D), 2);
 });
