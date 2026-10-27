@@ -206,7 +206,7 @@ function GuardCard({ guard, busy, run }) {
   const lastText = (t) => (t ? new Date(t).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' }) : 'never');
   const daysText = (list) => (list && list.length ? list.map(lastText).join(', ') : 'none');
   return (
-    <Fold title="Profit guard" sub={(guard.scopes || []).some((sc) => sc.pausedToday) ? `${(guard.scopes || []).filter((sc) => sc.pausedToday).length} paused today` : 'All running'}>
+    <Fold start title="Profit guard" sub={(guard.scopes || []).some((sc) => sc.pausedToday) ? `${(guard.scopes || []).filter((sc) => sc.pausedToday).length} paused today` : 'All running'}>
       <p className="fine" style={{ margin: '0 0 4px' }}>Switches a hall off for a whole UTC day when that day would not be profitable. A paused day pays nothing. Each day is decided once it is over, from its final market, and then never changes.</p>
       <Pick id="gpa" label="ASICs: automatic guard" value={d.asicsAuto ? 'on' : 'off'} onChange={(v) => put('asicsAuto', v === 'on')}>
         <option value="on">On</option>
@@ -1024,7 +1024,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
@@ -1046,6 +1046,12 @@ export default function Admin() {
               )}
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === 'guard' && (
+        <div className="adm-stack">
+          <GuardCard guard={data.guard} busy={busy} run={run} />
         </div>
       )}
 
@@ -1074,7 +1080,6 @@ export default function Admin() {
           </Fold>
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
-          <GuardCard guard={data.guard} busy={busy} run={run} />
           <Fold title="Demo account" sub="Wipe to a clean slate">
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
             <div className="adm-actions">
