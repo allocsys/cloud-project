@@ -126,6 +126,12 @@ export function PayInfo({ order, show }) {
   // copy the address, and show Copy address, Copy amount and the rest under More.
   const openWallet = async () => {
     if (opening) return;
+    // Telegram's webview does not hand ton:// to a wallet: open the https form of the same link in its own browser instead.
+    const tg = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+    if (order.network === 'ton' && tg?.initData && tg.openLink && /^ton:\/\/transfer\//.test(order.uri || '')) {
+      tg.openLink(order.uri.replace(/^ton:\/\//, 'https://app.tonkeeper.com/'));
+      return;
+    }
     setOpening(true);
     const ok = await tryOpen(order.uri);
     setOpening(false);
