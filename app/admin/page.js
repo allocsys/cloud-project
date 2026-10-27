@@ -103,6 +103,9 @@ function SmartCard({ smart, busy, run }) {
   const key = JSON.stringify(table);
   const [d, setD] = useState(() => draftOf(table));
   useEffect(() => setD(draftOf(JSON.parse(key))), [key]);
+  const floorNow = set.anchorFloorNext ?? set.anchorFloor ?? 1;
+  const [fl, setFl] = useState(String(floorNow));
+  useEffect(() => setFl(String(floorNow)), [floorNow]);
   const asFraction = (v) => Number(String(v).trim().replace(',', '.')) / 100;
   const save = () => run({ action: 'smart-settings', enabled: set.enabled, rates: d.rates.map(asFraction), bonus: { 120: asFraction(d.b120), 150: asFraction(d.b150), 180: asFraction(d.b180) } }, 'Smart Mining pay table saved');
   return (
@@ -130,7 +133,12 @@ function SmartCard({ smart, busy, run }) {
           {set.kwhAuto !== false ? 'Use each coin\'s own price' : 'Use the live price'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{anchor > 0 ? ` (${usd2(anchor)} a day now)` : ''}: the average of the best coin over the last 30 finished days, never below $1.00. The rig figures are editable defaults, and a change only applies to new readings.</p>
+      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{anchor > 0 ? ` (${usd2(anchor)} a day now)` : ''}: the average of the best coin over the last 30 finished days, never below the floor ({usd2(set.anchorFloor ?? 1)} now). The rig figures are editable defaults, and a change only applies to new readings.</p>
+      <Field id="smfl" label="Anchor floor (USD a day)" inputMode="decimal" value={fl} onChange={setFl} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, anchorFloor: fl }, 'Anchor floor saved')}>Save floor</button>
+      </div>
+      <p className="fine" style={{ margin: '0 0 8px' }}>Between $0.10 and $10. A new floor starts tomorrow (UTC). Days already decided or paid keep the floor they had.{set.anchorFloorNext !== undefined && set.anchorFloorNext !== set.anchorFloor ? ` Tomorrow: ${usd2(set.anchorFloorNext)}.` : ''}</p>
       {coins.map((c) => (
         <CoinRow key={c.symbol} c={c} busy={busy} run={run} />
       ))}
