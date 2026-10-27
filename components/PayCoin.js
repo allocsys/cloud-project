@@ -6,6 +6,7 @@ import { qrMatrix, qrPath } from '@/lib/qr';
 import { triggerHaptic } from '@/lib/haptics';
 import { fill, useT } from '@/components/I18nProvider';
 import { ConnectBtn } from '@/components/ConnectPay';
+import { trustLink } from '@/lib/trust-link';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
 // value and onChange use { asset, net }.
@@ -137,6 +138,22 @@ export function PayInfo({ order, show }) {
     copyText(text);
     show(t('wal.copied'));
   };
+  const trust = trustLink(order);
+  // A payment link only opens a wallet that registered its scheme. If the page is still in front after 1.5 s, nothing opened: copy the address instead.
+  const openWallet = () => {
+    let left = false;
+    const gone = () => {
+      left = true;
+    };
+    const evs = ['pagehide', 'blur', 'visibilitychange'];
+    evs.forEach((e) => window.addEventListener(e, gone));
+    setTimeout(() => {
+      evs.forEach((e) => window.removeEventListener(e, gone));
+      if (left || document.hidden) return;
+      copyText(order.address);
+      show(t('pay.noWallet'));
+    }, 1500);
+  };
   return (
     <div style={{ marginTop: 6 }}>
       <Countdown at={order.expiresAt} />
@@ -146,7 +163,10 @@ export function PayInfo({ order, show }) {
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
         <ConnectBtn order={order} show={show} />
         {order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
-          <a className="pct-btn" href={order.uri} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
+          <a className="pct-btn" href={order.uri} onClick={openWallet} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
+        )}
+        {trust && (
+          <a className="pct-btn" href={trust} target="_blank" rel="noopener noreferrer" style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('pay.trust')}</a>
         )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
