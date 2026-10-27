@@ -20,7 +20,7 @@ export function CoinPicker({ value, onChange, disabled = false }) {
   };
   return (
     <>
-      <div className="assets" style={{ gridTemplateColumns: 'repeat(4, 1fr)' }} role="group" aria-label={t('wal.coin')}>
+      <div className="assets" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }} role="group" aria-label={t('wal.coin')}>
         {Object.entries(PAY_ASSETS).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: a.nets[0] })}>
             {a.sym}
