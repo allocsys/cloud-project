@@ -106,7 +106,22 @@ export function ConnectBtn({ order, show, onPanel, onFail }) {
           <small style={{ display: 'block' }}>{t('pay.scanWc')}</small>
           <Qr value={uri} />
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
-            <a className="pct-btn" href={uri} style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('plans.openWallet')}</a>
+            <button
+              type="button"
+              className="pct-btn"
+              style={{ padding: '0 12px' }}
+              onClick={() => {
+                try {
+                  const f = document.createElement('iframe');
+                  f.style.display = 'none';
+                  f.src = uri;
+                  document.body.appendChild(f);
+                  setTimeout(() => f.remove(), 3000);
+                } catch {}
+              }}
+            >
+              {t('plans.openWallet')}
+            </button>
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={copyLink}>{t('pay.copyLink')}</button>
           </div>
         </div>
