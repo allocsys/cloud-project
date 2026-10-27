@@ -50,7 +50,7 @@ test('the overview lists networks, scanners, invoices, unmatched payments, callb
   const o = await adminOverview();
   assert.deepEqual(
     o.networks.map((n) => n.network),
-    ['btc', 'eth', 'bsc', 'pol', 'trx', 'sol'],
+    ['btc', 'eth', 'bsc', 'pol', 'trx', 'sol', 'ton'],
   );
   assert.ok(o.networks.every((n) => Array.isArray(n.assets) && typeof n.configured === 'boolean'));
   const s = o.scanners.find((x) => x.network === net);
