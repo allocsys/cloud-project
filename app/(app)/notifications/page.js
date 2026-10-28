@@ -68,7 +68,7 @@ export default function Notifications() {
 
   return (
     <>
-      <div className="top">
+      <div className="top rich">
         <div className="tl">
           <Link
             href="/dashboard"
