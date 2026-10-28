@@ -20,11 +20,11 @@ test('pageUrl: English is the plain address, the others add ?lang', () => {
 
 test('langAlternates: canonical follows the language shown, every language is listed', () => {
   const a = langAlternates('/privacy', 'fa');
-  assert.equal(a.canonical, '/privacy?lang=fa');
-  assert.equal(a.languages.en, '/privacy');
-  assert.equal(a.languages.fa, '/privacy?lang=fa');
-  assert.equal(a.languages['x-default'], '/privacy');
-  assert.equal(langAlternates('/', 'en').canonical, '/');
+  assert.equal(a.canonical, `${SITE_URL}/privacy?lang=fa`);
+  assert.equal(a.languages.en, `${SITE_URL}/privacy`);
+  assert.equal(a.languages.fa, `${SITE_URL}/privacy?lang=fa`);
+  assert.equal(a.languages['x-default'], `${SITE_URL}/privacy`);
+  assert.equal(langAlternates('/', 'en').canonical, `${SITE_URL}/`);
 });
 
 test('sitemap: every public page in every language, each with its alternates', () => {
