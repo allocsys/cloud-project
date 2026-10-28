@@ -1,4 +1,5 @@
 'use client';
+import PageHead from '@/components/PageHead';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
@@ -327,9 +328,7 @@ export default function Plans() {
 
   return (
     <>
-      <div className="top">
-        <h2>{t('nav.plans')}</h2>
-      </div>
+      <PageHead title={t('nav.plans')} />
 
       <div className="tabs" role="group" aria-label={t('plans.aria')} style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
