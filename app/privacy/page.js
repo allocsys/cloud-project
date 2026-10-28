@@ -1,13 +1,11 @@
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
-import { langAlternates } from '@/lib/seo';
+import { getT } from '@/lib/i18n/server';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 
 export async function generateMetadata() {
   const t = await getT();
-  const lang = await getLang();
-  return { title: t('privacy.title'), alternates: langAlternates('/privacy', lang) };
+  return { title: t('privacy.title') };
 }
 
 // Written from what the app really does today. If the app starts keeping ID photos, adds analytics or another
