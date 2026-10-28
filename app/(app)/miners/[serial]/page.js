@@ -53,10 +53,10 @@ export default function ContractPage() {
   const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
 
   if (!c) {
-    if (!md) return <div className="top"><Back title={t('min.miner')} /></div>; // still loading: say nothing yet
+    if (!md) return <div className="top rich"><Back title={t('min.miner')} /></div>; // still loading: say nothing yet
     return (
       <>
-        <div className="top"><Back title={t('min.miner')} /></div>
+        <div className="top rich"><Back title={t('min.miner')} /></div>
         <div className="card"><p className="empty">{t('min.notFound')}</p></div>
       </>
     );
@@ -102,7 +102,7 @@ export default function ContractPage() {
 
   return (
     <>
-      <div className="top">
+      <div className="top rich">
         <Back title={c.smart ? t('dash.smart') : t('min.title', { name: planLabel(c.plan) })} />
         <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}`}>{!c.online ? t('dash.offline') : c.paused ? t('plans.pausedToday') : t('dash.online')}</span>
       </div>
