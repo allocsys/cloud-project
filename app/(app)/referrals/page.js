@@ -1,4 +1,5 @@
 'use client';
+import PageHead from '@/components/PageHead';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { referral as seed } from '@/lib/data';
@@ -171,9 +172,7 @@ export default function Referrals() {
   return (
     <>
       <style>{'.rhero{position:relative;overflow:hidden}.rshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:rShine 8s ease-in-out infinite}@keyframes rShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.steps3 .sico{position:relative}.steps3 .sico::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;border-radius:inherit;border:1.5px solid var(--gold2);opacity:0;animation:rPing 4.5s ease-out infinite}.steps3 .st:nth-child(2) .sico::after{animation-delay:1.5s}.steps3 .st:nth-child(3) .sico::after{animation-delay:3s}@keyframes rPing{0%{transform:scale(.9);opacity:.7}30%,100%{transform:scale(1.6);opacity:0}}.rpause .rshine,.rpause .sico::after{animation-play-state:paused}'}</style>
-      <div className="top">
-        <h2>{t('nav.invite')}</h2>
-      </div>
+      <PageHead title={t('nav.invite')} />
       <div className="grid rise">
         <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`} style={hideCalm}>
           <i className="rshine" aria-hidden="true" />
