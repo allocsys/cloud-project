@@ -894,6 +894,7 @@ export default function Admin() {
   const [tab, setTab] = useState('overview');
   const [busy, setBusy] = useState(false);
   const [to, setTo] = useState('all');
+  const [toq, setToq] = useState(''); // search text for the recipient on the Send tab
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
   const [edit, setEdit] = useState(null); // { kind: 'hall', id, draft }
@@ -1040,6 +1041,8 @@ export default function Admin() {
 
   const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
+  const toNeedle = toq.trim().toLowerCase();
+  const toList = users.filter((u) => !toNeedle || u.id === to || `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(toNeedle)).slice(0, 50);
   // Gateway items that need a person: unmatched payments to return and callbacks that keep failing.
   const gwUn = gw?.ok ? gw.unmatched.total : 0;
   const gwFail = gw?.ok ? gw.callbacks.failing : 0;
@@ -1803,9 +1806,13 @@ export default function Admin() {
         <div className="card adm-stack">
           <h3>Send a notification</h3>
           <div className="field" style={{ marginTop: 4 }}>
+            <input id="toq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={toq} onChange={(e) => setToq(e.target.value)} />
+            <label htmlFor="toq">Find a user</label>
+          </div>
+          <div className="field" style={{ marginTop: 4 }}>
             <select id="to" value={to} onChange={(e) => setTo(e.target.value)}>
               <option value="all">All users</option>
-              {users.map((u) => <option key={u.id} value={u.id}>{u.id}</option>)}
+              {toList.map((u) => <option key={u.id} value={u.id}>{u.tg ? `@${u.tg} · ${u.id}` : u.id}</option>)}
             </select>
             <label htmlFor="to">To</label>
           </div>
@@ -1818,6 +1825,7 @@ export default function Admin() {
             className="btn"
             disabled={sendDisabled}
             onClick={async () => {
+              if (to === 'all' && !(await ask(`Send this to all ${users.length} users? It cannot be undone.`, { ok: 'Send to all', danger: true }))) return;
               if (await run({ action: 'notify', userId: to, title, body: msg }, 'Sent')) {
                 setTitle('');
                 setMsg('');
