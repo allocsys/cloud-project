@@ -312,7 +312,6 @@ def s2(t):
         rs=Image.new('RGBA',(int(2*rr*S+8),int(2*rr*S+8)),(0,0,0,0));ImageDraw.Draw(rs).ellipse((4,4,rs.width-4,rs.height-4),outline=(245,208,110,255),width=int(3*S))
         put(im,rs,xe,y,a*(1-ring)*.8)
         shadow(im,xe,y,70,70,35,10,10,.55*a,True);put(im,disc_sprite(34,((0,(255,246,214)),(1,(222,176,66))),RIM,5,90,.5),xe,y,a)
-        for i in range(5):hline(im,x0+(x1-x0)*i/4,y+58,2.5,18,a*.6,(160,146,118)) if False else None
         for i in range(5):
             put(im,Image.new('RGBA',(int(3*S),int(16*S)),(168,152,120,255)),x0+(x1-x0)*i/4,y+56,a*.8)
     return im
