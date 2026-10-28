@@ -1,6 +1,7 @@
 // Admin catalogue edits against a real Postgres: concurrent edits queue up, rules hold, the audit log keeps every entry.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
@@ -254,4 +255,40 @@ test('admin can block, unblock, note, sign out, reset 2FA and verify one account
   assert.ok((await op('unverify')).ok);
   assert.equal((await row()).kyc.status, 'none');
   assert.ok((await logOf(id)) >= 8);
+});
+
+test('a blocked account cannot sign in by email or Telegram, and can again once unblocked', async () => {
+  // Email: right password, blocked => 403; unblocked => in.
+  const id = `blk${run}@test.dev`;
+  const pw = 'correct horse 1';
+  assert.ok((await auth.signup({ email: id, password: pw })).ok);
+  assert.equal((await auth.login({ email: id, password: pw })).status, 200);
+  assert.ok((await act({ action: 'user', userId: id, op: 'block' })).ok);
+  assert.equal((await auth.login({ email: id, password: pw })).status, 403);
+  assert.equal((await auth.login({ email: id, password: 'wrong password 1' })).status, 401); // a wrong password still says nothing about the block
+  assert.ok((await act({ action: 'user', userId: id, op: 'unblock' })).ok);
+  assert.equal((await auth.login({ email: id, password: pw })).status, 200);
+
+  // Telegram: signed initData for a new account, then the same after a block.
+  const was = process.env.TELEGRAM_BOT_TOKEN;
+  process.env.TELEGRAM_BOT_TOKEN = 'test-bot-token';
+  try {
+    const tgId = 7000000 + (Date.now() % 1000000);
+    const initData = () => {
+      const p = new URLSearchParams({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: tgId, first_name: 'Blk' }) });
+      const check = [...p.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join('\n');
+      const key = createHmac('sha256', 'WebAppData').update('test-bot-token').digest();
+      p.set('hash', createHmac('sha256', key).update(check).digest('hex'));
+      return p.toString();
+    };
+    const tg = `tg:${tgId}`;
+    assert.equal((await auth.telegramLogin(initData(), '')).status, 200);
+    assert.ok((await act({ action: 'user', userId: tg, op: 'block' })).ok);
+    assert.equal((await auth.telegramLogin(initData(), '')).status, 403);
+    assert.ok((await act({ action: 'user', userId: tg, op: 'unblock' })).ok);
+    assert.equal((await auth.telegramLogin(initData(), '')).status, 200);
+  } finally {
+    if (was === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+    else process.env.TELEGRAM_BOT_TOKEN = was;
+  }
 });
