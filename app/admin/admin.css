@@ -69,6 +69,15 @@
 .adm-bar { height: 4px; margin-top: 8px; border-radius: 2px; background: var(--line); overflow: hidden; }
 .adm-bar i { display: block; height: 100%; border-radius: 2px; background: var(--gold); }
 .adm-miner .adm-grid { margin-top: 12px; }
+.adm-addr { margin-top: 8px; padding: 10px 12px; border-radius: 12px; background: var(--s3); }
+.adm-addr small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+.adm-addr .serial { display: block; margin-top: 2px; font-size: 13px; line-height: 18px; word-break: break-all; user-select: all; }
+.adm-how { margin-top: 12px; border-top: 1px solid var(--line); }
+.adm-how > summary { display: flex; align-items: center; min-height: 44px; font-size: 13px; color: var(--mute); cursor: pointer; list-style: none; }
+.adm-how > summary::-webkit-details-marker { display: none; }
+.adm-how > summary::after { content: '\203A'; margin-left: 8px; transition: transform 0.2s; }
+.adm-how[open] > summary::after { transform: rotate(90deg); }
+.adm-how .fine { margin: 0 0 8px; }
 .adm-note { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--s3); font-size: 13px; line-height: 18px; overflow-wrap: anywhere; }
 .adm-note small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
 
