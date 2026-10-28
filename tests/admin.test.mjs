@@ -328,10 +328,9 @@ test('admin can message one user and gift a free miner or free boost tickets', a
     const t = await gift({ kind: 'tickets', count: '3' });
     assert.ok(t.ok, JSON.stringify(t));
     assert.equal(t.count, 3);
-    const boosts = await read((u) => (u.boosts || []).map((b) => ({ t: b.t, gift: b.gift, settled: b.settled })));
-    assert.equal(boosts.length, 3);
-    assert.ok(boosts.every((b) => b.t === 't1' && b.gift === true && b.settled === false));
-    assert.equal((await row()).boostsRunning, 3);
+    const held = await read((u) => ({ free: u.freeTickets || 0, boosts: (u.boosts || []).length }));
+    assert.deepEqual(held, { free: 3, boosts: 0 }, 'tickets are held, nothing starts');
+    assert.equal((await row()).boostsRunning, 0);
   } finally {
     await act({ action: 'boost-settings', enabled: wasOn });
   }
