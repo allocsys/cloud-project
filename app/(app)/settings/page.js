@@ -400,7 +400,7 @@ export default function Settings() {
 
   return (
     <>
-      <PageHead title={t('nav.settings')} />
+      <PageHead title={t('nav.settings')} icon="settings" />
       <div className="grid wal" style={{ alignItems: 'start' }}>
         <div className="card" style={hideCalm}>
           <div className="row" style={{ borderTop: 0 }}>
