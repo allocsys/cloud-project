@@ -6,6 +6,7 @@ import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
 import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
 import { SMART } from '@/lib/smart';
 import { REFUND_HOURS, UP_RATIO, SERVICE_TIERS } from '@/lib/rules';
+import { BOOST } from '@/lib/boost';
 import { useApi } from '@/lib/api';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
@@ -52,7 +53,7 @@ export default function Terms() {
         <p className="mute">{t('terms.p3b', { hours: REFUND_HOURS })}</p>
         <p className="mute">{t('terms.p3c')}</p>
         <p className="mute">{t('terms.p3d')}</p>
-        <p className="mute">{t('terms.p3e')}</p>
+        <p className="mute">{t('terms.p3e', { hours: BOOST.hours })}</p>
 
         <h2 style={h2}>{t('terms.h4')}</h2>
         <p className="mute">{t('terms.p4a', { swap: SWAP_FEE_PCT, minUsd: MIN_WITHDRAW_USD })}</p>
