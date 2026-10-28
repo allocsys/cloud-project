@@ -44,6 +44,8 @@ export default function BoostCard({ show }) {
   const key = useRef(null);
   const armTimer = useRef(null);
   const dialRef = useRef(null);
+  const btnRef = useRef(null);
+  const [btnSeen, setBtnSeen] = useState(true); // the free ticket pulse pauses while the buttons are off-screen
   const [seen, setSeen] = useState(true); // the dial animations pause while it is off-screen
 
   useEffect(() => {
@@ -71,12 +73,21 @@ export default function BoostCard({ show }) {
     io.observe(el);
     return () => io.disconnect();
   }, [hasDial]);
+  const freeN = data?.free || 0; // free tickets waiting to be used
+  useEffect(() => {
+    const el = btnRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setBtnSeen(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [freeN > 0, data?.enabled]);
 
   if (!data || (!data.enabled && !running.length)) return null;
 
   async function tap(tk) {
     if (busy) return;
-    if (arm !== tk.id) {
+    const free = tk.id === 't1' && freeN > 0; // a held free ticket: one tap, nothing to pay
+    if (!free && arm !== tk.id) {
       triggerHaptic('selection');
       key.current = uid();
       setArm(tk.id);
@@ -88,7 +99,7 @@ export default function BoostCard({ show }) {
     setArm(null);
     setBusy(true);
     try {
-      await post('/api/boost', { ticket: tk.id }, key.current);
+      await post('/api/boost', free ? { free: true } : { ticket: tk.id }, free ? uid() : key.current);
       await refresh().catch(() => {});
       triggerHaptic('success');
       show(t('bst.started'));
@@ -131,6 +142,11 @@ export default function BoostCard({ show }) {
     <div className="card">
       <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('bst.sub', { h: data.hours })}</p>
+      {data.enabled && freeN > 0 && (
+        <span style={{ display: 'inline-block', marginTop: 8, padding: '4px 10px', borderRadius: 999, border: '1px solid #EF9F27', color: '#EF9F27', fontSize: 13, fontWeight: 500 }}>
+          {freeN === 1 ? t('bst.freeOne') : t('bst.freeMany', { n: whole(freeN) })}
+        </span>
+      )}
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@keyframes boostFlow{0%{transform:translateY(22px);opacity:0}15%{opacity:.3}85%{opacity:.3}100%{transform:translateY(-100px);opacity:0}}.boost-flow{animation:boostFlow 8s linear infinite}.boost-off .boost-flow,.boost-off .boost-pulse{animation-play-state:paused}'}</style>
@@ -192,12 +208,16 @@ export default function BoostCard({ show }) {
           </div>
         ))}
       {data.enabled && (
-        <div style={{ display: 'grid', gridTemplateColumns: `repeat(${data.tickets.length}, 1fr)`, gap: 8, marginTop: 12 }}>
-          {data.tickets.map((tk) => (
-            <button key={tk.id} type="button" className={arm === tk.id ? 'btn' : 'swap'} style={{ width: '100%', margin: 0, padding: '0 8px', minHeight: 44 }} disabled={busy || tk.active >= tk.max} onClick={() => tap(tk)}>
-              {tk.active >= tk.max ? t('bst.full') : arm === tk.id ? t('bst.payN', { n: whole(tk.price) }) : t('bst.buyN', { n: whole(tk.price) })}
-            </button>
-          ))}
+        <div ref={btnRef} className={btnSeen ? undefined : 'free-off'} style={{ display: 'grid', gridTemplateColumns: `repeat(${data.tickets.length}, 1fr)`, gap: 8, marginTop: 12 }}>
+          <style>{'@keyframes freePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.8}}.free-pulse{animation:freePulse 1.6s ease-in-out infinite}.free-off .free-pulse{animation-play-state:paused}'}</style>
+          {data.tickets.map((tk) => {
+            const free = tk.id === 't1' && freeN > 0;
+            return (
+              <button key={tk.id} type="button" className={free ? 'btn free-pulse' : arm === tk.id ? 'btn' : 'swap'} style={{ width: '100%', margin: 0, padding: '0 8px', minHeight: 44 }} disabled={busy || (!free && tk.active >= tk.max)} onClick={() => tap(tk)}>
+                {free ? t('bst.useFree') : tk.active >= tk.max ? t('bst.full') : arm === tk.id ? t('bst.payN', { n: whole(tk.price) }) : t('bst.buyN', { n: whole(tk.price) })}
+              </button>
+            );
+          })}
         </div>
       )}
       <p className="fine" style={{ margin: '12px 0 0' }}>{t('bst.fine')}</p>
