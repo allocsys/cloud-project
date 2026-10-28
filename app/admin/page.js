@@ -1607,11 +1607,13 @@ export default function Admin() {
           {shownOrders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{orders.length === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
           {shownOrders.map((o) => (
             <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
-              <div className="row"><span className="mute">User</span><b>{o.userId}</b></div>
-              <div className="row"><span className="mute">Created</span><b>{when(o.at)}</b></div>
-              {o.paidAt && <div className="row"><span className="mute">Paid</span><b>{when(o.paidAt)}</b></div>}
-              {o.serial && <div className="row"><span className="mute">Miner</span><b className="serial">{o.serial}</b></div>}
-              {o.invoiceId && <div className="row"><span className="mute">Invoice</span><b className="serial">{o.invoiceId}</b></div>}
+              {(o.paidAt || o.serial || o.invoiceId) && (
+                <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
+                  {o.paidAt && <div><small>Paid</small><b>{when(o.paidAt)}</b></div>}
+                  {o.serial && <div><small>Miner</small><b className="serial">{o.serial}</b></div>}
+                  {o.invoiceId && <div><small>Invoice</small><b className="serial">{o.invoiceId}</b></div>}
+                </div>
+              )}
               {(o.status === 'review' || o.status === 'pending') && (
                 <div className="adm-actions">
                   <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Close this order for ${o.userId}?`, { ok: 'Close', danger: true }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Order closed'))}>Close</button>
@@ -1632,12 +1634,12 @@ export default function Admin() {
             const open = w.status === 'pending' || w.status === 'approved';
             return (
               <Fold key={w.id} title={`${w.amount} ${String(w.asset).toUpperCase()}`} sub={`${w.userId} · ${when(w.at)}`} start={open} pill={<Pill tone={w.status === 'sent' ? 'ok' : open ? 'warn' : 'bad'}>{WD[w.status] || w.status}</Pill>}>
-                <div className="row"><span className="mute">User</span><b>{w.userId}</b></div>
-                <div className="row"><span className="mute">Network</span><b>{String(w.net).toUpperCase()}</b></div>
-                <div className="row"><span className="mute">Pay out</span><b>{w.receive} {String(w.asset).toUpperCase()}</b></div>
-                <div className="row"><span className="mute">Address</span><b className="serial" style={{ wordBreak: 'break-all', userSelect: 'all', textAlign: 'right' }}>{w.address}</b></div>
-                <div className="row"><span className="mute">Asked</span><b>{when(w.at)}</b></div>
-                {w.txid && <div className="row"><span className="mute">Transaction</span><b className="serial" style={{ wordBreak: 'break-all', textAlign: 'right' }}>{w.txid}</b></div>}
+                <div className="adm-tiles">
+                  <div><small>Pay out</small><b>{w.receive}<span>{String(w.asset).toUpperCase()}</span></b></div>
+                  <div><small>Network</small><b>{String(w.net).toUpperCase()}</b></div>
+                </div>
+                <div className="adm-addr"><small>Address</small><span className="serial">{w.address}</span></div>
+                {w.txid && <div className="adm-addr"><small>Transaction</small><span className="serial">{w.txid}</span></div>}
                 {w.status === 'pending' && (
                   <div className="adm-actions">
                     <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Reject this withdrawal for ${w.userId}? The amount goes back to their balance.`, { ok: 'Reject', danger: true }).then((yes) => yes && act('reject', 'Rejected and refunded'))}>Reject</button>
