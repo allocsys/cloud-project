@@ -525,7 +525,7 @@ test('bulk actions: bad input is refused, and each user goes through the single-
     assert.ok((await act({ action: 'boost-settings', enabled: true })).ok);
     const t = await bulk({ op: 'tickets', ids, count: '2' });
     assert.equal(t.done, 3, JSON.stringify(t));
-    for (const id of ids) assert.equal(await withUser(id, (u) => (u.boosts || []).filter((b) => b.gift === true).length), 2);
+    for (const id of ids) assert.equal(await withUser(id, (u) => u.freeTickets || 0), 2, 'held, not started');
   } finally {
     await act({ action: 'boost-settings', enabled: wasOn });
   }
