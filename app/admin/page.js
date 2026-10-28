@@ -127,16 +127,16 @@ function SmartCard({ smart, busy, run }) {
           {set.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 12px' }}>Between two budgets the rate follows the log of the budget, and it stays flat above $10,000. Each rate must be between 0.1% and 1%. Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new table applies to purchases made after saving, each miner keeps the rate and reserve band it was bought with.</p>
+      <How><p className="fine">Between two budgets the rate follows the log of the budget, and it stays flat above $10,000. Each rate must be between 0.1% and 1%. Off hides Smart Mining and refuses new purchases; miners already running keep paying. A new table applies to purchases made after saving, each miner keeps the rate and reserve band it was bought with.</p></How>
       <span className="eyebrow adm-sub">Coins and their reference rig</span>
       <div className="row"><span className="mute">Electricity price</span><b>{cost?.inUse ? `$${cost.inUse} per kWh (live)` : cost?.auto === false ? 'Each coin\'s own (live price off)' : 'Each coin\'s own (no live price)'}</b></div>
-      {cost?.live && <p className="fine" style={{ margin: '4px 0 0' }}>Eurostat industrial price for {cost.live.period}, average of Iceland and Norway, €{cost.live.eur} per kWh, at the ECB rate of {cost.live.rate} on {cost.live.rateDate} (Frankfurter). Eurostat updates twice a year. If the feed is down or older than 30 days, each coin's own price below is used.</p>}
+      {cost?.live && <How><p className="fine">Eurostat industrial price for {cost.live.period}, average of Iceland and Norway, €{cost.live.eur} per kWh, at the ECB rate of {cost.live.rate} on {cost.live.rateDate} (Frankfurter). Eurostat updates twice a year. If the feed is down or older than 30 days, each coin's own price below is used.</p></How>}
       <div className="adm-actions">
         <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, kwhAuto: !(set.kwhAuto !== false) }, set.kwhAuto !== false ? 'Live electricity price is off' : 'Live electricity price is on')}>
           {set.kwhAuto !== false ? 'Use each coin\'s own price' : 'Use the live price'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '0 0 4px' }}>A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{anchor > 0 ? ` (${usd2(anchor)} a day now)` : ''}: the average of the best coin over the last 30 finished days, never below the floor ({usd2(set.anchorFloor ?? 1)} now). The rig figures are editable defaults, and a change only applies to new readings.</p>
+      <How><p className="fine">A coin's daily net profit = gross for the rig minus the rig's power cost, in USD. Every coin is measured against one anchor{anchor > 0 ? ` (${usd2(anchor)} a day now)` : ''}: the average of the best coin over the last 30 finished days, never below the floor ({usd2(set.anchorFloor ?? 1)} now). The rig figures are editable defaults, and a change only applies to new readings.</p></How>
       <Field id="smfl" label="Anchor floor (USD a day)" inputMode="decimal" value={fl} onChange={setFl} />
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={() => run({ action: 'smart-settings', enabled: set.enabled, anchorFloor: fl }, 'Anchor floor saved')}>Save floor</button>
@@ -235,7 +235,7 @@ function GuardCard({ guard, busy, run }) {
       <Field id="gpg" label="ASICs: profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
       <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
       <Field id="gpf" label="Smart Mining: pause floor (best ratio, 0 = never pause)" inputMode="decimal" value={d.smartFloor} onChange={(v) => put('smartFloor', v)} />
-      <p className="fine" style={{ margin: '12px 0 0' }}>Once paused, a hall resumes only when its profit share is back above margin plus buffer. Smart Mining pauses for a day when the best coin's ratio is under the floor (1 = the anchor day, 0.5 = half of it) and resumes only above the floor plus the buffer as ratio points (2% = 0.02); it is the same for every plan, and days decided before this rule keep the old break-even rule. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p>
+      <How><p className="fine">Once paused, a hall resumes only when its profit share is back above margin plus buffer. Smart Mining pauses for a day when the best coin's ratio is under the floor (1 = the anchor day, 0.5 = half of it) and resumes only above the floor plus the buffer as ratio points (2% = 0.02); it is the same for every plan, and days decided before this rule keep the old break-even rule. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p></How>
       <div className="adm-actions">
         <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer, smartFloor: d.smartFloor }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
         <button className="btn" disabled={busy || !draft} onClick={async () => { if (await run({ action: 'guard-settings', ...d }, 'Profit guard saved')) setDraft(null); }}>Save</button>
@@ -301,7 +301,7 @@ function FirstBonusCard({ fb, busy, run }) {
           {s.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>A user's first purchase paid with crypto gets extra hashrate for the whole term. ASICs get extra TH/s (the percent of the size, up to the TH/s cap). Smart Mining gets a higher profit rate by the same percent, up to the USD cap measured on the budget; the budget that comes back does not change. A first purchase paid from the balance gets nothing and uses up the chance. Not for renewals or admin grants. It applies to purchases made after saving, each miner keeps the bonus it started with.</p>
+      <How><p className="fine">A user's first purchase paid with crypto gets extra hashrate for the whole term. ASICs get extra TH/s (the percent of the size, up to the TH/s cap). Smart Mining gets a higher profit rate by the same percent, up to the USD cap measured on the budget; the budget that comes back does not change. A first purchase paid from the balance gets nothing and uses up the chance. Not for renewals or admin grants. It applies to purchases made after saving, each miner keeps the bonus it started with.</p></How>
     </Fold>
   );
 }
@@ -360,7 +360,7 @@ function BoostCard({ bs, busy, run }) {
           {s.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p>
+      <How><p className="fine">Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p></How>
     </Fold>
   );
 }
@@ -380,6 +380,16 @@ function Fold({ title, sub, pill, start, children }) {
       </button>
       {open && <div className="adm-fb">{children}</div>}
     </div>
+  );
+}
+
+// A closed 'How it works' line for the long explanations under a form, so the buttons stay in view.
+function How({ children }) {
+  return (
+    <details className="adm-how">
+      <summary>How it works</summary>
+      {children}
+    </details>
   );
 }
 
