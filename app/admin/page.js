@@ -1488,6 +1488,22 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
+                        </div>
+                      <span className="eyebrow adm-sub">Danger zone</span>
+                      <div className="adm-grid">
+                        <button
+                          className="swap danger"
+                          style={SM}
+                          disabled={busy}
+                          onClick={async () => {
+                            const t = await askText(`Delete ${u.id}? The account is closed for good: sign-in data and details are erased${u.miners.length ? `, and ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} end with no refund` : ''}. Orders, withdrawals and history stay in the books.`, { label: 'Type DELETE to confirm', ok: 'Delete', danger: true, required: true });
+                            if (t == null || t === false) return;
+                            if (String(t).trim().toUpperCase() !== 'DELETE') { show('Not deleted. Type DELETE.'); return; }
+                            run({ action: 'user-close', userId: u.id, confirm: 'DELETE' }, 'Account closed');
+                          }}
+                        >
+                          Delete account
+                        </button>
                         <button className={`swap${u.blocked ? '' : ' danger'}`} style={SM} disabled={busy} onClick={() => ask(u.blocked ? `Unblock ${u.id}?` : `Block ${u.id}? They are signed out and cannot sign in.`, { ok: u.blocked ? 'Unblock' : 'Block', danger: !u.blocked }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.blocked ? 'unblock' : 'block' }, u.blocked ? 'Unblocked' : 'Blocked'))}>{u.blocked ? 'Unblock' : 'Block'}</button>
                       </div>
                     </>
