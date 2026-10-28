@@ -333,7 +333,7 @@ export default function Plans() {
 
       <div className="tabs" role="group" aria-label={t('plans.aria')} style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
-        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}</button>}
+        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button>}
         <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
       </div>
 
