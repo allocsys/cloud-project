@@ -15,7 +15,8 @@ const PW = 'correct horse 1';
 const rnd = () => Math.floor(Math.random() * 200) + 20;
 // A fresh /24 per call, so networks never repeat between tests or runs.
 const net = () => `${rnd()}.${rnd()}.${rnd()}.7`;
-const gifts = (u) => (u.boosts || []).filter((b) => b.gift);
+// Invite tickets are held in the account (u.freeTickets) until the user starts them, so this gives one entry per held ticket.
+const gifts = (u) => Array.from({ length: u.freeTickets || 0 });
 
 async function account(name, ip, ref = '') {
   const e = `${name}-${run}@test.dev`;
