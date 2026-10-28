@@ -1,6 +1,7 @@
 'use client';
 import { Fragment, createContext, useContext, useMemo } from 'react';
 import { DEFAULT_LANG, LANGS, LANG_COOKIE, translate } from '@/lib/i18n/langs';
+import { PUBLIC_PAGES, pagePath, stripLang } from '@/lib/i18n/codes';
 
 const fallback = { lang: DEFAULT_LANG, dir: 'ltr', t: (key, vars) => translate(DEFAULT_LANG, key, vars) };
 const Ctx = createContext(fallback);
@@ -21,12 +22,13 @@ export function useLang() {
   function setLang(code) {
     if (!LANGS[code]) return;
     document.cookie = `${LANG_COOKIE}=${code}; path=/; max-age=31536000; samesite=lax`;
-    // A ?lang in the address (from a search result) would put the old language back, so it goes first.
+    // A language in the address (/fa, ?lang=fa) would put the old language back, so the address changes with it:
+    // a public page moves to its address in the new language, any other page keeps its address.
     const u = new URL(window.location.href);
-    if (u.searchParams.has('lang')) {
-      u.searchParams.delete('lang');
-      window.location.replace(u.toString());
-    } else window.location.reload();
+    const here = stripLang(u.pathname);
+    u.pathname = PUBLIC_PAGES.includes(here) ? pagePath(here, code) : here;
+    u.searchParams.delete('lang');
+    window.location.replace(u.toString());
   }
   return { ...c, setLang };
 }
