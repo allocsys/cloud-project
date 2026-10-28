@@ -40,8 +40,6 @@ jobs:
 
       - name: Render
         run: python3 promo/render_promo_v3.py
-        env:
-          PROCS: ${{ steps.cores.outputs.n }}
 
       - name: Check the video
         run: |
