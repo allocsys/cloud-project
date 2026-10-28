@@ -1,4 +1,5 @@
 'use client';
+import { HeadIcon } from '@/components/PageHead';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
@@ -246,12 +247,7 @@ export default function Dashboard() {
     <>
       <div className="top rich">
         <div className="eh-l">
-          <span className="eh-logo" aria-hidden="true">
-            <svg viewBox="0 0 40 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 29L15 11l6 9 4-6 12 15z" fill="currentColor" fillOpacity="0.22" />
-              <path d="M6 3l11 11M5 8c3-5 8-6 12-4M34 3L23 14M35 8c-3-5-8-6-12-4" />
-            </svg>
-          </span>
+          <HeadIcon kind="earnings" />
           <div className="eh-ttl">
             <h2>{t('nav.earnings')}<i className="ldot" role="img" aria-label={t('dash.live')} /></h2>
             <small>{md ? (online.length ? t('dash.mining') : t('dash.idle')) : '\u00a0'}</small>
