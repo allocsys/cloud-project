@@ -1057,22 +1057,36 @@ export default function Admin() {
       {tab === 'boosts' && (
         <div className="adm-stack">
           {(data.boosts || []).length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No boosts running.</p>}
-          {(data.boosts || []).map((b) => (
-            <div className="card" key={b.id}>
-              <div className="row">
-                <div>
-                  {b.userId}
-                  <small>${b.price}{b.gift ? ' (free)' : ''} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
-                </div>
-                <b>{b.win ? (b.forced ? 'Win set' : 'Wins') : 'No win'}</b>
-              </div>
-              {!b.win && (
-                <div className="adm-actions">
-                  <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-win', userId: b.userId, id: b.id }, 'Boost will win')}>Make it win</button>
-                </div>
-              )}
-            </div>
-          ))}
+          {(() => {
+            const byUser = new Map();
+            for (const b of data.boosts || []) {
+              if (!byUser.has(b.userId)) byUser.set(b.userId, []);
+              byUser.get(b.userId).push(b);
+            }
+            const groups = [...byUser.entries()].sort((a, c) => c[1].length - a[1].length);
+            return groups.map(([userId, list]) => {
+              const wins = list.filter((b) => b.win).length;
+              return (
+                <Fold key={userId} title={userId} sub={`${list.length} ${list.length === 1 ? 'boost' : 'boosts'}${wins ? ` · ${wins} ${wins === 1 ? 'win' : 'wins'}` : ''}`} start={groups.length === 1}>
+                  {list.map((b) => (
+                    <div key={b.id} style={{ padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                      <div className="row">
+                        <div>
+                          <small>${b.price}{b.gift ? ' (free)' : ''} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
+                        </div>
+                        <b>{b.win ? (b.forced ? 'Win set' : 'Wins') : 'No win'}</b>
+                      </div>
+                      {!b.win && (
+                        <div className="adm-actions">
+                          <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-win', userId: b.userId, id: b.id }, 'Boost will win')}>Make it win</button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </Fold>
+              );
+            });
+          })()}
         </div>
       )}
 
