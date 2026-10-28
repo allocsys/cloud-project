@@ -1475,8 +1475,9 @@ export default function Admin() {
                     </div>
                   ) : (
                     <>
-                      {u.note && <div className="row"><span className="mute">Note</span><b style={{ wordBreak: 'break-word', textAlign: 'right' }}>{u.note}</b></div>}
-                      <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
+                      {u.note && <p className="adm-note"><small>Note</small>{u.note}</p>}
+                      <span className="eyebrow adm-sub">Manage</span>
+                      <div className="adm-grid">
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUmsg({ id: u.id, title: '', body: '' })}>Message</button>
@@ -1484,19 +1485,6 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUinv({ id: u.id, text: '' })}>{u.refBy ? 'Change inviter' : 'Set inviter'}</button>
                         {u.refBy && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Remove the inviter of ${u.id}? Their rewards stop.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'ref-clear' }, 'Inviter removed'))}>Remove inviter</button>}
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUgift({ ...ugift, id: u.id })}>Gift</button>
-                        <button
-                          className="swap danger"
-                          style={SM}
-                          disabled={busy}
-                          onClick={async () => {
-                            const t = await askText(`Delete ${u.id}? The account is closed for good: sign-in data and details are erased${u.miners.length ? `, and ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} end with no refund` : ''}. Orders, withdrawals and history stay in the books.`, { label: 'Type DELETE to confirm', ok: 'Delete', danger: true, required: true });
-                            if (t == null || t === false) return;
-                            if (String(t).trim().toUpperCase() !== 'DELETE') { show('Not deleted. Type DELETE.'); return; }
-                            run({ action: 'user-close', userId: u.id, confirm: 'DELETE' }, 'Account closed');
-                          }}
-                        >
-                          Delete
-                        </button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
