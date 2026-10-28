@@ -257,6 +257,37 @@ test('admin can block, unblock, note, sign out, reset 2FA and verify one account
   assert.ok((await logOf(id)) >= 8);
 });
 
+test('admin can pause and allow withdrawals for one account, and sees its activity rows', async () => {
+  const { withdraw } = await import('@/lib/server/wallet');
+  const id = `frz${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const row = async () => (await overview()).users.find((u) => u.id === id);
+  const ask = () => withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }, { userId: id, key: `f${Date.now()}${Math.random()}` });
+
+  // Not paused: the request gets as far as the balance check.
+  assert.equal((await ask()).status, 409);
+  assert.equal((await row()).frozen, null);
+
+  // Paused: refused before anything else, and the account still signs in.
+  assert.ok((await act({ action: 'user', userId: id, op: 'freeze' })).ok);
+  assert.ok((await row()).frozen);
+  assert.equal((await ask()).status, 403);
+  assert.ok(await auth.newSession(id));
+  assert.equal((await act({ action: 'user', userId: 'demo', op: 'freeze' })).ok, false);
+
+  // Allowed again.
+  assert.ok((await act({ action: 'user', userId: id, op: 'unfreeze' })).ok);
+  assert.equal((await row()).frozen, null);
+  assert.equal((await ask()).status, 409);
+
+  // Activity rows: a balance change shows up, newest first, at most 25.
+  assert.ok((await act({ action: 'balance', userId: id, op: 'add', amountBtc: '0.001', note: 'history test' })).ok);
+  const h = (await row()).history;
+  assert.ok(h.length >= 1 && h.length <= 25);
+  assert.equal(h[0].kind, 'adjustment');
+  assert.match(h[0].amount, /^\+0\.001/);
+});
+
 test('a blocked account cannot sign in by email or Telegram, and can again once unblocked', async () => {
   // Email: right password, blocked => 403; unblocked => in.
   const id = `blk${run}@test.dev`;
