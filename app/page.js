@@ -11,13 +11,11 @@ import StickyCta from '@/components/StickyCta';
 import WinnersBar from '@/components/WinnersBar';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
-import { getLang, getT } from '@/lib/i18n/server';
-import { langAlternates } from '@/lib/seo';
+import { getT } from '@/lib/i18n/server';
 
 export async function generateMetadata() {
   const t = await getT();
-  const lang = await getLang();
-  return { title: { absolute: t('meta.home.title') }, alternates: langAlternates('/', lang) };
+  return { title: { absolute: t('meta.home.title') } };
 }
 
 const ICONS = {
