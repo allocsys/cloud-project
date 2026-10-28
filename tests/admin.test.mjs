@@ -288,6 +288,56 @@ test('admin can pause and allow withdrawals for one account, and sees its activi
   assert.match(h[0].amount, /^\+0\.001/);
 });
 
+test('admin can message one user and gift a free miner or free boost tickets', async () => {
+  const id = `gft${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const row = async () => (await overview()).users.find((u) => u.id === id);
+  const read = (fn) => withUser(id, (u) => fn(u));
+  const gift = (extra) => act({ action: 'gift', userId: id, ...extra });
+
+  // A message to one user reaches only that user.
+  const sent = await act({ action: 'notify', userId: id, title: `Hello ${run}`, body: 'Hi there' });
+  assert.ok(sent.ok);
+  assert.equal(sent.sent, 1);
+  assert.ok(await read((u) => u.notifications.some((n) => n.title === `Hello ${run}`)));
+  assert.equal((await act({ action: 'notify', userId: id, title: '  ' })).status, 422);
+
+  // Free miner: bad input and the demo account are refused, a good one is a gift miner (bonus, no price).
+  assert.equal((await gift({ kind: 'what' })).status, 400);
+  for (const bad of [{ th: '0', days: '30' }, { th: '5000', days: '30' }, { th: 'abc', days: '30' }, { th: '5', days: '0' }, { th: '5', days: '400' }]) {
+    assert.equal((await gift({ kind: 'miner', ...bad })).status, 422, JSON.stringify(bad));
+  }
+  assert.equal((await act({ action: 'gift', userId: 'demo', kind: 'miner', th: '5', days: '30' })).ok, false);
+  assert.equal((await row()).miners.length, 0);
+  const m = await gift({ kind: 'miner', th: '5', days: '30' });
+  assert.ok(m.ok, JSON.stringify(m));
+  const own = await read((u) => u.contracts.map((c) => ({ serial: c.serial, bonus: c.bonus, price: c.price, th: c.th, days: c.days })));
+  assert.equal(own.length, 1);
+  assert.deepEqual(own[0], { serial: m.serial, bonus: true, price: 0, th: 5, days: 30 });
+  assert.equal((await row()).miners.length, 1);
+  // A gift miner has nothing to refund.
+  assert.equal((await act({ action: 'miner', userId: id, serial: m.serial, op: 'refund' })).status, 409);
+
+  // Free tickets need boost tickets to be on; the count is 1 to 10.
+  const wasOn = (await q("SELECT data FROM meta WHERE key = 'boost'")).rows[0]?.data?.enabled === true;
+  try {
+    assert.ok((await act({ action: 'boost-settings', enabled: false })).ok);
+    assert.equal((await gift({ kind: 'tickets', count: '2' })).status, 409);
+    assert.ok((await act({ action: 'boost-settings', enabled: true })).ok);
+    for (const bad of ['0', '11', 'abc']) assert.equal((await gift({ kind: 'tickets', count: bad })).status, 422, bad);
+    const t = await gift({ kind: 'tickets', count: '3' });
+    assert.ok(t.ok, JSON.stringify(t));
+    assert.equal(t.count, 3);
+    const boosts = await read((u) => (u.boosts || []).map((b) => ({ t: b.t, gift: b.gift, settled: b.settled })));
+    assert.equal(boosts.length, 3);
+    assert.ok(boosts.every((b) => b.t === 't1' && b.gift === true && b.settled === false));
+    assert.equal((await row()).boostsRunning, 3);
+  } finally {
+    await act({ action: 'boost-settings', enabled: wasOn });
+  }
+  assert.ok((await logOf(id)) >= 3);
+});
+
 test('a blocked account cannot sign in by email or Telegram, and can again once unblocked', async () => {
   // Email: right password, blocked => 403; unblocked => in.
   const id = `blk${run}@test.dev`;
