@@ -1421,7 +1421,7 @@ export default function Admin() {
                 </button>
               )
             )}
-            <p className="fine" style={{ margin: '8px 0 12px' }}>Smart Mining miners run on these halls: the ASIC hall for BTC, the GPU hall for KAS, RVN and ETC, the CPU hall for XMR. Hall details are shown to users on the miner page.</p>
+            <p className="fine" style={{ margin: '8px 0 12px' }}>Smart Mining miners run on these halls: the ASIC halls for BTC and KAS, the GPU hall for RVN and ETC, the CPU hall for XMR. Hall details are shown to users on the miner page.</p>
             <button
               className="btn ghost"
               disabled={busy}
