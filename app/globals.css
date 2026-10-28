@@ -426,10 +426,11 @@ input::placeholder { color: var(--ph); }
 .topact { display: flex; align-items: center; gap: 8px; }
 .top.rich::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(233, 196, 106, 0.12), transparent 65%); pointer-events: none; }
 .top.rich > * { position: relative; }
-.eh-l { display: flex; align-items: center; gap: 10px; min-width: 0; }
-.eh-logo { width: 34px; height: 30px; flex: none; display: grid; place-items: center; color: var(--gold); }
-.eh-logo svg { width: 34px; height: 28px; }
-.eh-ttl { min-width: 0; padding-inline-start: 10px; border-inline-start: 1px solid var(--line); }
+.top.rich { min-height: calc(60px + env(safe-area-inset-top, 0px)); margin-bottom: 14px; border-radius: 0 0 50% 50% / 0 0 12px 12px; box-shadow: 0 1px 0 rgba(233, 196, 106, 0.4), 0 8px 16px -10px rgba(233, 196, 106, 0.3); }
+.eh-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
+.eh-logo { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--gold); border: 1px solid rgba(233, 196, 106, 0.4); background: linear-gradient(145deg, rgba(233, 196, 106, 0.28), rgba(233, 196, 106, 0.06)); }
+.eh-logo svg { width: 20px; height: 20px; }
+.eh-ttl { min-width: 0; }
 .eh-ttl small { display: block; min-height: 16px; font-size: 12px; line-height: 16px; color: var(--mute); }
 .eh-pill { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 12px 4px 8px; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--text); text-decoration: none; }
 .eh-pill svg { width: 16px; height: 16px; flex: none; fill: var(--gold); }
