@@ -1295,9 +1295,12 @@ export default function Admin() {
             ))}
           </div>
           {shownUsers.length > 0 && (
-            <div className="adm-actions" style={{ marginTop: 0 }}>
-              <button className="swap" style={SM} onClick={exportUsers}>Export CSV · {shownUsers.length}</button>
-              <button className="swap" style={SM} onClick={() => { setUsm((v) => !v); setUsel([]); setBmsg(null); setBtk(null); }}>{usm ? 'Done' : 'Select'}</button>
+            <div className="adm-tool">
+              <span className="mute">{shownUsers.length} user{shownUsers.length === 1 ? '' : 's'}</span>
+              <div className="adm-btns">
+                <button className="swap" style={SM} onClick={exportUsers}>Export CSV</button>
+                <button className="swap" style={SM} onClick={() => { setUsm((v) => !v); setUsel([]); setBmsg(null); setBtk(null); }}>{usm ? 'Done' : 'Select'}</button>
+              </div>
             </div>
           )}
           {usm && (
@@ -1341,10 +1344,9 @@ export default function Admin() {
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => (usm ? setUsel((s) => (s.includes(u.id) ? s.filter((x) => x !== u.id) : [...s, u.id])) : setOpenU(openU === u.id ? null : u.id))}>
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
-                  {u.tg && <small>{u.id}</small>}
                   <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}{u.flags.length ? ' · flagged' : ''}{usm && usel.includes(u.id) ? ' · picked' : ''}</small>
                 </span>
-                <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
+                {u.kyc.status !== 'none' && <Pill tone={u.kyc.status === 'verified' ? 'ok' : 'warn'}>{KYC[u.kyc.status] || u.kyc.status}</Pill>}
                 <i aria-hidden="true" />
               </button>
               {openU === u.id && (
@@ -1356,6 +1358,7 @@ export default function Admin() {
                 <div><small>Withdrawn</small><b>{u.withdrawn.toFixed(5)}<span>BTC</span></b></div>
               </div>
               <div className="adm-kv">
+                {u.tg && <div><small>ID</small><b>{u.id}</b></div>}
                 <div><small>Joined</small><b>{when(u.joined) || '-'}</b></div>
                 <div><small>Last sign-in</small><b>{when(u.lastIn) || '-'}</b></div>
                 <div><small>Invited by</small><b>{u.refBy || '-'}</b></div>
