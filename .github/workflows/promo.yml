@@ -1,0 +1,55 @@
+name: Promo video
+
+# Renders promo/render_promo_v3.py. Runs only when something inside promo/ changes
+# on main, or when started by hand from the Actions tab. Nothing else triggers it.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'promo/**'
+  workflow_dispatch:
+
+concurrency:
+  group: promo-render
+  cancel-in-progress: true
+
+jobs:
+  render:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install tools
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg fonts-dejavu-core unzip
+          python3 -m pip install --user pillow numpy
+
+      - name: Inter Display font (falls back to DejaVu if this fails)
+        continue-on-error: true
+        run: |
+          mkdir -p promo/fonts /tmp/inter
+          curl -fsSL -o /tmp/inter.zip https://github.com/rsms/inter/releases/download/v4.0/Inter-4.0.zip
+          unzip -q -o /tmp/inter.zip -d /tmp/inter
+          for f in ExtraBold SemiBold Medium; do
+            p=$(find /tmp/inter -name "InterDisplay-$f.otf" | head -n 1)
+            if [ -n "$p" ]; then cp "$p" promo/fonts/; else echo "missing InterDisplay-$f.otf"; fi
+          done
+          ls promo/fonts
+
+      - name: Render
+        run: python3 promo/render_promo_v3.py
+        env:
+          PROCS: ${{ steps.cores.outputs.n }}
+
+      - name: Check the video
+        run: |
+          ffmpeg -v error -i out.mp4 -f null -
+          ffprobe -v error -show_entries format=duration:stream=codec_name,width,height -of default=nw=1 out.mp4
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: promo-v3
+          path: out.mp4
+          retention-days: 14
