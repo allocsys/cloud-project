@@ -142,11 +142,6 @@ export default function BoostCard({ show }) {
     <div className="card">
       <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('bst.sub', { h: data.hours })}</p>
-      {data.enabled && freeN > 0 && (
-        <span style={{ display: 'inline-block', marginTop: 8, padding: '4px 10px', borderRadius: 999, border: '1px solid #EF9F27', color: '#EF9F27', fontSize: 13, fontWeight: 500 }}>
-          {freeN === 1 ? t('bst.freeOne') : t('bst.freeMany', { n: whole(freeN) })}
-        </span>
-      )}
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
           <style>{'@keyframes boostPulse{0%,100%{opacity:.25}50%{opacity:1}}.boost-pulse{animation:boostPulse 2s ease-in-out infinite}@keyframes boostFlow{0%{transform:translateY(22px);opacity:0}15%{opacity:.3}85%{opacity:.3}100%{transform:translateY(-100px);opacity:0}}.boost-flow{animation:boostFlow 8s linear infinite}.boost-off .boost-flow,.boost-off .boost-pulse{animation-play-state:paused}'}</style>
@@ -209,13 +204,16 @@ export default function BoostCard({ show }) {
         ))}
       {data.enabled && (
         <div ref={btnRef} className={btnSeen ? undefined : 'free-off'} style={{ display: 'grid', gridTemplateColumns: `repeat(${data.tickets.length}, 1fr)`, gap: 8, marginTop: 12 }}>
-          <style>{'@keyframes freePulse{0%,100%{transform:scale(1);opacity:1}50%{transform:scale(1.05);opacity:.8}}.free-pulse{animation:freePulse 1.6s ease-in-out infinite}.free-off .free-pulse{animation-play-state:paused}'}</style>
+          <style>{'@keyframes freeRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.14,1.35);opacity:0}}.free-ring{position:absolute;inset:0;border:1.5px solid var(--gold);border-radius:999px;pointer-events:none}.free-ring::after{content:"";position:absolute;inset:-1.5px;border:1.5px solid var(--gold);border-radius:inherit;animation:freeRipple 1.8s ease-out infinite}.free-off .free-ring::after{animation-play-state:paused}'}</style>
           {data.tickets.map((tk) => {
             const free = tk.id === 't1' && freeN > 0;
             return (
-              <button key={tk.id} type="button" className={free ? 'btn free-pulse' : arm === tk.id ? 'btn' : 'swap'} style={{ width: '100%', margin: 0, padding: '0 8px', minHeight: 44 }} disabled={busy || (!free && tk.active >= tk.max)} onClick={() => tap(tk)}>
-                {free ? t('bst.useFree') : tk.active >= tk.max ? t('bst.full') : arm === tk.id ? t('bst.payN', { n: whole(tk.price) }) : t('bst.buyN', { n: whole(tk.price) })}
-              </button>
+              <div key={tk.id} style={{ position: 'relative' }}>
+                <button type="button" className={arm === tk.id && !free ? 'btn' : 'swap'} style={{ width: '100%', margin: 0, padding: '0 8px', minHeight: 44, ...(free ? { fontSize: 13 } : null) }} disabled={busy || (!free && tk.active >= tk.max)} onClick={() => tap(tk)}>
+                  {free ? t('bst.useFree') : tk.active >= tk.max ? t('bst.full') : arm === tk.id ? t('bst.payN', { n: whole(tk.price) }) : t('bst.buyN', { n: whole(tk.price) })}
+                </button>
+                {free && <i className="free-ring" aria-hidden="true" />}
+              </div>
             );
           })}
         </div>
