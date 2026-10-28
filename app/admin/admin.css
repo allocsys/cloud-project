@@ -107,6 +107,10 @@
 .adm-stack .btn { min-height: 44px; }
 .adm-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
 .adm-2col .field { min-width: 0; }
+.adm-3col { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0 8px; }
+.adm-3col .field { min-width: 0; }
+.adm-3col .field label { font-size: 14px; }
+.adm-3col .field input { padding-left: 10px; padding-right: 8px; }
 
 /* Compact open user card: smaller tiles, tighter details, shorter buttons, less empty space */
 .adm-fb { padding: 0 12px 10px; }
