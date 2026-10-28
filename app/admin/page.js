@@ -1219,6 +1219,14 @@ export default function Admin() {
               <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
               <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
+              <div className="row"><span className="mute">Deposited</span><b>{u.deposited.toFixed(8)} BTC</b></div>
+              <div className="row"><span className="mute">Earned</span><b>{u.earned.toFixed(8)} BTC</b></div>
+              <div className="row"><span className="mute">Joined</span><b>{when(u.joined) || '-'}</b></div>
+              <div className="row"><span className="mute">Last sign-in</span><b>{when(u.lastIn) || '-'}</b></div>
+              <div className="row"><span className="mute">Invited by</span><b>{u.refBy || '-'}</b></div>
+              <div className="row"><span className="mute">Friends invited</span><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
+              <div className="row"><span className="mute">Boosts</span><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
+              <div className="row"><span className="mute">Open orders · withdrawals</span><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
               {adj.id === u.id ? (
                 <div className="adm-form">
                   <Pick id="ajo" label="Change" value={adj.op} onChange={(v) => setAdj({ ...adj, op: v })}>
