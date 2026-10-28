@@ -5,7 +5,7 @@ import { createHmac } from 'node:crypto';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { act, overview } = await import('@/lib/server/admin');
+const { act, overview, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
 const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 const auth = await import('@/lib/server/auth');
@@ -421,4 +421,164 @@ test('admin can set a new password, and set or remove the inviter', async () => 
   assert.ok((await ref({ inviter: code.toLowerCase() })).ok);
   assert.equal(await refBy(), inv);
   assert.ok((await overview()).users.find((u) => u.id === id).hasPw);
+});
+
+test('flagged users: same network, invite burst, quick withdrawal and many open withdrawals', () => {
+  const T = 1_700_000_000_000;
+  const h = 3600000;
+  const mk = (id, extra = {}) => ({ id, createdAt: T, history: [], ...extra });
+
+  // Same network: three or more share a key; two do not. Test friends, the demo account and closed accounts never count.
+  const net = flaggedUsers([mk('a', { netKey: 'k1' }), mk('b', { netKey: 'k1' }), mk('c', { netKey: 'k1' }), mk('d', { netKey: 'k2' }), mk('e', { netKey: 'k2' })]);
+  assert.deepEqual([...net.keys()].sort(), ['a', 'b', 'c']);
+  assert.deepEqual(net.get('a'), ['Same network ×3']);
+  const skipped = flaggedUsers([mk('a', { netKey: 'k1' }), mk('b', { netKey: 'k1' }), mk('friend1@test', { netKey: 'k1' }), mk('demo', { netKey: 'k1' }), mk('z', { netKey: 'k1', closedAt: T })]);
+  assert.equal(skipped.size, 0);
+
+  // Invite burst: four friends of one inviter inside an hour; four spread over hours, or three inside an hour, are fine.
+  const friends = (n, gap) => Array.from({ length: n }, (_, i) => mk(`f${n}-${gap}-${i}`, { refBy: 'boss', createdAt: T + i * gap }));
+  assert.equal(FLAG.burstN, 4);
+  const burst = flaggedUsers(friends(4, 10 * 60000));
+  assert.equal(burst.size, 4);
+  assert.ok([...burst.values()].every((l) => l.length === 1 && l[0] === 'Invite burst'));
+  assert.equal(flaggedUsers(friends(4, 2 * h)).size, 0);
+  assert.equal(flaggedUsers(friends(3, 10 * 60000)).size, 0);
+
+  // Quick withdrawal: within 48 hours of joining flags, three days later does not.
+  const wd = (after) => [{ kind: 'withdrawal', at: T + after }];
+  assert.deepEqual(flaggedUsers([mk('q', { history: wd(h) })]).get('q'), ['Quick withdrawal']);
+  assert.equal(flaggedUsers([mk('q', { history: wd(72 * h) })]).size, 0);
+  assert.equal(flaggedUsers([mk('q', { history: [{ kind: 'purchase', at: T + h }] })]).size, 0);
+
+  // Many open withdrawals: three or more at once.
+  assert.deepEqual(flaggedUsers([mk('o')], new Map([['o', 3]])).get('o'), ['3 withdrawals open']);
+  assert.equal(flaggedUsers([mk('o')], new Map([['o', 2]])).size, 0);
+
+  // One user can carry several flags.
+  const both = flaggedUsers([mk('m', { history: wd(h) })], new Map([['m', 4]]));
+  assert.deepEqual(both.get('m'), ['Quick withdrawal', '4 withdrawals open']);
+});
+
+test('the admin overview carries each user\'s flags', async () => {
+  const key = `k${run}`;
+  const ids = each(3, (i) => `net${i}${run}@test.dev`);
+  for (const id of ids) {
+    assert.ok(await tx((c) => createUser(c, id, {})));
+    await withUser(id, (u) => { u.netKey = key; return true; });
+  }
+  const users = (await overview()).users;
+  for (const id of ids) assert.deepEqual(users.find((u) => u.id === id).flags, ['Same network ×3']);
+  // A user nobody flagged has an empty list.
+  const calm = `calm${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, calm, {})));
+  assert.deepEqual((await overview()).users.find((u) => u.id === calm).flags, []);
+});
+
+test('bulk actions: bad input is refused, and each user goes through the single-user rules', async () => {
+  const ids = each(3, (i) => `blk${i}${run}@test.dev`);
+  for (const id of ids) assert.ok(await tx((c) => createUser(c, id, {})));
+  const ghost = `ghost${run}@test.dev`;
+  const bulk = (extra) => act({ action: 'bulk', ...extra });
+  const rows = async () => (await overview()).users.filter((u) => ids.includes(u.id));
+  const t0 = Date.now();
+
+  // Refused before anything changes.
+  assert.equal((await bulk({ op: 'block' })).status, 422); // no ids
+  assert.equal((await bulk({ op: 'block', ids: [] })).status, 422);
+  assert.equal((await bulk({ op: 'block', ids: ['demo', 'all', ''] })).status, 422); // demo and 'all' are skipped, so nothing is left
+  assert.equal((await bulk({ op: 'explode', ids })).status, 400);
+  assert.equal((await bulk({ op: 'block', ids: each(BULK_MAX + 1, (i) => `x${i}@test.dev`) })).status, 422);
+  assert.ok((await rows()).every((u) => !u.blocked));
+
+  // Block three real users, one unknown id and the demo account: three done, one refused and named.
+  const r = await bulk({ op: 'block', ids: [...ids, ghost, 'demo'] });
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(r.done, 3);
+  assert.equal(r.failed, 1);
+  assert.ok(r.errors[0].startsWith(ghost) && r.errors[0].includes('User not found'), r.errors[0]);
+  assert.ok((await rows()).every((u) => u.blocked));
+  assert.ok((await bulk({ op: 'unblock', ids })).ok);
+  assert.ok((await rows()).every((u) => !u.blocked));
+
+  // The same id twice counts once.
+  assert.equal((await bulk({ op: 'freeze', ids: [ids[0], ids[0]] })).done, 1);
+  assert.ok((await rows())[0].frozen);
+  assert.equal((await bulk({ op: 'freeze', ids })).done, 3);
+  assert.ok((await rows()).every((u) => u.frozen));
+  assert.equal((await bulk({ op: 'unfreeze', ids })).done, 3);
+  assert.ok((await rows()).every((u) => !u.frozen));
+
+  // Message: a title is needed for each; a good one reaches every picked user and nobody else.
+  const noTitle = await bulk({ op: 'notify', ids, title: '  ' });
+  assert.equal(noTitle.done, 0);
+  assert.equal(noTitle.failed, 3);
+  const msg = await bulk({ op: 'notify', ids, title: `Bulk ${run}`, body: 'Hello' });
+  assert.equal(msg.done, 3);
+  for (const id of ids) assert.ok(await withUser(id, (u) => u.notifications.some((n) => n.title === `Bulk ${run}`)));
+  assert.ok(!(await withUser(`calm${run}@test.dev`, (u) => u.notifications.some((n) => n.title === `Bulk ${run}`))));
+
+  // Tickets: a bad count is refused for each user; a good one gives each user their gift tickets while boosts are on.
+  const bad = await bulk({ op: 'tickets', ids, count: '0' });
+  assert.equal(bad.done, 0);
+  assert.equal(bad.failed, 3);
+  const wasOn = (await q("SELECT data FROM meta WHERE key = 'boost'")).rows[0]?.data?.enabled === true;
+  try {
+    assert.ok((await act({ action: 'boost-settings', enabled: true })).ok);
+    const t = await bulk({ op: 'tickets', ids, count: '2' });
+    assert.equal(t.done, 3, JSON.stringify(t));
+    for (const id of ids) assert.equal(await withUser(id, (u) => (u.boosts || []).filter((b) => b.gift === true).length), 2);
+  } finally {
+    await act({ action: 'boost-settings', enabled: wasOn });
+  }
+
+  // The audit log names the action and how many users it touched.
+  const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+  assert.ok(log.some((e) => e.action === 'bulk' && e.at >= t0 && e.detail.includes('3 users')));
+});
+
+test('admin can close an account: refused with a balance, then erased, hidden and its friends kept', async () => {
+  const id = `cls${run}@test.dev`;
+  const friend = `clf${run}@test.dev`;
+  const pw = 'correct horse 1';
+  assert.ok((await auth.signup({ email: id, password: pw })).ok);
+  assert.ok((await auth.signup({ email: friend, password: pw })).ok);
+  assert.ok((await act({ action: 'user', userId: friend, op: 'ref-set', inviter: id })).ok);
+  const close = (extra = {}) => act({ action: 'user-close', userId: id, ...extra });
+  const listed = async (who) => (await overview()).users.some((u) => u.id === who);
+  const exists = async (who) => (await q('SELECT 1 FROM users WHERE id = $1', [who])).rowCount === 1;
+
+  // Refused: no confirmation word, the wrong word, an unknown user and the demo account.
+  assert.equal((await close()).status, 422);
+  assert.equal((await close({ confirm: 'delete me' })).status, 422);
+  assert.equal((await act({ action: 'user-close', userId: `nobody${run}@test.dev`, confirm: 'DELETE' })).status, 404);
+  assert.equal((await act({ action: 'user-close', userId: 'demo', confirm: 'DELETE' })).ok, false);
+  assert.ok(await listed(id));
+
+  // A balance above the withdrawal minimum would be lost: refused, and nothing changes.
+  assert.ok((await act({ action: 'balance', userId: id, op: 'add', amountBtc: '0.01', note: 'close test' })).ok);
+  const held = await close({ confirm: 'DELETE' });
+  assert.equal(held.status, 409);
+  assert.match(held.error, /still has/);
+  assert.ok(await listed(id));
+  assert.ok(await exists(id));
+  assert.equal((await auth.login({ email: id, password: pw })).status, 200);
+
+  // With the balance taken back and a gift miner running, it closes; the miner is given up.
+  assert.ok((await act({ action: 'balance', userId: id, op: 'subtract', amountBtc: '0.01', note: 'close test' })).ok);
+  assert.ok((await act({ action: 'gift', userId: id, kind: 'miner', th: '5', days: '30' })).ok);
+  const r = await close({ confirm: ' delete ' }); // the word is not case sensitive and is trimmed
+  assert.ok(r.ok, JSON.stringify(r));
+  assert.equal(r.miners, 1);
+
+  // Gone: the old id has no row, the list hides the closed account, nobody can sign in to it, and a second close finds nothing.
+  assert.equal(await exists(id), false);
+  assert.ok(!(await overview()).users.some((u) => String(u.id).startsWith('closed:')));
+  assert.notEqual((await auth.login({ email: id, password: pw })).status, 200);
+  assert.equal((await close({ confirm: 'DELETE' })).status, 404);
+
+  // The friend stays, and now points at the closed account instead of the erased id.
+  assert.ok(await listed(friend));
+  const by = await withUser(friend, (u) => u.refBy || null);
+  assert.ok(by && by.startsWith('closed:'), String(by));
+  assert.ok((await logOf(id)) >= 4);
 });
