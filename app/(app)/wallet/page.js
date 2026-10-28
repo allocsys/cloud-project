@@ -1,4 +1,5 @@
 'use client';
+import PageHead from '@/components/PageHead';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
@@ -399,9 +400,7 @@ export default function Wallet() {
   return (
     <>
       <style>{WALLET_CSS}</style>
-      <div className="top">
-        <h2>{t('nav.wallet')}</h2>
-      </div>
+      <PageHead title={t('nav.wallet')} />
       <div className="grid">
         <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
           <i className="wshine" aria-hidden="true" />
