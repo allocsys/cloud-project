@@ -76,6 +76,7 @@ export default function Terms() {
         <p className="mute">{t('terms.p5d')}</p>
         <p className="mute">{t('terms.p5e', { up: Math.round(UP_RATIO * 100) })}</p>
         <p className="mute">{t('terms.p5f', { band: +(SMART.bandShare * 100).toFixed(0), seed: +(SMART.seed * 100).toFixed(2), share: +(SMART.userShare * 100).toFixed(0) })}</p>
+        <p className="mute">{t('terms.p5g')}</p>
 
         <h2 style={h2}>{t('terms.h6')}</h2>
         <p className="mute">{t('terms.p6')}</p>
