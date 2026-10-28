@@ -328,7 +328,7 @@ export default function Plans() {
 
   return (
     <>
-      <PageHead title={t('nav.plans')} />
+      <PageHead title={t('nav.plans')} icon="plans" />
 
       <div className="tabs" role="group" aria-label={t('plans.aria')} style={bd || !tabsWait ? undefined : { visibility: 'hidden' }}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
