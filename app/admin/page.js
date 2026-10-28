@@ -903,6 +903,7 @@ export default function Admin() {
   const [pw, setPw] = useState({ cur: '', next: '' }); // admin password form
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [uq, setUq] = useState(''); // user search text
+  const [usort, setUsort] = useState('new'); // user list order
   const [openU, setOpenU] = useState(null); // the user card that is open
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
   const [toast, show] = useToast();
@@ -1014,7 +1015,10 @@ export default function Admin() {
   }));
   const hallLine = (id) => (hallStat[id] ? `${hallStat[id].on}/${hallStat[id].n} miners online` : 'No miners');
   const needle = uq.trim().toLowerCase();
-  const shownUsers = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
+  const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
+  const kycRank = (u) => (u.kyc.status === 'pending' ? 2 : u.kyc.status === 'verified' ? 1 : 0);
+  const USORT = { new: (a, b) => (b.joined || 0) - (a.joined || 0), bal: (a, b) => b.available - a.available, miners: (a, b) => b.miners.length - a.miners.length, seen: (a, b) => (b.lastIn || 0) - (a.lastIn || 0), kyc: (a, b) => kycRank(b) - kycRank(a) };
+  const shownUsers = [...found].sort(USORT[usort] || USORT.new);
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
   const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
   const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
@@ -1201,6 +1205,11 @@ export default function Admin() {
           <div className="field" style={{ marginTop: 0 }}>
             <input id="usq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={uq} onChange={(e) => setUq(e.target.value)} />
             <label htmlFor="usq">Search users</label>
+          </div>
+          <div className="minitabs adm-filter" role="group" aria-label="Sort users">
+            {[['new', 'New'], ['bal', 'Balance'], ['miners', 'Miners'], ['seen', 'Seen'], ['kyc', 'KYC']].map(([k, t]) => (
+              <button key={k} aria-pressed={usort === k} onClick={() => setUsort(k)}>{t}</button>
+            ))}
           </div>
           {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
           {shownUsers.map((u) => (
