@@ -27,6 +27,7 @@ html[dir='rtl'] .authform h3 { margin: 4px 0 8px 40px; }
 html[dir='rtl'] .tag { left: auto; right: 12px; }
 html[dir='rtl'] .bell i { right: auto; left: 9px; margin: -2px 0 0 -2px; }
 html[dir='rtl'] .asst-fab { right: auto; left: 16px; }
+html[dir='rtl'] .top.rich::before { background: var(--bg); background: radial-gradient(90% 120% at 100% 0%, rgba(233, 196, 106, 0.13), transparent 70%), color-mix(in srgb, var(--bg) 70%, transparent); }
 @media (min-width: 760px) { html[dir='rtl'] .asst-fab { right: auto; left: 24px; } }
 
 /* Text alignment */
