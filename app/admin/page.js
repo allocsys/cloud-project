@@ -1547,22 +1547,21 @@ export default function Admin() {
               </div>
               {u.miners.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No active miners.</p>}
               {u.miners.map((m) => (
-                <div className="row adm-m" key={m.serial}>
-                  <div>
-                    {m.name}
-                    <small>
-                      <span className="serial">{m.serial}</span> · ${m.dailyUsd.toFixed(2)}/day · Day {m.elapsed}/{m.days}
-                      {m.online ? '' : ' · offline'}
-                    </small>
+                <div className="adm-miner" key={m.serial}>
+                  <div className="adm-mh">
+                    <span className="adm-mn">{m.name}</span>
+                    <b>${m.dailyUsd.toFixed(2)}<span>/day</span></b>
                   </div>
-                  <div className="adm-btns">
-                    <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'miner', userId: u.id, serial: m.serial, op: m.online ? 'offline' : 'online' }, m.online ? 'Set offline' : 'Set online')}>
+                  <small><span className="serial">{m.serial}</span> · Day {m.elapsed}/{m.days}{m.online ? '' : ' · offline'}</small>
+                  <div className="adm-bar"><i style={{ width: `${Math.min(100, Math.max(0, (m.elapsed / (m.days || 1)) * 100))}%` }} /></div>
+                  <div className="adm-grid">
+                    <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'miner', userId: u.id, serial: m.serial, op: m.online ? 'offline' : 'online' }, m.online ? 'Set offline' : 'Set online')}>
                       {m.online ? 'Offline' : 'Online'}
                     </button>
-                    <button className="btn ghost" disabled={busy} onClick={() => ask(`Refund ${m.serial}? The miner is removed and its price goes back to the balance. Only allowed within 24 hours, before the first payout day.`, { ok: 'Refund' }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'refund' }, (r) => `Refunded ${r.btc.toFixed(8)} BTC ($${r.usd.toFixed(2)})`))}>
+                    <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Refund ${m.serial}? The miner is removed and its price goes back to the balance. Only allowed within 24 hours, before the first payout day.`, { ok: 'Refund' }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'refund' }, (r) => `Refunded ${r.btc.toFixed(8)} BTC ($${r.usd.toFixed(2)})`))}>
                       Refund
                     </button>
-                    <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Remove ${m.serial}? This cannot be undone.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'delete' }, 'Miner removed'))}>
+                    <button className="swap danger" style={SM} disabled={busy} onClick={() => ask(`Remove ${m.serial}? This cannot be undone.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'miner', userId: u.id, serial: m.serial, op: 'delete' }, 'Miner removed'))}>
                       Remove
                     </button>
                   </div>
