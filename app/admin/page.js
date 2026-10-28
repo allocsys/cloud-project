@@ -75,7 +75,7 @@ const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cance
 const WD = { pending: 'Needs approval', approved: 'Approved, pay it', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
-const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 44 };
+const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
 const REF_FIELDS = [
   ['firstPct', 'First purchase %'],
   ['dailyPct', 'Daily payouts %'],
@@ -1384,6 +1384,9 @@ export default function Admin() {
                 <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
                 <div><small>Boosts</small><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
                 <div><small>Open orders · withdrawals</small><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
+                <div><small>Status</small><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
+                <div><small>Two-factor</small><b>{u.twofa ? 'On' : 'Off'}</b></div>
+                <div><small>Withdrawals</small><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
                 {u.adjust !== 0 && <div><small>Changed by admin</small><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>}
               </div>
               {u.flags.length > 0 && <div className="row"><span className="mute">Flags</span><b style={{ color: 'var(--gold)', textAlign: 'right' }}>{u.flags.join(' · ')}</b></div>}
@@ -1424,17 +1427,14 @@ export default function Admin() {
                   </div>
                 </div>
               ) : (
-                <div className="adm-actions">
+                <div className="adm-grid two">
                   <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ ...ADJ0, id: u.id })}>Change balance</button>
+                  {u.id !== 'demo' && <button className="swap" style={SM} onClick={() => setUhist(uhist === u.id ? null : u.id)}>{uhist === u.id ? 'Hide history' : `Show history · ${u.history.length}`}</button>}
                 </div>
               )}
 
               {u.id !== 'demo' && (
                 <>
-                  <span className="eyebrow adm-sub">Activity</span>
-                  <div className="adm-actions">
-                    <button className="swap" style={SM} onClick={() => setUhist(uhist === u.id ? null : u.id)}>{uhist === u.id ? 'Hide history' : `Show history · ${u.history.length}`}</button>
-                  </div>
                   {uhist === u.id && u.history.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
                   {uhist === u.id && u.history.map((h, i) => (
                     <div className="row adm-m" key={`${h.at}-${i}`}>
@@ -1442,12 +1442,6 @@ export default function Admin() {
                       <b>{h.amount ? `${h.amount} ${h.coin}` : ''}</b>
                     </div>
                   ))}
-                  <span className="eyebrow adm-sub">Account</span>
-                  <div className="adm-kv">
-                    <div><small>Status</small><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
-                    <div><small>Two-factor</small><b>{u.twofa ? 'On' : 'Off'}</b></div>
-                    <div><small>Withdrawals</small><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
-                  </div>
                   {umsg.id === u.id && (
                     <div className="adm-form">
                       <Field id="umt" label="Title" maxLength={80} value={umsg.title} onChange={(v) => setUmsg({ ...umsg, title: v })} />
@@ -1539,7 +1533,6 @@ export default function Admin() {
                   ) : (
                     <>
                       {u.note && <p className="adm-note"><small>Note</small>{u.note}</p>}
-                      <span className="eyebrow adm-sub">Manage</span>
                       <div className="adm-grid">
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
@@ -1551,9 +1544,6 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
-                        </div>
-                      <span className="eyebrow adm-sub">Danger zone</span>
-                      <div className="adm-grid">
                         <button
                           className="swap danger"
                           style={SM}
