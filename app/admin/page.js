@@ -77,17 +77,17 @@ const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verifi
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 44 };
 const REF_FIELDS = [
-  ['firstPct', 'Referrer: first purchase (%)'],
-  ['dailyPct', 'Referrer: friend daily payouts (%)'],
-  ['dailyDays', 'Referrer: daily reward days'],
-  ['capPct', 'Cap (% of friend spend)'],
-  ['refereeTh', 'Friend gift (TH/s, 0 = off)'],
-  ['refereeDays', 'Friend gift term (days)'],
-  ['refereeMinUsd', 'Min first purchase (USD)'],
-  ['monthlyLimit', 'Rewarded friends per month'],
-  ['maxRebate', 'Largest rebate a code can give (%)'],
-  ['maxCodes', 'Codes per user (with the default)'],
-  ['ticketCap', 'Free tickets per inviter (0 = off)'],
+  ['firstPct', 'First purchase %'],
+  ['dailyPct', 'Daily payouts %'],
+  ['dailyDays', 'Reward days'],
+  ['capPct', 'Cap %'],
+  ['refereeTh', 'Gift TH/s'],
+  ['refereeDays', 'Gift days'],
+  ['refereeMinUsd', 'Min buy $'],
+  ['monthlyLimit', 'Friends/month'],
+  ['maxRebate', 'Max rebate %'],
+  ['maxCodes', 'Codes/user'],
+  ['ticketCap', 'Tickets/inviter'],
 ];
 
 // Smart Mining: sell on/off, the pay table for new purchases (ten rates by budget on a 90 day term, plus what 120, 150 and 180 days add;
@@ -1783,11 +1783,13 @@ export default function Admin() {
           <div className="adm-stack">
             <div className="card">
               <h3>Rewards</h3>
-              {REF_FIELDS.map(([k, l]) => (
-                <Field key={k} id={`rf-${k}`} label={l} inputMode="decimal" value={d[k]} onChange={(v) => put(k, v)} />
-              ))}
+              <div className="adm-2col">
+                {REF_FIELDS.map(([k, l]) => (
+                  <Field key={k} id={`rf-${k}`} label={l} inputMode="decimal" value={d[k]} onChange={(v) => put(k, v)} />
+                ))}
+              </div>
               <p className="fine" style={{ margin: '12px 0 0' }}>
-                The referrer&apos;s total is capped at the cap share of what the friend spends, minus the cost of the friend&apos;s gift miner. Changes apply to rewards from now on.
+                Gift TH/s and Tickets/inviter: 0 = off. The referrer&apos;s total is capped at the cap share of what the friend spends, minus the cost of the friend&apos;s gift miner. Changes apply to rewards from now on.
               </p>
               <div className="adm-actions">
                 <button className="btn ghost" disabled={busy} onClick={async () => { if (await run({ action: 'ref-reset' }, 'Reset to defaults')) setRefDraft(null); }}>Defaults</button>
