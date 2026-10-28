@@ -75,7 +75,7 @@ const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cance
 const WD = { pending: 'Needs approval', approved: 'Approved, pay it', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
-const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
+const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 44 };
 const REF_FIELDS = [
   ['firstPct', 'Referrer: first purchase (%)'],
   ['dailyPct', 'Referrer: friend daily payouts (%)'],
@@ -345,11 +345,11 @@ function BoostCard({ bs, busy, run }) {
                 ${t.price} ticket
                 <small>{t.th.toLocaleString('en-US')} TH/s for {BOOST.hours} h · pays ${t.pay.toFixed(2)} · prize ${t.prize.toLocaleString('en-US')} · up to {t.max} at once</small>
               </div>
-              <b style={m !== null && m < 0 ? { color: '#e5484d' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
+              <b style={m !== null && m < 0 ? { color: 'var(--red)' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
             </div>
             <Field id={`bc${t.id}`} label={`Real chance (%) for the $${t.price} ticket`} inputMode="decimal" value={d.chance[t.id]} onChange={(v) => type('chance', t.id, v)} />
             <Field id={`bs${t.id}`} label={`Shown chance (%) for the $${t.price} ticket, empty = same`} inputMode="decimal" value={d.shown[t.id]} onChange={(v) => type('shown', t.id, v)} />
-            {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: '#e5484d' }}>At this chance the ${t.price} ticket loses money (each one costs more than it brings in).</p>}
+            {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: 'var(--red)' }}>At this chance the ${t.price} ticket loses money (each one costs more than it brings in).</p>}
           </div>
         );
       })}
@@ -520,21 +520,45 @@ function Login({ onDone, setup }) {
 }
 
 // Section tabs: one scrolling row of pills. The open one slides to the middle. items: [key, label, badge?].
+// Five groups on the top row; the open group's sections show on a second row. Badges add up inside a group.
+const GROUPS = [
+  ['home', 'Overview', ['overview']],
+  ['people', 'People', ['users', 'referrals', 'boosts', 'send']],
+  ['money', 'Money', ['orders', 'withdrawals', 'gateway']],
+  ['mining', 'Mining', ['halls', 'smart', 'guard']],
+  ['system', 'System', ['database', 'settings']],
+];
 function Tabs({ items, value, onPick }) {
   const box = useRef(null);
+  const info = Object.fromEntries(items.map(([k, l, n]) => [k, [l, n || 0]]));
+  const group = GROUPS.find((g) => g[2].includes(value)) || GROUPS[0];
+  const count = (g) => g[2].reduce((s, k) => s + (info[k]?.[1] || 0), 0);
   useEffect(() => {
-    const b = box.current;
-    const el = b?.querySelector('[aria-pressed=true]');
-    if (b && el) b.scrollTo({ left: el.offsetLeft - (b.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' });
+    box.current?.querySelectorAll('.adm-tabs').forEach((b) => {
+      const el = b.querySelector('[aria-pressed=true]');
+      if (el) b.scrollTo({ left: el.offsetLeft - (b.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' });
+    });
   }, [value]);
   return (
-    <div className="adm-tabs" role="group" aria-label="Admin sections" ref={box}>
-      {items.map(([k, l, n]) => (
-        <button key={k} aria-pressed={value === k} onClick={() => onPick(k)}>
-          {l}
-          {n > 0 && <b>{n}</b>}
-        </button>
-      ))}
+    <div className="adm-nav" role="navigation" aria-label="Admin sections" ref={box}>
+      <div className="adm-tabs" role="group" aria-label="Groups">
+        {GROUPS.map((g) => (
+          <button key={g[0]} aria-pressed={group[0] === g[0]} onClick={() => onPick(g[2][0])}>
+            {g[1]}
+            {count(g) > 0 && <b>{count(g)}</b>}
+          </button>
+        ))}
+      </div>
+      {group[2].length > 1 && (
+        <div className="adm-tabs adm-sub-tabs" role="group" aria-label={group[1]}>
+          {group[2].map((k) => (
+            <button key={k} aria-pressed={value === k} onClick={() => onPick(k)}>
+              {info[k]?.[0] || k}
+              {info[k]?.[1] > 0 && <b>{info[k][1]}</b>}
+            </button>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
@@ -1117,7 +1141,7 @@ export default function Admin() {
               return (
                 <Fold key={userId} title={userId} sub={`${list.length} ${list.length === 1 ? 'boost' : 'boosts'}${wins ? ` · ${wins} ${wins === 1 ? 'win' : 'wins'}` : ''}`} start={groups.length === 1}>
                   {list.map((b) => (
-                    <div key={b.id} style={{ padding: '10px 0', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
+                    <div key={b.id} style={{ padding: '10px 0', borderTop: '1px solid var(--line)' }}>
                       <div className="row">
                         <div>
                           <small>${b.price}{b.gift ? ' (free)' : ''} · {b.th.toLocaleString('en-US')} TH/s · ends {when(b.endsAt)} · chance {b.chance}%</small>
@@ -1673,7 +1697,7 @@ export default function Admin() {
                   <div>
                     {h.name}
                     <small>{h.rig} · {h.efficiency} · {h.place}</small>
-                    <small>{hallLine(id)}</small>
+                    <small>{hallLine(id)} · tap to edit</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${h.net}</b>
@@ -1697,7 +1721,7 @@ export default function Admin() {
                 <button key={id} type="button" className="row adm-click" aria-label={`Edit ${h.name}`} onClick={() => setEdit({ kind: 'smart-hall', id, draft: smartHallDraft(h) })}>
                   <div>
                     {h.name}
-                    <small>{h.rig} · {h.place}</small>
+                    <small>{h.rig} · {h.place} · tap to edit</small>
                     {hallKwhNote(id, h, data.smart) && <small style={WARN}>{hallKwhNote(id, h, data.smart)}</small>}
 
                   </div>
