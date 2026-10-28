@@ -436,10 +436,10 @@ input::placeholder { color: var(--ph); }
 .eh-logo svg { width: 20px; height: 20px; }
 .eh-ttl { min-width: 0; }
 .eh-ttl small { display: block; min-height: 16px; font-size: 12px; line-height: 16px; color: var(--mute); }
-.eh-pill { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 8px; padding-inline-end: 12px; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--text); text-decoration: none; }
-.eh-pill svg { width: 16px; height: 16px; flex: none; fill: var(--gold); }
-.eh-pill b { display: block; font-size: 14px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.eh-pill small { display: block; min-height: 14px; font-size: 11px; line-height: 14px; color: var(--green); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eh-pill { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 2px 7px; padding-inline-end: 9px; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--text); text-decoration: none; }
+.eh-pill svg { width: 12px; height: 12px; flex: none; fill: var(--gold); }
+.eh-pill b { display: block; font-size: 13px; line-height: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.eh-pill small { display: block; min-height: 12px; font-size: 10px; line-height: 12px; color: var(--green); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .bell { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--text); }
 .bell svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .bell i { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); box-sizing: content-box; margin: -2px -2px 0 0; }
