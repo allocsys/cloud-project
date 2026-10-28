@@ -907,6 +907,8 @@ export default function Admin() {
   const [ufil, setUfil] = useState('all'); // user list filter
   const [uhist, setUhist] = useState(null); // user whose activity rows are open
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
+  const [upw, setUpw] = useState({ id: null, text: '' }); // new password being typed (one user at a time)
+  const [uinv, setUinv] = useState({ id: null, text: '' }); // inviter being set (one user at a time)
   const [umsg, setUmsg] = useState({ id: null, title: '', body: '' }); // message to one user being written
   const [ugift, setUgift] = useState({ id: null, kind: 'miner', th: '5', days: '30', count: '1' }); // gift being set up
   // Downloads the users now shown (search and filter apply) as a CSV file. Text cells that start with = + - @ get a leading quote so a spreadsheet never runs them.
@@ -1368,6 +1370,44 @@ export default function Admin() {
                       </div>
                     </div>
                   )}
+                  {upw.id === u.id && (
+                    <div className="adm-form">
+                      <Field id="upw" label="New password (8+ characters)" autoComplete="off" maxLength={200} value={upw.text} onChange={(v) => setUpw({ ...upw, text: v })} />
+                      <p className="fine" style={{ margin: '4px 0 0' }}>The user is signed out everywhere. Tell them the new password yourself.</p>
+                      <div className="adm-actions">
+                        <button className="btn ghost" onClick={() => setUpw({ id: null, text: '' })}>Cancel</button>
+                        <button
+                          className="btn"
+                          disabled={busy || upw.text.length < 8}
+                          onClick={async () => {
+                            if (!(await ask(`Set a new password for ${u.id}?`, { ok: 'Set', danger: true }))) return;
+                            if (await run({ action: 'user', userId: u.id, op: 'set-password', password: upw.text }, 'Password set')) setUpw({ id: null, text: '' });
+                          }}
+                        >
+                          Set
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {uinv.id === u.id && (
+                    <div className="adm-form">
+                      <Field id="uinv" label="Inviter (email, id or invite code)" autoComplete="off" maxLength={120} value={uinv.text} onChange={(v) => setUinv({ ...uinv, text: v })} />
+                      <p className="fine" style={{ margin: '4px 0 0' }}>Rewards follow the new inviter from now on.</p>
+                      <div className="adm-actions">
+                        <button className="btn ghost" onClick={() => setUinv({ id: null, text: '' })}>Cancel</button>
+                        <button
+                          className="btn"
+                          disabled={busy || !uinv.text.trim()}
+                          onClick={async () => {
+                            if (!(await ask(`Set the inviter of ${u.id} to ${uinv.text.trim()}?`, { ok: 'Set' }))) return;
+                            if (await run({ action: 'user', userId: u.id, op: 'ref-set', inviter: uinv.text }, 'Inviter set')) setUinv({ id: null, text: '' });
+                          }}
+                        >
+                          Set
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {unote.id === u.id ? (
                     <div className="adm-form">
                       <Field id="unt" label="Private note (admin only)" maxLength={200} value={unote.text} onChange={(v) => setUnote({ ...unote, text: v })} />
@@ -1383,6 +1423,9 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUmsg({ id: u.id, title: '', body: '' })}>Message</button>
+                        {u.hasPw && <button className="swap" style={SM} disabled={busy} onClick={() => setUpw({ id: u.id, text: '' })}>Password</button>}
+                        <button className="swap" style={SM} disabled={busy} onClick={() => setUinv({ id: u.id, text: '' })}>{u.refBy ? 'Change inviter' : 'Set inviter'}</button>
+                        {u.refBy && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Remove the inviter of ${u.id}? Their rewards stop.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'ref-clear' }, 'Inviter removed'))}>Remove inviter</button>}
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUgift({ ...ugift, id: u.id })}>Gift</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
