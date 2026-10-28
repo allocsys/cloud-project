@@ -911,6 +911,10 @@ export default function Admin() {
   const [uinv, setUinv] = useState({ id: null, text: '' }); // inviter being set (one user at a time)
   const [umsg, setUmsg] = useState({ id: null, title: '', body: '' }); // message to one user being written
   const [ugift, setUgift] = useState({ id: null, kind: 'miner', th: '5', days: '30', count: '1' }); // gift being set up
+  const [usm, setUsm] = useState(false); // select mode on the user list
+  const [usel, setUsel] = useState([]); // ids picked in select mode
+  const [bmsg, setBmsg] = useState(null); // bulk message form: null or { title, body }
+  const [btk, setBtk] = useState(null); // bulk tickets form: null or the count as text
   // Downloads the users now shown (search and filter apply) as a CSV file. Text cells that start with = + - @ get a leading quote so a spreadsheet never runs them.
   const exportUsers = () => {
     const cell = (v) => {
@@ -919,8 +923,8 @@ export default function Admin() {
       return `"${s.replace(/"/g, '""')}"`;
     };
     const iso = (t) => (t ? new Date(t).toISOString() : '');
-    const head = ['id', 'telegram', 'joined', 'last sign-in', 'available BTC', 'deposited BTC', 'earned BTC', 'withdrawn BTC', 'miners', 'KYC', 'blocked', 'withdrawals paused', 'invited by', 'friends invited'];
-    const rows = shownUsers.map((u) => [u.id, u.tg || '', iso(u.joined), iso(u.lastIn), u.available.toFixed(8), u.deposited.toFixed(8), u.earned.toFixed(8), u.withdrawn.toFixed(8), u.miners.length, u.kyc.status, u.blocked ? iso(u.blocked) : '', u.frozen ? iso(u.frozen) : '', u.refBy || '', u.invited]);
+    const head = ['id', 'telegram', 'joined', 'last sign-in', 'available BTC', 'deposited BTC', 'earned BTC', 'withdrawn BTC', 'miners', 'KYC', 'blocked', 'withdrawals paused', 'invited by', 'friends invited', 'flags'];
+    const rows = shownUsers.map((u) => [u.id, u.tg || '', iso(u.joined), iso(u.lastIn), u.available.toFixed(8), u.deposited.toFixed(8), u.earned.toFixed(8), u.withdrawn.toFixed(8), u.miners.length, u.kyc.status, u.blocked ? iso(u.blocked) : '', u.frozen ? iso(u.frozen) : '', u.refBy || '', u.invited, u.flags.join('; ')]);
     const blob = new Blob([[head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -997,6 +1001,16 @@ export default function Admin() {
     return ok;
   }
 
+  // One change for every picked user (select mode). The server goes through them one by one and says how many were refused.
+  async function bulk(extra) {
+    const ok = await run({ action: 'bulk', ids: usel, ...extra }, (x) => `${x.done} done${x.failed ? ` · ${x.failed} refused${x.errors?.[0] ? ` (${x.errors[0]})` : ''}` : ''}`);
+    if (ok) {
+      setBmsg(null);
+      setBtk(null);
+    }
+    return ok;
+  }
+
   async function signOut() {
     try {
       await call('DELETE', '/api/admin/login');
@@ -1044,7 +1058,7 @@ export default function Admin() {
   const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
   const kycRank = (u) => (u.kyc.status === 'pending' ? 2 : u.kyc.status === 'verified' ? 1 : 0);
   const USORT = { new: (a, b) => (b.joined || 0) - (a.joined || 0), bal: (a, b) => b.available - a.available, miners: (a, b) => b.miners.length - a.miners.length, seen: (a, b) => (b.lastIn || 0) - (a.lastIn || 0), kyc: (a, b) => kycRank(b) - kycRank(a) };
-  const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0 };
+  const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0, flag: (u) => u.flags.length > 0 };
   const shownUsers = [...found].filter(UFIL[ufil] || UFIL.all).sort(USORT[usort] || USORT.new);
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
   const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
@@ -1234,7 +1248,7 @@ export default function Admin() {
             <label htmlFor="usq">Search users</label>
           </div>
           <div className="minitabs adm-filter" role="group" aria-label="Filter users">
-            {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals']].map(([k, t]) => (
+            {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals'], ['flag', 'Flagged']].map(([k, t]) => (
               <button key={k} aria-pressed={ufil === k} onClick={() => setUfil(k)}>{t}</button>
             ))}
           </div>
@@ -1246,16 +1260,52 @@ export default function Admin() {
           {shownUsers.length > 0 && (
             <div className="adm-actions" style={{ marginTop: 0 }}>
               <button className="swap" style={SM} onClick={exportUsers}>Export CSV · {shownUsers.length}</button>
+              <button className="swap" style={SM} onClick={() => { setUsm((v) => !v); setUsel([]); setBmsg(null); setBtk(null); }}>{usm ? 'Done' : 'Select'}</button>
+            </div>
+          )}
+          {usm && (
+            <div className="card adm-form">
+              <div className="row"><span className="mute">Picked</span><b>{usel.length} of {shownUsers.length}</b></div>
+              <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
+                <button className="swap" style={SM} onClick={() => setUsel(shownUsers.map((x) => x.id))}>All shown</button>
+                <button className="swap" style={SM} onClick={() => setUsel([])}>None</button>
+              </div>
+              <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
+                {[['block', 'Block', true], ['unblock', 'Unblock', false], ['freeze', 'Pause withdrawals', true], ['unfreeze', 'Allow withdrawals', false]].map(([op, t, danger]) => (
+                  <button key={op} className={`swap${danger ? ' danger' : ''}`} style={SM} disabled={busy || !usel.length} onClick={async () => { if (await ask(`${t} for ${usel.length} user${usel.length === 1 ? '' : 's'}?`, { ok: t, danger })) bulk({ op }); }}>{t}</button>
+                ))}
+                <button className="swap" style={SM} disabled={busy || !usel.length} onClick={() => { setBtk(null); setBmsg({ title: '', body: '' }); }}>Message</button>
+                <button className="swap" style={SM} disabled={busy || !usel.length} onClick={() => { setBmsg(null); setBtk('1'); }}>Tickets</button>
+              </div>
+              {bmsg && (
+                <div className="adm-form">
+                  <Field id="bmt" label="Title" maxLength={80} value={bmsg.title} onChange={(v) => setBmsg({ ...bmsg, title: v })} />
+                  <Field id="bmb" label="Message" maxLength={240} value={bmsg.body} onChange={(v) => setBmsg({ ...bmsg, body: v })} />
+                  <div className="adm-actions">
+                    <button className="btn ghost" onClick={() => setBmsg(null)}>Cancel</button>
+                    <button className="btn" disabled={busy || !usel.length || !bmsg.title.trim()} onClick={async () => { if (await ask(`Send this message to ${usel.length} user${usel.length === 1 ? '' : 's'}?`, { ok: 'Send' })) bulk({ op: 'notify', title: bmsg.title, body: bmsg.body }); }}>Send</button>
+                  </div>
+                </div>
+              )}
+              {btk !== null && (
+                <div className="adm-form">
+                  <Field id="btc" label="Tickets each (1 to 10)" inputMode="numeric" value={btk} onChange={setBtk} />
+                  <div className="adm-actions">
+                    <button className="btn ghost" onClick={() => setBtk(null)}>Cancel</button>
+                    <button className="btn" disabled={busy || !usel.length} onClick={async () => { if (await ask(`Give ${btk} free boost ticket${btk === '1' ? '' : 's'} to each of ${usel.length} user${usel.length === 1 ? '' : 's'}?`, { ok: 'Give' })) bulk({ op: 'tickets', count: btk }); }}>Give</button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
           {shownUsers.map((u) => (
-            <div className="card adm-fold" data-open={openU === u.id} key={u.id}>
-              <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => setOpenU(openU === u.id ? null : u.id)}>
+            <div className="card adm-fold" data-open={openU === u.id && !usm} key={u.id} style={usm && usel.includes(u.id) ? { outline: '2px solid var(--gold)' } : undefined}>
+              <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => (usm ? setUsel((s) => (s.includes(u.id) ? s.filter((x) => x !== u.id) : [...s, u.id])) : setOpenU(openU === u.id ? null : u.id))}>
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
                   {u.tg && <small>{u.id}</small>}
-                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}</small>
+                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}{u.flags.length ? ' · flagged' : ''}{usm && usel.includes(u.id) ? ' · picked' : ''}</small>
                 </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
                 <i aria-hidden="true" />
@@ -1273,6 +1323,7 @@ export default function Admin() {
               <div className="row"><span className="mute">Friends invited</span><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
               <div className="row"><span className="mute">Boosts</span><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
               <div className="row"><span className="mute">Open orders · withdrawals</span><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
+              {u.flags.length > 0 && <div className="row"><span className="mute">Flags</span><b style={{ color: 'var(--gold)', textAlign: 'right' }}>{u.flags.join(' · ')}</b></div>}
               {adj.id === u.id ? (
                 <div className="adm-form">
                   <Pick id="ajo" label="Change" value={adj.op} onChange={(v) => setAdj({ ...adj, op: v })}>
@@ -1427,6 +1478,19 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUinv({ id: u.id, text: '' })}>{u.refBy ? 'Change inviter' : 'Set inviter'}</button>
                         {u.refBy && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Remove the inviter of ${u.id}? Their rewards stop.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'ref-clear' }, 'Inviter removed'))}>Remove inviter</button>}
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUgift({ ...ugift, id: u.id })}>Gift</button>
+                        <button
+                          className="swap danger"
+                          style={SM}
+                          disabled={busy}
+                          onClick={async () => {
+                            const t = await askText(`Delete ${u.id}? The account is closed for good: sign-in data and details are erased${u.miners.length ? `, and ${u.miners.length} miner${u.miners.length === 1 ? '' : 's'} end with no refund` : ''}. Orders, withdrawals and history stay in the books.`, { label: 'Type DELETE to confirm', ok: 'Delete', danger: true, required: true });
+                            if (t == null || t === false) return;
+                            if (String(t).trim().toUpperCase() !== 'DELETE') { show('Not deleted. Type DELETE.'); return; }
+                            run({ action: 'user-close', userId: u.id, confirm: 'DELETE' }, 'Account closed');
+                          }}
+                        >
+                          Delete
+                        </button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
