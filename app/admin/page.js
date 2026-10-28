@@ -4,6 +4,7 @@ import { fmtTh, fmtUsd } from '@/lib/data';
 import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
 import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
+import { smartHallFor } from '@/lib/smart-halls';
 import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
 import { trimAmount } from '@/lib/pay-coins';
 
@@ -434,6 +435,21 @@ function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDele
 }
 
 const SMART_KIND = { asic: 'ASIC hall', gpu: 'GPU hall', cpu: 'CPU hall' };
+// A Smart hall's power text names a price like "$0.04/kWh". When the price Smart uses for its coins is another, say so (the text itself is never changed).
+const hallKwhNote = (id, h, smart) => {
+  const m = /\$\s*(\d+(?:[.,]\d+)?)\s*\/\s*kWh/i.exec(h.power || '');
+  if (!m) return null;
+  const label = Number(m[1].replace(',', '.'));
+  const live = smart?.cost?.inUse > 0 ? smart.cost.inUse : null;
+  const prices = new Set();
+  for (const c of smart?.coins || []) {
+    if (!c.enabled || smartHallFor(c.symbol)?.id !== id) continue;
+    const p = live ?? c.kwh;
+    if (p > 0) prices.add(p.toFixed(2));
+  }
+  const diff = [...prices].filter((p) => Math.abs(Number(p) - label) >= 0.005);
+  return diff.length ? `Label says $${label.toFixed(2)}/kWh, Smart uses $${diff.join(' / $')}/kWh` : null;
+};
 
 // One Smart Mining hall. Its kind and the coins it mines are fixed; only the details shown to users can change.
 function SmartHallForm({ draft, set, busy, asic, onSave, onCancel }) {
@@ -1414,9 +1430,8 @@ export default function Admin() {
                   <div>
                     {h.name}
                     <small>{h.rig} · {h.place}</small>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <b>{SMART_KIND[h.kind] || h.kind}</b>
+                    {hallKwhNote(id, h, data.smart) && <small style={WARN}>{hallKwhNote(id, h, data.smart)}</small>}
+
                   </div>
                 </button>
               )
