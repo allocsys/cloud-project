@@ -1382,9 +1382,11 @@ export default function Admin() {
                     </div>
                   ))}
                   <span className="eyebrow adm-sub">Account</span>
-                  <div className="row"><span className="mute">Status</span><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
-                  <div className="row"><span className="mute">Two-factor</span><b>{u.twofa ? 'On' : 'Off'}</b></div>
-                  <div className="row"><span className="mute">Withdrawals</span><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
+                  <div className="adm-kv">
+                    <div><small>Status</small><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
+                    <div><small>Two-factor</small><b>{u.twofa ? 'On' : 'Off'}</b></div>
+                    <div><small>Withdrawals</small><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
+                  </div>
                   {umsg.id === u.id && (
                     <div className="adm-form">
                       <Field id="umt" label="Title" maxLength={80} value={umsg.title} onChange={(v) => setUmsg({ ...umsg, title: v })} />
