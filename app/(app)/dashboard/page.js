@@ -244,9 +244,27 @@ export default function Dashboard() {
 
   return (
     <>
-      <div className="top">
-        <h2>{t('nav.earnings')}<i className="ldot" role="img" aria-label={t('dash.live')} /></h2>
+      <div className="top rich">
+        <div className="tl">
+          <span className="brand" aria-hidden="true">
+            <svg viewBox="0 0 40 32" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M3 29L15 11l6 9 4-6 12 15z" fill="currentColor" fillOpacity="0.22" />
+              <path d="M6 3l11 11M5 8c3-5 8-6 12-4M34 3L23 14M35 8c-3-5-8-6-12-4" />
+            </svg>
+          </span>
+          <div className="ttl">
+            <h2>{t('nav.earnings')}<i className="ldot" role="img" aria-label={t('dash.live')} /></h2>
+            <small>{md ? (online.length ? t('dash.mining') : t('dash.idle')) : '\u00a0'}</small>
+          </div>
+        </div>
         <div className="topact">
+          <Link href="/wallet" className="bpill" style={wd && dd ? undefined : { visibility: 'hidden' }} onClick={() => markDrill()}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z" /></svg>
+            <span>
+              <b>${formatUsd(balUsd)}</b>
+              <small>{hasWeek && weekUsd > 0 ? `+$${formatUsd(weekUsd)} ${t('dash.thisWeek')}` : '\u00a0'}</small>
+            </span>
+          </Link>
           <Link
             href="/notifications"
             className="bell"
