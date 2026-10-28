@@ -373,3 +373,52 @@ test('a blocked account cannot sign in by email or Telegram, and can again once 
     else process.env.TELEGRAM_BOT_TOKEN = was;
   }
 });
+
+test('admin can set a new password, and set or remove the inviter', async () => {
+  const id = `pwd${run}@test.dev`;
+  const inv = `inv${run}@test.dev`;
+  const old = 'old password 1';
+  const next = 'new password 22';
+  assert.ok((await auth.signup({ email: id, password: old })).ok);
+  assert.ok((await auth.signup({ email: inv, password: old })).ok);
+  const own = (fn) => withUser(id, (u) => fn(u));
+  const pass = (extra) => act({ action: 'user', userId: id, op: 'set-password', ...extra });
+
+  // Password: too short, the demo account and a Telegram account are refused; a good one replaces the old and ends old sessions.
+  assert.equal((await pass({ password: 'short' })).status, 422);
+  assert.equal((await act({ action: 'user', userId: 'demo', op: 'set-password', password: next })).ok, false);
+  const tg = `tg:${8000000 + (Date.now() % 1000000)}`;
+  assert.ok(await tx((c) => createUser(c, tg, {})));
+  assert.equal((await act({ action: 'user', userId: tg, op: 'set-password', password: next })).status, 409);
+  const before = await own((u) => u.pwAt || 0);
+  assert.ok((await pass({ password: next })).ok);
+  assert.ok((await own((u) => u.pwAt || 0)) > before);
+  assert.equal((await auth.login({ email: id, password: old })).status, 401);
+  assert.equal((await auth.login({ email: id, password: next })).status, 200);
+  assert.ok(await own((u) => u.notifications.some((n) => n.title === 'Password changed')));
+  assert.equal(await logOf(next), 0, 'the password is never written to the audit log');
+
+  // Inviter: unknown, empty and itself are refused; a good one links both the document and the ref_by column.
+  const ref = (extra) => act({ action: 'user', userId: id, op: 'ref-set', ...extra });
+  const refBy = () => own((u) => u.refBy || null);
+  const column = async () => (await q('SELECT ref_by FROM users WHERE id = $1', [id])).rows[0].ref_by;
+  assert.equal((await ref({ inviter: `nobody${run}@test.dev` })).status, 404);
+  assert.equal((await ref({ inviter: id })).status, 409);
+  assert.equal((await ref({ inviter: '' })).status, 422);
+  assert.ok((await ref({ inviter: inv })).ok);
+  assert.equal(await refBy(), inv);
+  assert.equal(await column(), inv);
+  // The inviter cannot be linked under their own friend: that would be a circle.
+  assert.equal((await act({ action: 'user', userId: inv, op: 'ref-set', inviter: id })).status, 409);
+
+  // Remove, then link again by the inviter's invite code.
+  assert.ok((await act({ action: 'user', userId: id, op: 'ref-clear' })).ok);
+  assert.equal(await refBy(), null);
+  assert.equal(await column(), null);
+  assert.equal((await act({ action: 'user', userId: id, op: 'ref-clear' })).status, 409);
+  const code = await withUser(inv, (u) => u.refCode);
+  assert.ok(code);
+  assert.ok((await ref({ inviter: code.toLowerCase() })).ok);
+  assert.equal(await refBy(), inv);
+  assert.ok((await overview()).users.find((u) => u.id === id).hasPw);
+});
