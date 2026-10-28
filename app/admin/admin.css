@@ -105,6 +105,8 @@
 .adm-stack .fine { margin-bottom: 8px; }
 .adm-stack .adm-actions { margin-top: 10px; }
 .adm-stack .btn { min-height: 44px; }
+.adm-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 0 10px; }
+.adm-2col .field { min-width: 0; }
 
 /* Compact open user card: smaller tiles, tighter details, shorter buttons, less empty space */
 .adm-fb { padding: 0 12px 10px; }
