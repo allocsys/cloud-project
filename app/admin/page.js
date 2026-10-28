@@ -908,6 +908,7 @@ export default function Admin() {
   const [uhist, setUhist] = useState(null); // user whose activity rows are open
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
   const [umsg, setUmsg] = useState({ id: null, title: '', body: '' }); // message to one user being written
+  const [ugift, setUgift] = useState({ id: null, kind: 'miner', th: '5', days: '30', count: '1' }); // gift being set up
   // Downloads the users now shown (search and filter apply) as a CSV file. Text cells that start with = + - @ get a leading quote so a spreadsheet never runs them.
   const exportUsers = () => {
     const cell = (v) => {
@@ -1337,6 +1338,36 @@ export default function Admin() {
                       </div>
                     </div>
                   )}
+                  {ugift.id === u.id && (
+                    <div className="adm-form">
+                      <Pick id="ugk" label="Gift" value={ugift.kind} onChange={(v) => setUgift({ ...ugift, kind: v })}>
+                        <option value="miner">Free miner</option>
+                        <option value="tickets">Free boost tickets</option>
+                      </Pick>
+                      {ugift.kind === 'miner' ? (
+                        <>
+                          <Field id="ugt" label="Power (TH/s)" inputMode="decimal" value={ugift.th} onChange={(v) => setUgift({ ...ugift, th: v })} />
+                          <Field id="ugd" label="Days" inputMode="numeric" value={ugift.days} onChange={(v) => setUgift({ ...ugift, days: v })} />
+                        </>
+                      ) : (
+                        <Field id="ugc" label="Tickets (1 to 10)" inputMode="numeric" value={ugift.count} onChange={(v) => setUgift({ ...ugift, count: v })} />
+                      )}
+                      <div className="adm-actions">
+                        <button className="btn ghost" onClick={() => setUgift({ ...ugift, id: null })}>Cancel</button>
+                        <button
+                          className="btn"
+                          disabled={busy}
+                          onClick={async () => {
+                            const what = ugift.kind === 'miner' ? `a ${ugift.th} TH/s miner for ${ugift.days} days` : `${ugift.count} free boost ticket${ugift.count === '1' ? '' : 's'}`;
+                            if (!(await ask(`Give ${what} to ${u.id}?`, { ok: 'Give' }))) return;
+                            if (await run({ action: 'gift', userId: u.id, kind: ugift.kind, th: ugift.th, days: ugift.days, count: ugift.count }, (r) => (r.serial ? `Gift sent · ${r.serial}` : 'Gift sent'))) setUgift({ ...ugift, id: null });
+                          }}
+                        >
+                          Give
+                        </button>
+                      </div>
+                    </div>
+                  )}
                   {unote.id === u.id ? (
                     <div className="adm-form">
                       <Field id="unt" label="Private note (admin only)" maxLength={200} value={unote.text} onChange={(v) => setUnote({ ...unote, text: v })} />
@@ -1352,6 +1383,7 @@ export default function Admin() {
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUmsg({ id: u.id, title: '', body: '' })}>Message</button>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => setUgift({ ...ugift, id: u.id })}>Gift</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
