@@ -93,6 +93,19 @@
 .adm-ask-box .field { --fb: var(--s3); }
 .adm-ask .btn.danger { background: var(--red); color: var(--bg); }
 
+/* Compact forms everywhere in admin: shorter fields, tighter cards and notes */
+.adm-stack { gap: 10px; }
+.adm-stack .card { padding: 12px; }
+.adm-stack .card > h3 { margin: 0 0 6px; }
+.adm-stack .field { margin-top: 12px; }
+.adm-stack .field input { min-height: 44px; padding: 8px 12px; }
+.adm-stack .field label { top: 10px; }
+.adm-stack .field select { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
+.adm-stack .empty { margin: 0; padding-bottom: 0; }
+.adm-stack .fine { margin-bottom: 8px; }
+.adm-stack .adm-actions { margin-top: 10px; }
+.adm-stack .btn { min-height: 44px; }
+
 /* Compact open user card: smaller tiles, tighter details, shorter buttons, less empty space */
 .adm-fb { padding: 0 12px 10px; }
 .adm-fb .adm-tiles { gap: 6px; }
