@@ -427,6 +427,9 @@ input::placeholder { color: var(--ph); }
 .top.rich::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--bg); background: radial-gradient(90% 120% at 0% 0%, rgba(233, 196, 106, 0.13), transparent 70%), color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); -webkit-mask-image: radial-gradient(ellipse 50% 14px at 50% 100%, transparent 93%, #000 100%); mask-image: radial-gradient(ellipse 50% 14px at 50% 100%, transparent 93%, #000 100%); }
 .top.rich > * { position: relative; }
 .top.rich { min-height: calc(66px + env(safe-area-inset-top, 0px)); padding-bottom: 12px; margin-bottom: 4px; background: none; -webkit-backdrop-filter: none; backdrop-filter: none; box-shadow: none; }
+.top.rich .tl { margin: 0; gap: 12px; }
+.top.rich .back { width: 36px; height: 36px; border-radius: 11px; color: var(--gold); border: 1px solid rgba(233, 196, 106, 0.4); background: linear-gradient(145deg, rgba(233, 196, 106, 0.28), rgba(233, 196, 106, 0.06)); }
+.top.rich .back svg { width: 20px; height: 20px; }
 .top.rich::after { content: ''; position: absolute; left: 0; right: 0; bottom: 0; height: 14px; pointer-events: none; border-top: 1px solid rgba(233, 196, 106, 0.45); border-radius: 50% 50% 0 0 / 100% 100% 0 0; box-shadow: 0 -5px 14px -8px rgba(233, 196, 106, 0.35); }
 .eh-l { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .eh-logo { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 11px; color: var(--gold); border: 1px solid rgba(233, 196, 106, 0.4); background: linear-gradient(145deg, rgba(233, 196, 106, 0.28), rgba(233, 196, 106, 0.06)); }
