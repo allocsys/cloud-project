@@ -1312,17 +1312,21 @@ export default function Admin() {
               </button>
               {openU === u.id && (
               <div className="adm-fb">
-              <div className="row"><span className="mute">Available balance</span><b>{u.available.toFixed(8)} BTC</b></div>
-              <div className="row"><span className="mute">Withdrawn</span><b>{u.withdrawn.toFixed(5)} BTC</b></div>
-              <div className="row"><span className="mute">Balance changes by admin</span><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>
-              <div className="row"><span className="mute">Deposited</span><b>{u.deposited.toFixed(8)} BTC</b></div>
-              <div className="row"><span className="mute">Earned</span><b>{u.earned.toFixed(8)} BTC</b></div>
-              <div className="row"><span className="mute">Joined</span><b>{when(u.joined) || '-'}</b></div>
-              <div className="row"><span className="mute">Last sign-in</span><b>{when(u.lastIn) || '-'}</b></div>
-              <div className="row"><span className="mute">Invited by</span><b>{u.refBy || '-'}</b></div>
-              <div className="row"><span className="mute">Friends invited</span><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
-              <div className="row"><span className="mute">Boosts</span><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
-              <div className="row"><span className="mute">Open orders · withdrawals</span><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
+              <div className="adm-tiles">
+                <div><small>Balance</small><b>{u.available.toFixed(8)}<span>BTC</span></b></div>
+                <div><small>Earned</small><b>{u.earned.toFixed(8)}<span>BTC</span></b></div>
+                <div><small>Deposited</small><b>{u.deposited.toFixed(8)}<span>BTC</span></b></div>
+                <div><small>Withdrawn</small><b>{u.withdrawn.toFixed(5)}<span>BTC</span></b></div>
+              </div>
+              <div className="adm-kv">
+                <div><small>Joined</small><b>{when(u.joined) || '-'}</b></div>
+                <div><small>Last sign-in</small><b>{when(u.lastIn) || '-'}</b></div>
+                <div><small>Invited by</small><b>{u.refBy || '-'}</b></div>
+                <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
+                <div><small>Boosts</small><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
+                <div><small>Open orders · withdrawals</small><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
+                {u.adjust !== 0 && <div><small>Changed by admin</small><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>}
+              </div>
               {u.flags.length > 0 && <div className="row"><span className="mute">Flags</span><b style={{ color: 'var(--gold)', textAlign: 'right' }}>{u.flags.join(' · ')}</b></div>}
               {adj.id === u.id ? (
                 <div className="adm-form">
