@@ -1,4 +1,4 @@
-/* Admin screen only. Builds on the app's shared styles in app/globals.css. */
+/* Admin screen only (phone first). Builds on the app's shared styles in app/globals.css. */
 .adm-stack { display: grid; gap: 12px; }
 .adm-actions { display: flex; gap: 8px; margin-top: 12px; }
 .adm-actions .btn { flex: 1; }
