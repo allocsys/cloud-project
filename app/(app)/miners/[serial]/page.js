@@ -227,6 +227,7 @@ export default function ContractPage() {
                     <div className="row"><span className="mute">{t('min.hashPower')}</span><b className="v">{machine.rate.toLocaleString('en-US', { maximumFractionDigits: 1 })} {machine.unit}<small>{t('min.coinNow', { coin: machine.coin })}</small></b></div>
                     <div className="row"><span className="mute">{t('min.hall')}</span><b className="v">{machine.hall.name}<small>{machine.hall.place}</small></b></div>
                     <div className="row"><span className="mute">{t('min.rig')}</span><b className="v">{machine.hall.rig}<small>{machine.hall.power}</small></b></div>
+                    {machine.kwh > 0 && <div className="row"><span className="mute">{t('min.electricity')}</span><b className="v">{t('min.kwh', { p: machine.kwh.toFixed(2) })}</b></div>}
                   </>
                 )}
               </>
