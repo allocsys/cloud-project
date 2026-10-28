@@ -559,9 +559,11 @@ const GROUPS = [
 ];
 function Tabs({ items, value, onPick }) {
   const box = useRef(null);
+  const [menu, setMenu] = useState(false); // the five groups stay hidden until the menu button is tapped
   const info = Object.fromEntries(items.map(([k, l, n]) => [k, [l, n || 0]]));
   const group = GROUPS.find((g) => g[2].includes(value)) || GROUPS[0];
   const count = (g) => g[2].reduce((s, k) => s + (info[k]?.[1] || 0), 0);
+  const total = GROUPS.reduce((s, g) => s + count(g), 0);
   useEffect(() => {
     box.current?.querySelectorAll('.adm-tabs').forEach((b) => {
       const el = b.querySelector('[aria-pressed=true]');
@@ -570,14 +572,30 @@ function Tabs({ items, value, onPick }) {
   }, [value]);
   return (
     <div className="adm-nav" role="navigation" aria-label="Admin sections" ref={box}>
-      <div className="adm-tabs" role="group" aria-label="Groups">
-        {GROUPS.map((g) => (
-          <button key={g[0]} aria-pressed={group[0] === g[0]} onClick={() => onPick(g[2][0])}>
-            {g[1]}
-            {count(g) > 0 && <b>{count(g)}</b>}
-          </button>
-        ))}
+      <div className="adm-menu">
+        <button type="button" className="adm-menu-btn" aria-expanded={menu} aria-haspopup="true" onClick={() => setMenu((v) => !v)}>
+          <span>{group[1]}</span>
+          {!menu && total > 0 && <b>{total}</b>}
+          <i aria-hidden="true" />
+        </button>
       </div>
+      {menu && (
+        <div className="adm-tabs" role="group" aria-label="Groups">
+          {GROUPS.map((g) => (
+            <button
+              key={g[0]}
+              aria-pressed={group[0] === g[0]}
+              onClick={() => {
+                setMenu(false);
+                if (group[0] !== g[0]) onPick(g[2][0]);
+              }}
+            >
+              {g[1]}
+              {count(g) > 0 && <b>{count(g)}</b>}
+            </button>
+          ))}
+        </div>
+      )}
       {group[2].length > 1 && (
         <div className="adm-tabs adm-sub-tabs" role="group" aria-label={group[1]}>
           {group[2].map((k) => (
