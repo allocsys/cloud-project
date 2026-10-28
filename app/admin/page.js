@@ -114,12 +114,17 @@ function SmartCard({ smart, busy, run }) {
       <div className="row"><span className="mute">Selling</span><b>{set.enabled ? 'On' : 'Off'}</b></div>
       <Fold title="Pay table" sub="Net profit a day by budget">
       <span className="eyebrow adm-sub">Net profit a day at the reference market, 90 days (%)</span>
+      <div className="adm-3col">
       {SMART_BUDGETS.map((b, i) => (
         <Field key={b} id={`smr${i}`} label={`$${b.toLocaleString('en-US')}`} inputMode="decimal" value={d.rates[i]} onChange={(v) => setD({ ...d, rates: d.rates.map((x, j) => (j === i ? v : x)) })} />
       ))}
-      <Field id="smb1" label="Added on 120 days (% a day)" inputMode="decimal" value={d.b120} onChange={(v) => setD({ ...d, b120: v })} />
-      <Field id="smb2" label="Added on 150 days (% a day)" inputMode="decimal" value={d.b150} onChange={(v) => setD({ ...d, b150: v })} />
-      <Field id="smb3" label="Added on 180 days (% a day)" inputMode="decimal" value={d.b180} onChange={(v) => setD({ ...d, b180: v })} />
+      </div>
+      <span className="eyebrow adm-sub">Added a day on longer terms (%)</span>
+      <div className="adm-3col">
+      <Field id="smb1" label="120 days" inputMode="decimal" value={d.b120} onChange={(v) => setD({ ...d, b120: v })} />
+      <Field id="smb2" label="150 days" inputMode="decimal" value={d.b150} onChange={(v) => setD({ ...d, b150: v })} />
+      <Field id="smb3" label="180 days" inputMode="decimal" value={d.b180} onChange={(v) => setD({ ...d, b180: v })} />
+      </div>
       </Fold>
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save pay table</button>
@@ -192,9 +197,11 @@ function CoinRow({ c, busy, run }) {
       </div>
       {open && (
         <div className="adm-form">
-          <Field id={`rh${c.symbol}`} label={`Rig hashrate (${c.unit})`} inputMode="decimal" value={f.rigHash} onChange={(v) => setF({ ...f, rigHash: v })} />
-          <Field id={`rw${c.symbol}`} label="Rig power (watts)" inputMode="decimal" value={f.rigWatts} onChange={(v) => setF({ ...f, rigWatts: v })} />
-          <Field id={`rk${c.symbol}`} label="Electricity (USD per kWh)" inputMode="decimal" value={f.kwh} onChange={(v) => setF({ ...f, kwh: v })} />
+          <div className="adm-3col">
+          <Field id={`rh${c.symbol}`} label={`Hash ${c.unit}`} inputMode="decimal" value={f.rigHash} onChange={(v) => setF({ ...f, rigHash: v })} />
+          <Field id={`rw${c.symbol}`} label="Watts" inputMode="decimal" value={f.rigWatts} onChange={(v) => setF({ ...f, rigWatts: v })} />
+          <Field id={`rk${c.symbol}`} label="$ per kWh" inputMode="decimal" value={f.kwh} onChange={(v) => setF({ ...f, kwh: v })} />
+          </div>
           <div className="adm-actions">
             <button className="btn" disabled={busy} onClick={save}>Save rig</button>
           </div>
@@ -232,9 +239,12 @@ function GuardCard({ guard, busy, run }) {
         <option value="extend">Extends the term by a day</option>
         <option value="zero">Uses up a day and pays zero</option>
       </Pick>
-      <Field id="gpg" label="ASICs: profit margin to count a day (%, 0 = break even)" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
-      <Field id="gpb" label="Buffer to resume (%)" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
-      <Field id="gpf" label="Smart Mining: pause floor (best ratio, 0 = never pause)" inputMode="decimal" value={d.smartFloor} onChange={(v) => put('smartFloor', v)} />
+      <div className="adm-2col">
+      <Field id="gpg" label="ASIC margin %" inputMode="decimal" value={d.margin} onChange={(v) => put('margin', v)} />
+      <Field id="gpb" label="Resume buffer %" inputMode="decimal" value={d.buffer} onChange={(v) => put('buffer', v)} />
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>Margin: profit needed to count an ASIC day (0 = break even).</p>
+      <Field id="gpf" label="Smart pause floor (0 = never)" inputMode="decimal" value={d.smartFloor} onChange={(v) => put('smartFloor', v)} />
       <How><p className="fine">Once paused, a hall resumes only when its profit share is back above margin plus buffer. Smart Mining pauses for a day when the best coin's ratio is under the floor (1 = the anchor day, 0.5 = half of it) and resumes only above the floor plus the buffer as ratio points (2% = 0.02); it is the same for every plan, and days decided before this rule keep the old break-even rule. The paused-day setting applies to miners bought after saving; each miner keeps the one it was bought with. Changes apply to days not yet decided.</p></How>
       <div className="adm-actions">
         <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'guard-backtest', asicsAuto: d.asicsAuto, smartAuto: d.smartAuto, margin: d.margin, buffer: d.buffer, smartFloor: d.smartFloor }, (r) => { setTest(r); return 'Tested the last 30 days'; })}>Test last 30 days</button>
@@ -290,11 +300,14 @@ function FirstBonusCard({ fb, busy, run }) {
   return (
     <Fold title="First-buy bonus" sub={s.enabled ? `On · ${s.pct}%` : 'Off'}>
       <div className="row"><span className="mute">Bonus</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
-      <Field id="fbp" label="Bonus (% of the purchase)" inputMode="decimal" value={d.pct} onChange={(v) => setD({ ...d, pct: v })} />
-      <Field id="fbt" label="Max bonus for ASICs (TH/s)" inputMode="decimal" value={d.capTh} onChange={(v) => setD({ ...d, capTh: v })} />
-      <Field id="fbu" label="Max bonus for Smart Mining (USD of budget)" inputMode="decimal" value={d.capUsd} onChange={(v) => setD({ ...d, capUsd: v })} />
-      <Field id="fbm" label="Min purchase (USD)" inputMode="decimal" value={d.minUsd} onChange={(v) => setD({ ...d, minUsd: v })} />
-      <Field id="fbe" label="Last day, UTC (2026-12-31, empty = no end)" value={d.until} onChange={(v) => setD({ ...d, until: v })} />
+      <div className="adm-2col">
+      <Field id="fbp" label="Bonus %" inputMode="decimal" value={d.pct} onChange={(v) => setD({ ...d, pct: v })} />
+      <Field id="fbm" label="Min buy $" inputMode="decimal" value={d.minUsd} onChange={(v) => setD({ ...d, minUsd: v })} />
+      <Field id="fbt" label="Max ASIC TH/s" inputMode="decimal" value={d.capTh} onChange={(v) => setD({ ...d, capTh: v })} />
+      <Field id="fbu" label="Max Smart $" inputMode="decimal" value={d.capUsd} onChange={(v) => setD({ ...d, capUsd: v })} />
+      </div>
+      <Field id="fbe" label="Last day (empty = no end)" value={d.until} onChange={(v) => setD({ ...d, until: v })} />
+      <p className="fine" style={{ margin: '8px 0 0' }}>Bonus % is of the purchase. Max Smart $ is in USD of budget. Last day is UTC, like 2026-12-31.</p>
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={() => run({ action: 'firstbonus-settings', ...d }, 'First-buy bonus saved')}>Save</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'firstbonus-settings', enabled: !s.enabled }, s.enabled ? 'First-buy bonus is off' : 'First-buy bonus is on')}>
@@ -347,8 +360,10 @@ function BoostCard({ bs, busy, run }) {
               </div>
               <b style={m !== null && m < 0 ? { color: 'var(--red)' } : undefined}>{m === null ? '—' : `Margin ${marginText(m)}`}</b>
             </div>
-            <Field id={`bc${t.id}`} label={`Real chance (%) for the $${t.price} ticket`} inputMode="decimal" value={d.chance[t.id]} onChange={(v) => type('chance', t.id, v)} />
-            <Field id={`bs${t.id}`} label={`Shown chance (%) for the $${t.price} ticket, empty = same`} inputMode="decimal" value={d.shown[t.id]} onChange={(v) => type('shown', t.id, v)} />
+            <div className="adm-2col">
+            <Field id={`bc${t.id}`} label="Real chance %" inputMode="decimal" value={d.chance[t.id]} onChange={(v) => type('chance', t.id, v)} />
+            <Field id={`bs${t.id}`} label="Shown chance %" inputMode="decimal" value={d.shown[t.id]} onChange={(v) => type('shown', t.id, v)} />
+            </div>
             {m !== null && m < 0 && <p className="fine" style={{ margin: '4px 0 0', color: 'var(--red)' }}>At this chance the ${t.price} ticket loses money (each one costs more than it brings in).</p>}
           </div>
         );
@@ -429,8 +444,10 @@ function HallForm({ draft, set, busy, isNew, canDelete, onSave, onCancel, onDele
       <Field id="hn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={40} />
       <Field id="hp" label="Location" value={draft.place} onChange={(v) => set('place', v)} maxLength={40} />
       <Field id="hw" label="Power source" value={draft.power} onChange={(v) => set('power', v)} maxLength={60} />
-      <Field id="he" label="Efficiency (e.g. 17.5 J/TH)" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />
+      <div className="adm-2col">
+      <Field id="he" label="Efficiency J/TH" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />
       <Field id="hr" label="Rig model" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
+      </div>
       <Field id="hx" label="Net rate (USD per TH/s per day)" inputMode="decimal" value={draft.net} onChange={(v) => set('net', v)} />
       <p className="fine" style={{ margin: '12px 0 0' }}>
         {isNew ? 'The new hall can host miners, but ASICs power is priced from the three core halls.' : 'Changing the rate updates the daily payout of every miner in this hall and the price of new ASICs power sold from it.'}
@@ -468,8 +485,10 @@ function SmartHallForm({ draft, set, busy, asic, onSave, onCancel }) {
       <Field id="shn" label="Name" value={draft.name} onChange={(v) => set('name', v)} maxLength={40} />
       <Field id="shp" label="Location" value={draft.place} onChange={(v) => set('place', v)} maxLength={40} />
       <Field id="shw" label="Power source" value={draft.power} onChange={(v) => set('power', v)} maxLength={60} />
-      {asic && <Field id="she" label="Efficiency (e.g. 12.0 J/TH)" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />}
+      <div className="adm-2col">
+      {asic && <Field id="she" label="Efficiency J/TH" value={draft.efficiency} onChange={(v) => set('efficiency', v)} maxLength={20} />}
       <Field id="shr" label="Rig" value={draft.rig} onChange={(v) => set('rig', v)} maxLength={40} />
+      </div>
       <p className="fine" style={{ margin: '12px 0 0' }}>Shown on the Smart Mining miner page. It does not change what a miner earns.</p>
       <div className="adm-actions">
         <button className="btn ghost" onClick={onCancel}>Cancel</button>
@@ -1370,14 +1389,16 @@ export default function Admin() {
               {u.flags.length > 0 && <div className="row"><span className="mute">Flags</span><b style={{ color: 'var(--gold)', textAlign: 'right' }}>{u.flags.join(' · ')}</b></div>}
               {adj.id === u.id ? (
                 <div className="adm-form">
+                  <div className="adm-2col">
                   <Pick id="ajo" label="Change" value={adj.op} onChange={(v) => setAdj({ ...adj, op: v })}>
-                    <option value="add">Add to balance</option>
-                    <option value="subtract">Take from balance</option>
+                    <option value="add">Add</option>
+                    <option value="subtract">Take</option>
                   </Pick>
                   <Pick id="ajc" label="Amount in" value={adj.cur} onChange={(v) => setAdj({ ...adj, cur: v, amount: '' })}>
                     <option value="btc">BTC</option>
                     <option value="usd">USD</option>
                   </Pick>
+                  </div>
                   <Field id="aja" label={`Amount (${adj.cur === 'usd' ? 'USD' : 'BTC'})`} inputMode="decimal" value={adj.amount} onChange={(v) => setAdj({ ...adj, amount: v })} />
                   <Field id="ajn" label="Note for the record" value={adj.note} maxLength={80} onChange={(v) => setAdj({ ...adj, note: v })} />
                   <p className="fine" style={{ margin: '12px 0 0' }}>The user sees the change in their activity. To undo it, make the opposite change. Up to 10 BTC at a time.</p>
@@ -1445,8 +1466,10 @@ export default function Admin() {
                       </Pick>
                       {ugift.kind === 'miner' ? (
                         <>
+                          <div className="adm-2col">
                           <Field id="ugt" label="Power (TH/s)" inputMode="decimal" value={ugift.th} onChange={(v) => setUgift({ ...ugift, th: v })} />
                           <Field id="ugd" label="Days" inputMode="numeric" value={ugift.days} onChange={(v) => setUgift({ ...ugift, days: v })} />
+                          </div>
                         </>
                       ) : (
                         <Field id="ugc" label="Tickets (1 to 10)" inputMode="numeric" value={ugift.count} onChange={(v) => setUgift({ ...ugift, count: v })} />
