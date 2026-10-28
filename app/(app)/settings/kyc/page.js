@@ -171,7 +171,7 @@ export default function Kyc() {
 
   return (
     <>
-      <div className="top">
+      <div className="top rich">
         <div className="tl">
           <Link
             href="/settings"
