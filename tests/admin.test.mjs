@@ -7,6 +7,7 @@ const { migrate } = await import('@/lib/server/migrate');
 const { act, overview } = await import('@/lib/server/admin');
 const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
+const auth = await import('@/lib/server/auth');
 
 const run = `a${Date.now().toString(36)}`;
 const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
@@ -205,4 +206,52 @@ test('balance changes can be typed in USD, converted at the live rate and logged
 
   // The screen gets the rate it previews with.
   assert.equal((await overview()).rate.btc, rate);
+});
+
+test('admin can block, unblock, note, sign out, reset 2FA and verify one account', async () => {
+  const id = `usr${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, {})));
+  const req = (t) => ({ cookies: { get: (name) => (name === auth.COOKIE && t ? { value: t } : undefined) } });
+  const op = (o, extra = {}) => act({ action: 'user', userId: id, op: o, ...extra });
+  const row = async () => (await overview()).users.find((u) => u.id === id);
+
+  // Bad input and the demo account are refused.
+  assert.equal((await op('explode')).status, 400);
+  assert.equal((await act({ action: 'user', userId: 'demo', op: 'block' })).status, 409);
+  assert.equal((await act({ action: 'user', userId: `nobody-${run}@test.dev`, op: 'block' })).status, 404);
+
+  // Block: the session stops working at once, unblock brings it back.
+  const token = await auth.newSession(id);
+  assert.equal(await auth.userId(req(token)), id);
+  assert.ok((await op('block')).ok);
+  assert.ok((await row()).blocked);
+  assert.notEqual(await auth.userId(req(token)), id);
+  assert.ok((await op('unblock')).ok);
+  assert.equal((await row()).blocked, null);
+  assert.equal(await auth.userId(req(token)), id);
+
+  // Sign out everywhere: the old session no longer matches.
+  assert.ok((await op('reset-sessions')).ok);
+  assert.notEqual(await auth.userId(req(token)), id);
+  assert.equal(await auth.userId(req(await auth.newSession(id))), id);
+
+  // Note: saved, trimmed to 200, cleared by an empty note.
+  assert.ok((await op('note', { note: 'x'.repeat(300) })).ok);
+  assert.equal((await row()).note.length, 200);
+  assert.ok((await op('note', { note: '' })).ok);
+  assert.equal((await row()).note, '');
+
+  // Two-factor reset needs it to be on.
+  assert.equal((await op('reset-2fa')).status, 409);
+  await withUser(id, (u) => { u.twofa = { secret: 'x' }; });
+  assert.equal((await row()).twofa, true);
+  assert.ok((await op('reset-2fa')).ok);
+  assert.equal((await row()).twofa, false);
+
+  // Verify and unverify.
+  assert.ok((await op('verify')).ok);
+  assert.equal((await row()).kyc.status, 'verified');
+  assert.ok((await op('unverify')).ok);
+  assert.equal((await row()).kyc.status, 'none');
+  assert.ok((await logOf(id)) >= 8);
 });
