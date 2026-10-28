@@ -904,6 +904,8 @@ export default function Admin() {
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [uq, setUq] = useState(''); // user search text
   const [usort, setUsort] = useState('new'); // user list order
+  const [ufil, setUfil] = useState('all'); // user list filter
+  const [uhist, setUhist] = useState(null); // user whose activity rows are open
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
   const [openU, setOpenU] = useState(null); // the user card that is open
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
@@ -1019,7 +1021,8 @@ export default function Admin() {
   const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
   const kycRank = (u) => (u.kyc.status === 'pending' ? 2 : u.kyc.status === 'verified' ? 1 : 0);
   const USORT = { new: (a, b) => (b.joined || 0) - (a.joined || 0), bal: (a, b) => b.available - a.available, miners: (a, b) => b.miners.length - a.miners.length, seen: (a, b) => (b.lastIn || 0) - (a.lastIn || 0), kyc: (a, b) => kycRank(b) - kycRank(a) };
-  const shownUsers = [...found].sort(USORT[usort] || USORT.new);
+  const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0 };
+  const shownUsers = [...found].filter(UFIL[ufil] || UFIL.all).sort(USORT[usort] || USORT.new);
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
   const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
   const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
@@ -1207,6 +1210,11 @@ export default function Admin() {
             <input id="usq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={uq} onChange={(e) => setUq(e.target.value)} />
             <label htmlFor="usq">Search users</label>
           </div>
+          <div className="minitabs adm-filter" role="group" aria-label="Filter users">
+            {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals']].map(([k, t]) => (
+              <button key={k} aria-pressed={ufil === k} onClick={() => setUfil(k)}>{t}</button>
+            ))}
+          </div>
           <div className="minitabs adm-filter" role="group" aria-label="Sort users">
             {[['new', 'New'], ['bal', 'Balance'], ['miners', 'Miners'], ['seen', 'Seen'], ['kyc', 'KYC']].map(([k, t]) => (
               <button key={k} aria-pressed={usort === k} onClick={() => setUsort(k)}>{t}</button>
@@ -1219,7 +1227,7 @@ export default function Admin() {
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
                   {u.tg && <small>{u.id}</small>}
-                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}</small>
+                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}</small>
                 </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
                 <i aria-hidden="true" />
@@ -1279,9 +1287,21 @@ export default function Admin() {
 
               {u.id !== 'demo' && (
                 <>
+                  <span className="eyebrow adm-sub">Activity</span>
+                  <div className="adm-actions">
+                    <button className="swap" style={SM} onClick={() => setUhist(uhist === u.id ? null : u.id)}>{uhist === u.id ? 'Hide history' : `Show history · ${u.history.length}`}</button>
+                  </div>
+                  {uhist === u.id && u.history.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
+                  {uhist === u.id && u.history.map((h, i) => (
+                    <div className="row adm-m" key={`${h.at}-${i}`}>
+                      <div>{h.label || h.kind}<small>{when(h.at) || h.date}{h.status ? ` · ${h.status}` : ''}</small></div>
+                      <b>{h.amount ? `${h.amount} ${h.coin}` : ''}</b>
+                    </div>
+                  ))}
                   <span className="eyebrow adm-sub">Account</span>
                   <div className="row"><span className="mute">Status</span><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
                   <div className="row"><span className="mute">Two-factor</span><b>{u.twofa ? 'On' : 'Off'}</b></div>
+                  <div className="row"><span className="mute">Withdrawals</span><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
                   {unote.id === u.id ? (
                     <div className="adm-form">
                       <Field id="unt" label="Private note (admin only)" maxLength={200} value={unote.text} onChange={(v) => setUnote({ ...unote, text: v })} />
@@ -1294,6 +1314,7 @@ export default function Admin() {
                     <>
                       {u.note && <div className="row"><span className="mute">Note</span><b style={{ wordBreak: 'break-word', textAlign: 'right' }}>{u.note}</b></div>}
                       <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
