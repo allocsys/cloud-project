@@ -400,7 +400,7 @@ export default function Wallet() {
   return (
     <>
       <style>{WALLET_CSS}</style>
-      <PageHead title={t('nav.wallet')} />
+      <PageHead title={t('nav.wallet')} icon="wallet" />
       <div className="grid">
         <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
           <i className="wshine" aria-hidden="true" />
