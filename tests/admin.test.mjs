@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, tx, createUser } = await import('@/lib/server/db');
+const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { act, overview } = await import('@/lib/server/admin');
 const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
@@ -243,7 +243,7 @@ test('admin can block, unblock, note, sign out, reset 2FA and verify one account
 
   // Two-factor reset needs it to be on.
   assert.equal((await op('reset-2fa')).status, 409);
-  await withUser(id, (u) => { u.twofa = { secret: 'x' }; });
+  await withUser(id, (u) => { u.twofa = { secret: 'x' }; return true; });
   assert.equal((await row()).twofa, true);
   assert.ok((await op('reset-2fa')).ok);
   assert.equal((await row()).twofa, false);
