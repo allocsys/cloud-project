@@ -1,11 +1,9 @@
-import { getLang, getT } from '@/lib/i18n/server';
-import { langAlternates } from '@/lib/seo';
+import { getT } from '@/lib/i18n/server';
 
-// The Terms page is a client component, so its title and language links are set here.
+// The Terms page is a client component, so its title is set here.
 export async function generateMetadata() {
   const t = await getT();
-  const lang = await getLang();
-  return { title: t('terms.title'), alternates: langAlternates('/terms', lang) };
+  return { title: t('terms.title') };
 }
 
 export default function TermsLayout({ children }) {
