@@ -8,7 +8,9 @@ import { SERVICE_TIERS } from '../lib/service-fee.js';
 import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '../lib/data.js';
 import { UP_RATIO } from '../lib/telemetry.js';
 import { SMART, smartEstimate, smartPlan, smartBand } from '../lib/smart.js';
-import { faqAnswer } from '../lib/faq.js';
+import { faqAnswer, faqVars } from '../lib/faq.js';
+import { BOOST } from '../lib/boost.js';
+import { translateError } from '../lib/i18n/errors.js';
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);
@@ -86,4 +88,42 @@ test('the Plans card and the calculator agree on profit, total and daily figure'
     }
   }
   assert.equal(smartBand({ budget: 100, days: 90 }), null); // a plan without a reserve has no range
+});
+
+test('the FAQ carries the deposit hold, the payout hours and the boost hours from the code', () => {
+  assert.ok(faqAnswer('deposit').includes(`withdrawn after ${R.DEPOSIT_HOLD_DAYS} days`));
+  assert.ok(faqAnswer('withdraw_time').includes(`paid within ${R.PAYOUT_HOURS} hours`));
+  assert.ok(faqAnswer('boost').includes(`for ${BOOST.hours} hours`));
+  assert.ok(faqAnswer('boost').includes(`When the ${BOOST.hours} hours end`));
+  assert.deepEqual(faqVars('deposit'), { days: R.DEPOSIT_HOLD_DAYS });
+  assert.equal(faqVars('withdraw_time').h, R.PAYOUT_HOURS);
+  assert.deepEqual(faqVars('boost'), { h: BOOST.hours });
+});
+
+test('no typed copy of the deposit hold, the payout hours or the boost hours is left in the texts', () => {
+  const faq = read('lib/faq.js');
+  const wallet = read('lib/server/wallet.js');
+  const en = read('lib/i18n/locales/en.js');
+  const fa = read('lib/i18n/locales/fa.js');
+  const faFaq = read('lib/i18n/faq-fa.js');
+  const terms = read('app/terms/page.js');
+  assert.ok(!/14 days|24 hours|for 2 hours|the 2 hours/.test(faq));
+  assert.ok(!wallet.includes('after 14 days'));
+  assert.ok(en.includes('runs for {hours} hours'));
+  assert.ok(en.includes("'wal.errHold': 'Without a plan, deposits can be withdrawn after {days} days.'"));
+  assert.ok(fa.includes('که {hours} ساعت'));
+  assert.ok(fa.includes('پس از {days} روز قابل برداشت'));
+  assert.ok(faFaq.includes('پس از {days} روز'));
+  assert.ok(faFaq.includes('ظرف {h} ساعت پرداخت'));
+  assert.ok(faFaq.includes('مدت {h} ساعت'));
+  assert.ok(!/ 24 ساعت|پس از 14 روز|مدت 2 ساعت/.test(faFaq));
+  assert.ok(terms.includes('hours: BOOST.hours'));
+});
+
+test('the deposit hold error is translated with the number from rules', () => {
+  const msg = `Without a plan, deposits can be withdrawn after ${R.DEPOSIT_HOLD_DAYS} days.`;
+  const fa = translateError('fa', msg);
+  assert.ok(fa.includes(String(R.DEPOSIT_HOLD_DAYS)));
+  assert.ok(!fa.includes('{') && !fa.includes('Without a plan'));
+  assert.equal(translateError('en', msg), msg);
 });
