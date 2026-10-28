@@ -904,6 +904,7 @@ export default function Admin() {
   const [adj, setAdj] = useState(ADJ0); // balance change form (one user at a time)
   const [uq, setUq] = useState(''); // user search text
   const [usort, setUsort] = useState('new'); // user list order
+  const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
   const [openU, setOpenU] = useState(null); // the user card that is open
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
   const [toast, show] = useToast();
@@ -1218,7 +1219,7 @@ export default function Admin() {
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
                   {u.tg && <small>{u.id}</small>}
-                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}</small>
+                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}</small>
                 </span>
                 <Pill tone={u.kyc.status === 'verified' ? 'ok' : u.kyc.status === 'pending' ? 'warn' : ''}>{KYC[u.kyc.status] || u.kyc.status}</Pill>
                 <i aria-hidden="true" />
@@ -1274,6 +1275,34 @@ export default function Admin() {
                 <div className="adm-actions">
                   <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ ...ADJ0, id: u.id })}>Change balance</button>
                 </div>
+              )}
+
+              {u.id !== 'demo' && (
+                <>
+                  <span className="eyebrow adm-sub">Account</span>
+                  <div className="row"><span className="mute">Status</span><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
+                  <div className="row"><span className="mute">Two-factor</span><b>{u.twofa ? 'On' : 'Off'}</b></div>
+                  {unote.id === u.id ? (
+                    <div className="adm-form">
+                      <Field id="unt" label="Private note (admin only)" maxLength={200} value={unote.text} onChange={(v) => setUnote({ ...unote, text: v })} />
+                      <div className="adm-actions">
+                        <button className="btn ghost" onClick={() => setUnote({ id: null, text: '' })}>Cancel</button>
+                        <button className="btn" disabled={busy} onClick={async () => { if (await run({ action: 'user', userId: u.id, op: 'note', note: unote.text }, 'Note saved')) setUnote({ id: null, text: '' }); }}>Save</button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {u.note && <div className="row"><span className="mute">Note</span><b style={{ wordBreak: 'break-word', textAlign: 'right' }}>{u.note}</b></div>}
+                      <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
+                        {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
+                        <button className={`swap${u.blocked ? '' : ' danger'}`} style={SM} disabled={busy} onClick={() => ask(u.blocked ? `Unblock ${u.id}?` : `Block ${u.id}? They are signed out and cannot sign in.`, { ok: u.blocked ? 'Unblock' : 'Block', danger: !u.blocked }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.blocked ? 'unblock' : 'block' }, u.blocked ? 'Unblocked' : 'Blocked'))}>{u.blocked ? 'Unblock' : 'Block'}</button>
+                      </div>
+                    </>
+                  )}
+                </>
               )}
 
               {u.kyc.status === 'pending' && (
