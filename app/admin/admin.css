@@ -92,3 +92,21 @@
 .adm-ask-box p { margin: 0; font-size: 15px; line-height: 22px; overflow-wrap: anywhere; }
 .adm-ask-box .field { --fb: var(--s3); }
 .adm-ask .btn.danger { background: var(--red); color: var(--bg); }
+
+/* Compact open user card: smaller tiles, tighter details, shorter buttons, less empty space */
+.adm-fb { padding: 0 12px 10px; }
+.adm-fb .adm-tiles { gap: 6px; }
+.adm-fb .adm-tiles > div { padding: 6px 10px; border-radius: 10px; }
+.adm-fb .adm-tiles small, .adm-fb .adm-kv small { font-size: 11px; line-height: 14px; }
+.adm-fb .adm-tiles b { font-size: 14px; line-height: 19px; }
+.adm-fb .adm-kv { gap: 6px 12px; margin-top: 8px; padding: 8px 2px 0; }
+.adm-fb .adm-kv b { font-size: 12.5px; line-height: 16px; }
+.adm-fb .adm-sub { margin-top: 10px; }
+.adm-fb .adm-actions { margin-top: 8px; gap: 6px; }
+.adm-fb .adm-actions .swap { min-height: 34px !important; font-size: 13px; }
+.adm-fb .adm-grid { gap: 6px; margin-top: 6px; }
+.adm-fb .adm-grid .swap { min-height: 34px; font-size: 12.5px; line-height: 15px; border-radius: 10px; }
+.adm-fb .adm-miner { margin-top: 8px; padding: 8px 10px; border-radius: 12px; }
+.adm-fb .adm-miner .adm-grid { margin-top: 8px; }
+.adm-fb .adm-form { padding-bottom: 4px; }
+.adm-fb .row { min-height: 0; padding-top: 6px; padding-bottom: 6px; }
