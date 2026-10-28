@@ -101,6 +101,16 @@
 .adm-stack .field input { min-height: 44px; padding: 8px 12px; }
 .adm-stack .field label { top: 10px; }
 .adm-stack .field select ~ label, .adm-stack .field input[type=date] ~ label { top: -9px; }
+
+/* Buttons: tabs and chips stretch to fill each row evenly, chips are smaller, tool buttons are outlined, every button gives press feedback */
+.adm-tabs { gap: 5px; }
+.adm-tabs button { flex: 1 1 auto; justify-content: center; min-height: 38px; padding: 0 8px; font-size: 12.5px; }
+.minitabs.adm-filter { gap: 5px; }
+.minitabs.adm-filter button { flex: 1 1 auto; min-height: 34px; padding: 0 8px; font-size: 12.5px; }
+.adm-btns { gap: 6px; }
+.adm-tool .swap { border: 1px solid var(--outline); border-radius: 12px; font-size: 13px; }
+.adm-grid .swap, .adm-tool .swap, .adm-actions .swap { transition: background 0.2s; }
+.adm-grid .swap:active, .adm-tool .swap:active, .adm-actions .swap:active { background: var(--ov); }
 .adm-stack .field select { min-height: 44px; padding-top: 8px; padding-bottom: 8px; }
 .adm-stack .empty { margin: 0; padding-bottom: 0; }
 .adm-stack .fine { margin-bottom: 8px; }
