@@ -58,6 +58,15 @@
 .adm-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-top: 10px; }
 .adm-grid .swap { width: 100% !important; min-height: 40px; padding: 0 6px !important; justify-content: center; text-align: center; font-size: 13px; border: 1px solid var(--outline); border-radius: 12px; }
 .adm-grid .swap.danger { border-color: rgba(242, 164, 156, 0.35); }
+.adm-miner { margin-top: 10px; padding: 12px; border-radius: 14px; background: var(--s3); }
+.adm-mh { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.adm-mn { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; line-height: 22px; font-weight: 500; }
+.adm-mh b { flex: none; font-size: 15px; font-weight: 500; }
+.adm-mh b span { margin-left: 2px; font-size: 11px; font-weight: 400; color: var(--mute); }
+.adm-miner > small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+.adm-bar { height: 4px; margin-top: 8px; border-radius: 2px; background: var(--line); overflow: hidden; }
+.adm-bar i { display: block; height: 100%; border-radius: 2px; background: var(--gold); }
+.adm-miner .adm-grid { margin-top: 12px; }
 .adm-note { margin: 12px 0 0; padding: 10px 12px; border-radius: 12px; background: var(--s3); font-size: 13px; line-height: 18px; overflow-wrap: anywhere; }
 .adm-note small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
 
