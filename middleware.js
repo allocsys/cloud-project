@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, stripLang } from './lib/i18n/codes';
+import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, stripLang } from '@/lib/i18n/codes';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
 
