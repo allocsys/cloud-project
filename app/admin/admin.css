@@ -17,9 +17,9 @@
 
 /* Section tabs: one scrolling row of pills under the title; the open one slides to the middle. */
 .adm-nav { position: sticky; top: calc(52px + env(safe-area-inset-top, 0px)); z-index: 4; margin: 0 -16px 12px; background: var(--bg); }
-.adm-tabs { display: flex; gap: 8px; margin: 0; padding: 4px 16px 6px; overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none; background: var(--bg); }
+.adm-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin: 0; padding: 4px 16px 6px; background: var(--bg); }
 .adm-tabs::-webkit-scrollbar { display: none; }
-.adm-tabs button { position: relative; overflow: hidden; flex: none; scroll-snap-align: center; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--outline); border-radius: 18px; background: none; color: var(--text); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.2s; }
+.adm-tabs button { position: relative; overflow: hidden; flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 12px; border: 1px solid var(--outline); border-radius: 18px; background: none; color: var(--text); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; transition: background 0.2s; }
 .adm-tabs button:active { background: var(--ov); }
 .adm-tabs button[aria-pressed=true] { background: var(--gold-c); border-color: transparent; color: var(--on-gold-c); }
 .adm-tabs b { min-width: 18px; padding: 0 5px; border-radius: 9px; background: var(--gold); color: var(--on-gold); font-size: 11px; line-height: 18px; font-weight: 600; text-align: center; }
@@ -45,7 +45,11 @@
 .adm-fh i { flex: none; width: 8px; height: 8px; margin: 0 4px 2px 0; border-right: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(45deg); transition: transform 0.2s; }
 .adm-fold[data-open=true] .adm-fh i { transform: translateY(3px) rotate(-135deg); }
 .adm-fb { padding: 0 14px 14px; }
-.adm-filter { justify-self: start; }
+.minitabs.adm-filter { display: flex; flex-wrap: wrap; gap: 6px; width: 100%; border: 0; border-radius: 0; background: none; overflow: visible; }
+.minitabs.adm-filter button { flex: none; min-height: 36px; padding: 0 12px; border: 1px solid var(--outline); border-radius: 18px; font-size: 13px; }
+.minitabs.adm-filter button[aria-pressed=true] { background: var(--gold-c); border-color: transparent; color: var(--on-gold-c); }
+.adm-tool { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
+.card.adm-fold::before { display: none; }
 
 /* User card: money tiles, small details grid, grouped action buttons */
 .adm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
