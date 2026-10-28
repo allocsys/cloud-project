@@ -107,6 +107,31 @@ test('a double tap with the same key buys once', async () => {
   assert.equal((await ledgerRows(id, 'spend')).length, 1);
 });
 
+test('a held free ticket starts a boost once: balance and running limit untouched, refused when none is left', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('free');
+  assert.equal((await boost.buyBoost({ free: true }, { userId: id })).status, 409, 'none held');
+  await withUser(id, (u) => {
+    u.freeTickets = 2;
+  });
+  assert.equal((await boost.getBoosts(id)).free, 2);
+  const had = await balance(id);
+  const r = await boost.buyBoost({ free: true, ticket: 't100' }, { userId: id });
+  assert.equal(r.ok, true);
+  assert.equal(r.boost.price, 1, 'always the $1 ticket');
+  assert.equal(r.boost.gift, true);
+  assert.equal(r.spentBtc, 0);
+  assert.equal(await balance(id), had);
+  assert.equal((await ledgerRows(id, 'spend')).length, 0);
+  const v = await boost.getBoosts(id);
+  assert.equal(v.free, 1);
+  assert.equal(v.running.length, 1);
+  assert.equal(v.tickets.find((t) => t.id === 't1').active, 0, 'a free boost never uses the running limit');
+  assert.equal((await boost.buyBoost({ free: true }, { userId: id })).ok, true);
+  assert.equal((await boost.buyBoost({ free: true }, { userId: id })).status, 409, 'used up');
+  assert.equal((await boost.getBoosts(id)).free, 0);
+});
+
 test('a lost draw pays the boost only; the result shows once it ended and settles once', async () => {
   assert.equal((await chances({ chance: { t1: 0 } })).ok, true);
   const id = await account('lose');
