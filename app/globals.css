@@ -424,6 +424,17 @@ input::placeholder { color: var(--ph); }
 
 /* Top bar actions and notifications */
 .topact { display: flex; align-items: center; gap: 8px; }
+.top.rich::before { content: ''; position: absolute; inset: 0; background: linear-gradient(90deg, rgba(233, 196, 106, 0.12), transparent 65%); pointer-events: none; }
+.top.rich > * { position: relative; }
+.tl { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.brand { width: 34px; height: 30px; flex: none; display: grid; place-items: center; color: var(--gold); }
+.brand svg { width: 34px; height: 28px; }
+.ttl { min-width: 0; padding-inline-start: 10px; border-inline-start: 1px solid var(--line); }
+.ttl small { display: block; min-height: 16px; font-size: 12px; line-height: 16px; color: var(--mute); }
+.bpill { display: flex; align-items: center; gap: 6px; min-width: 0; padding: 4px 12px 4px 8px; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--text); text-decoration: none; }
+.bpill svg { width: 16px; height: 16px; flex: none; fill: var(--gold); }
+.bpill b { display: block; font-size: 14px; line-height: 18px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.bpill small { display: block; min-height: 14px; font-size: 11px; line-height: 14px; color: var(--green); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .bell { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--text); }
 .bell svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .bell i { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); box-sizing: content-box; margin: -2px -2px 0 0; }
