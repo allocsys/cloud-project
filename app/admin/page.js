@@ -907,6 +907,26 @@ export default function Admin() {
   const [ufil, setUfil] = useState('all'); // user list filter
   const [uhist, setUhist] = useState(null); // user whose activity rows are open
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
+  const [umsg, setUmsg] = useState({ id: null, title: '', body: '' }); // message to one user being written
+  // Downloads the users now shown (search and filter apply) as a CSV file. Text cells that start with = + - @ get a leading quote so a spreadsheet never runs them.
+  const exportUsers = () => {
+    const cell = (v) => {
+      let s = v == null ? '' : String(v);
+      if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
+      return `"${s.replace(/"/g, '""')}"`;
+    };
+    const iso = (t) => (t ? new Date(t).toISOString() : '');
+    const head = ['id', 'telegram', 'joined', 'last sign-in', 'available BTC', 'deposited BTC', 'earned BTC', 'withdrawn BTC', 'miners', 'KYC', 'blocked', 'withdrawals paused', 'invited by', 'friends invited'];
+    const rows = shownUsers.map((u) => [u.id, u.tg || '', iso(u.joined), iso(u.lastIn), u.available.toFixed(8), u.deposited.toFixed(8), u.earned.toFixed(8), u.withdrawn.toFixed(8), u.miners.length, u.kyc.status, u.blocked ? iso(u.blocked) : '', u.frozen ? iso(u.frozen) : '', u.refBy || '', u.invited]);
+    const blob = new Blob([[head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = `users-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  };
   const [openU, setOpenU] = useState(null); // the user card that is open
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
   const [toast, show] = useToast();
@@ -1220,6 +1240,11 @@ export default function Admin() {
               <button key={k} aria-pressed={usort === k} onClick={() => setUsort(k)}>{t}</button>
             ))}
           </div>
+          {shownUsers.length > 0 && (
+            <div className="adm-actions" style={{ marginTop: 0 }}>
+              <button className="swap" style={SM} onClick={exportUsers}>Export CSV · {shownUsers.length}</button>
+            </div>
+          )}
           {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
           {shownUsers.map((u) => (
             <div className="card adm-fold" data-open={openU === u.id} key={u.id}>
@@ -1302,6 +1327,16 @@ export default function Admin() {
                   <div className="row"><span className="mute">Status</span><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
                   <div className="row"><span className="mute">Two-factor</span><b>{u.twofa ? 'On' : 'Off'}</b></div>
                   <div className="row"><span className="mute">Withdrawals</span><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
+                  {umsg.id === u.id && (
+                    <div className="adm-form">
+                      <Field id="umt" label="Title" maxLength={80} value={umsg.title} onChange={(v) => setUmsg({ ...umsg, title: v })} />
+                      <Field id="umb" label="Message" maxLength={240} value={umsg.body} onChange={(v) => setUmsg({ ...umsg, body: v })} />
+                      <div className="adm-actions">
+                        <button className="btn ghost" onClick={() => setUmsg({ id: null, title: '', body: '' })}>Cancel</button>
+                        <button className="btn" disabled={busy || !umsg.title.trim()} onClick={async () => { if (await run({ action: 'notify', userId: u.id, title: umsg.title, body: umsg.body }, 'Sent')) setUmsg({ id: null, title: '', body: '' }); }}>Send</button>
+                      </div>
+                    </div>
+                  )}
                   {unote.id === u.id ? (
                     <div className="adm-form">
                       <Field id="unt" label="Private note (admin only)" maxLength={200} value={unote.text} onChange={(v) => setUnote({ ...unote, text: v })} />
@@ -1316,6 +1351,7 @@ export default function Admin() {
                       <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(u.frozen ? `Allow withdrawals again for ${u.id}?` : `Pause withdrawals for ${u.id}? They can still sign in.`, { ok: u.frozen ? 'Allow' : 'Pause', danger: !u.frozen }).then((yes) => yes && run({ action: 'user', userId: u.id, op: u.frozen ? 'unfreeze' : 'freeze' }, u.frozen ? 'Withdrawals open' : 'Withdrawals paused'))}>{u.frozen ? 'Allow withdrawals' : 'Pause withdrawals'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => setUnote({ id: u.id, text: u.note || '' })}>{u.note ? 'Edit note' : 'Add note'}</button>
+                        <button className="swap" style={SM} disabled={busy} onClick={() => setUmsg({ id: u.id, title: '', body: '' })}>Message</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => run({ action: 'user', userId: u.id, op: u.kyc.status === 'verified' ? 'unverify' : 'verify' }, u.kyc.status === 'verified' ? 'Verified removed' : 'Verified')}>{u.kyc.status === 'verified' ? 'Unverify' : 'Verify'}</button>
                         <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Sign ${u.id} out everywhere?`, { ok: 'Sign out' }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-sessions' }, 'Signed out'))}>Sign out</button>
                         {u.twofa && <button className="swap" style={SM} disabled={busy} onClick={() => ask(`Turn off two-factor for ${u.id}?`, { ok: 'Turn off', danger: true }).then((yes) => yes && run({ action: 'user', userId: u.id, op: 'reset-2fa' }, 'Two-factor off'))}>Reset 2FA</button>}
