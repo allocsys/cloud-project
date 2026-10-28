@@ -1,4 +1,5 @@
 'use client';
+import PageHead from '@/components/PageHead';
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { account } from '@/lib/data';
@@ -399,9 +400,7 @@ export default function Settings() {
 
   return (
     <>
-      <div className="top">
-        <h2>{t('nav.settings')}</h2>
-      </div>
+      <PageHead title={t('nav.settings')} />
       <div className="grid wal" style={{ alignItems: 'start' }}>
         <div className="card" style={hideCalm}>
           <div className="row" style={{ borderTop: 0 }}>
