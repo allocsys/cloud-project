@@ -28,10 +28,10 @@ export async function handler(req, res) {
         await q('SELECT 1');
         dbState = 'ok';
       } catch {
-        return json(res, 503, { ok: false, service: 'opus-gateway', db: 'down' });
+        return json(res, 503, { ok: false, service: 'vtx-gateway', db: 'down' });
       }
     }
-    return json(res, 200, { ok: true, service: 'opus-gateway', db: dbState });
+    return json(res, 200, { ok: true, service: 'vtx-gateway', db: dbState });
   }
   if (url.pathname.startsWith('/v1/')) return handleApi(req, res, url);
   return json(res, 404, { ok: false, error: 'Not found.' });
