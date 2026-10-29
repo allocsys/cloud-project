@@ -133,7 +133,7 @@ def s5(t):
             pulse=1+0.03*math.sin(u*6)
             w,h=330*pulse,95*pulse
             rr(dr,(W//2-w,1200-h,W//2+w,1200+h),95,fill=GOLD+(int(255*a),))
-            dr.text((W//2,1200),'Opus Cloud Mining',font=fit('Opus Cloud Mining',560,52),fill=(30,20,2,int(255*a)),anchor='mm')
+            dr.text((W//2,1200),'Vertexhash',font=fit('Vertexhash',560,60),fill=(30,20,2,int(255*a)),anchor='mm')
     return im
 SC=[(3.75,s1),(3.75,s2),(3.75,s3),(3.75,s4),(5.0,s5)]
 total=sum(dur for dur,_ in SC);N=int(total*FPS)
