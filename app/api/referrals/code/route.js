@@ -4,7 +4,7 @@ import { publicCode } from '@/lib/server/referrals';
 export const dynamic = 'force-dynamic';
 
 // Public: what a code offers, for the sign-up screen. Rate limited per IP, because it confirms whether a code exists.
-const hits = (globalThis.__opusCodeHits ||= new Map());
+const hits = (globalThis.__vtxCodeHits ||= new Map());
 
 export async function GET(req) {
   const ip = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || 'unknown';
