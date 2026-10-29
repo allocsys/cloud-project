@@ -33,7 +33,7 @@ export default function Nav() {
   return (
     <nav aria-label={t('nav.main')}>
       <div className="brand">
-        <div className="mark">M</div>Miner Opus
+        <div className="mark">V</div>Vertexhash
       </div>
       {items.map((i) => (
         <Link
