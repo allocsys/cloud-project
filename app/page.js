@@ -151,7 +151,7 @@ export default async function Home() {
           </Reveal>
         </section>
 
-        <p className="lp-foot">&copy; 2026 Miner Opus</p>
+        <p className="lp-foot">&copy; 2026 Vertexhash</p>
         </LandingTail>
       </div>
       {!signedIn && <StickyCta />}
