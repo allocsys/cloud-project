@@ -1,4 +1,4 @@
-# Build from this folder:  docker build -t opus-gateway gateway/
+# Build from this folder:  docker build -t vtx-gateway gateway/
 # On Railway set the service Root Directory to gateway.
 FROM node:22-alpine
 WORKDIR /app
