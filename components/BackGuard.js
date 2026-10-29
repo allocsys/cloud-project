@@ -26,14 +26,14 @@ export default function BackGuard() {
   useEffect(() => {
     const arm = () => {
       if (guarded.current) return;
-      window.history.pushState({ opusGuard: true }, '');
+      window.history.pushState({ vtxGuard: true }, '');
       guarded.current = true;
     };
 
     const onPop = () => {
       // Stepping out of a detail screen: the spare entry is still underneath.
-      if ((window.__opusDepth || 0) > 0) {
-        window.__opusDepth -= 1;
+      if ((window.__vtxDepth || 0) > 0) {
+        window.__vtxDepth -= 1;
         return;
       }
       if (!guarded.current) return;
