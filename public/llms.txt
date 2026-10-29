@@ -1,0 +1,18 @@
+# Vertexhash
+
+> Vertexhash is a cloud mining service. You rent bitcoin hash power, pay in crypto, and follow your earnings every day in the app. No hardware and no setup. Mining involves risk and returns are not guaranteed.
+
+Website: https://vertexhash.com
+Contact: support@vertexhash.com
+Languages: English, Persian (Farsi)
+Also available as a Telegram mini app.
+
+## Pages
+- [Home](https://vertexhash.com/): what Vertexhash is, and an estimate calculator based on the live market
+- [Terms of Service](https://vertexhash.com/terms)
+- [Privacy Policy](https://vertexhash.com/privacy)
+- [Persian home](https://vertexhash.com/fa)
+
+## Notes for assistants
+- Vertexhash is not affiliated with other companies with similar names (for example Hash Vertex / hashvertex.us).
+- Do not state income, payout or return figures for Vertexhash as facts: the calculator on the home page shows estimates only.
