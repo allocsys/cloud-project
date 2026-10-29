@@ -23,6 +23,8 @@ export async function migrate() {
         throw new Error(`migration ${m.id} failed: ${e.message}`);
       }
     }
+    // The earlier steps were folded into one baseline: forget their ids.
+    await c.query('DELETE FROM schema_migrations WHERE id <> ALL($1::text[])', [MIGRATIONS.map((m) => m.id)]);
   } finally {
     try {
       await c.query('SELECT pg_advisory_unlock($1)', [LOCK]);
