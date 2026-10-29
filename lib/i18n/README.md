@@ -10,6 +10,6 @@ Use in code:
 
 - Browser components: `const t = useT();` from `@/components/I18nProvider`, then `t('settings.language')`.
 - Server components: `const t = await getT();` from `@/lib/i18n/server`.
-- The language is the `opus-lang` cookie. `useLang().setLang('fa')` saves it and reloads.
+- The language is the `vtx-lang` cookie. `useLang().setLang('fa')` saves it and reloads.
 
 `npm test` checks that no language has a key English lacks and that placeholders match.
