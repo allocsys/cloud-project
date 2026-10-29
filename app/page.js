@@ -184,6 +184,8 @@ export default async function Home() {
 
         <p className="lp-foot">
           &copy; 2026 Vertexhash<br />
+          <Link href={pagePath('/how-it-works', lang)} style={foot}>{t('how.link')}</Link>
+          {' \u00b7 '}
           <Link href={pagePath('/faq', lang)} style={foot}>{t('faq.link')}</Link>
           {' \u00b7 '}
           <Link href={pagePath('/terms', lang)} style={foot}>{t('auth.terms')}</Link>
