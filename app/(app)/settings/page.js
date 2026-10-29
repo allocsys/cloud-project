@@ -92,24 +92,24 @@ export default function Settings() {
   useEffect(() => {
     const read = () =>
       setInst({
-        can: !!window.__opusInstall,
+        can: !!window.__vtxInstall,
         ios: /iphone|ipad|ipod/i.test(navigator.userAgent),
         standalone: window.matchMedia('(display-mode: standalone)').matches || navigator.standalone === true,
       });
     read();
-    window.addEventListener('opus-install', read);
-    return () => window.removeEventListener('opus-install', read);
+    window.addEventListener('vtx-install', read);
+    return () => window.removeEventListener('vtx-install', read);
   }, []);
 
   async function install() {
     triggerHaptic('light');
-    const p = window.__opusInstall;
+    const p = window.__vtxInstall;
     if (p) {
       p.prompt();
       try {
         await p.userChoice;
       } catch {}
-      window.__opusInstall = null;
+      window.__vtxInstall = null;
       setInst((s) => ({ ...s, can: false }));
     } else {
       show(t('set.iosHint'));
