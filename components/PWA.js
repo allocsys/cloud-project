@@ -9,14 +9,14 @@ export default function PWA() {
       navigator.serviceWorker.register('/sw.js').catch(() => {});
     }
 
-    const changed = () => window.dispatchEvent(new Event('opus-install'));
+    const changed = () => window.dispatchEvent(new Event('vtx-install'));
     const onPrompt = (e) => {
       e.preventDefault();
-      window.__opusInstall = e;
+      window.__vtxInstall = e;
       changed();
     };
     const onInstalled = () => {
-      window.__opusInstall = null;
+      window.__vtxInstall = null;
       changed();
     };
     window.addEventListener('beforeinstallprompt', onPrompt);
