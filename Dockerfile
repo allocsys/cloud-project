@@ -1,6 +1,6 @@
 # Portable build: works on any host with Docker.
 #   docker build -t vertexhash .
-#   docker run -p 3000:3000 opus-cloud-mining
+#   docker run -p 3000:3000 vertexhash
 # The build needs internet (next/font downloads Roboto once).
 
 FROM node:22-alpine AS deps
