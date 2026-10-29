@@ -92,7 +92,7 @@ export default function Splash() {
         <i />
         <i />
       </div>
-      <div className="sp-name">Miner Opus</div>
+      <div className="sp-name">Vertexhash</div>
       <div className="sp-track">
         <div className="sp-bar" ref={bar} />
       </div>
