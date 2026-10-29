@@ -1,4 +1,4 @@
-# Miner Opus
+# Vertexhash
 
 Cloud mining app. Black and gold, responsive (bottom tabs on mobile, sidebar on desktop). Next.js 15 App Router, React 19, plain JavaScript, Postgres. Installable as a PWA.
 
