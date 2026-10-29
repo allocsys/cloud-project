@@ -81,7 +81,7 @@ export default function Referrals() {
     const url = link(code);
     if (typeof navigator !== 'undefined' && navigator.share) {
       try {
-        await navigator.share({ title: 'Miner Opus', text: t('ref.shareText'), url });
+        await navigator.share({ title: 'Vertexhash', text: t('ref.shareText'), url });
       } catch {}
       return;
     }
