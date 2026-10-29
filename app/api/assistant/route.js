@@ -19,7 +19,7 @@ export async function GET(req) {
   return NextResponse.json({ enabled: true, llm: llmEnabled(), left: answersLeft(id) }, { headers: HEADERS });
 }
 
-// Ask Miner Opus. Read-only: answers from the signed-in user's own data. The question is never logged or stored.
+// Ask Vertexhash. Read-only: answers from the signed-in user's own data. The question is never logged or stored.
 export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
