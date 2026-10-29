@@ -137,7 +137,7 @@ export default function BoostPromo({ signedIn = false }) {
           className="btn boost-go"
           onClick={() => {
             try {
-              sessionStorage.setItem('opus-plans-tab', 'boost');
+              sessionStorage.setItem('vtx-plans-tab', 'boost');
             } catch {}
             triggerHaptic('light');
           }}
