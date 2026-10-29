@@ -13,6 +13,7 @@ import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
+import { SITE_URL } from '@/lib/site';
 
 export async function generateMetadata() {
   const t = await getT();
@@ -67,6 +68,33 @@ export default async function Home() {
 
   return (
     <AuthSheetProvider signedIn={signedIn}>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            '@context': 'https://schema.org',
+            '@graph': [
+              {
+                '@type': 'Organization',
+                '@id': `${SITE_URL}/#org`,
+                name: 'Vertexhash',
+                url: SITE_URL,
+                logo: `${SITE_URL}/icons/192`,
+                email: 'support@vertexhash.com',
+                description: t('meta.description'),
+              },
+              {
+                '@type': 'WebSite',
+                '@id': `${SITE_URL}/#site`,
+                name: 'Vertexhash',
+                url: SITE_URL,
+                inLanguage: ['en', 'fa'],
+                publisher: { '@id': `${SITE_URL}/#org` },
+              },
+            ],
+          }).replace(/</g, '\\u003c'),
+        }}
+      />
       <Splash />
       <main className="lp">
       <div className="lp-in">
