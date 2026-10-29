@@ -72,12 +72,12 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
         { rootMargin: '0px 0px -12% 0px' },
       );
       io.observe(root);
-    } else if (when === 'load' && window.__opusSplash === 'on') {
+    } else if (when === 'load' && window.__vtxSplash === 'on') {
       // The welcome screen is up: start once it lifts (components/Splash.js).
       onDone = () => {
         if (!dead) run(300);
       };
-      window.addEventListener('opus-splash-done', onDone, { once: true });
+      window.addEventListener('vtx-splash-done', onDone, { once: true });
     } else {
       run(when === 'load' ? 700 : 300);
     }
@@ -85,7 +85,7 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
     return () => {
       dead = true;
       cancelAnimationFrame(raf);
-      if (onDone) window.removeEventListener('opus-splash-done', onDone);
+      if (onDone) window.removeEventListener('vtx-splash-done', onDone);
       if (io) io.disconnect();
       els.forEach((e) => e.classList.remove('dc-s'));
     };
