@@ -1,4 +1,4 @@
-// Opus gateway entry point. Plain node:http, no framework, so it runs unchanged on any host.
+// Vertexhash gateway entry point. Plain node:http, no framework, so it runs unchanged on any host.
 // Config comes only from environment variables. Nothing here imports from the app (app/, lib/, components/).
 import { createServer } from 'node:http';
 import { hasDb, q, closeDb } from './db.js';
