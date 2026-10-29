@@ -50,7 +50,7 @@ function parseQuery() {
     const r = (q.get('ref') || '').trim().slice(0, 24);
     const a = q.get('auth');
     const mode = q.get('mode');
-    if (r) localStorage.setItem('opus-ref', r);
+    if (r) localStorage.setItem('vtx-ref', r);
     let init = null;
     if (t && m) init = { reset: { token: t, email: m } };
     else if (r || mode === 'signup' || a === 'signup') init = { signup: true };
@@ -108,8 +108,8 @@ export function AuthSheetProvider({ signedIn = false, children }) {
       setAuth(init);
     };
     if (window.__vtxSplash === 'on') {
-      window.addEventListener('opus-splash-done', show, { once: true });
-      return () => window.removeEventListener('opus-splash-done', show);
+      window.addEventListener('vtx-splash-done', show, { once: true });
+      return () => window.removeEventListener('vtx-splash-done', show);
     }
     show();
     return undefined;
@@ -119,7 +119,7 @@ export function AuthSheetProvider({ signedIn = false, children }) {
   useEffect(() => {
     if (!isOpen) return undefined;
     leaving.current = false;
-    window.history.pushState({ opusSheet: true }, '');
+    window.history.pushState({ vtxSheet: true }, '');
     let popped = false;
     const onPop = () => {
       popped = true;
