@@ -160,7 +160,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
       const res = await post('/api/auth/telegram', { initData: window.Telegram?.WebApp?.initData || '', ...(ref ? { ref } : {}) });
       clearApiCache();
       try {
-        localStorage.removeItem('opus-ref');
+        localStorage.removeItem('vtx-ref');
       } catch {}
       triggerHaptic('success');
       if (res?.ref === 'invalid') {
