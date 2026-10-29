@@ -13,6 +13,7 @@ import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
+import { pagePath } from '@/lib/i18n/codes';
 import { SITE_URL } from '@/lib/site';
 
 export async function generateMetadata() {
@@ -58,6 +59,8 @@ export default async function Home() {
   const jar = await cookies();
   const signedIn = jar.has(COOKIE);
   const t = await getT();
+  const lang = await getLang();
+  const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
     { i: 'eye', t: t('landing.why.see.t'), d: t('landing.why.see.d') },
@@ -179,7 +182,14 @@ export default async function Home() {
           </Reveal>
         </section>
 
-        <p className="lp-foot">&copy; 2026 Vertexhash</p>
+        <p className="lp-foot">
+          &copy; 2026 Vertexhash<br />
+          <Link href={pagePath('/faq', lang)} style={foot}>{t('faq.link')}</Link>
+          {' \u00b7 '}
+          <Link href={pagePath('/terms', lang)} style={foot}>{t('auth.terms')}</Link>
+          {' \u00b7 '}
+          <Link href={pagePath('/privacy', lang)} style={foot}>{t('auth.privacy')}</Link>
+        </p>
         </LandingTail>
       </div>
       {!signedIn && <StickyCta />}
