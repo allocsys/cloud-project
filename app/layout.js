@@ -62,7 +62,7 @@ export default async function RootLayout({ children }) {
       <head>
         <script
           dangerouslySetInnerHTML={{
-            __html: `try{var m=localStorage.getItem('opus-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
+            __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
           }}
         />
         <Script
