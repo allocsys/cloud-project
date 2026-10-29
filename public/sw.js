@@ -1,4 +1,4 @@
-// Opus service worker: makes the app installable and shows a friendly page when offline.
+// Vertexhash service worker: makes the app installable and shows a friendly page when offline.
 // Pages are network-first (always fresh when online); build assets and icons are cached.
 const VERSION = 'opus-v1';
 const STATIC = `${VERSION}-static`;
