@@ -107,7 +107,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
           : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}), ...(!signup && needCode ? { code: code.trim() } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
       try {
-        if (signup && !view) localStorage.removeItem('opus-ref');
+        if (signup && !view) localStorage.removeItem('vtx-ref');
       } catch {}
       triggerHaptic('success');
       if (!view && signup && res?.ref === 'invalid') {
