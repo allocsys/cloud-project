@@ -1,4 +1,4 @@
-# Opus gateway
+# Vertexhash gateway
 
 Separate payment service (deposits, withdrawals, swaps). Lives in this repo for now; it can be split out later with `git subtree split --prefix=gateway`.
 
