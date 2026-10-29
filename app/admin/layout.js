@@ -1,7 +1,7 @@
 import './admin.css';
 
 export const metadata = {
-  title: 'Miner Opus Admin',
+  title: 'Vertexhash Admin',
   robots: { index: false, follow: false },
 };
 

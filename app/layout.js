@@ -19,13 +19,13 @@ export async function generateMetadata() {
   const t = await getT();
   return {
     metadataBase: new URL(SITE_URL),
-    title: { default: 'Miner Opus', template: '%s · Miner Opus' },
+    title: { default: 'Vertexhash', template: '%s · Vertexhash' },
     description: t('meta.description'),
-    applicationName: 'Miner Opus',
+    applicationName: 'Vertexhash',
     openGraph: {
       title: t('meta.og.title'),
       description: t('meta.description'),
-      siteName: 'Miner Opus',
+      siteName: 'Vertexhash',
       type: 'website',
     },
     twitter: { card: 'summary_large_image' },
@@ -39,7 +39,7 @@ export async function generateMetadata() {
     appleWebApp: {
       capable: true,
       statusBarStyle: 'black-translucent',
-      title: 'Miner Opus',
+      title: 'Vertexhash',
     },
     formatDetection: {
       telephone: false,

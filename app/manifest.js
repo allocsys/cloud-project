@@ -1,5 +1,5 @@
 // Web app manifest. Served at /manifest.webmanifest and linked automatically.
-// The description, lang and dir follow the language cookie. The name stays Miner Opus.
+// The description, lang and dir follow the language cookie. The name stays Vertexhash.
 import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
 
@@ -7,8 +7,8 @@ export default async function manifest() {
   const lang = await getLang();
   const t = await getT();
   return {
-    name: 'Miner Opus',
-    short_name: 'Miner Opus',
+    name: 'Vertexhash',
+    short_name: 'Vertexhash',
     description: t('meta.manifest'),
     lang,
     dir: LANGS[lang].dir,
