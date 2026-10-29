@@ -22,6 +22,7 @@ export async function generateMetadata() {
     title: { default: 'Vertexhash', template: '%s · Vertexhash' },
     description: t('meta.description'),
     applicationName: 'Vertexhash',
+    verification: { google: 'VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q' },
     openGraph: {
       title: t('meta.og.title'),
       description: t('meta.description'),
