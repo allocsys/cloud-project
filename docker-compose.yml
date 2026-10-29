@@ -6,7 +6,7 @@ services:
       - "3000:3000"
     environment:
       PORT: 3000
-      DATABASE_URL: postgres://opus:${POSTGRES_PASSWORD:-opus}@db:5432/opus
+      DATABASE_URL: postgres://vtx:${POSTGRES_PASSWORD:-vtx}@db:5432/vtx
       # PRICE_FEED: static   # uncomment to skip the CoinGecko price feed
     depends_on:
       db:
@@ -16,13 +16,13 @@ services:
   db:
     image: postgres:17-alpine
     environment:
-      POSTGRES_USER: opus
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-opus}
-      POSTGRES_DB: opus
+      POSTGRES_USER: vtx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-vtx}
+      POSTGRES_DB: vtx
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U opus -d opus"]
+      test: ["CMD-SHELL", "pg_isready -U vtx -d vtx"]
       interval: 5s
       timeout: 3s
       retries: 10
