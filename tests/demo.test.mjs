@@ -70,7 +70,7 @@ test('the clean-up removes what demo bought, its ledger rows, and the invite tes
   await clean();
   const real = `real-${run}@test.dev`;
   assert.ok((await auth.signup({ email: real, password: 'correct horse 1' })).ok);
-  const f = await act({ action: 'ref-test', code: 'OPUS-7K2M', th: 15, days: 90 });
+  const f = await act({ action: 'ref-test', code: 'VTX-7K2M', th: 15, days: 90 });
   assert.ok(f.ok, f.error);
   assert.equal(await count(`SELECT count(*)::int AS n FROM users WHERE id = '${f.friend}'`), 1);
 
