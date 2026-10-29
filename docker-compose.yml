@@ -1,7 +1,7 @@
 services:
   app:
     build: .
-    image: opus-cloud-mining
+    image: vertexhash
     ports:
       - "3000:3000"
     environment:
