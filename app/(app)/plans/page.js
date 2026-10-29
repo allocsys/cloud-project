@@ -244,7 +244,7 @@ export default function Plans() {
   // Coming back from a miner page, or from the Boost card on the landing page: reopen on that tab.
   useEffect(() => {
     try {
-      const t = sessionStorage.getItem('opus-plans-tab');
+      const t = sessionStorage.getItem('vtx-plans-tab');
       if (t === 'mine' || t === 'boost') {
         sessionStorage.removeItem('opus-plans-tab');
         setTab(t);
