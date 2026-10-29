@@ -524,7 +524,7 @@ function Login({ onDone, setup }) {
   return (
     <div id="auth">
       <form className="authbox" onSubmit={submit}>
-        <div className="mark">O</div>
+        <div className="mark">V</div>
         <h1>Admin</h1>
         <p className="mute">{setup ? 'First time here. Enter the setup token, then choose the username and password you will use from now on.' : 'Sign in to continue.'}</p>
         {setup && (
