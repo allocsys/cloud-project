@@ -11,6 +11,7 @@ Also available as a Telegram mini app.
 - [Home](https://vertexhash.com/): what Vertexhash is, and an estimate calculator based on the live market
 - [Terms of Service](https://vertexhash.com/terms)
 - [Privacy Policy](https://vertexhash.com/privacy)
+- [How it works](https://vertexhash.com/how-it-works)
 - [FAQ](https://vertexhash.com/faq)
 - [Persian home](https://vertexhash.com/fa)
 
