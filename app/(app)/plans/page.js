@@ -246,7 +246,7 @@ export default function Plans() {
     try {
       const t = sessionStorage.getItem('vtx-plans-tab');
       if (t === 'mine' || t === 'boost') {
-        sessionStorage.removeItem('opus-plans-tab');
+        sessionStorage.removeItem('vtx-plans-tab');
         setTab(t);
       }
     } catch {}
