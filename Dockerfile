@@ -1,5 +1,5 @@
 # Portable build: works on any host with Docker.
-#   docker build -t opus-cloud-mining .
+#   docker build -t vertexhash .
 #   docker run -p 3000:3000 opus-cloud-mining
 # The build needs internet (next/font downloads Roboto once).
 
