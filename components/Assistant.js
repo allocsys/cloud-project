@@ -4,7 +4,7 @@ import { post } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { useT } from '@/components/I18nProvider';
 
-// Ask Miner Opus: a floating button that opens a chat sheet. Answers come from POST /api/assistant, which only
+// Ask Vertexhash: a floating button that opens a chat sheet. Answers come from POST /api/assistant, which only
 // reads the signed-in user's own data. Nothing is stored here: the conversation lives in memory and is gone when
 // the page closes. The button stays hidden until GET /api/assistant says the feature is switched on.
 
