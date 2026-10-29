@@ -157,7 +157,7 @@ export default function Kyc() {
     setErrors({});
     if (busy) return;
     if (step < 3) {
-      window.history.pushState({ opusStep: true }, '');
+      window.history.pushState({ vtxStep: true }, '');
       markDrill();
       pushed.current += 1;
       setStep(step + 1);
