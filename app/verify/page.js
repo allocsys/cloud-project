@@ -46,7 +46,7 @@ export default function Verify() {
   return (
     <section id="auth">
       <div className="authbox">
-        <div className="mark">O</div>
+        <div className="mark">V</div>
         {state === 'checking' && (
           <>
             <h1>{t('verify.checking')}</h1>
