@@ -11,7 +11,7 @@ import { evmTx, WC_CHAINS } from '@/lib/wc-tx';
 
 const SOL_CHAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
-const meta = () => ({ name: 'Opus Cloud Mining', description: 'Opus Cloud Mining', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
+const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
 
 // Small rotating circle (transform only), for a button that is working.
 export function Spin() {
