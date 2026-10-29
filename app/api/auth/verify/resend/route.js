@@ -7,7 +7,7 @@ export const dynamic = 'force-dynamic';
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Links in emails use a fixed address, never the request's Host header. Set APP_URL once the app has its own domain.
-const BASE_URL = (process.env.APP_URL || 'https://opus-cloud-mining-production.up.railway.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.APP_URL || 'https://vertexhash.com').replace(/\/+$/, '');
 
 // Signed-in user asks for a fresh verification email (Settings). Every request counts, counted first in one statement.
 export async function POST(req) {
