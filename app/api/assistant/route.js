@@ -12,7 +12,7 @@ const MAX_BODY = 4000; // characters; the question itself is cut to 500 later
 
 const fail = (error, status) => NextResponse.json({ error }, { status, headers: HEADERS });
 
-// Tells the app whether to show the Ask Miner Opus button, and how many AI answers are left today.
+// Tells the app whether to show the Ask Vertexhash button, and how many AI answers are left today.
 export async function GET(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
