@@ -45,7 +45,7 @@ export default function AuthForm({ init, onDone, onLeave }) {
   // The invite code kept from an invite link (the sheet's opener stores it), so the form can send it with sign-up.
   useEffect(() => {
     try {
-      const r = (localStorage.getItem('opus-ref') || '').trim().slice(0, 24);
+      const r = (localStorage.getItem('vtx-ref') || '').trim().slice(0, 24);
       if (r) setRef(r);
     } catch {}
   }, []);
