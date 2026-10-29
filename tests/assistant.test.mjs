@@ -43,7 +43,7 @@ test('medium match goes to the LLM when available', async () => {
 });
 
 test('no FAQ match goes to the LLM when available', async () => {
-  const r = await answerQuestion(NONE, { llm: spy('Sorry, I only help with Miner Opus.') });
+  const r = await answerQuestion(NONE, { llm: spy('Sorry, I only help with Vertexhash.') });
   assert.equal(r.source, 'llm');
 });
 
