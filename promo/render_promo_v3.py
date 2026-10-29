@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-# Opus Cloud Mining promo v3 - 20 s vertical 1080x1920, 30 fps. Same approved wording as v1/v2.
+# Vertexhash promo v3 - 20 s vertical 1080x1920, 30 fps. Same approved wording as v1/v2.
 # What changed vs v2 (the "crude / synthetic" fixes):
 #   look  : metallic gold gradients + bevels instead of flat fills, soft shadows instead of offset copies,
 #           glass panels, faceted hex emblem, true 3D spinning coins, Inter Display type with tracking,
@@ -287,7 +287,7 @@ def s1(t):
     sp_=Image.new('RGBA',ss.size,(255,214,130,0));sp_.putalpha(ss.getchannel('A'));put(im,sp_,540,760,.5*a*ease((t-.2)/.8))
     emblem(im,540,760,200*(.5+.5*spring(t/1.2)),t,a)
     ai=appear(t,.5,.9);sh=(-.3+1.6*cl((t-1.5)/1.3)) if 1.5<t<2.9 else None
-    text(im,540,1095+(1-ai)*40,'OPUS',170,ai,'gold','xb',blur=(1-ai)**2*20,track=22,shine=sh)
+    text(im,540,1095+(1-ai)*40,'VERTEXHASH',fitsz('VERTEXHASH',900,170,'xb',10),ai,'gold','xb',blur=(1-ai)**2*20,track=10,shine=sh)
     a2=appear(t,.95,.8);text(im,540,1245+(1-a2)*26,'CLOUD MINING',46,a2,'ivory','sb',blur=(1-a2)**2*10,track=20,shadow_on=False)
     hline(im,540,1318,520*ease((t-1.1)/.9),3,.9)
     return im
@@ -395,7 +395,7 @@ def s5(t):
             glow(im,540,1215,400,.55*a*(.7+.3*math.sin(u*6)))
             shadow(im,540,1215,w,h,h/2,28,24,.6*a)
             put(im,panel(w,h,h/2,GOLD_FACE,((0,(255,244,196)),(1,(200,146,44))),3,1,.42,90,60),540,1215,a)
-            text(im,540,1215,'Opus Cloud Mining',fitsz('Opus Cloud Mining',560,54,'xb'),a,(46,31,4),'xb',shadow_on=False)
+            text(im,540,1215,'Vertexhash',fitsz('Vertexhash',560,64,'xb'),a,(46,31,4),'xb',shadow_on=False)
             pos=-.3+1.7*((u*.7)%1.4)/1.4
             bm=np.asarray(panel(w,h,h/2,GOLD_FACE,((0,(255,244,196)),(1,(200,146,44))),3,1,.42,90,60).getchannel('A'),dtype=np.float32)
             hh,ww=bm.shape;yy,xx=np.mgrid[0:hh,0:ww];band=np.exp(-(((xx+yy*.5)/ww-pos)/.09)**2)
