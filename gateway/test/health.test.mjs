@@ -16,7 +16,7 @@ test('GET /health answers ok without a database', async () => {
   try {
     const r = await fetch(`http://127.0.0.1:${s.address().port}/health`);
     assert.equal(r.status, 200);
-    assert.deepEqual(await r.json(), { ok: true, service: 'opus-gateway', db: 'off' });
+    assert.deepEqual(await r.json(), { ok: true, service: 'vtx-gateway', db: 'off' });
   } finally {
     s.close();
   }
