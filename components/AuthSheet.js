@@ -107,7 +107,7 @@ export function AuthSheetProvider({ signedIn = false, children }) {
       setN((x) => x + 1);
       setAuth(init);
     };
-    if (window.__opusSplash === 'on') {
+    if (window.__vtxSplash === 'on') {
       window.addEventListener('opus-splash-done', show, { once: true });
       return () => window.removeEventListener('opus-splash-done', show);
     }
