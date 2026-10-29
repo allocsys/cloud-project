@@ -40,11 +40,11 @@ export default function Splash() {
   useEffect(() => {
     let seen = false;
     try {
-      seen = sessionStorage.getItem('opus-splash') === '1';
-      sessionStorage.setItem('opus-splash', '1');
+      seen = sessionStorage.getItem('vtx-splash') === '1';
+      sessionStorage.setItem('vtx-splash', '1');
     } catch {}
     const t0 = performance.now();
-    window.__opusSplash = 'on';
+    window.__vtxSplash = 'on';
     const fonts = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
     try {
       router.prefetch('/login');
@@ -68,13 +68,13 @@ export default function Splash() {
       t1 = setTimeout(() => {
         if (bar.current) bar.current.style.transform = 'scaleX(1)';
         if (ref.current) ref.current.classList.add('sp-out');
-        window.__opusSplash = 'off';
-        window.dispatchEvent(new Event('opus-splash-done'));
+        window.__vtxSplash = 'off';
+        window.dispatchEvent(new Event('vtx-splash-done'));
         t2 = setTimeout(() => setGone(true), 600);
       }, wait);
     });
     return () => {
-      window.__opusSplash = 'off';
+      window.__vtxSplash = 'off';
       clearTimeout(t1);
       clearTimeout(t2);
     };
