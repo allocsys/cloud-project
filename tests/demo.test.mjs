@@ -44,7 +44,7 @@ test('a wiped demo account is empty: no miners, activity, notifications, withdra
   assert.equal(u.history.length, 0);
   assert.equal(u.notifications.length, 0);
   assert.equal(u.withdrawn, 0);
-  assert.equal(u.refCode, 'OPUS-7K2M', 'keeps its invite code');
+  assert.equal(u.refCode, 'VTX-7K2M', 'keeps its invite code');
   assert.equal(await avail(), 0);
 });
 
