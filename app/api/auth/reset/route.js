@@ -8,7 +8,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Links in reset emails use a fixed address, never the request's Host header, so a forged header cannot point them elsewhere.
 // Set APP_URL (for example https://vertexhash.com) once the app has its own domain.
-const BASE_URL = (process.env.APP_URL || 'https://opus-cloud-mining-production.up.railway.app').replace(/\/+$/, '');
+const BASE_URL = (process.env.APP_URL || 'https://vertexhash.com').replace(/\/+$/, '');
 
 export async function POST(req) {
   const key = `r:${clientIp(req)}`;
