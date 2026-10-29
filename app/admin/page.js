@@ -1097,7 +1097,7 @@ export default function Admin() {
     return (
       <div id="auth">
         <div className="authbox">
-          <div className="mark">O</div>
+          <div className="mark">V</div>
           <h1>{state === 'off' ? 'Admin is off' : 'Cannot load'}</h1>
           <p className="mute">
             {state === 'off'
