@@ -215,7 +215,7 @@ def s5(t):
             pulse=1+0.025*math.sin(u*6);w,h=330*pulse,95*pulse
             glow(im,540,1200,360,0.55*a*(0.7+0.3*math.sin(u*6)))
             RR(dr,(540-w,1200-h,540+w,1200+h),95,fill=col(GOLD,a))
-            T(dr,540,1200,'Opus Cloud Mining',fitsz('Opus Cloud Mining',560,52),col(DARK,a))
+            T(dr,540,1200,'Vertexhash',fitsz('Vertexhash',560,60),col(DARK,a))
             m=Image.new('L',(int(2*w*S),int(2*h*S)),0);ImageDraw.Draw(m).rounded_rectangle((0,0,m.width-1,m.height-1),95*S,fill=255)
             shine_mask(im,m,540,1200,-0.3+1.7*((u*0.7)%1.4)/1.4*1.0,a*0.8)
             for k in range(6):
