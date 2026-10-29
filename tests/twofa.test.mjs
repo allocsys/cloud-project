@@ -107,7 +107,7 @@ test('set up, sign in with a code, replay, recovery codes, and turning it off', 
   const s = await auth.twofaStart(id);
   assert.ok(s.ok);
   assert.match(s.secret, /^[A-Z2-7]{32}$/);
-  assert.ok(s.uri.startsWith('otpauth://totp/Miner%20Opus:'));
+  assert.ok(s.uri.startsWith('otpauth://totp/Vertexhash:'));
   assert.ok(s.uri.includes(encodeURIComponent(id)));
   assert.ok(s.uri.includes(`secret=${s.secret}`));
   assert.ok((await login(id)).ok);
