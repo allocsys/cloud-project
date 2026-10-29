@@ -1,6 +1,6 @@
 // Vertexhash service worker: makes the app installable and shows a friendly page when offline.
 // Pages are network-first (always fresh when online); build assets and icons are cached.
-const VERSION = 'opus-v1';
+const VERSION = 'vertexhash-v1';
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 
@@ -14,7 +14,7 @@ body{display:grid;place-items:center;text-align:center;padding:24px}
 h1{font-size:22px;line-height:28px;font-weight:400;margin:0 0 8px}
 p{margin:0 0 24px;color:#aaa28f}
 button{min-height:48px;padding:0 24px;border:0;border-radius:24px;background:#e9c46a;color:#3b2a00;font:500 14px Roboto,system-ui,sans-serif}
-</style></head><body><div><div class="m">O</div>
+</style></head><body><div><div class="m">V</div>
 <h1>You're offline</h1><p>Check your connection and try again.</p>
 <button onclick="location.reload()">Retry</button></div></body></html>`;
 
