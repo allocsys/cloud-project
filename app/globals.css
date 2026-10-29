@@ -1675,7 +1675,7 @@ a.stat:active { background: var(--s3); }
 
 .sheetbody .row:first-child { border-top: 0; }
 
-/* Ask Miner Opus: floating button and chat sheet */
+/* Ask Vertexhash: floating button and chat sheet */
 .asst-fab {
   position: fixed;
   right: 16px;
