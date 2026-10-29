@@ -3,7 +3,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
 process.env.RESEND_API_KEY = 're_test';
-process.env.MAIL_FROM = 'Opus <no-reply@test.dev>';
+process.env.MAIL_FROM = 'Vertexhash <no-reply@test.dev>';
 
 const { pool } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
