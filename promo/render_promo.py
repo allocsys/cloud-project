@@ -50,7 +50,7 @@ def s1(t):
     im,dr=lay()
     a=ease(t/1.0)
     logo(dr,W//2,760,190*(0.7+0.3*a),t,a)
-    title(dr,1080,'OPUS',t,0.5,GOLD2,170)
+    title(dr,1080,'VERTEXHASH',t,0.5,GOLD2,100)
     title(dr,1230,'C L O U D   M I N I N G',t,0.9,TXT,52)
     return im
 def s2(t):
