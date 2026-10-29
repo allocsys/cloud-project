@@ -73,7 +73,7 @@ export default async function Home() {
         <header className="lp-top">
           <Link href="/" className="lp-brand" aria-label="Vertexhash">
             <img src="/logo.svg" alt="" width="36" height="36" />
-            Miner Opus
+            Vertexhash
           </Link>
           <div className="topact">
             <LangToggle className="lp-signin" />
