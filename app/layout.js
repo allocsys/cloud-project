@@ -61,6 +61,7 @@ export default async function RootLayout({ children }) {
   return (
     <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable}`} suppressHydrationWarning>
       <head>
+        <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
