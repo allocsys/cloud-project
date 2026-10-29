@@ -291,7 +291,7 @@ export default function Plans() {
 
   function openMiner() {
     try {
-      sessionStorage.setItem('opus-plans-tab', 'mine');
+      sessionStorage.setItem('vtx-plans-tab', 'mine');
     } catch {}
     markDrill();
   }
