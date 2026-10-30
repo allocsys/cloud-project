@@ -14,6 +14,23 @@ import { evmTx } from '@/lib/wc-tx';
 
 const SOL_CHAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
+// Invoices this browser already sent a payment for (last 30), so 'Payment sent' survives a page reload.
+const PAID_KEY = 'vtx-paid';
+const wasSent = (k) => {
+  try {
+    return !!k && JSON.parse(localStorage.getItem(PAID_KEY) || '[]').includes(k);
+  } catch {
+    return false;
+  }
+};
+const markSent = (k) => {
+  try {
+    const a = JSON.parse(localStorage.getItem(PAID_KEY) || '[]').filter((x) => x !== k);
+    a.push(k);
+    localStorage.setItem(PAID_KEY, JSON.stringify(a.slice(-30)));
+  } catch {}
+};
+
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
 
 // Small rotating circle (transform only), for a button that is working.
@@ -89,7 +106,7 @@ export function ConnectBtn({ order, show, onFail }) {
   const w = useWallet();
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(''); // DEBUG: which step the connect is on
-  const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for
+  const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for (also kept in localStorage)
   const key = String(order.id || order.uri || '');
   const evm = w && order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
@@ -128,6 +145,7 @@ export function ConnectBtn({ order, show, onFail }) {
     if (evm && !ok && /no answer/.test(why)) w.disconnect();
     if (ok) {
       setSentFor(key);
+      markSent(key);
       show(t('pay.sent'));
       return;
     }
@@ -136,7 +154,7 @@ export function ConnectBtn({ order, show, onFail }) {
   };
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
   const working = busy || (evm && w.busy);
-  if (sentFor && sentFor === key) {
+  if (key && (sentFor === key || wasSent(key))) {
     return (
       <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled>
         <Spin />
