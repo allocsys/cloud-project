@@ -13,6 +13,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
+import RateUs from '@/components/RateUs';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -525,6 +526,8 @@ export default function Dashboard() {
             )}
           </div>
         )}
+
+        <RateUs style={hideTail} />
       </div>
     </>
   );
