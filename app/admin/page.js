@@ -403,6 +403,23 @@ function FirstBonusCard({ fb, busy, run }) {
   );
 }
 
+// Smallest wallet top-up in dollars. Empty puts back the default. Stored in lib/server/flags.js.
+function MinDepositCard({ value, busy, run }) {
+  const v = value ?? 30;
+  const [d, setD] = useState(String(v));
+  useEffect(() => setD(String(v)), [v]);
+  return (
+    <Fold title="Minimum deposit" sub={`$${v}`}>
+      <div className="row"><span className="mute">Now</span><b>${v}</b></div>
+      <Field id="mdp" label="Minimum $ (empty = $30)" inputMode="decimal" value={d} onChange={setD} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'min-deposit', usd: d }, 'Minimum deposit saved')}>Save</button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>From $1 to $10000. Applies to every wallet top-up at once. Users see the new number on the Wallet screen.</p>
+    </Fold>
+  );
+}
+
 // Boost tickets: a 2 hour hashrate boost with a prize draw. Rules in lib/boost.js, storage in lib/server/boost.js. The chance is typed per
 // ticket in percent; the margin is only shown (1 - (boost pay + chance x prize) / price). A negative margin turns red and asks twice before saving.
 const bcDraft = (v) => ({
@@ -1436,6 +1453,7 @@ export default function Admin() {
           </Fold>
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
+          <MinDepositCard value={data.minDeposit} busy={busy} run={run} />
           <Fold title="Demo account" sub={data.demo?.show === false ? 'Button hidden' : 'Button shown'}>
             <div className="row"><span className="mute">Demo button on sign-in</span><b>{data.demo?.show === false ? 'Hidden' : 'Shown'}</b></div>
             <div className="adm-actions">
