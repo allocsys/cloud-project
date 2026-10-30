@@ -78,7 +78,13 @@ async function sendWith(tx, projectId, mark) {
       } catch {}
     }
     mark('sending');
-    return await p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
+    const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
+    req.catch(() => {});
+    // The wallet app is behind the browser after connecting: open it so the request is in front of the buyer.
+    const link = p.session?.peer?.metadata?.redirect?.native;
+    if (link) setTimeout(() => tryOpen(link), 700);
+    // Do not wait forever if the wallet never answers.
+    return await Promise.race([req, new Promise((_, rej) => setTimeout(() => rej(new Error('no answer')), 120000))]);
   } finally {
     p.disconnect().catch(() => {});
   }
