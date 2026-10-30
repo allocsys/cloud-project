@@ -204,7 +204,7 @@ export function ConnectBtn({ order, show, onFail }) {
   return (
     <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={busy} onClick={go}>
       {busy && <Spin />}
-      {acct && !busy ? `${t('pay.sendNow')} \u00b7 ${short}` : t('pay.connect')}
+      {acct ? `${t('pay.sendNow')}${busy ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
       {busy && step ? ` \u00b7 ${step}` : ''}
     </button>
   );
