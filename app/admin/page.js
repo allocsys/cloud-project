@@ -292,9 +292,12 @@ function GuardCard({ guard, busy, run }) {
 
 // Reviews on the landing page: real ones only, added by hand. Rules in lib/reviews.js, storage in lib/server/reviews.js.
 const REVIEW_EMPTY = { id: '', name: '', country: '', stars: '5', source: '', url: '', text: '' };
-function ReviewsCard({ reviews, busy, run }) {
+function ReviewsCard({ reviews, users, reviewUrl, busy, run }) {
   const list = reviews || [];
   const [d, setD] = useState(REVIEW_EMPTY);
+  const [link, setLink] = useState(reviewUrl || '');
+  const rated = (users || []).filter((u) => u.rating).sort((a, b) => (b.rating.at || 0) - (a.rating.at || 0));
+  const avgRated = rated.length ? (rated.reduce((s, u) => s + u.rating.stars, 0) / rated.length).toFixed(1) : '';
   const put = (k, v) => setD((x) => ({ ...x, [k]: v }));
   const save = async () => {
     if (await run({ action: 'review-save', ...d }, d.id ? 'Review saved' : 'Review added')) setD(REVIEW_EMPTY);
@@ -323,7 +326,7 @@ function ReviewsCard({ reviews, busy, run }) {
       {list.map((r) => (
         <div className="row adm-m" key={r.id}>
           <div>
-            {r.name} · {r.country} · {'\u2605'.repeat(r.stars)}
+            {r.name} · {r.country} · {'\u2605'.repeat(r.stars)}{r.mock ? ' · MOCK' : ''}
             <small>{r.source} · {r.text}</small>
           </div>
           <div className="adm-btns">
@@ -339,6 +342,30 @@ function ReviewsCard({ reviews, busy, run }) {
               Delete
             </button>
           </div>
+        </div>
+      ))}
+      <div className="adm-actions">
+        <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'review-mock' }, (r) => `${r.added} mock reviews added`)}>Fill with mock data</button>
+        {list.some((r) => r.mock) && (
+          <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'review-mock-clear' }, (r) => `${r.removed} mock reviews removed`)}>Remove mock data</button>
+        )}
+      </div>
+      {list.some((r) => r.mock) && <p className="fine" style={{ margin: '8px 0 0', color: 'var(--red)' }}>Mock reviews are invented and show on the landing page. Remove them before launch.</p>}
+      <span className="eyebrow adm-sub">Rate us</span>
+      <Field id="rvl" label="Public review page (https://...)" inputMode="url" value={link} onChange={setLink} maxLength={300} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'review-url', url: link }, link.trim() ? 'Review page saved' : 'Review page removed')}>Save link</button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>After a user's first sent withdrawal, the Earnings screen asks for a rating once. Everyone who rates gets this link, whatever they rated. Ratings are private{rated.length ? `: ${rated.length} so far, average ${avgRated}` : ' (none yet)'}.</p>
+      {rated.slice(0, 10).map((u) => (
+        <div className="row adm-m" key={u.id}>
+          <div>
+            {'\u2605'.repeat(u.rating.stars)} · {u.id}
+            <small>{u.rating.comment || 'No comment'} · {when(u.rating.at)}</small>
+          </div>
+          {u.rating.comment && (
+            <button className="btn ghost" disabled={busy} onClick={() => setD({ ...REVIEW_EMPTY, stars: String(u.rating.stars), text: u.rating.comment, source: 'Vertexhash app' })}>Use</button>
+          )}
         </div>
       ))}
       <How><p className="fine">The section shows on the landing page as soon as there is one review, and is hidden with none. The average rating appears from 5 reviews. A review that is too long is refused, not cut. A link makes the source name tappable.</p></How>
@@ -1325,7 +1352,7 @@ export default function Admin() {
               </button>
             </div>
           </Fold>
-          <ReviewsCard reviews={data.reviews} busy={busy} run={run} />
+          <ReviewsCard reviews={data.reviews} users={data.users} reviewUrl={data.reviewUrl} busy={busy} run={run} />
           <Fold title="Admin password" sub="Change the sign-in password">
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
             <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
