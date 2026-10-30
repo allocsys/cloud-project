@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation';
 import { useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache } from '@/lib/api';
+import MarkIcon from '@/components/MarkIcon';
 
 // Opened from the link in the verification email: /verify?token=...&email=...
 export default function Verify() {
@@ -46,7 +47,7 @@ export default function Verify() {
   return (
     <section id="auth">
       <div className="authbox">
-        <div className="mark">V</div>
+        <div className="mark"><MarkIcon /></div>
         {state === 'checking' && (
           <>
             <h1>{t('verify.checking')}</h1>
