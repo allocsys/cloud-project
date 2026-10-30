@@ -4,6 +4,7 @@ import { usePathname } from 'next/navigation';
 import { triggerHaptic } from '@/lib/haptics';
 import { signOut } from '@/lib/api';
 import { useT } from '@/components/I18nProvider';
+import MarkIcon from '@/components/MarkIcon';
 
 const icon = (d) => (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -33,7 +34,7 @@ export default function Nav() {
   return (
     <nav aria-label={t('nav.main')}>
       <div className="brand">
-        <div className="mark">V</div>Vertexhash
+        <div className="mark"><MarkIcon /></div>Vertexhash
       </div>
       {items.map((i) => (
         <Link
