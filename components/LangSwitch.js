@@ -28,7 +28,7 @@ export default function LangSwitch() {
 }
 
 // The short label on the top bar button (the full name stays in the button's aria-label).
-const SHORT = { en: 'ENG', fa: 'فا' };
+const SHORT = { en: 'EN', fa: 'فا' };
 
 // Compact switch for the top bar: with two languages one button names the other language; with more it becomes a list.
 export function LangToggle({ className }) {
