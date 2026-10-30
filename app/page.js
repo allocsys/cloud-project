@@ -15,6 +15,7 @@ import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 import SocialLinks from '@/components/SocialLinks';
+import { showDemo } from '@/lib/server/flags';
 import { SITE_URL } from '@/lib/site';
 
 export async function generateMetadata() {
@@ -61,6 +62,7 @@ export default async function Home() {
   const signedIn = jar.has(COOKIE);
   const t = await getT();
   const lang = await getLang();
+  const demoOn = await showDemo(); // the admin's switch (Settings > Demo account)
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
@@ -71,7 +73,7 @@ export default async function Home() {
   ];
 
   return (
-    <AuthSheetProvider signedIn={signedIn} showDemo={!['0', 'false', 'off', 'no'].includes(String(process.env.SHOW_DEMO || '').trim().toLowerCase())}>
+    <AuthSheetProvider signedIn={signedIn} showDemo={demoOn}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
