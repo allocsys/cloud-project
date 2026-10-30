@@ -11,6 +11,14 @@ const ICONS = {
       <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
     </svg>
   ),
+  bot: (
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
+      <rect x="3" y="3" width="18" height="18" rx="5" />
+      <g transform="translate(6.5 6.5) scale(0.46)" fill="currentColor" stroke="none">
+        <path d="M9.78 18.65l.28-4.23 7.68-6.92c.34-.31-.07-.46-.52-.19L7.74 13.3 3.64 12c-.88-.25-.89-.86.2-1.3l15.97-6.16c.73-.33 1.43.18 1.15 1.3l-2.72 12.81c-.19.91-.74 1.13-1.5.71L12.6 16.3l-1.99 1.93c-.23.23-.42.42-.83.42z" />
+      </g>
+    </svg>
+  ),
   instagram: (
     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" aria-hidden="true">
       <rect x="3" y="3" width="18" height="18" rx="5" />
@@ -20,11 +28,12 @@ const ICONS = {
   ),
 };
 
-const NAMES = { x: 'X', telegram: 'Telegram', instagram: 'Instagram' };
+const NAMES = { x: 'X', telegram: 'Telegram channel', bot: 'Telegram app', instagram: 'Instagram' };
+const ORDER = ['x', 'telegram', 'bot', 'instagram'];
 
 // Round icon links (X, Telegram, Instagram). A network with no address in lib/site.js is left out; with none, nothing shows.
 export default function SocialLinks() {
-  const items = Object.keys(ICONS).filter((k) => /^https:\/\//.test(SOCIALS[k] || ''));
+  const items = ORDER.filter((k) => /^https:\/\//.test(SOCIALS[k] || ''));
   if (!items.length) return null;
   return (
     <div className="lp-social">
