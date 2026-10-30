@@ -440,6 +440,14 @@ input::placeholder { color: var(--ph); }
 .eh-pill svg { width: 12px; height: 12px; flex: none; fill: var(--gold); }
 .eh-pill b { display: block; font-size: 13px; line-height: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .eh-pill small { display: block; min-height: 12px; font-size: 10px; line-height: 12px; color: var(--green); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.eh-wal { position: relative; display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; padding-inline-start: 9px; flex: none; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--gold); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.eh-wal:active { background: rgba(233, 196, 106, 0.18); }
+.eh-wal:disabled { opacity: 0.7; cursor: default; }
+.eh-wal svg { width: 14px; height: 14px; flex: none; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+.eh-wal i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--green); }
+.eh-wal span { unicode-bidi: plaintext; font-variant-numeric: tabular-nums; }
+.eh-walc { position: relative; }
+.eh-walc i { background: var(--green); }
 .bell { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 50%; color: var(--text); }
 .bell svg { width: 22px; height: 22px; stroke: currentColor; fill: none; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
 .bell i { position: absolute; top: 8px; right: 9px; width: 8px; height: 8px; border-radius: 50%; background: var(--gold); border: 2px solid var(--bg); box-sizing: content-box; margin: -2px -2px 0 0; }
