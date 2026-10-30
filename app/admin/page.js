@@ -7,6 +7,7 @@ import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
 import { smartHallFor } from '@/lib/smart-halls';
 import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
 import { trimAmount } from '@/lib/pay-coins';
+import MarkIcon from '@/components/MarkIcon';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -607,7 +608,7 @@ function Login({ onDone, setup }) {
   return (
     <div id="auth">
       <form className="authbox" onSubmit={submit}>
-        <div className="mark">V</div>
+        <div className="mark"><MarkIcon /></div>
         <h1>Admin</h1>
         <p className="mute">{setup ? 'First time here. Enter the setup token, then choose the username and password you will use from now on.' : 'Sign in to continue.'}</p>
         {setup && (
