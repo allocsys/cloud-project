@@ -458,6 +458,9 @@ input::placeholder { color: var(--ph); }
 .lp-brand img { width: 28px; height: 28px; border-radius: 8px; }
 .lp-signin { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 20px; color: var(--gold); font-size: 14px; font-weight: 500; }
 .lp-signin:active { background: rgba(233, 196, 106, 0.12); }
+.lang-pill { gap: 6px; border: 1px solid var(--line); background: transparent; font-family: inherit; font-size: 14px; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.lang-pill svg { flex: none; }
+.lang-pill span { padding-top: 1px; }
 .lp-hero { max-width: 640px; padding: 20px 0 4px; }
 .lp-eyebrow { display: inline-block; margin-bottom: 10px; padding: 6px 12px; border-radius: 8px; background: var(--gold-c); color: var(--on-gold-c); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
 .lp h1 { font-size: clamp(24px, 6.4vw, 36px); line-height: 1.12; font-weight: 500; letter-spacing: -0.3px; margin: 0 0 12px; }
