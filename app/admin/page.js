@@ -368,7 +368,7 @@ function ReviewsCard({ reviews, users, reviewUrl, busy, run }) {
           )}
         </div>
       ))}
-      <How><p className="fine">The section shows on the landing page as soon as there is one review, and is hidden with none. The average rating appears from 5 reviews. A review that is too long is refused, not cut. A link makes the source name tappable.</p></How>
+      <How><p className="fine">The section shows on the landing page as soon as there is one review, and is hidden with none. The average rating appears from 5 reviews. A review that is too long is refused, not cut. A link makes the source name tappable. "Use" copies a private rating into the form: ask the user first, because they were told it stays private.</p></How>
     </Fold>
   );
 }
