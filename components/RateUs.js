@@ -14,16 +14,16 @@ export default function RateUs({ style }) {
   const [comment, setComment] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
-  const [sent, setSent] = useState(false);
+  const [sent, setSent] = useState('');
   if (!data || (!data.ask && !sent)) return null;
 
   const send = async () => {
     setBusy(true);
     setErr('');
     try {
-      await post('/api/rate', { stars, comment });
-      mutate({ ask: false, url: data.url });
-      setSent(true);
+      const res = await post('/api/rate', { stars, comment });
+      mutate({ ask: false, url: data.url, reward: false });
+      setSent(res?.ticket ? 'ticket' : 'yes');
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -31,7 +31,7 @@ export default function RateUs({ style }) {
     }
   };
   const later = async () => {
-    mutate({ ask: false, url: data.url });
+    mutate({ ask: false, url: data.url, reward: false });
     try {
       await post('/api/rate', { skip: true });
     } catch {}
@@ -40,7 +40,7 @@ export default function RateUs({ style }) {
   if (sent) {
     return (
       <div className="card rate" style={style}>
-        <h3>{t('rate.thanks')}</h3>
+        <h3>{sent === 'ticket' ? t('rate.thanksTicket') : t('rate.thanks')}</h3>
         {data.url && (
           <a className="btn ghost" href={data.url} target="_blank" rel="noopener noreferrer" style={{ marginTop: 12 }}>
             {t('rate.public')}
@@ -54,6 +54,7 @@ export default function RateUs({ style }) {
     <div className="card rate" style={style}>
       <h3>{t('rate.title')}</h3>
       <small className="mute" style={{ fontSize: '12px' }}>{t('rate.sub')}</small>
+      {data.reward && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>{t('rate.reward')}</small>}
       <div className="rate-stars" role="group" aria-label={t('rate.title')}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" className={n <= stars ? 'on' : ''} aria-pressed={n === stars} aria-label={t('rev.stars', { n })} onClick={() => setStars(n)}>
