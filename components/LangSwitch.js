@@ -27,6 +27,9 @@ export default function LangSwitch() {
   );
 }
 
+// The short label on the top bar button (the full name stays in the button's aria-label).
+const SHORT = { en: 'ENG', fa: 'فا' };
+
 // Compact switch for the top bar: with two languages one button names the other language; with more it becomes a list.
 export function LangToggle({ className }) {
   const { lang, setLang, t } = useLang();
@@ -49,7 +52,7 @@ export function LangToggle({ className }) {
           <path d="M3 12h18" />
           <path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" />
         </svg>
-        <span>{LANGS[other].name}</span>
+        <span>{SHORT[other] || other.toUpperCase()}</span>
       </button>
     );
   }
