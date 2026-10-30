@@ -3,6 +3,7 @@ import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { faqAnswer, faqList, faqVars } from '@/lib/faq';
 import { faqTr } from '@/lib/i18n/faq';
+import { minDeposit } from '@/lib/server/flags';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 const h3 = { fontSize: '14.5px', margin: '14px 0 4px' };
@@ -26,13 +27,15 @@ export default async function Faq() {
   const t = await getT();
   const lang = await getLang();
   const en = new Map(faqList().map((e) => [e.id, e.q]));
+  // The live minimum deposit; if it cannot be read the answer falls back to the built-in one.
+  const ctx = await minDeposit().then((n) => ({ minDeposit: n }), () => ({}));
 
   const groups = GROUPS.map((g) => ({
     h: t(g.h),
     items: g.ids.flatMap((id) => {
-      const vars = faqVars(id);
+      const vars = faqVars(id, ctx);
       if (lang === 'en') {
-        const a = faqAnswer(id);
+        const a = faqAnswer(id, ctx);
         return a && en.has(id) ? [{ id, q: en.get(id), a }] : [];
       }
       const q = faqTr(lang, `${id}.q`);
