@@ -1,5 +1,6 @@
 'use client';
 import { HeadIcon } from '@/components/PageHead';
+import WalletPill from '@/components/WalletPill';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
@@ -262,6 +263,7 @@ export default function Dashboard() {
               <small>{hasWeek && weekUsd > 0 ? `+$${formatUsd(weekUsd)} ${t('dash.thisWeek')}` : '\u00a0'}</small>
             </span>
           </Link>
+          <WalletPill compact />
           <Link
             href="/notifications"
             className="bell"
