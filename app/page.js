@@ -15,6 +15,8 @@ import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 import SocialLinks from '@/components/SocialLinks';
+import Reviews from '@/components/Reviews';
+import { reviewList } from '@/lib/server/reviews';
 import { showDemo } from '@/lib/server/flags';
 import { SITE_URL } from '@/lib/site';
 
@@ -63,6 +65,7 @@ export default async function Home() {
   const t = await getT();
   const lang = await getLang();
   const demoOn = await showDemo(); // the admin's switch (Settings > Demo account)
+  const reviews = await reviewList(); // real reviews the admin added (Settings > Reviews); none = no section
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
@@ -184,6 +187,8 @@ export default async function Home() {
             </div>
           </Reveal>
         </section>
+
+        <Reviews list={reviews} t={t} lang={lang} />
 
         <p className="lp-foot">
           &copy; 2026 Vertexhash<br />
