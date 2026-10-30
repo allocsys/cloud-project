@@ -30,4 +30,4 @@ export function middleware(req) {
 }
 
 // A literal list (Next reads it at build time). tests/seo.test.mjs checks it covers every public page in every language.
-export const config = { matcher: ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works'] };
+export const config = { matcher: ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary'] };
