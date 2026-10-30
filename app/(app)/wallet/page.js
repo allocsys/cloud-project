@@ -152,6 +152,7 @@ export default function Wallet() {
   // Deposit through the crypto provider (a hosted payment page), when it is switched on. The open top-up orders come with the same answer.
   const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000 });
   const cryptoOn = !!dod?.crypto;
+  const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer (hideCalm)
   const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
   const [depUsd, setDepUsd] = useState('');
   const [depErr, setDepErr] = useState('');
@@ -166,9 +167,9 @@ export default function Wallet() {
       setDepErr(t('err.depAmount'));
       return;
     }
-    if (v < MIN_DEPOSIT_USD) {
+    if (v < minDep) {
       triggerHaptic('error');
-      setDepErr(t('err.wdMin', { n: MIN_DEPOSIT_USD }));
+      setDepErr(t('err.wdMin', { n: minDep }));
       return;
     }
     setDepErr('');
@@ -542,7 +543,7 @@ export default function Wallet() {
                     }}
                   />
                 </Field>
-                <p className="fine" style={{ margin: '6px 0 10px' }}>{t('wal.depNote', { n: MIN_DEPOSIT_USD })}</p>
+                <p className="fine" style={{ margin: '6px 0 10px' }}>{t('wal.depNote', { n: minDep })}</p>
                 <button className="btn" type="button" onClick={startDeposit} disabled={busy || !ready}>
                   {t('wal.depPay')}
                 </button>
@@ -565,7 +566,7 @@ export default function Wallet() {
                 <div className="addr" style={{ margin: '0 0 10px' }}>{N.address}</div>
                 <button className="btn ghost" type="button" onClick={copy}>{t('wal.copy')}</button>
                 <p className="fine" style={{ textAlign: 'center', margin: '8px 0 0' }}>
-                  {t('wal.depInfo', { sym: A.sym, net: N.label, c: N.confirms === 1 ? t('wal.confirm1') : t('wal.confirmN', { n: N.confirms }), m: MIN_DEPOSIT_USD })}
+                  {t('wal.depInfo', { sym: A.sym, net: N.label, c: N.confirms === 1 ? t('wal.confirm1') : t('wal.confirmN', { n: N.confirms }), m: minDep })}
                 </p>
 
                 <Field id="da" label={t('wal.sendAmt')} className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />}>
@@ -597,12 +598,12 @@ export default function Wallet() {
                           <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(dq.creditedUsd)}</small>
                         </b>
                       </div>
-                      {dq.usd < MIN_DEPOSIT_USD - 0.01 && (
-                        <p className="fine" role="alert" style={{ margin: '8px 0 0' }}>{t('wal.below', { n: MIN_DEPOSIT_USD })}</p>
+                      {dq.usd < minDep - 0.01 && (
+                        <p className="fine" role="alert" style={{ margin: '8px 0 0' }}>{t('wal.below', { n: minDep })}</p>
                       )}
                     </>
                   ) : (
-                    t('wal.depHint', { n: MIN_DEPOSIT_USD, fee: asset === 'btc' ? t('wal.noFee') : t('wal.swapFeeN', { n: SWAP_FEE_PCT }) })
+                    t('wal.depHint', { n: minDep, fee: asset === 'btc' ? t('wal.noFee') : t('wal.swapFeeN', { n: SWAP_FEE_PCT }) })
                   )}
                 </div>
               </div>
