@@ -71,7 +71,7 @@ export default async function Home() {
   ];
 
   return (
-    <AuthSheetProvider signedIn={signedIn}>
+    <AuthSheetProvider signedIn={signedIn} showDemo={!['0', 'false', 'off', 'no'].includes(String(process.env.SHOW_DEMO || '').trim().toLowerCase())}>
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
