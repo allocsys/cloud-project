@@ -37,13 +37,19 @@ export function LangToggle({ className }) {
       <button
         type="button"
         lang={other}
-        className={className}
+        className={`${className || ''} lang-pill`.trim()}
+        aria-label={`${t('settings.language')}: ${LANGS[other].name}`}
         onClick={() => {
           triggerHaptic('selection');
           setLang(other);
         }}
       >
-        {LANGS[other].name}
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="9" />
+          <path d="M3 12h18" />
+          <path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" />
+        </svg>
+        <span>{LANGS[other].name}</span>
       </button>
     );
   }
