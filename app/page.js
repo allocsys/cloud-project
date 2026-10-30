@@ -14,6 +14,7 @@ import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
+import SocialLinks from '@/components/SocialLinks';
 import { SITE_URL } from '@/lib/site';
 
 export async function generateMetadata() {
@@ -194,6 +195,7 @@ export default async function Home() {
           {' \u00b7 '}
           <Link href={pagePath('/privacy', lang)} style={foot}>{t('auth.privacy')}</Link>
         </p>
+        <SocialLinks />
         </LandingTail>
       </div>
       {!signedIn && <StickyCta />}
