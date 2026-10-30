@@ -17,6 +17,7 @@ function deps(over = {}) {
       getMarket: async () => null,
       getTelemetry: async () => null,
       answersLeft: () => 17,
+      minDeposit: async () => 30,
       makeLlm: (userId, snapshot) => {
         seen.userId = userId;
         seen.snapshot = snapshot;
