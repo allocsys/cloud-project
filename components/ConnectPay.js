@@ -49,8 +49,10 @@ export function tryOpen(url, ms = 1500) {
   });
 }
 
-async function sendWith(tx, projectId) {
+async function sendWith(tx, projectId, mark) {
+  mark('loading');
   const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+  mark('init');
   const p = await EthereumProvider.init({
     projectId,
     chains: [tx.chainId],
@@ -61,14 +63,21 @@ async function sendWith(tx, projectId) {
   // A session left from an earlier payment could be on another chain or account: always start clean.
   if (p.session) await p.disconnect().catch(() => {});
   try {
+    mark('connecting');
     await p.connect();
     const from = p.accounts[0];
     if (!from) throw new Error('no account');
     if (p.chainId !== tx.chainId) {
+      mark('switching');
       try {
-        await p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${tx.chainId.toString(16)}` }] });
+        // A wallet that never answers the switch must not block the payment request.
+        await Promise.race([
+          p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${tx.chainId.toString(16)}` }] }),
+          new Promise((r) => setTimeout(r, 4000)),
+        ]);
       } catch {}
     }
+    mark('sending');
     return await p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
   } finally {
     p.disconnect().catch(() => {});
@@ -110,6 +119,7 @@ async function sendSol(order) {
 export function ConnectBtn({ order, show, onFail }) {
   const t = useT();
   const [busy, setBusy] = useState(false);
+  const [step, setStep] = useState(''); // DEBUG: which step the connect is on
   const evm = order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
   if (!evm && !sol) return null;
@@ -118,23 +128,33 @@ export function ConnectBtn({ order, show, onFail }) {
     triggerHaptic('selection');
     setBusy(true);
     let ok = false;
+    let at = '';
+    let why = '';
+    const mark = (s) => {
+      at = s;
+      setStep(s);
+    };
     try {
-      if (evm) await sendWith(evm, order.wc);
+      if (evm) await sendWith(evm, order.wc, mark);
       else await sendSol(order);
       ok = true;
-    } catch {}
+    } catch (e) {
+      why = String(e?.message || e?.code || e || '').slice(0, 80); // DEBUG
+    }
     setBusy(false);
+    setStep('');
     if (ok) {
       show(t('pay.sent'));
       return;
     }
-    if (evm) show(t('pay.notSent'));
+    if (evm) show(`${t('pay.notSent')} (${at}: ${why})`); // DEBUG: remove the brackets later
     if (onFail) onFail(!evm);
   };
   return (
     <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={busy} onClick={go}>
       {busy && <Spin />}
       {t('pay.connect')}
+      {busy && step ? ` · ${step}` : ''}
     </button>
   );
 }
