@@ -89,6 +89,8 @@ export function ConnectBtn({ order, show, onFail }) {
   const w = useWallet();
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(''); // DEBUG: which step the connect is on
+  const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for
+  const key = String(order.id || order.uri || '');
   const evm = w && order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
   if (!evm && !sol) return null;
@@ -125,6 +127,7 @@ export function ConnectBtn({ order, show, onFail }) {
     // A wallet that never answered is likely a dead session: drop it so the next try starts clean.
     if (evm && !ok && /no answer/.test(why)) w.disconnect();
     if (ok) {
+      setSentFor(key);
       show(t('pay.sent'));
       return;
     }
@@ -133,6 +136,14 @@ export function ConnectBtn({ order, show, onFail }) {
   };
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
   const working = busy || (evm && w.busy);
+  if (sentFor && sentFor === key) {
+    return (
+      <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled>
+        <Spin />
+        {t('pay.sentBtn')}
+      </button>
+    );
+  }
   return (
     <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={working} onClick={go}>
       {working && <Spin />}
