@@ -356,7 +356,7 @@ function ReviewsCard({ reviews, users, reviewUrl, busy, run }) {
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={() => run({ action: 'review-url', url: link }, link.trim() ? 'Review page saved' : 'Review page removed')}>Save link</button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>After a user's first sent withdrawal, the Earnings screen asks for a rating once. Everyone who rates gets this link, whatever they rated. Ratings are private{rated.length ? `: ${rated.length} so far, average ${avgRated}` : ' (none yet)'}.</p>
+      <p className="fine" style={{ margin: '8px 0 0' }}>After a user's first sent withdrawal, the Earnings screen asks for a rating once. With boost tickets on, each rating also gives one free $1 ticket (any stars, once per account). Everyone who rates gets this link, whatever they rated; the link itself earns nothing. Ratings are private{rated.length ? `: ${rated.length} so far, average ${avgRated}` : ' (none yet)'}.</p>
       {rated.slice(0, 10).map((u) => (
         <div className="row adm-m" key={u.id}>
           <div>
