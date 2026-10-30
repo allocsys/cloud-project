@@ -11,7 +11,7 @@ import { MIN_WITHDRAW_USD } from '@/lib/data';
 // Telegram sign-in and the demo. `init` says how it opens: { signup } or { reset: { token, email } }.
 // `onDone(path)` is called when the person is signed in (or chose the demo). `onLeave()` is called before a link
 // to another page is followed, so the sheet does not undo its history entry on the way out.
-export default function AuthForm({ init, onDone, onLeave }) {
+export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
   const t = useT();
   const [signup, setSignup] = useState(!!init?.signup);
   const [view, setView] = useState(init?.reset ? 'reset' : null); // null: sign in or sign up. 'forgot': ask for a reset link. 'reset': choose a new password.
@@ -333,8 +333,8 @@ export default function AuthForm({ init, onDone, onLeave }) {
                   : t('auth.signIn')}
       </button>
 
-      {/* Demo access. Remove this button, and set REQUIRE_AUTH=1, when the demo is no longer wanted. */}
-      {!view && (
+      {/* Demo access. Hidden when the server variable SHOW_DEMO is 0. To close the demo completely also set REQUIRE_AUTH=1. */}
+      {!view && showDemo && (
         <button className="btn ghost" type="button" style={{ marginTop: '12px' }} onClick={handleSkip}>
           {t('auth.demo')}
         </button>
