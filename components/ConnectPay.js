@@ -2,13 +2,15 @@
 // Connect wallet (WalletConnect): the buyer picks a wallet, and it is asked to send this invoice's exact amount to its address.
 // EVM coins and tokens, and Solana (SOL, USDT, USDC). The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 // EVM works in two taps: Connect wallet only connects (no payment request), then the same button becomes Send payment and asks the connected wallet for the transfer.
-// EVM uses the ready-made wallet picker. Solana has none in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
+// The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
+// Solana has no wallet picker in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
 // The Solana provider (@walletconnect/universal-provider) is already installed as part of the EVM one, which is built on it.
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { useT } from '@/components/I18nProvider';
+import { useWallet } from '@/components/WalletProvider';
 import { post } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
-import { evmTx, WC_CHAINS } from '@/lib/wc-tx';
+import { evmTx } from '@/lib/wc-tx';
 
 const SOL_CHAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
 
@@ -50,61 +52,6 @@ export function tryOpen(url, ms = 1500) {
   });
 }
 
-// EVM step 1: connect the wallet only (no payment request). Returns the live provider and the account, kept by the button for step 2.
-async function connectEvm(tx, projectId, mark) {
-  mark('loading');
-  const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
-  mark('init');
-  const p = await EthereumProvider.init({
-    projectId,
-    chains: [tx.chainId],
-    optionalChains: WC_CHAINS,
-    showQrModal: true,
-    metadata: meta(),
-  });
-  // A session left from an earlier payment could be on another chain or account: always start clean.
-  if (p.session) await p.disconnect().catch(() => {});
-  try {
-    mark('connecting');
-    try {
-      await p.connect();
-    } catch (e) {
-      // One more try on a slow link, but not when the buyer closed or refused it.
-      if (/reject|denied|declin|cancel|closed/i.test(String(e?.message || e))) throw e;
-      mark('retrying');
-      await new Promise((r) => setTimeout(r, 1500));
-      await p.connect();
-    }
-    const from = p.accounts[0];
-    if (!from) throw new Error('no account');
-    if (p.chainId !== tx.chainId) {
-      mark('switching');
-      try {
-        // A wallet that never answers the switch must not block the payment request.
-        await Promise.race([
-          p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${tx.chainId.toString(16)}` }] }),
-          new Promise((r) => setTimeout(r, 4000)),
-        ]);
-      } catch {}
-    }
-    return { p, from };
-  } catch (e) {
-    p.disconnect().catch(() => {});
-    throw e;
-  }
-}
-
-// EVM step 2: ask the connected wallet for the transfer. The wallet app is behind the browser, so it is opened to bring the request forward.
-async function sendEvm(p, from, tx, mark) {
-  mark('sending');
-  const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
-  req.catch(() => {});
-  const link = p.session?.peer?.metadata?.redirect?.native;
-  if (link) setTimeout(() => tryOpen(link), 700);
-  // Do not wait forever if the wallet never answers.
-  return Promise.race([req, new Promise((_, rej) => setTimeout(() => rej(new Error('no answer')), 120000))]);
-}
-
 // Solana: connect, then the server writes the transfer for this order from the wallet's address (its blockhash lasts about a minute,
 // so it is asked for only now) and the wallet signs and sends it. The connect link is opened in a hidden frame; if no wallet takes it, this throws.
 async function sendSol(order) {
@@ -139,30 +86,15 @@ async function sendSol(order) {
 // `onFail(auto)`: auto is true on Solana, where the pay screen goes on by itself to Open wallet.
 export function ConnectBtn({ order, show, onFail }) {
   const t = useT();
+  const w = useWallet();
   const [busy, setBusy] = useState(false);
   const [step, setStep] = useState(''); // DEBUG: which step the connect is on
-  const [acct, setAcct] = useState(''); // EVM: the connected account (empty = not connected yet)
-  const live = useRef(null); // EVM: the connected provider, kept between the two taps
-  const evm = order.wc ? evmTx(order.uri) : null;
+  const evm = w && order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
-  // Leaving the screen closes the wallet session.
-  useEffect(
-    () => () => {
-      const c = live.current;
-      live.current = null;
-      if (c) c.p.disconnect().catch(() => {});
-    },
-    []
-  );
   if (!evm && !sol) return null;
-  const drop = () => {
-    const c = live.current;
-    live.current = null;
-    setAcct('');
-    if (c) c.p.disconnect().catch(() => {});
-  };
+  const acct = evm ? w.acct : '';
   const go = async () => {
-    if (busy) return;
+    if (busy || (evm && w.busy)) return;
     triggerHaptic('selection');
     setBusy(true);
     let ok = false;
@@ -173,26 +105,25 @@ export function ConnectBtn({ order, show, onFail }) {
       setStep(s);
     };
     try {
-      if (evm && live.current) {
-        await sendEvm(live.current.p, live.current.from, evm, mark);
-        ok = true;
-      } else if (evm) {
-        const c = await connectEvm(evm, order.wc, mark);
-        live.current = c;
-        setAcct(c.from);
+      if (evm && !w.acct) {
+        await w.connect({ chainId: evm.chainId, projectId: order.wc, mark });
         setBusy(false);
         setStep('');
         return;
+      }
+      if (evm) {
+        await w.send(evm, mark, tryOpen);
       } else {
         await sendSol(order);
-        ok = true;
       }
+      ok = true;
     } catch (e) {
       why = String(e?.message || e?.code || e || '').slice(0, 80); // DEBUG
     }
     setBusy(false);
     setStep('');
-    if (evm) drop();
+    // A wallet that never answered is likely a dead session: drop it so the next try starts clean.
+    if (evm && !ok && /no answer/.test(why)) w.disconnect();
     if (ok) {
       show(t('pay.sent'));
       return;
@@ -201,10 +132,11 @@ export function ConnectBtn({ order, show, onFail }) {
     if (onFail) onFail(!evm);
   };
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
+  const working = busy || (evm && w.busy);
   return (
-    <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={busy} onClick={go}>
-      {busy && <Spin />}
-      {acct ? `${t('pay.sendNow')}${busy ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
+    <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={working} onClick={go}>
+      {working && <Spin />}
+      {acct ? `${t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
       {busy && step ? ` \u00b7 ${step}` : ''}
     </button>
   );

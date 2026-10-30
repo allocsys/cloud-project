@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
 import { useApi } from '@/lib/api';
 import { useT } from '@/components/I18nProvider';
+import WalletPill from '@/components/WalletPill';
 
 // One small outline icon per screen, drawn on a 24 grid.
 const ICONS = {
@@ -24,7 +25,7 @@ export function HeadIcon({ kind }) {
   );
 }
 
-// The top bar of the tab screens: icon tile, title, bell. The Earnings screen has its own version with the balance pill.
+// The top bar of the tab screens: icon tile, title, wallet pill, bell. The Earnings screen has its own version with the balance pill.
 export default function PageHead({ title, icon }) {
   const t = useT();
   const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
@@ -38,6 +39,7 @@ export default function PageHead({ title, icon }) {
         </div>
       </div>
       <div className="topact">
+        <WalletPill />
         <Link
           href="/notifications"
           className="bell"
