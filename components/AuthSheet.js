@@ -62,7 +62,7 @@ function parseQuery() {
   }
 }
 
-export function AuthSheetProvider({ signedIn = false, children }) {
+export function AuthSheetProvider({ signedIn = false, showDemo = true, children }) {
   const router = useRouter();
   const t = useT();
   const [auth, setAuth] = useState(null); // null: closed. Otherwise how it opened: { signup } or { reset }
@@ -169,7 +169,7 @@ export function AuthSheetProvider({ signedIn = false, children }) {
                 <path d="M6 6l12 12M18 6L6 18" />
               </svg>
             </button>
-            <AuthForm key={n} init={auth} onDone={done} onLeave={leave} />
+            <AuthForm key={n} init={auth} onDone={done} onLeave={leave} showDemo={showDemo} />
           </div>
         </div>
       )}
