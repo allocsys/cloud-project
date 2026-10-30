@@ -64,7 +64,15 @@ async function sendWith(tx, projectId, mark) {
   if (p.session) await p.disconnect().catch(() => {});
   try {
     mark('connecting');
-    await p.connect();
+    try {
+      await p.connect();
+    } catch (e) {
+      // One more try on a slow link, but not when the buyer closed or refused it.
+      if (/reject|denied|declin|cancel|closed/i.test(String(e?.message || e))) throw e;
+      mark('retrying');
+      await new Promise((r) => setTimeout(r, 1500));
+      await p.connect();
+    }
     const from = p.accounts[0];
     if (!from) throw new Error('no account');
     if (p.chainId !== tx.chainId) {
@@ -77,6 +85,8 @@ async function sendWith(tx, projectId, mark) {
         ]);
       } catch {}
     }
+    // A short pause so a slow wallet is ready for the request.
+    await new Promise((r) => setTimeout(r, 1500));
     mark('sending');
     const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
     req.catch(() => {});
