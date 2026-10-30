@@ -105,7 +105,6 @@ export function ConnectBtn({ order, show, onFail }) {
   const t = useT();
   const w = useWallet();
   const [busy, setBusy] = useState(false);
-  const [step, setStep] = useState(''); // DEBUG: which step the connect is on
   const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for (also kept in localStorage)
   const key = String(order.id || order.uri || '');
   const evm = w && order.wc ? evmTx(order.uri) : null;
@@ -117,17 +116,12 @@ export function ConnectBtn({ order, show, onFail }) {
     triggerHaptic('selection');
     setBusy(true);
     let ok = false;
-    let at = '';
     let why = '';
-    const mark = (s) => {
-      at = s;
-      setStep(s);
-    };
+    const mark = () => {};
     try {
       if (evm && !w.acct) {
         await w.connect({ chainId: evm.chainId, projectId: order.wc, mark });
         setBusy(false);
-        setStep('');
         return;
       }
       if (evm) {
@@ -137,10 +131,9 @@ export function ConnectBtn({ order, show, onFail }) {
       }
       ok = true;
     } catch (e) {
-      why = String(e?.message || e?.code || e || '').slice(0, 80); // DEBUG
+      why = String(e?.message || e?.code || e || '').slice(0, 80);
     }
     setBusy(false);
-    setStep('');
     // A wallet that never answered is likely a dead session: drop it so the next try starts clean.
     if (evm && !ok && /no answer/.test(why)) w.disconnect();
     if (ok) {
@@ -149,7 +142,7 @@ export function ConnectBtn({ order, show, onFail }) {
       show(t('pay.sent'));
       return;
     }
-    if (evm) show(`${t('pay.notSent')} (${at}: ${why})`); // DEBUG: remove the brackets later
+    if (evm) show(t('pay.notSent'));
     if (onFail) onFail(!evm);
   };
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
@@ -166,7 +159,6 @@ export function ConnectBtn({ order, show, onFail }) {
     <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={working} onClick={go}>
       {working && <Spin />}
       {acct ? `${t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
-      {busy && step ? ` \u00b7 ${step}` : ''}
     </button>
   );
 }
