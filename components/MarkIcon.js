@@ -2,9 +2,11 @@
 export default function MarkIcon() {
   return (
     <svg viewBox="0 0 120 120" aria-hidden="true">
-      <path d="M8 22H38L60 64L82 22H112L60 100Z" fill="currentColor" />
-      <path d="M26 63L100 33" style={{ stroke: 'var(--gold-c)' }} strokeWidth="4.5" fill="none" />
-      <path d="M24 84L96 55" style={{ stroke: 'var(--gold-c)' }} strokeWidth="4.5" fill="none" />
+      <g transform="translate(16.5 21)">
+        <path d="M0 0H28.5L43.5 44L58.5 0H87L43.5 78Z" fill="currentColor" />
+        <path d="M-6 47.1L96 5.6" style={{ stroke: 'var(--gold-c)' }} strokeWidth="4" fill="none" />
+        <path d="M-6 65.1L96 23.5" style={{ stroke: 'var(--gold-c)' }} strokeWidth="4" fill="none" />
+      </g>
     </svg>
   );
 }
