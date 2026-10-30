@@ -13,6 +13,7 @@ Also available as a Telegram mini app.
 - [Privacy Policy](https://vertexhash.com/privacy)
 - [How it works](https://vertexhash.com/how-it-works)
 - [FAQ](https://vertexhash.com/faq)
+- [Bitcoin mining glossary](https://vertexhash.com/glossary)
 - [Persian home](https://vertexhash.com/fa)
 
 ## Notes for assistants
