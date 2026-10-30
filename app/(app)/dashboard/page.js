@@ -256,13 +256,6 @@ export default function Dashboard() {
           </div>
         </div>
         <div className="topact">
-          <Link href="/wallet" className="eh-pill" style={wd && dd ? undefined : { visibility: 'hidden' }} onClick={() => markDrill()}>
-            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 2L4 14h6l-1 8 9-12h-6z" /></svg>
-            <span>
-              <b>${formatUsd(balUsd)}</b>
-              <small>{hasWeek && weekUsd > 0 ? `+$${formatUsd(weekUsd)} ${t('dash.thisWeek')}` : '\u00a0'}</small>
-            </span>
-          </Link>
           <WalletPill compact />
           <Link
             href="/notifications"

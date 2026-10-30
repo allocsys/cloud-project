@@ -436,10 +436,6 @@ input::placeholder { color: var(--ph); }
 .eh-logo svg { width: 20px; height: 20px; }
 .eh-ttl { min-width: 0; }
 .eh-ttl small { display: block; min-height: 16px; font-size: 12px; line-height: 16px; color: var(--mute); }
-.eh-pill { display: flex; align-items: center; gap: 4px; min-width: 0; padding: 2px 7px; padding-inline-end: 9px; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--text); text-decoration: none; }
-.eh-pill svg { width: 12px; height: 12px; flex: none; fill: var(--gold); }
-.eh-pill b { display: block; font-size: 13px; line-height: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
-.eh-pill small { display: block; min-height: 12px; font-size: 10px; line-height: 12px; color: var(--green); white-space: nowrap; font-variant-numeric: tabular-nums; }
 .eh-wal { position: relative; display: flex; align-items: center; gap: 5px; height: 30px; padding: 0 11px; padding-inline-start: 9px; flex: none; border-radius: 20px; border: 1px solid rgba(233, 196, 106, 0.35); background: rgba(233, 196, 106, 0.08); color: var(--gold); font: inherit; font-size: 12px; font-weight: 600; line-height: 1; white-space: nowrap; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .eh-wal:active { background: rgba(233, 196, 106, 0.18); }
 .eh-wal:disabled { opacity: 0.7; cursor: default; }
