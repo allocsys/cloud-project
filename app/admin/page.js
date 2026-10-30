@@ -290,6 +290,62 @@ function GuardCard({ guard, busy, run }) {
   );
 }
 
+// Reviews on the landing page: real ones only, added by hand. Rules in lib/reviews.js, storage in lib/server/reviews.js.
+const REVIEW_EMPTY = { id: '', name: '', country: '', stars: '5', source: '', url: '', text: '' };
+function ReviewsCard({ reviews, busy, run }) {
+  const list = reviews || [];
+  const [d, setD] = useState(REVIEW_EMPTY);
+  const put = (k, v) => setD((x) => ({ ...x, [k]: v }));
+  const save = async () => {
+    if (await run({ action: 'review-save', ...d }, d.id ? 'Review saved' : 'Review added')) setD(REVIEW_EMPTY);
+  };
+  return (
+    <Fold title="Reviews" sub={list.length ? `${list.length} shown on the landing page` : 'Hidden (none yet)'}>
+      <p className="fine" style={{ margin: '0 0 4px' }}>Real reviews only, each with where it came from. Add the ones you get, good and bad, and word for word.</p>
+      <div className="adm-2col">
+        <Field id="rvn" label="Name or initials" value={d.name} onChange={(v) => put('name', v)} maxLength={30} />
+        <Field id="rvc" label="Country (2 letters)" value={d.country} onChange={(v) => put('country', v.toUpperCase())} maxLength={2} />
+      </div>
+      <div className="adm-2col">
+        <Pick id="rvs" label="Stars" value={d.stars} onChange={(v) => put('stars', v)}>
+          {[5, 4, 3, 2, 1].map((n) => (
+            <option key={n} value={String(n)}>{n}</option>
+          ))}
+        </Pick>
+        <Field id="rvo" label="Source (Trustpilot...)" value={d.source} onChange={(v) => put('source', v)} maxLength={30} />
+      </div>
+      <Field id="rvu" label="Link to the review (optional)" inputMode="url" value={d.url} onChange={(v) => put('url', v)} maxLength={300} />
+      <Field id="rvt" label="Review text (up to 280)" value={d.text} onChange={(v) => put('text', v)} maxLength={280} />
+      <div className="adm-actions">
+        {d.id && <button className="btn ghost" onClick={() => setD(REVIEW_EMPTY)}>Cancel</button>}
+        <button className="btn" disabled={busy} onClick={save}>{d.id ? 'Save' : 'Add review'}</button>
+      </div>
+      {list.map((r) => (
+        <div className="row adm-m" key={r.id}>
+          <div>
+            {r.name} · {r.country} · {'\u2605'.repeat(r.stars)}
+            <small>{r.source} · {r.text}</small>
+          </div>
+          <div className="adm-btns">
+            <button className="btn ghost" disabled={busy} onClick={() => setD({ ...REVIEW_EMPTY, ...r, stars: String(r.stars) })}>Edit</button>
+            <button
+              className="btn ghost"
+              disabled={busy}
+              onClick={async () => {
+                if (!(await ask('Delete this review?', { ok: 'Delete', danger: true }))) return;
+                run({ action: 'review-delete', id: r.id }, 'Review deleted');
+              }}
+            >
+              Delete
+            </button>
+          </div>
+        </div>
+      ))}
+      <How><p className="fine">The section shows on the landing page as soon as there is one review, and is hidden with none. The average rating appears from 5 reviews. A review that is too long is refused, not cut. A link makes the source name tappable.</p></How>
+    </Fold>
+  );
+}
+
 // First-buy bonus: extra hashrate on a user's first purchase paid with crypto. Rules in lib/first-bonus.js, storage in lib/server/first-bonus.js.
 const fbDraft = (v) => ({ pct: String(v.pct), capTh: String(v.capTh), capUsd: String(v.capUsd), minUsd: String(v.minUsd), until: v.until ? new Date(v.until).toISOString().slice(0, 10) : '' });
 function FirstBonusCard({ fb, busy, run }) {
@@ -1269,6 +1325,7 @@ export default function Admin() {
               </button>
             </div>
           </Fold>
+          <ReviewsCard reviews={data.reviews} busy={busy} run={run} />
           <Fold title="Admin password" sub="Change the sign-in password">
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
             <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
