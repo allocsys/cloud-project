@@ -6,7 +6,7 @@ import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
 import { triggerHaptic } from '@/lib/haptics';
 
-const WALLET = 'M3 7a2 2 0 012-2h13v3M3 7v10a2 2 0 002 2h15V8H5a2 2 0 01-2-1zM16 13.5h2';
+const WALLET = 'M19 7V4a1 1 0 00-1-1H5a2 2 0 000 4h15a1 1 0 011 1v4h-3a2 2 0 000 4h3a1 1 0 001-1v-2a1 1 0 00-1-1M3 5v14a2 2 0 002 2h15a1 1 0 001-1v-4';
 const CROSS = 'M6 6l12 12M18 6L6 18';
 
 export default function WalletPill({ compact = false }) {
