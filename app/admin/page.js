@@ -909,9 +909,54 @@ function GatewayTab({ pp, run, lock, g, reload }) {
   );
 }
 
-// Database tab: a read-only look at the app's own Postgres (lib/server/db-admin.js). Nothing here changes data; JSON and secret-looking columns are not shown in full.
+// Database tab: a read-only look at the app's own Postgres (lib/server/db-admin.js); JSON and secret-looking columns are not shown in full.
+// The Backup card (lib/server/db-backup.js) downloads the whole database and can restore a file: a safety copy downloads first, then RESTORE must be typed.
 const bytesText = (n) => (n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 const secsText = (s) => (s < 90 ? `${s}s` : `${Math.round(s / 60)} min`);
+
+const saveBlob = (blob, name) => {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 10000);
+};
+
+// Downloads the whole database as a file. Returns { ok } or { ok: false, error }.
+async function downloadBackup() {
+  try {
+    const r = await fetch('/api/admin/database?backup=1', { cache: 'no-store' });
+    if (!r.ok) {
+      let j = {};
+      try {
+        j = await r.json();
+      } catch {}
+      return { ok: false, error: j.error || 'Could not make the backup.' };
+    }
+    const m = /filename="([^"]+)"/.exec(r.headers.get('Content-Disposition') || '');
+    saveBlob(await r.blob(), m ? m[1] : 'vertexhash-backup.gz');
+    return { ok: true };
+  } catch {
+    return { ok: false, error: 'No connection. Try again.' };
+  }
+}
+
+// Sends a backup file (the request body) for ?action=inspect or ?action=restore&confirm=RESTORE.
+async function sendBackupFile(file, query) {
+  try {
+    const r = await fetch(`/api/admin/database?${query}`, { method: 'POST', headers: { 'Content-Type': 'application/gzip' }, body: file, cache: 'no-store' });
+    let j = {};
+    try {
+      j = await r.json();
+    } catch {}
+    return { ...j, status: r.status };
+  } catch {
+    return { ok: false, error: 'No connection. Try again.' };
+  }
+}
 
 function DatabaseTab() {
   const [d, setD] = useState(null);
@@ -931,6 +976,56 @@ function DatabaseTab() {
   useEffect(() => {
     load();
   }, [load]);
+  const [bk, setBk] = useState(false); // a backup step is running
+  const [file, setFile] = useState(null); // the backup file picked for a restore
+  const [info, setInfo] = useState(null); // what the picked file holds
+  const fileRef = useRef(null);
+  const backup = async () => {
+    setBk(true);
+    const r = await downloadBackup();
+    setBk(false);
+    if (!r.ok) tell(r.error);
+  };
+  const choose = async (e) => {
+    const f = e.target.files?.[0];
+    e.target.value = '';
+    setFile(null);
+    setInfo(null);
+    if (!f) return;
+    setBk(true);
+    const r = await sendBackupFile(f, 'action=inspect');
+    setBk(false);
+    if (!r.ok) {
+      tell(r.error || 'Could not read the file.');
+      return;
+    }
+    setFile(f);
+    setInfo(r);
+  };
+  const restore = async () => {
+    if (!file || !info) return;
+    if (!(await ask('This replaces ALL current data with the backup. A safety copy of the current data downloads first.', { ok: 'Continue', danger: true }))) return;
+    setBk(true);
+    const safe = await downloadBackup();
+    setBk(false);
+    if (!safe.ok) {
+      tell(`Safety copy failed, nothing changed. ${safe.error}`);
+      return;
+    }
+    const typed = await askText('Type RESTORE to replace all data.', { label: 'RESTORE', required: true, ok: 'Restore', danger: true });
+    if (typed === null) return;
+    setBk(true);
+    const r = await sendBackupFile(file, `action=restore&confirm=${encodeURIComponent(typed)}`);
+    setBk(false);
+    if (!r.ok) {
+      tell(r.error || 'Restore failed. Nothing changed.');
+      return;
+    }
+    setFile(null);
+    setInfo(null);
+    await tell(`Restored ${r.rows.toLocaleString('en-US')} rows in ${r.tables} tables. If the page asks, sign in again.`);
+    load();
+  };
   const pickTable = async (name) => {
     if (open === name) {
       setOpen(null);
@@ -1019,6 +1114,23 @@ function DatabaseTab() {
             <b style={r.secs > 30 ? WARN : undefined}>{secsText(r.secs)}</b>
           </div>
         ))}
+      </Fold>
+
+      <Fold title="Backup" sub="Download or restore">
+        <div className="adm-form">
+          <p className="fine" style={{ margin: '0 0 8px' }}>All app data in one file. The deposit gateway has its own database and is not in it. Keep the file private.</p>
+          <button className="btn" disabled={bk} onClick={backup}>{bk ? 'Working…' : 'Download backup'}</button>
+          <button className="btn ghost" style={{ marginTop: 8 }} disabled={bk} onClick={() => fileRef.current?.click()}>Restore from a file</button>
+          <input ref={fileRef} type="file" hidden onChange={choose} />
+          {info && (
+            <>
+              <div className="row"><span className="mute">Backup from</span><b>{when(info.at)}</b></div>
+              <div className="row"><span className="mute">Rows in backup</span><b>{info.rows.toLocaleString('en-US')}</b></div>
+              <div className="row"><span className="mute">Rows now</span><b>{info.now.toLocaleString('en-US')}</b></div>
+              <button className="btn danger" style={{ marginTop: 8 }} disabled={bk} onClick={restore}>Restore this backup</button>
+            </>
+          )}
+        </div>
       </Fold>
 
       <Fold title="Migrations" sub={m.pending.length ? `${m.pending.length} not applied` : `${m.applied} of ${m.total} applied`} start={m.pending.length > 0}>
