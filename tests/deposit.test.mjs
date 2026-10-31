@@ -138,6 +138,19 @@ test('a finished payment credits the balance once, even when told twice, and sta
   });
 });
 
+test('a deposit paid above the amount asked credits only the dollars of the order', async () => {
+  const id = await account('over');
+  await withEnv(NOW_ENV, async () => {
+    const r = await miners.startDeposit({ usd: 50 }, { userId: id, key: 'k-over' });
+    assert.ok(r.ok);
+    assert.ok((await miners.settleOrder(hook(r.order, { network: 'btc', pay_amount: '0.00050000', actually_paid: '0.00090000' }))).ok);
+    const { prices } = await getPrices();
+    const { ceilCoin } = await import('@/lib/assets');
+    assert.equal((await getUser(id)).deposited, ceilCoin('btc', 50 / prices.btc));
+    assert.equal((await orderRows(id))[0].status, 'paid');
+  });
+});
+
 test('a payment that does not match the order is held for review and credits nothing', async () => {
   const id = await account('short');
   await withEnv(NOW_ENV, async () => {
