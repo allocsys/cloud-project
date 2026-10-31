@@ -183,6 +183,26 @@ test('two senders at once send each row exactly once', { skip }, async () => {
   }
 });
 
+test('a row far down a slow batch gets a fresh lease before its own send', { skip }, async () => {
+  const rows = await Promise.all(Array.from({ length: 3 }, () => mk()));
+  const leaseLeft = async (id) => Number((await q('SELECT extract(epoch FROM next_try_at - now()) AS s FROM webhook_outbox WHERE id = $1', [id])).rows[0].s);
+  const seen = [];
+  const app = fakeApp(async (init, count) => {
+    const ref = JSON.parse(init.body).order_id;
+    if (count === 1) {
+      // The first send is slow: by now the leases the claim gave the other rows are nearly used up.
+      const rest = rows.filter((o) => o.ref !== ref).map((o) => o.id);
+      await q("UPDATE webhook_outbox SET next_try_at = now() + interval '1 second' WHERE id = ANY($1::bigint[])", [rest]);
+    } else seen.push(await leaseLeft(rows.find((o) => o.ref === ref).id));
+    return 200;
+  });
+  await deliverDue({ target, fetchImpl: app.fetchImpl, limit: 500, log: quiet });
+  assert.equal(app.calls.length, 3);
+  assert.equal(seen.length, 2);
+  for (const s of seen) assert.ok(s > 50, `lease left when sending: ${s}s`);
+  for (const o of rows) assert.ok((await row(o.id)).delivered_at);
+});
+
 test('without a target nothing is sent', { skip }, async () => {
   const saved = [process.env.APP_WEBHOOK_URL, process.env.GATEWAY_WEBHOOK_SECRET];
   delete process.env.APP_WEBHOOK_URL;
