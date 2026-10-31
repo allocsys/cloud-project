@@ -926,7 +926,8 @@ function GatewayTab({ pp, run, lock, g, reload }) {
   );
 }
 
-// Database tab: a read-only look at the app's own Postgres (lib/server/db-admin.js); JSON and secret-looking columns are not shown in full.
+// Database tab: a look at the app's own Postgres (lib/server/db-admin.js); JSON and secret-looking columns are not shown in full.
+// A row can be deleted, a table cleared (name typed), and a table the app does not use dropped (name typed); the server enforces the limits.
 // The Backup card (lib/server/db-backup.js) downloads the whole database and can restore a file: a safety copy downloads first, then RESTORE must be typed.
 const bytesText = (n) => (n >= 1073741824 ? `${(n / 1073741824).toFixed(1)} GB` : n >= 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`);
 const secsText = (s) => (s < 90 ? `${s}s` : `${Math.round(s / 60)} min`);
@@ -1057,6 +1058,55 @@ function DatabaseTab() {
       setRows({ ok: false, error: 'No connection. Try again.' });
     }
   };
+  const refreshRows = async (name) => {
+    try {
+      setRows(await call('GET', `/api/admin/database?table=${encodeURIComponent(name)}`));
+    } catch {
+      setRows({ ok: false, error: 'No connection. Try again.' });
+    }
+  };
+  const removeRow = async (name, key) => {
+    const label = Object.values(key).join(' · ').slice(0, 40);
+    if (!(await ask(`Delete ${label} from ${name}? It cannot be undone.`, { ok: 'Delete', danger: true }))) return;
+    setBusy(true);
+    const r = await call('DELETE', `/api/admin/database?table=${encodeURIComponent(name)}&mode=row`, { key });
+    setBusy(false);
+    if (!r.ok) {
+      tell(r.error || 'Could not delete.');
+      return;
+    }
+    await refreshRows(name);
+    load();
+  };
+  const clearIt = async (name) => {
+    const typed = await askText(`Delete ALL rows of ${name}? It cannot be undone. Type the table name to confirm.`, { label: name, required: true, ok: 'Clear', danger: true });
+    if (typed === null) return;
+    setBusy(true);
+    const r = await call('DELETE', `/api/admin/database?table=${encodeURIComponent(name)}&mode=clear&confirm=${encodeURIComponent(typed)}`);
+    setBusy(false);
+    if (!r.ok) {
+      tell(r.error || 'Could not clear.');
+      return;
+    }
+    await refreshRows(name);
+    await tell(`Removed ${Number(r.removed).toLocaleString('en-US')} rows from ${name}.`);
+    load();
+  };
+  const dropIt = async (name) => {
+    const typed = await askText(`Delete the table ${name} for good? It cannot be undone. Type the table name to confirm.`, { label: name, required: true, ok: 'Delete table', danger: true });
+    if (typed === null) return;
+    setBusy(true);
+    const r = await call('DELETE', `/api/admin/database?table=${encodeURIComponent(name)}&mode=drop&confirm=${encodeURIComponent(typed)}`);
+    setBusy(false);
+    if (!r.ok) {
+      tell(r.error || 'Could not delete the table.');
+      return;
+    }
+    setOpen(null);
+    setRows(null);
+    await tell(`Table ${name} deleted.`);
+    load();
+  };
   if (!d) return <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>;
   if (!d.ok) {
     return (
@@ -1110,8 +1160,19 @@ function DatabaseTab() {
                             <small key={k} className="serial" style={{ wordBreak: 'break-all' }}>{k}: {r[k] === null || r[k] === undefined ? '—' : String(r[k])}</small>
                           ))}
                         </div>
+                        {rows.canDelete && rows.keys?.[i] && (
+                          <button className="swap" style={SM} disabled={busy} onClick={() => removeRow(t.name, rows.keys[i])}>Delete</button>
+                        )}
                       </div>
                     ))}
+                    {rows.locked && <p className="fine" style={{ margin: '8px 0 0' }}>Protected. Nothing here can be changed.</p>}
+                    {!rows.locked && rows.total > 0 && !rows.canDelete && <p className="fine" style={{ margin: '8px 0 0' }}>No row id here, so rows can only be cleared all at once.</p>}
+                    {!rows.locked && (
+                      <div style={{ marginTop: 8 }}>
+                        {rows.total > 0 && <button className="btn danger" disabled={busy} onClick={() => clearIt(t.name)}>Clear table</button>}
+                        {!rows.core && <button className="btn danger" style={{ marginTop: 8 }} disabled={busy} onClick={() => dropIt(t.name)}>Delete table</button>}
+                      </div>
+                    )}
                   </>
                 )}
               </div>
