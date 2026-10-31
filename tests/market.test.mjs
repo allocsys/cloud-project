@@ -10,7 +10,7 @@ const NOW = Date.parse('2026-10-20T12:00:00Z'); // half way through 20 Oct
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not within ${eps} of ${b}`);
 
 // A 100 TH/s miner in the Iceland hall (15 J/TH, $0.05/kWh: electricity 0.018, maintenance 0.002 per TH/s per day).
-const miner = { serial: 'OP-T', name: 'Growth 100 TH/s', th: 100, hall: 'is-2', days: 180, startedAt: D17, online: true, dailyUsd: 1.98 };
+const miner = { serial: 'VTX-T', name: 'Growth 100 TH/s', th: 100, hall: 'is-2', days: 180, startedAt: D17, online: true, dailyUsd: 1.98 };
 const market = {
   halls,
   days: {
