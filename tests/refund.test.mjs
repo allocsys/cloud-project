@@ -39,7 +39,7 @@ async function buy(id) {
   return r.contract.serial;
 }
 const refund = (userId, serial) => act({ action: 'miner', userId, serial, op: 'refund' });
-const gift = (n) => ({ serial: `OP-G${run}${n}`, bonus: true, name: 'Welcome 5 TH/s', th: 5, hall: 'tx-1', days: 30, dailyUsd: 0.1, price: 0, startedAt: Date.now(), online: true, status: 'active' });
+const gift = (n) => ({ serial: `VTX-G${run}${n}`, bonus: true, name: 'Welcome 5 TH/s', th: 5, hall: 'tx-1', days: 30, dailyUsd: 0.1, price: 0, startedAt: Date.now(), online: true, status: 'active' });
 
 before(async () => {
   await migrate();
@@ -79,7 +79,7 @@ test('a refund cannot be taken twice, and an unknown miner is refused', async ()
   const serial = await buy(id);
   assert.ok((await refund(id, serial)).ok);
   assert.equal((await refund(id, serial)).status, 404);
-  assert.equal((await refund(id, 'OP-0000000')).status, 404);
+  assert.equal((await refund(id, 'VTX-0000000')).status, 404);
   assert.equal((await refund(`nobody-${run}@test.dev`, serial)).status, 404);
 });
 
@@ -131,7 +131,7 @@ test('granted miners, welcome gifts and the demo account are not refunded', asyn
   assert.equal(r2.status, 409);
   assert.match(r2.error, /gift/);
 
-  assert.equal((await refund('demo', 'OP-0000001')).ok, false);
+  assert.equal((await refund('demo', 'VTX-0000001')).ok, false);
   assert.equal((await getUser(id)).contracts.length, 2, 'nothing was removed');
   assert.equal((await q("SELECT count(*)::int AS n FROM ledger WHERE user_id = $1 AND kind = 'adjust'", [id])).rows[0].n, 0, 'nothing was paid');
 });
