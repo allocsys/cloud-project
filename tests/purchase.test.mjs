@@ -248,6 +248,27 @@ test('a payment a few cents under the price is accepted, and so is an overpaymen
   }
 });
 
+test('a gateway payment short of the amount asked is held; one over it starts one miner and books only the price', async () => {
+  const plan = starter();
+  const short = await account('gw-short');
+  const os = await order(short, plan);
+  assert.ok((await miners.settleOrder(hook(os, { network: 'btc', pay_amount: '0.00050000', actually_paid: '0.00040000' }))).ok);
+  assert.equal(await statusOf(os.id), 'review');
+  assert.equal((await getUser(short)).contracts.length, 0);
+  assert.equal((await ledgerRows(short, 'payment')).length, 0);
+
+  for (const [name, paid] of [['exact', '0.00050000'], ['over', '0.00090000']]) {
+    const id = await account(`gw-${name}`);
+    const o = await order(id, plan);
+    assert.ok((await miners.settleOrder(hook(o, { network: 'btc', pay_amount: '0.00050000', actually_paid: paid }))).ok, name);
+    assert.equal(await statusOf(o.id), 'paid', name);
+    assert.equal((await getUser(id)).contracts.length, 1, name);
+    const rows = await ledgerRows(id, 'payment');
+    assert.equal(rows.length, 1, name);
+    assert.equal(Number(rows[0].usd), plan.price, `${name}: only the price is booked`);
+  }
+});
+
 test('a person can approve a held order once, or reject it, and only for its owner', async () => {
   const plan = starter();
   const id = await account('rv');
