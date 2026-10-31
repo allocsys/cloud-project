@@ -1,5 +1,5 @@
 // Starting a crypto payment against a real Postgres, with the payment provider replaced by a stub: the order is reserved,
-// the invoice is asked for once, a failed provider leaves nothing behind, a double tap makes one order, and a callback
+// the invoice is asked for once, a failed provider keeps the order as expired (a late payment still settles it), a double tap makes one order, and a callback
 // afterwards starts the miner. No request ever leaves the machine for the provider; other URLs (prices) pass through.
 import { test, before, after, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
@@ -169,17 +169,21 @@ test('the same Idempotency-Key gives the same order and one invoice, even when s
   });
 });
 
-test('a provider that fails leaves no order behind, and the same key can be tried again', async () => {
+test('a provider that fails keeps the order as expired, the same key can be tried again, and a late payment still settles it', async () => {
   const id = await account('fail');
   await withEnv(NOW_ENV, async () => {
     const quiet = console.error;
     console.error = () => {};
     try {
+      let failed = 0;
       for (const bad of [() => json({ message: 'down' }, 500), () => json({ id: 'x' }, 200), () => Promise.reject(new Error('network down'))]) {
         reply = bad;
         const r = await pay(id, 'k-fail');
         assert.equal(r.status, 502);
-        assert.equal((await orderRows(id)).length, 0, 'the reserved order is removed');
+        failed += 1;
+        const rows = await orderRows(id);
+        assert.equal(rows.length, failed, 'the reserved order is kept');
+        assert.ok(rows.every((x) => x.status === 'expired' && x.data.status === 'expired'), 'as expired');
       }
     } finally {
       console.error = quiet;
@@ -187,8 +191,16 @@ test('a provider that fails leaves no order behind, and the same key can be trie
     reply = nowInvoice;
     const ok = await pay(id, 'k-fail');
     assert.equal(ok.status, 200, JSON.stringify(ok));
-    assert.equal((await orderRows(id)).length, 1);
+    const rows = await orderRows(id);
+    assert.equal(rows.length, 4);
+    assert.equal(rows.filter((x) => x.status === 'pending').length, 1);
     assert.equal(calls.length, 4);
+
+    // The provider may have made an invoice before the failure: if that one is paid, the miner still starts, once.
+    const lost = rows.find((x) => x.status === 'expired');
+    for (let i = 0; i < 2; i += 1) assert.ok((await miners.settleOrder(hook(lost.data))).ok);
+    assert.equal((await getUser(id)).contracts.length, 1);
+    assert.equal((await orderRows(id)).find((x) => x.id === lost.id).status, 'paid');
   });
 });
 
