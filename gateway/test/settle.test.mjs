@@ -172,13 +172,13 @@ test('money that arrives after the outcome is recorded and audited, but changes 
   assert.equal(await audits(inv.id, 'payment.late'), 1);
 });
 
-test('a payment unconfirmed at expiry is waited for, up to 24 hours', { skip }, async () => {
+test('a payment unconfirmed at expiry is waited for, up to 1 hour', { skip }, async () => {
   const a = await mk();
-  assert.equal((await observe(a.id, [pay('n', 50000, 0)], future(a, 1))).status, 'confirming');
-  assert.equal((await observe(a.id, [pay('n', 50000, 1)], future(a, 2))).status, 'paid');
+  assert.equal((await observe(a.id, [pay('n', 50000, 0)], future(a, 0.25))).status, 'confirming');
+  assert.equal((await observe(a.id, [pay('n', 50000, 1)], future(a, 0.5))).status, 'paid');
   const b = await mk();
-  assert.equal((await observe(b.id, [pay('o', 50000, 0)], future(b, 23))).status, 'confirming');
-  assert.equal((await observe(b.id, [pay('o', 50000, 0)], future(b, 25))).status, 'expired');
+  assert.equal((await observe(b.id, [pay('o', 50000, 0)], future(b, 0.5))).status, 'confirming');
+  assert.equal((await observe(b.id, [pay('o', 50000, 0)], future(b, 1.5))).status, 'expired');
 });
 
 test('ten parallel observations queue one callback', { skip }, async () => {
