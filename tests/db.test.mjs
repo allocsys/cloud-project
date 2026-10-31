@@ -79,11 +79,15 @@ test('meta updates queue up instead of overwriting each other', async () => {
   assert.equal((await q('SELECT data FROM meta WHERE key = $1', [key])).rows[0].data, 15);
 });
 
-test('sign-in lockout counts concurrent failures and clears', async () => {
+test('sign-in lockout counts concurrent attempts exactly, gives one back, and clears', async () => {
   const k = `ip-${run}`;
-  assert.equal(await auth.throttled(k), false);
-  await many(8, () => auth.noteFail(k));
-  assert.equal(await auth.throttled(k), true);
+  const first = await many(8, () => auth.reserve(k));
+  assert.ok(first.every((over) => over === false), 'eight attempts are allowed');
+  assert.equal(await auth.reserve(k), true, 'the ninth is over the limit');
+  await auth.giveBack(k);
+  await auth.giveBack(k);
+  assert.equal(await auth.reserve(k), false, 'attempts given back are not counted');
   await auth.clearFails(k);
-  assert.equal(await auth.throttled(k), false);
+  assert.equal(await auth.reserve(k), false);
+  await auth.clearFails(k);
 });
