@@ -6,7 +6,7 @@
 //  - Only payments with enough confirmations count. Smaller ones show the invoice as 'confirming'.
 //  - Confirmed total >= expected  ->  'paid' (overpaying is fine and recorded), event 'finished'.
 //  - After the invoice expires: some confirmed money -> 'partial' (event 'partially_paid'); none -> 'expired' (event 'expired').
-//    If a payment is still unconfirmed at expiry we wait for it, but at most 24 hours.
+//    If a payment is still unconfirmed at expiry we wait for it, but at most 1 hour.
 //  - Once an event is queued the outcome never changes. Money that arrives later is recorded and audited ('payment.late').
 //  - Calling observe() again with the same data changes nothing (idempotent). Never call it when the chain lookup failed:
 //    an empty list means "nothing on chain", and unconfirmed payments missing from it are dropped.
@@ -16,7 +16,7 @@ import { q, tx } from './db.js';
 import { CHAINS } from './chains/index.js';
 import { fmtAtomic } from './invoices.js';
 
-const GRACE_MS = 24 * 3_600_000;
+const GRACE_MS = 3_600_000; // how long an invoice stays open past expiry for a payment that is still unconfirmed
 const OPEN = ['pending', 'confirming', 'partial'];
 const HEX_TXID = /^(0x)?[0-9a-fA-F]{64}$/; // Bitcoin, Ethereum-style chains, Tron
 const B58_TXID = /^[1-9A-HJ-NP-Za-km-z]{64,90}$/; // Solana signatures
