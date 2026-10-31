@@ -135,6 +135,9 @@ export default function Wallet() {
   // What the online miners added since the server worked out the wallet (asOf): same maths as the dashboard.
   const mined = useAccrued(dailyUsd, wd ? wd.asOf : null);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
+  const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
+  const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
+  const [code, setCode] = useState('');
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
@@ -341,11 +344,12 @@ export default function Wallet() {
     else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
     if (!N.pattern.test(address.trim())) next.address = t('wal.errAddr', { net: N.label });
+    if (tf && !code.trim()) next.code = t('wal.errCode');
 
-    if (next.amount || next.address) {
+    if (next.amount || next.address || next.code) {
       triggerHaptic('error');
       setErrors(next);
-      const el = document.getElementById(next.amount ? 'wa' : 'wd');
+      const el = document.getElementById(next.amount ? 'wa' : next.address ? 'wd' : 'wc');
       if (el) el.focus();
       return;
     }
@@ -373,18 +377,19 @@ export default function Wallet() {
     });
 
     try {
-      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim() }, uid());
+      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(tf ? { code: code.trim() } : {}) }, uid());
       refresh().catch(() => {});
       triggerHaptic('success');
       setAmount('');
       setAddress('');
+      setCode('');
       show(t('wal.requested'));
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
       triggerHaptic('error');
       const msg = e.status ? e.message : t('common.noConnection');
-      setErrors({ [e.field === 'address' ? 'address' : 'amount']: msg });
+      setErrors({ [e.field === 'address' ? 'address' : e.field === 'code' ? 'code' : 'amount']: msg });
     } finally {
       setBusy(false);
     }
@@ -520,6 +525,27 @@ export default function Wallet() {
                 </div>
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
+
+                {tf && (
+                  <Field id="wc" label={t('wal.code')} error={errors.code}>
+                    <input
+                      id="wc"
+                      className={errors.code ? 'bad' : undefined}
+                      aria-invalid={!!errors.code}
+                      aria-describedby={errors.code ? 'wc-err' : undefined}
+                      placeholder="123456"
+                      autoComplete="one-time-code"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      spellCheck="false"
+                      value={code}
+                      onChange={(e) => {
+                        setCode(e.target.value);
+                        if (errors.code) setErrors({ ...errors, code: undefined });
+                      }}
+                    />
+                  </Field>
+                )}
 
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? t('wal.sending') : t('wal.withdraw')}
