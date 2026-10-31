@@ -1,7 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fmtTh, fmtUsd } from '@/lib/data';
-import { formatSerial } from '@/lib/contracts';
 import { useToast } from '@/components/Toast';
 import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
 import { smartHallFor } from '@/lib/smart-halls';
@@ -1590,7 +1589,7 @@ export default function Admin() {
             <h3>System</h3>
             <div className="row"><span className="mute">Storage</span><b>{mode}</b></div>
             <div className="row"><span className="mute">BTC fallback price</span><b>${btcUsd.toLocaleString()}</b></div>
-            <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{formatSerial(serial)}</b></div>
+            <div className="row"><span className="mute">Latest miner ID</span><b className="serial">{serial}</b></div>
           </div>
           <div className="card">
             <h3>Recent changes</h3>
