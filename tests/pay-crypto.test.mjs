@@ -289,11 +289,15 @@ test('gateway answers that are errors or incomplete fail the payment cleanly', a
     console.error = () => {};
     try {
       const full = { id: 'g1', address: 'bc1qx', uri: 'bitcoin:bc1qx', amount: '0.1' };
-      for (const bad of [() => json({ error: 'no price' }, 503), () => json({ error: 'conflict' }, 409), () => json({ invoice: { ...full, uri: undefined } }, 200), () => json({}, 200)]) {
+      const bads = [() => json({ error: 'no price' }, 503), () => json({ error: 'conflict' }, 409), () => json({ invoice: { ...full, uri: undefined } }, 200), () => json({}, 200)];
+      for (const [i, bad] of bads.entries()) {
         reply = bad;
-        assert.equal((await pay(id, 'k-gwbad')).status, 502);
-        assert.equal((await orderRows(id)).length, 0);
+        assert.equal((await pay(id, `k-gwbad-${i}`)).status, 502);
+        const rows = await orderRows(id);
+        assert.equal(rows.length, i + 1);
+        assert.ok(rows.every((o) => o.status === 'expired'));
       }
+      assert.equal((await getUser(id)).contracts.length, 0);
     } finally {
       console.error = quiet;
     }
