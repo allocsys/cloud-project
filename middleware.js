@@ -12,9 +12,10 @@ export function middleware(req) {
   if (lang) {
     const url = req.nextUrl.clone();
     url.pathname = base;
+    const had = req.cookies.get(LANG_COOKIE)?.value;
     req.cookies.set(LANG_COOKIE, lang); // this request already renders in it
     const res = NextResponse.rewrite(url, { request: req });
-    res.cookies.set(LANG_COOKIE, lang, KEEP);
+    if (had !== lang) res.cookies.set(LANG_COOKIE, lang, KEEP); // a visitor who already has it gets no Set-Cookie, so the page can be cached
     return res;
   }
   const q = req.nextUrl.searchParams.get('lang');
