@@ -126,6 +126,8 @@ test('a finished payment credits the balance once, even when told twice, and sta
     assert.ok(u.deposited > 0);
     const { prices } = await getPrices();
     assert.ok(Math.abs(u.deposited * prices.btc - 50) < 1, 'about fifty dollars of BTC');
+    const { ceilCoin } = await import('@/lib/assets');
+    assert.equal(u.deposited, ceilCoin('btc', 50 / prices.btc), 'credited rounded up to the satoshi');
     assert.ok(Math.abs((await available(id)) - u.deposited) < 1e-9, 'the balance is the credited amount');
     assert.equal(u.contracts.length, 0);
     assert.equal(u.history.filter((h) => h.kind === 'deposit').length, 1);
