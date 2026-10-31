@@ -35,7 +35,7 @@ before(async () => {
   await wipe();
   await q("UPDATE smart_coins SET ref_gross = 1, ref_net = 1 WHERE symbol IN ('BTC', 'KAS', 'RVN', 'XMR')");
   await tx(async (c) =>
-    createUser(c, ID, { contracts: [{ serial: 'OP-9000001', name: 'Guard test', plan: 'Custom', th: 10, hall: 'tx-1', online: true, days: 90, startedAt: d(10), dailyUsd: 1, price: 100, status: 'active' }] }),
+    createUser(c, ID, { contracts: [{ serial: 'VTX-9000001', name: 'Guard test', plan: 'Custom', th: 10, hall: 'tx-1', online: true, days: 90, startedAt: d(10), dailyUsd: 1, price: 100, status: 'active' }] }),
   );
 });
 
