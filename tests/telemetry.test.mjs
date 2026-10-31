@@ -10,7 +10,7 @@ const { ingest, loadSamples, telemetryFor, mockCharts, setMockCharts, feedStatus
 const { act, overview } = await import('@/lib/server/admin');
 
 await migrate();
-const serial = `OP-${String(Date.now() % 1e7).padStart(7, '0')}`;
+const serial = `VTX-${String(Date.now() % 1e7).padStart(7, '0')}`;
 
 after(async () => {
   await q('DELETE FROM hash_samples WHERE serial = $1', [serial]);
@@ -25,7 +25,7 @@ const D18 = D17 + DAY;
 const D19 = D18 + DAY;
 const NOW = Date.parse('2026-10-20T12:00:00Z');
 
-const m = { serial: 'OP-0000001', th: 100, start: D17, stop: NOW };
+const m = { serial: 'VTX-0000001', th: 100, start: D17, stop: NOW };
 
 // One sample at :10 of every hour from 18 Oct 00:00 to 20 Oct 11:10, 100 TH/s. On 19 Oct 16:00 to 21:59 the miner ran at
 // 50 TH/s (too low to count as up), and the 22:00 hour has no sample at all.
@@ -61,7 +61,7 @@ test('uptime counts whole hours: a low or missing hour is down, time before moni
 });
 
 test('uptime is weighted by contracted TH/s across miners', () => {
-  const big = { serial: 'OP-0000002', th: 300, start: D17, stop: NOW };
+  const big = { serial: 'VTX-0000002', th: 300, start: D17, stop: NOW };
   const clean = [];
   for (let t = D18 + 10 * 60000; t < NOW; t += HOUR) clean.push({ at: t, th: 300 });
   const both = uptimeOf([m, big], { [m.serial]: samples(), [big.serial]: clean }, NOW);
