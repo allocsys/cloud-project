@@ -7,7 +7,7 @@ const json = (body, status = 200) => NextResponse.json(body, { status, headers: 
 
 // A hall's monitoring posts what its miners hashed:
 //   POST /api/telemetry   Authorization: Bearer <TELEMETRY_KEY>
-//   { "samples": [{ "serial": "OP-0004389", "th": 112.4, "at": 1761000000000 }] }   (at is optional, default now)
+//   { "samples": [{ "serial": "VTX-0004389", "th": 112.4, "at": 1761000000000 }] }   (at is optional, default now)
 // Up to 1000 samples per request. Rows that do not pass are skipped and counted in "rejected".
 export async function POST(req) {
   if (!feedEnabled()) return json({ ok: false, error: 'The hashrate feed is off. Set TELEMETRY_KEY (16 or more characters) and redeploy.' }, 503);
