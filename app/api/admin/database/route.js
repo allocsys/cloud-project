@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminEnabled, isAdmin } from '@/lib/server/admin';
 import { databaseOverview, tableRows, deleteRow, clearTable, dropTable } from '@/lib/server/db-admin';
 import { makeBackup, inspectBackup, restoreBackup, MAX_UPLOAD } from '@/lib/server/db-backup';
+import { readCapped } from '@/lib/server/body';
 
 export const dynamic = 'force-dynamic';
 
@@ -42,7 +43,8 @@ export async function POST(req) {
   const action = params.get('action');
   if (action !== 'inspect' && action !== 'restore') return json({ ok: false, error: 'Unknown action.' }, 400);
   if ((Number(req.headers.get('content-length')) || 0) > MAX_UPLOAD) return json({ ok: false, error: 'The file is too big.' }, 413);
-  const buf = Buffer.from(await req.arrayBuffer());
+  const buf = await readCapped(req, MAX_UPLOAD);
+  if (!buf) return json({ ok: false, error: 'The file is too big.' }, 413);
   const r = action === 'inspect' ? await inspectBackup(buf) : await restoreBackup(buf, params.get('confirm'));
   return json(r, r.ok ? 200 : 400);
 }
