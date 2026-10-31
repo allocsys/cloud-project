@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminEnabled, isAdmin } from '@/lib/server/admin';
-import { databaseOverview, tableRows } from '@/lib/server/db-admin';
+import { databaseOverview, tableRows, deleteRow, clearTable, dropTable } from '@/lib/server/db-admin';
 import { makeBackup, inspectBackup, restoreBackup, MAX_UPLOAD } from '@/lib/server/db-backup';
 
 export const dynamic = 'force-dynamic';
@@ -44,5 +44,30 @@ export async function POST(req) {
   if ((Number(req.headers.get('content-length')) || 0) > MAX_UPLOAD) return json({ ok: false, error: 'The file is too big.' }, 413);
   const buf = Buffer.from(await req.arrayBuffer());
   const r = action === 'inspect' ? await inspectBackup(buf) : await restoreBackup(buf, params.get('confirm'));
+  return json(r, r.ok ? 200 : 400);
+}
+
+// Changes one table. ?table=name&mode=row with a body { key } removes that one row; mode=clear removes every row; mode=drop drops a table
+// the app does not use. clear and drop need &confirm=<the table name>.
+export async function DELETE(req) {
+  const denied = await gate(req);
+  if (denied) return denied;
+  const params = new URL(req.url).searchParams;
+  const table = params.get('table');
+  const mode = params.get('mode');
+  let r;
+  if (mode === 'row') {
+    let body = {};
+    try {
+      body = await req.json();
+    } catch {}
+    r = await deleteRow(table, body?.key);
+  } else if (mode === 'clear') {
+    r = await clearTable(table, params.get('confirm'));
+  } else if (mode === 'drop') {
+    r = await dropTable(table, params.get('confirm'));
+  } else {
+    return json({ ok: false, error: 'Unknown action.' }, 400);
+  }
   return json(r, r.ok ? 200 : 400);
 }
