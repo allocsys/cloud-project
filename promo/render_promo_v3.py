@@ -196,18 +196,22 @@ def emblem(layer,cx,cy,r,t,a=1.0):
         for i in range(6):
             mid=rot+math.pi/3*(i+.5)+(math.pi if flip else 0)
             d.polygon([vert(Ro,rot,i),vert(Ro,rot,i+1),vert(Ri,rot,i+1),vert(Ri,rot,i)],fill=shade(mid,lo,hi,p))
-    r1=t*.30;r2=-t*.50
-    ring(r,r*.88,r1,(116,76,12),(255,234,156),1.2)
-    ring(r*.88,r*.72,r1,(184,132,32),(240,200,96),.8)
-    ring(r*.72,r*.64,r1,(70,46,8),(214,164,60),1.0,flip=True)
-    d.polygon([vert(r*.64,r1,i) for i in range(6)],fill=(20,15,7,255))
-    ring(r*.50,r*.43,r2,(124,84,16),(255,232,150),1.1)
-    ring(r*.43,r*.37,r2,(60,40,6),(206,156,54),1.0,flip=True)
-    g=r*.26
-    for i in range(6):
-        mid=r2+math.pi/3*(i+.5)
-        d.polygon([(c,c),vert(g,r2,i),vert(g,r2,i+1)],fill=shade(mid,(150,100,20),(255,242,196),1.4))
-    d.ellipse((c-r*.07*k,c-r*.07*k,c+r*.07*k,c+r*.07*k),fill=(255,250,225,255))
+    # Vertexhash mark: the Hash-cut V (87 x 78 grid, two slanted cuts through the whole V), gold gradient, soft moving shine
+    u=r*.0175*k;ox_,oy_=c-43.5*u,c-39*u
+    P=lambda x,y:(ox_+x*u,oy_+y*u)
+    vm=Image.new('L',(side,side),0);dv=ImageDraw.Draw(vm)
+    dv.polygon([P(0,0),P(28.5,0),P(43.5,44),P(58.5,0),P(87,0),P(43.5,78)],fill=255)
+    for (x0,y0,x1,y1) in ((-6,47.1,96,5.6),(-6,65.1,96,23.5)):dv.line((*P(x0,y0),*P(x1,y1)),fill=0,width=int(4*u))
+    gold=lingrad(side,side,((0,(246,220,154)),(.5,(233,196,106)),(1,(201,154,58))),62)
+    sp_v=masked(gold,vm)
+    edge=ImageChops.subtract(vm,ImageChops.offset(vm,0,max(2,int(1.6*k))))
+    sp_v.alpha_composite(masked(Image.new('RGB',(side,side),(255,248,226)),edge.point(lambda v:int(v*.65))))
+    sx=(t*.35)%1.6-.3;xx_=np.arange(side,dtype=np.float32)[None,:];yy_=np.arange(side,dtype=np.float32)[:,None]
+    band=np.exp(-(((xx_+yy_*.5)/side/1.5-sx)/.07)**2)
+    sa=Image.fromarray((np.asarray(vm,dtype=np.float32)*band*.75).astype(np.uint8),'L')
+    sp_v.alpha_composite(masked(Image.new('RGB',(side,side),(255,250,232)),sa))
+    im.alpha_composite(sp_v)
+    d=ImageDraw.Draw(im)
     for i in range(48):   # tick ring
         ang=t*.12+i*math.tau/48 if hasattr(math,'tau') else t*.12+i*6.2832/48
         r_a=r*1.20;r_b=r*(1.27 if i%4==0 else 1.24)
