@@ -6,7 +6,7 @@ const { pool } = await import('@/lib/server/db');
 const prices = await import('@/lib/server/prices');
 
 after(async () => {
-  await pool.end();
+  await pool().end();
 });
 
 // Runs fn with the live feed switched on (no network: the state is made fresh so nothing is fetched), then restores everything.
