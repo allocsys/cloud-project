@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
-import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf } from '@/lib/assets';
+import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
 import { serviceTier, serviceLine } from '@/lib/service-fee';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
@@ -266,7 +266,7 @@ export default function Wallet() {
   const usdMode = unit === 'usd';
   const toCoin = (v) => (usdMode ? v / price : v);
   const parsed = parseFloat(amount);
-  const coinAmt = parsed > 0 ? toCoin(parsed) : 0;
+  const coinAmt = parsed > 0 ? floorCoin(asset, toCoin(parsed)) : 0; // rounded down to the coin's decimals, as the server does
   // The withdrawal service fee tier, counted from the last withdrawal (or the first purchase). The server decides the real one.
   const tier = ready && wd.svcSince ? serviceTier(wd.svcSince) : null;
   const svcPct = tier ? tier.pct : 0;
@@ -343,7 +343,7 @@ export default function Wallet() {
     else if (wq.btc < MIN_WITHDRAW) next.amount = t('wal.errMin', { min: minText });
     else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
-    if (!N.pattern.test(address.trim())) next.address = t('wal.errAddr', { net: N.label });
+    if (!validAddress(net, address.trim())) next.address = t('wal.errAddr', { net: N.label });
     if (tf && !code.trim()) next.code = t('wal.errCode');
 
     if (next.amount || next.address || next.code) {
@@ -514,7 +514,7 @@ export default function Wallet() {
                       <div className="row total">
                         <span className="mute">{t('wal.receive')}</span>
                         <b style={{ textAlign: 'end' }}>
-                          {q.receive > 0 ? `≈ ${q.receive.toFixed(A.dec)} ${A.sym}` : '—'}
+                          {q.receive > 0 ? `≈ ${floorCoin(asset, q.receive).toFixed(A.dec)} ${A.sym}` : '—'}
                           {q.receive > 0 && <small className="mute" style={{ display: 'block', fontWeight: 400 }}>≈ ${formatUsd(q.receiveUsd)}</small>}
                         </b>
                       </div>
