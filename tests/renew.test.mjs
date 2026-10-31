@@ -62,7 +62,7 @@ test('the switch is off by default and can be turned on and off while the term r
 
   assert.deepEqual(await miners.setRenew(id, s, false), { ok: true, status: 200, renew: false });
   assert.equal((await getUser(id)).contracts[0].renew, undefined);
-  assert.equal((await miners.setRenew(id, 'OP-9999999', true)).status, 404);
+  assert.equal((await miners.setRenew(id, 'VTX-9999999', true)).status, 404);
 });
 
 test('only a Smart Mining miner can renew, and the switch cannot be turned on once the term is over', async () => {
