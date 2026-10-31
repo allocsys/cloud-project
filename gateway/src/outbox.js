@@ -3,7 +3,8 @@
 // Delivery is AT LEAST ONCE. The app's settleOrder activates an order once however often it is told, so a repeat is harmless.
 // Safe with several replicas: a due row is claimed with FOR UPDATE SKIP LOCKED and given a short lease (next_try_at pushed
 // forward) before any network call, so no row is held locked while we wait for the app, and two replicas do not send the same row.
-// The lease (60 s) is longer than the request timeout (10 s), so a row is only re-sent early if this process dies mid-send.
+// The lease (60 s) is longer than the request timeout (10 s) and is renewed for each row just before it is sent, so a row is only re-sent
+// early if this process dies mid-send.
 //
 // Failure policy (one retry layer): a failed send (network error, timeout, any non-2xx answer) records the error and schedules the
 // next try with exponential backoff (30 s, 1 min, 2 min ... up to 1 hour). After MAX_ATTEMPTS the row is parked (next_try_at =
@@ -88,7 +89,10 @@ export async function deliverDue({ target, fetchImpl = fetch, limit = 20, timeou
     )
   ).rows;
   out.claimed = rows.length;
-  for (const row of rows) {
+  for (const [i, row] of rows.entries()) {
+    // The claim gave every row the same lease, but rows are sent one after another: a row far down a slow batch would see its lease run
+    // out before its turn and could be sent twice. So each later row gets a fresh full lease right before its own send.
+    if (i > 0) await q('UPDATE webhook_outbox SET next_try_at = now() + make_interval(secs => $2) WHERE id = $1 AND delivered_at IS NULL', [row.id, LEASE_SECONDS]);
     try {
       await send(row, t, fetchImpl, timeoutMs);
       await q('UPDATE webhook_outbox SET delivered_at = now(), attempts = attempts + 1, last_error = NULL WHERE id = $1 AND delivered_at IS NULL', [row.id]);
