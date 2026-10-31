@@ -1,7 +1,10 @@
 import { NextResponse } from 'next/server';
 import { feedEnabled, checkKey, ingest } from '@/lib/server/telemetry';
+import { readCapped } from '@/lib/server/body';
 
 export const dynamic = 'force-dynamic';
+
+const MAX_BODY = 300_000;
 
 const json = (body, status = 200) => NextResponse.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
 
@@ -13,10 +16,12 @@ export async function POST(req) {
   if (!feedEnabled()) return json({ ok: false, error: 'The hashrate feed is off. Set TELEMETRY_KEY (16 or more characters) and redeploy.' }, 503);
   const auth = req.headers.get('authorization') || '';
   if (!auth.startsWith('Bearer ') || !checkKey(auth.slice(7).trim())) return json({ ok: false, error: 'Wrong key.' }, 401);
-  if (Number(req.headers.get('content-length') || 0) > 300_000) return json({ ok: false, error: 'Too large.' }, 413);
+  if (Number(req.headers.get('content-length') || 0) > MAX_BODY) return json({ ok: false, error: 'Too large.' }, 413);
   let body;
   try {
-    body = await req.json();
+    const buf = await readCapped(req, MAX_BODY);
+    if (!buf) return json({ ok: false, error: 'Too large.' }, 413);
+    body = JSON.parse(buf.toString('utf8'));
   } catch {
     return json({ ok: false, error: 'Invalid request.' }, 400);
   }
