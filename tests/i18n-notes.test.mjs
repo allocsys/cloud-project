@@ -16,11 +16,11 @@ test('English text from codes matches what the server saved', () => {
   const sent = { code: 'wdSent', vars: { amt: '0.5 BTC' } };
   assert.equal(noteTitle(sent, en, 'en'), 'Withdrawal sent');
   assert.equal(noteBody(sent, en, 'en'), '0.5 BTC was sent to your wallet');
-  const live = { code: 'live', vars: { serial: 'OP-1', plan: 'Starter' } };
+  const live = { code: 'live', vars: { serial: 'VTX-1', plan: 'Starter' } };
   assert.equal(noteTitle(live, en, 'en'), 'Starter miner is live');
-  const refund = { code: 'refund', vars: { serial: 'OP-1', btc: '0.00100000', usd: '50.00', gift: true } };
-  assert.equal(noteBody(refund, en, 'en'), 'OP-1 was refunded: 0.00100000 BTC ($50.00) is back in your balance. The welcome gift miner was removed with it.');
-  assert.equal(noteBody({ code: 'refund', vars: { ...refund.vars, gift: false } }, en, 'en'), 'OP-1 was refunded: 0.00100000 BTC ($50.00) is back in your balance.');
+  const refund = { code: 'refund', vars: { serial: 'VTX-1', btc: '0.00100000', usd: '50.00', gift: true } };
+  assert.equal(noteBody(refund, en, 'en'), 'VTX-1 was refunded: 0.00100000 BTC ($50.00) is back in your balance. The welcome gift miner was removed with it.');
+  assert.equal(noteBody({ code: 'refund', vars: { ...refund.vars, gift: false } }, en, 'en'), 'VTX-1 was refunded: 0.00100000 BTC ($50.00) is back in your balance.');
 });
 
 test('paused and resumed build from parts', () => {
