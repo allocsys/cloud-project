@@ -24,3 +24,16 @@ export async function hasOpenInvoices(network) {
   );
   return r.rows.length > 0;
 }
+
+// How long ago the oldest open order invoice on the network was made, in ms, or null when none is open. Same rule as hasOpenInvoices().
+// A payment for an invoice cannot come before the invoice, so a waking scanner only has to read back to this point (plus a margin).
+export async function oldestOpenInvoiceAgeMs(network) {
+  const r = await q(
+    `SELECT (EXTRACT(EPOCH FROM now() - min(i.created_at)) * 1000)::bigint AS age_ms FROM invoices i
+     WHERE i.kind = 'order' AND i.network = $1 AND i.status IN ('pending', 'confirming', 'partial')
+       AND NOT EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)`,
+    [network],
+  );
+  const age = r.rows[0]?.age_ms;
+  return age === null || age === undefined ? null : Number(age);
+}
