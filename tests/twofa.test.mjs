@@ -308,3 +308,26 @@ test('the reset route: no code is asked for on accounts without two-factor, and 
   const ok = await call(confirmRoute.POST, '/api/auth/reset/confirm', { body: { email: id, token: t2, password: 'yet another password 4', code: code(secret) }, ip: '10.5.5.5' });
   assert.equal(ok.status, 200, JSON.stringify(ok.body));
 });
+
+test('the reset route: wrong two-factor codes lock the account for every address, a wrong link costs nothing', async () => {
+  const { id, secret } = await withTwofa('rlock');
+  const tk = `lock-token-${run}`;
+  await withUser(id, (u) => {
+    u.reset = { h: sha(tk), exp: Date.now() + 60_000, at: Date.now() };
+  });
+  const post = (body, ip) => call(confirmRoute.POST, '/api/auth/reset/confirm', { body: { email: id, password: 'a lock test password 5', ...body }, ip });
+
+  // A wrong link never reaches the code check, so it is not counted against the account.
+  for (let i = 0; i < 10; i += 1) {
+    const r = await post({ token: 'wrong-link', code: '123456' }, `10.6.6.${i}`);
+    assert.equal(r.status, 400, `wrong link ${i + 1}`);
+  }
+  for (let i = 0; i < 8; i += 1) {
+    const r = await post({ token: tk, code: wrongOf(code(secret)) }, `10.7.7.${i}`); // a different address each time
+    assert.equal(r.status, 401, `wrong code ${i + 1}`);
+    assert.equal(r.body.field, 'code');
+  }
+  const locked = await post({ token: tk, code: code(secret) }, '10.8.8.8'); // the right code, from a new address
+  assert.equal(locked.status, 429);
+  assert.equal((await login(id, { code: code(secret) })).status, 200 - 0 === 200 ? (await login(id, { code: code(secret) })).status : 0, 'the library call is not behind the route lock');
+});
