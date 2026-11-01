@@ -53,6 +53,13 @@ const ICONS = {
       <path d="M11 18h2" />
     </>
   ),
+  lock: (
+    <>
+      <rect x="5" y="11" width="14" height="10" rx="2" />
+      <path d="M8 11V8a4 4 0 018 0v3" />
+    </>
+  ),
+  bolt: <path d="M13 2L4 14h7l-1 8 9-12h-7z" />,
 };
 
 // The page people see before they sign in. It makes no income promises and shows no made-up numbers or reviews:
@@ -71,6 +78,8 @@ export default async function Home() {
   const WHY = [
     { i: 'eye', t: t('landing.why.see.t'), d: t('landing.why.see.d') },
     { i: 'shield', t: t('landing.why.wd.t'), d: t('landing.why.wd.d') },
+    { i: 'lock', t: t('landing.why.priv.t'), d: t('landing.why.priv.d') },
+    { i: 'bolt', t: t('landing.why.smart.t'), d: t('landing.why.smart.d') },
     { i: 'users', t: t('landing.why.inv.t'), d: t('landing.why.inv.d') },
     { i: 'phone', t: t('landing.why.phone.t'), d: t('landing.why.phone.d') },
   ];
