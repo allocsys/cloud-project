@@ -12,6 +12,7 @@ import { drillBack } from '@/lib/nav';
 import { bonusText } from '@/lib/first-bonus';
 import Spark from '@/components/Spark';
 import { useT } from '@/components/I18nProvider';
+import RefundRequest from '@/components/RefundRequest';
 
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -255,6 +256,7 @@ export default function ContractPage() {
               </div>
             )}
           </div>
+          <RefundRequest serial={c.serial} />
         </div>
       </div>
       {toast}
