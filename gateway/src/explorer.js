@@ -1,7 +1,9 @@
 // Bitcoin explorer client for Esplora-compatible APIs (mempool.space, blockstream.info, or your own electrs).
 // It only reads. Every call has a timeout, and anything unexpected throws ExplorerError: a broken answer is never
 // turned into "no payments", because the settlement code treats an empty list as the truth.
-// Limit: one page of an address's history (about 50 transactions) is read. Invoice addresses are single use, so that is plenty.
+// Paging: Esplora gives the unconfirmed transactions and the newest 25 confirmed ones. When that page is full of confirmed ones, the next
+// pages (/txs/chain/:last_seen) are read too, up to maxPages and not further back than STOP_BLOCKS from the newest, so a busy address
+// cannot hide a payment behind a page of other transfers.
 export class ExplorerError extends Error {
   constructor(message, options) {
     super(message, options);
@@ -10,9 +12,11 @@ export class ExplorerError extends Error {
 }
 
 const TXID = /^[0-9a-f]{64}$/;
+const PAGE = 25; // confirmed transactions per Esplora page
+const STOP_BLOCKS = 1000; // older than this (from the newest transaction) is history, as in chains/index.js recentConfirmations
 const bad = () => new ExplorerError('explorer returned a malformed transaction');
 
-export function btcExplorer({ baseUrl, fetchImpl = fetch, timeoutMs = 10_000 }) {
+export function btcExplorer({ baseUrl, fetchImpl = fetch, timeoutMs = 10_000, maxPages = 6 }) {
   const base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!/^https:\/\/[^\s/]+/.test(base)) throw new Error('BTC_EXPLORER_URL must be an https URL.');
 
@@ -38,9 +42,8 @@ export function btcExplorer({ baseUrl, fetchImpl = fetch, timeoutMs = 10_000 }) 
     return Number(text);
   }
 
-  // Every output paying `address`, as [{ txid, vout, amount (satoshi, string), confirmations, height }].
-  async function addressPayments(address) {
-    const body = await getText(`/address/${encodeURIComponent(address)}/txs`);
+  async function txPage(address, lastSeen = '') {
+    const body = await getText(`/address/${encodeURIComponent(address)}/txs${lastSeen ? `/chain/${lastSeen}` : ''}`);
     let txs;
     try {
       txs = JSON.parse(body);
@@ -48,6 +51,25 @@ export function btcExplorer({ baseUrl, fetchImpl = fetch, timeoutMs = 10_000 }) 
       throw new ExplorerError('explorer returned invalid JSON', { cause: e });
     }
     if (!Array.isArray(txs)) throw new ExplorerError('explorer returned an unexpected answer');
+    return txs;
+  }
+
+  // Every output paying `address`, as [{ txid, vout, amount (satoshi, string), confirmations, height }].
+  async function addressPayments(address) {
+    let page = await txPage(address);
+    const txs = [...page];
+    let newest = null;
+    for (let n = 1; n < maxPages; n++) {
+      const confirmed = page.filter((t) => t?.status?.confirmed === true);
+      if (confirmed.length < PAGE) break;
+      if (newest === null) newest = Math.max(...confirmed.map((t) => Number(t.status.block_height) || 0));
+      const last = confirmed[confirmed.length - 1];
+      if (!TXID.test(String(last.txid)) || !Number.isInteger(last.status.block_height)) throw bad();
+      if (newest - last.status.block_height > STOP_BLOCKS) break;
+      page = await txPage(address, last.txid);
+      if (!page.length) break;
+      txs.push(...page);
+    }
     const tip = await tipHeight(); // read after the transactions, so a block they are in is never newer than the tip
     const want = String(address).toLowerCase();
     const out = [];
