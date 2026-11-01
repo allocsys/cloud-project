@@ -36,7 +36,7 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | Variable | Meaning |
 | --- | --- |
 | `DATABASE_URL` | the gateway's own Postgres |
-| `GATEWAY_API_SECRET` | shared secret the app sends as `Authorization: Bearer ...` |
+| `GATEWAY_API_SECRET` | shared secret the app sends as `Authorization: Bearer ...`, at least 16 characters (a shorter one is refused and the service will not start) |
 | `BTC_XPUB` | account-level extended public key (xpub or zpub); a fresh BTC address per invoice |
 | `PAY_ADDR_BTC` | fixed-address mode: one public BTC address (used when `BTC_XPUB` is not set) |
 | `PAY_ADDR_EVM` | one public address for Ethereum, BNB Chain and Polygon |
@@ -68,16 +68,18 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 ## API (all under `/v1`, Bearer secret required)
 - `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"pol"|"trx"|"sol"|"ton", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
 - `GET /v1/invoices/:ref` returns the invoice.
-- `GET /v1/admin/overview` status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments (handled ones are hidden), callbacks and the audit log.
+- `GET /v1/admin/overview` status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments (handled ones are hidden), callbacks (waiting, failing, parked, and the stuck ones with parked first), the audit log, `alerts` (the last 20 of `payment.late`, `webhook.gave_up` and `unmatched.full` in 30 days) and `btcGap` (only with `BTC_XPUB`: how many unused addresses in a row were handed out after the last one that got money; wallets restored from the seed stop looking after 20, so the tab warns from 15).
 - `POST /v1/admin/unmatched/handle` body `{ network, txid, vout, note? }` marks an unmatched payment as handled after a person returned the money by hand (the gateway holds no keys and sends nothing). `note` is at most 80 characters. Writes an `unmatched.handled` audit row. Repeating it is fine (`already: true`); an unknown payment is `404`. The scanner never re-opens a handled row.
+- `POST /v1/admin/callbacks/retry` puts every parked callback back in the queue with a fresh set of 24 tries and returns `{ retried }`. Writes a `webhook.retry` audit row. Nothing is touched when none is parked.
 
 ## Webhook to the app (the only link between the two)
 When an order invoice is settled the gateway queues one callback per invoice and event (`finished`, `partially_paid` or `expired`) and sends it with `POST APP_WEBHOOK_URL`.
 
 Body (JSON), the shape the app's `settleOrder` expects:
 ```
-{ order_id, payment_id, payment_status, price_amount, price_currency: "usd", pay_currency, network, pay_amount, actually_paid }
+{ order_id, payment_id, payment_status, price_amount, price_currency: "usd", pay_currency, network, pay_amount, actually_paid, sent_at }
 ```
+`sent_at` is the time of this send (ISO 8601). Every try gets a new one, and it is inside the signed body. The app refuses a callback whose `sent_at` is more than an hour from its own clock, so a captured callback cannot be replayed later. A body without `sent_at` is still accepted.
 Headers: `x-gateway-sig` (hex HMAC-SHA512, see below), `x-gateway-event` (event name), `x-gateway-delivery` (outbox row id, for logs).
 
 Signature: take the JSON body, sort the keys of every object recursively, serialise with `JSON.stringify`, and compute HMAC-SHA512 with `GATEWAY_WEBHOOK_SECRET`, as lowercase hex. The app does the same and compares in constant time (`verifyGatewaySig` in `lib/server/pay-provider.js`). A bad signature gets `401`.
@@ -85,7 +87,7 @@ Signature: take the JSON body, sort the keys of every object recursively, serial
 Delivery rules:
 - At least once. The app activates an order once however often it is told, so a repeat is harmless.
 - Success is any `2xx`. Anything else (or a network error, or no answer in 10 s) is a failure: the error is stored and the next try is 30 s, 1 min, 2 min ... up to 1 hour later.
-- After 24 failed attempts the callback is parked (never dropped): it stays undelivered with `last_error`, and an audit entry `webhook.gave_up` is written. A person resolves it.
+- After 24 failed attempts the callback is parked (never dropped): it stays undelivered with `last_error`, and an audit entry `webhook.gave_up` is written. The admin Gateway tab shows it under Needs a look, and Retry in the Callbacks fold sends every parked one again.
 - Redirects are refused. The secret and the body are never logged.
 - Several replicas are safe: a due row is claimed with `FOR UPDATE SKIP LOCKED` and a 60 s lease before it is sent.
 
