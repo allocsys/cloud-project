@@ -8,7 +8,7 @@ import { handler } from '../src/server.js';
 import { deriveBtcAddress } from '../src/chains/btc.js';
 
 const ZPUB = 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs';
-const SECRET = 'test-secret-123';
+const SECRET = 'test-secret-1234567890';
 process.env.GATEWAY_API_SECRET = SECRET;
 process.env.BTC_XPUB = ZPUB;
 process.env.RATE_SOURCE = 'static';
