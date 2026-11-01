@@ -198,6 +198,8 @@ export default async function Home() {
           {' \u00b7 '}
           <Link href={pagePath('/glossary', lang)} style={foot}>{t('glo.link')}</Link>
           {' \u00b7 '}
+          <Link href={pagePath('/about', lang)} style={foot}>{t('about.link')}</Link>
+          {' \u00b7 '}
           <Link href={pagePath('/terms', lang)} style={foot}>{t('auth.terms')}</Link>
           {' \u00b7 '}
           <Link href={pagePath('/privacy', lang)} style={foot}>{t('auth.privacy')}</Link>
