@@ -140,3 +140,28 @@ test('ton: a failing or broken answer throws instead of looking like no payments
   await assert.rejects(ton([tx({ value: 'x' })]).addressPayments(UQ), isExplorerError(/malformed/));
   assert.throws(() => tonExplorer({ baseUrl: 'http://ton.test' }), /https/);
 });
+
+// pages of 2 (limit: 2): the answer for offset 0, 2, 4 ...
+const pagedFetch = (pages, seen) => async (url) => {
+  const offset = Number(new URL(url).searchParams.get('offset'));
+  seen.push(offset);
+  return new Response(JSON.stringify({ transactions: pages[offset / 2] ?? [] }));
+};
+const dust = (h) => tx({ h, to: OTHER });
+
+test('ton: a full page is followed by the next one, and a repeated transaction counts once', async () => {
+  const seen = [];
+  const pages = [[dust(1), dust(2)], [dust(3), tx({ h: 50 })], [tx({ h: 50 })]]; // the last page repeats one (a new transaction shifted the list)
+  const ex = tonExplorer({ baseUrl: 'https://ton.test', fetchImpl: pagedFetch(pages, seen), now: () => NOW, limit: 2 });
+  const got = await ex.addressPayments(UQ);
+  assert.deepEqual(got.map((p) => p.txid), [hashHex(50)]);
+  assert.deepEqual(seen, [0, 2, 4]);
+});
+
+test('ton: paging stops at the page cap', async () => {
+  const seen = [];
+  const pages = [[dust(1), dust(2)], [dust(3), dust(4)], [tx({ h: 50 }), dust(5)]];
+  const ex = tonExplorer({ baseUrl: 'https://ton.test', fetchImpl: pagedFetch(pages, seen), now: () => NOW, limit: 2, maxPages: 2 });
+  assert.deepEqual(await ex.addressPayments(UQ), []);
+  assert.deepEqual(seen, [0, 2]);
+});
