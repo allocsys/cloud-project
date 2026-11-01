@@ -5,12 +5,13 @@ import { createHash } from 'node:crypto';
 import { q, closeDb } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
 import { createInvoice } from '../src/invoices.js';
-import { observe } from '../src/settle.js';
+import { observe, recordUnmatched } from '../src/settle.js';
 import { pollOnce } from '../src/watcher.js';
 
 const skip = process.env.DATABASE_URL ? false : 'DATABASE_URL not set';
 const run = `test-shared-${Math.random().toString(36).slice(2, 8)}`;
 const ADDR = `bc1qtest${run.replace(/-/g, '')}`;
+const ADDR_CAP = `${ADDR}cap`;
 delete process.env.BTC_XPUB;
 process.env.PAY_ADDR_BTC = ADDR;
 process.env.RATE_SOURCE = 'static';
@@ -44,7 +45,7 @@ after(async () => {
     const inv = `SELECT id FROM invoices WHERE ref LIKE '${run}-%'`;
     await q(`DELETE FROM webhook_outbox WHERE invoice_id IN (${inv})`);
     await q(`DELETE FROM chain_txs WHERE invoice_id IN (${inv})`);
-    await q('DELETE FROM unmatched_txs WHERE address = $1', [ADDR]);
+    await q('DELETE FROM unmatched_txs WHERE address = ANY($1)', [[ADDR, ADDR_CAP]]);
     await q('DELETE FROM invoices WHERE ref LIKE $1', [`${run}-%`]);
   }
   await closeDb();
@@ -102,6 +103,37 @@ test('old history of the address is not recorded as unmatched', { skip }, async 
   const old = pay('old', 777, 5000);
   await pollOnce({ explorers: { btc: fake({ [ADDR]: [old] }) }, log: quiet });
   assert.equal((await q('SELECT count(*)::int AS n FROM unmatched_txs WHERE txid = $1', [old.txid])).rows[0].n, 0);
+});
+
+test('dust and zero transfers are not recorded, and do not stop a real payment being kept', { skip }, async () => {
+  await mk();
+  const dust = pay('dust', 999); // below 0.00001 BTC (1000 sats)
+  const zero = pay('zero', 0);
+  const real = pay('real-odd', 54321);
+  await pollOnce({ explorers: { btc: fake({ [ADDR]: [dust, zero, real] }) }, log: quiet });
+  const kept = async (t) => (await q('SELECT count(*)::int AS n FROM unmatched_txs WHERE txid = $1', [t.txid])).rows[0].n;
+  assert.equal(await kept(dust), 0);
+  assert.equal(await kept(zero), 0);
+  assert.equal(await kept(real), 1);
+  assert.equal((await q('SELECT count(*)::int AS n FROM audit_log WHERE subject = ANY($1)', [[`btc:${dust.txid}`, `btc:${zero.txid}`]])).rows[0].n, 0);
+});
+
+test('a full address takes no new payment, says so once an hour, and still updates the ones it holds', { skip }, async () => {
+  const a = pay('full-a', 20001);
+  const b = pay('full-b', 20002);
+  const c = pay('full-c', 20003);
+  const call = (payments) => recordUnmatched({ network: 'btc', address: ADDR_CAP, defaultAsset: 'btc', payments, claimed: new Set(), maxRows: 2 });
+  const rowOf = async (t) => (await q('SELECT confirmations FROM unmatched_txs WHERE txid = $1', [t.txid])).rows;
+  assert.equal(await call([a, b, c]), 2);
+  assert.equal((await rowOf(c)).length, 0, 'the third does not fit');
+  assert.equal(await call([a, b, c]), 0);
+  assert.equal((await rowOf(c)).length, 0);
+  await call([{ ...a, confirmations: 6 }]);
+  assert.equal((await rowOf(a))[0].confirmations, 6, 'a held payment is still updated');
+  assert.equal((await q("SELECT count(*)::int AS n FROM audit_log WHERE action = 'unmatched.full' AND subject = $1", [`btc:${ADDR_CAP}`])).rows[0].n, 1);
+  // A handled row makes room again.
+  await q('UPDATE unmatched_txs SET handled_at = now() WHERE txid = $1', [a.txid]);
+  assert.equal(await call([c]), 1);
 });
 
 test('a fixed-address invoice needs an amount', { skip }, async () => {
