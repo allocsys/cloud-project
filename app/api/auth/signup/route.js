@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { signup, sendVerification, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
@@ -17,7 +18,7 @@ export async function POST(req) {
   }
   let body;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
