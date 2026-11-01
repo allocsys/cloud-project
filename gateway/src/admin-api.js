@@ -55,7 +55,7 @@ export async function handleUnmatched(input) {
 // Closes one order invoice that is still waiting and that nobody will pay: it becomes 'expired' and the usual 'expired' callback is queued,
 // so the app closes the order too. Refused when a payment was seen on it (let the watcher finish) or when its outcome is already queued.
 // Repeating it is fine. The row lock pairs with observe(), so the watcher and this never both decide.
-// A payment sent after closing is not tracked for the invoice; on a shared address it shows up as unmatched.
+// A payment sent after closing does not count for the invoice; it shows up in the unmatched list (on its own address the watcher keeps looking for 14 days).
 export async function closeInvoice(input) {
   const id = typeof input?.id === 'string' ? input.id : '';
   if (!id || id.length > 80) throw new ApiError(400, 'Invalid request.');
