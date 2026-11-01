@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
@@ -21,7 +22,7 @@ export async function POST(req) {
   if (denied) return denied;
   let body;
   try {
-    body = await req.json();
+    body = await readJson(req, 256 * 1024);
   } catch {
     return json({ ok: false, error: 'Invalid request.' }, 400);
   }
