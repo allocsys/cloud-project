@@ -25,7 +25,7 @@ body{position:relative;display:flex;flex-direction:column;height:100dvh;overflow
 .s{position:absolute;inset:0;overflow:hidden;pointer-events:none}
 .s span{position:absolute;bottom:-16px;left:var(--x);font:11px ui-monospace,Menlo,Consolas,monospace;color:#F5A524;opacity:0;animation:f var(--d) linear var(--s) infinite}
 @keyframes f{0%{transform:translateY(0);opacity:0}15%{opacity:.4}85%{opacity:.2}100%{transform:translateY(-110dvh);opacity:0}}
-main{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:32px}
+main{position:relative;flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:28px}
 @keyframes u{from{opacity:0;transform:translateY(12px)}}
 .m{position:relative;width:104px;height:104px;animation:u .7s cubic-bezier(.2,.7,.2,1) backwards}
 .r{position:absolute;inset:0;border-radius:30px;border:1px solid #F5A524;opacity:0;animation:r 3.6s ease-out infinite}
@@ -34,13 +34,15 @@ main{position:relative;flex:1;display:flex;flex-direction:column;align-items:cen
 .t{position:absolute;inset:0;display:grid;place-items:center;border-radius:30px;background:#121826;border:1px solid #263047;box-shadow:0 0 0 10px rgba(245,165,36,.05),0 24px 64px rgba(245,165,36,.2);animation:p 3.6s ease-in-out infinite}
 @keyframes p{50%{transform:scale(1.05)}}
 .t svg{width:56px;height:52px}
-h1{margin:0;font-weight:500;font-size:clamp(28px,8.4vw,36px);line-height:1.2}
+h1{margin:0;font-weight:500;font-size:clamp(21px,6vw,25px);line-height:1.25}
 h1 span{display:block;animation:u .7s cubic-bezier(.2,.7,.2,1) .3s backwards}h1 .y{color:#F5A524;animation-delay:.55s}
-.b{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:10px;width:100%;max-width:320px;min-height:56px;border:0;border-radius:28px;background:linear-gradient(180deg,#FFB84D,#F5A524);box-shadow:0 10px 30px rgba(245,165,36,.28),inset 0 1px 0 rgba(255,255,255,.35);color:#0B0F1A;font-family:inherit;font-weight:500;font-size:17px;line-height:24px;text-decoration:none;cursor:pointer;transition:transform .15s;animation:u .7s cubic-bezier(.2,.7,.2,1) .8s backwards}
+.b{position:relative;overflow:hidden;display:inline-flex;align-items:center;justify-content:center;gap:8px;width:100%;max-width:240px;min-height:46px;border:0;border-radius:23px;background:linear-gradient(180deg,#FFC463 0%,#F5A524 52%,#DE8C0A 100%);box-shadow:0 8px 22px rgba(245,165,36,.3),inset 0 1px 0 rgba(255,255,255,.55),inset 0 -2px 0 rgba(120,60,0,.25);color:#0B0F1A;font-family:inherit;font-weight:500;font-size:15px;line-height:20px;text-decoration:none;cursor:pointer;transition:transform .15s;animation:u .7s cubic-bezier(.2,.7,.2,1) .8s backwards}
 .b:active{transform:scale(.98)}.b[disabled]{opacity:.6}
+.b::before{content:'';position:absolute;left:2px;right:2px;top:2px;height:48%;border-radius:21px 21px 50% 50%/21px 21px 10px 10px;background:linear-gradient(180deg,rgba(255,255,255,.5),rgba(255,255,255,.1))}
+.b>*{position:relative;z-index:1}
 .b::after{content:'';position:absolute;top:0;bottom:0;left:-60%;width:36%;background:rgba(255,255,255,.4);transform:skewX(-20deg);animation:h 3.4s ease-in-out 1.6s infinite}
 @keyframes h{0%{left:-60%}35%,100%{left:130%}}
-.b svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:a 1.6s ease-in-out infinite}
+.b svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round;animation:a 1.6s ease-in-out infinite}
 @keyframes a{50%{transform:translateX(4px)}}
 [dir=rtl] .b svg{scale:-1 1}
 .e{margin:-12px 0 0;color:#EF4444;font-size:14px;line-height:20px}
@@ -84,8 +86,8 @@ export async function GET() {
 <meta name="theme-color" content="#0B0F1A"><meta name="color-scheme" content="dark"><meta name="robots" content="noindex">
 <title>Vertexhash</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icons/apple">
 <style>${CSS}</style></head><body><div class="s" aria-hidden="true">${SPARKS}</div><main>${LOGO}
-<h1><span>${esc(t('landing.h1a'))}</span><span class="y">${esc(t('landing.h1b'))}</span></h1>
-<a id="b" class="b" href="/?auth=signup">${esc(t('landing.start'))}${ARROW}</a>
+<h1><span>${esc(t('go.h1a'))}</span><span class="y">${esc(t('go.h1b'))}</span></h1>
+<a id="b" class="b" href="/?auth=signup"><span>${esc(t('landing.start'))}</span>${ARROW}</a>
 <p id="e" class="e" hidden>${esc(t('go.err'))}</p></main>
 <p id="n" class="n" hidden data-ios="${esc(t('go.ios'))}" data-inst="${esc(t('go.install'))}"></p>
 <script>${JS}${process.env.NODE_ENV === 'production' ? `if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});` : ''}</script></body></html>`;
