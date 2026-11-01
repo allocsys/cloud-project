@@ -13,7 +13,7 @@ export default async function manifest() {
     lang,
     dir: LANGS[lang].dir,
     id: '/',
-    start_url: '/dashboard',
+    start_url: '/go',
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
