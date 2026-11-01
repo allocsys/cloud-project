@@ -8,6 +8,7 @@ import { q, closeDb } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
 import { createInvoice } from '../src/invoices.js';
 import { signBody, backoffSeconds, webhookTarget, deliverDue, MAX_ATTEMPTS } from '../src/outbox.js';
+import { adminOverview, retryParked } from '../src/admin-api.js';
 
 const ZPUB = 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs';
 process.env.BTC_XPUB = ZPUB;
@@ -107,6 +108,8 @@ test('a due callback is sent once, signed, and marked delivered', { skip }, asyn
   assert.equal(call.init.headers['x-gateway-delivery'], String(o.id));
   assert.ok(appVerifies(call.init.body, call.init.headers['x-gateway-sig']), 'the app can verify it');
   assert.equal(JSON.parse(call.init.body).payment_status, 'finished');
+  const sent = JSON.parse(call.init.body);
+  assert.ok(Math.abs(Date.now() - Date.parse(sent.sent_at)) < 60_000, 'sent_at is the time of sending, inside the signed body');
   const after1 = await row(o.id);
   assert.ok(after1.delivered_at);
   assert.equal(after1.attempts, 1);
@@ -168,6 +171,35 @@ test('after the last allowed attempt the row is parked and audited, not dropped'
   const again = fakeApp();
   await deliverDue({ target, fetchImpl: again.fetchImpl, limit: 500, log: quiet });
   assert.equal(again.calls.filter((c) => JSON.parse(c.init.body).order_id === o.ref).length, 0, 'parked rows are not retried by themselves');
+});
+
+test('Retry puts a parked callback back in the queue with fresh tries, audits it, and the next round sends it', { skip }, async () => {
+  const o = await mk();
+  const other = await mk();
+  await q("UPDATE webhook_outbox SET attempts = $2, next_try_at = 'infinity', last_error = 'app answered HTTP 503' WHERE id = ANY($1::bigint[])", [[o.id, other.id], MAX_ATTEMPTS]);
+  const seen = (await adminOverview()).callbacks;
+  assert.ok(seen.parked >= 2);
+  assert.ok(seen.stuck.every((s) => typeof s.parked === 'boolean'));
+
+  // Only the row asked for is put back.
+  assert.deepEqual(await retryParked({ id: o.id }), { retried: 1 });
+  assert.equal((await row(other.id)).attempts, MAX_ATTEMPTS);
+  assert.equal((await q("SELECT next_try_at = 'infinity' AS inf FROM webhook_outbox WHERE id = $1", [other.id])).rows[0].inf, true);
+  const back = await row(o.id);
+  assert.equal(back.attempts, 0);
+  assert.equal(back.delivered_at, null);
+  assert.ok(new Date(back.next_try_at) <= new Date(Date.now() + 5000));
+  const audit = (await q("SELECT detail FROM audit_log WHERE action = 'webhook.retry' ORDER BY id DESC LIMIT 20")).rows;
+  assert.ok(audit.some((a) => a.detail.ids.includes(o.id)));
+
+  // Repeating it finds nothing parked for that row, and a bad id is refused.
+  assert.deepEqual(await retryParked({ id: o.id }), { retried: 0 });
+  await assert.rejects(retryParked({ id: 'x' }), (e) => e.status === 400);
+
+  const app = fakeApp();
+  await deliverDue({ target, fetchImpl: app.fetchImpl, limit: 500, log: quiet });
+  assert.ok((await row(o.id)).delivered_at);
+  assert.equal(app.calls.filter((c) => JSON.parse(c.init.body).order_id === other.ref).length, 0, 'a row that is still parked is not sent');
 });
 
 test('two senders at once send each row exactly once', { skip }, async () => {
