@@ -179,3 +179,19 @@ test('a day when every Smart coin loses money is kept as ratio 0 and paused; a d
   }
   await q('DELETE FROM coin_days WHERE day = $1', [d(4)]);
 });
+
+test('the pause rule is handed to bought miners only when the mode changes', async () => {
+  const rule = async () => (await getUser(ID)).contracts[0].pauseRule;
+  const save = (mode) => saveGuardSettings({ asicsAuto: true, smartAuto: true, mode, margin: 0, buffer: 2, smartFloor: 0.5 });
+  assert.equal((await save('zero')).ok, true);
+  assert.equal(await rule(), 'zero', 'a changed mode is handed to a miner inside its term');
+  assert.equal(metaGet('guard').modeApplied, 'zero');
+  // Put the miner back by hand. Saving the same mode again must leave it alone: that save reads and locks every account with a miner.
+  await q("UPDATE users SET data = jsonb_set(data, '{contracts,0,pauseRule}', '\"extend\"') WHERE id = $1", [ID]);
+  assert.equal((await save('zero')).ok, true);
+  assert.equal(await rule(), 'extend', 'same mode: nothing is handed over');
+  assert.equal((await save('extend')).ok, true);
+  assert.equal((await save('zero')).ok, true);
+  assert.equal(await rule(), 'zero', 'a changed mode is handed over again');
+  assert.equal((await save('extend')).ok, true); // leave the settings as the tests before expect
+});
