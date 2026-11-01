@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { confirmReset, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
@@ -14,7 +15,7 @@ export async function POST(req) {
   }
   let body;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {
     await giveBack(key);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
