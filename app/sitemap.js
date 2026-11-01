@@ -6,7 +6,7 @@ import { pageUrl } from '@/lib/seo';
 export const dynamic = 'force-dynamic';
 
 // The pages anyone can open without signing in.
-const PAGES = ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds'];
+const PAGES = ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status'];
 
 // One entry per page and language; each lists the address in every language (hreflang).
 export default function sitemap() {
