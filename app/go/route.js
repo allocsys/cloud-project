@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 // The entry page for the Telegram Mini App (set /go as the Mini App link in BotFather). The main site stays at /.
 // One screen, no scroll: logo, one line, one button. It is plain HTML with a little inline CSS and script: no React, no
 // images, no fonts, no libraries, so it opens at once (about 6 KB). Colours are the app palette (app/globals.css :root).
-// In Telegram the button signs in with the Mini App data (the same /api/auth/telegram the sheet uses) and opens Plans.
+// In Telegram it signs in by itself with the Mini App data (the same /api/auth/telegram the sheet uses) and opens Plans, unless the person signed out on purpose (localStorage 'vtx-out', set by signOut in lib/api.js): then the button does it and clears the note.
 // Elsewhere it opens the sign-up sheet on the home page. Outside Telegram and the installed app it also hints how to install.
 // The installed app starts here (app/manifest.js). Someone already signed in sees the same screen with a loading bar instead of the button, then goes to the dashboard (about 1.5 s).
 // Motion is CSS only (transform and opacity). The slow, soft effects (rings, drifting bits, entrance) also run when the phone's
@@ -72,9 +72,9 @@ if(a)a.preventDefault();if(b.disabled)return;b.disabled=true;e.hidden=true;b.sty
 var r='';try{r=new URLSearchParams(d).get('start_param')||''}catch(x){}
 if(!/^[\\w-]{1,24}$/.test(r)){r='';try{r=(localStorage.getItem('vtx-ref')||'').trim().slice(0,24)}catch(x){}}
 fetch('/api/auth/telegram',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(r?{initData:d,ref:r}:{initData:d})})
-.then(function(s){if(!s.ok)throw 0;try{localStorage.removeItem('vtx-ref')}catch(x){}location.href='/plans'})
+.then(function(s){if(!s.ok)throw 0;try{localStorage.removeItem('vtx-ref');localStorage.removeItem('vtx-out')}catch(x){}location.href='/plans'})
 .catch(function(){b.disabled=false;e.hidden=false;bar.style.display='none';b.style.display=''})}
-b.onclick=go;go();return}
+b.onclick=go;var o=0;try{o=localStorage.getItem('vtx-out')}catch(x){}if(!o)go();return}
 if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)return;
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)){n.textContent=n.dataset.ios;n.hidden=false}
 addEventListener('beforeinstallprompt',function(a){a.preventDefault();n.innerHTML='<button type="button">'+n.dataset.inst+'</button>';n.hidden=false;
