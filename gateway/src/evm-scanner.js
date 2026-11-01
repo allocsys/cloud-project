@@ -10,14 +10,17 @@
 //  - Only plain transfers TO the address are seen. Transfers made inside a contract call (internal transfers) are not.
 //  - Several replicas may run this: a per-network advisory lock lets only one scan at a time, and every write is idempotent.
 //  - Idle: while the network has no open invoice (or is paused) startScanner() makes no node calls at all. When an invoice opens, wake() moves a
-//    cursor older than the catch-up window forward, so a long sleep never means reading every block it missed (default 6 hours back).
-//    Payments older than that are not tracked.
+//    cursor older than the catch-up window forward, so a long sleep never means reading every block it missed. The window is the age of the
+//    oldest open invoice plus a margin (at most 6 hours): a payment cannot come before its invoice, so a fresh invoice reads minutes of
+//    blocks, not hours. Payments older than that are not tracked.
 import { q, tx } from './db.js';
 import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { EVM, evmAddress } from './chains/evm.js';
 import { ExplorerError } from './explorer.js';
-import { isPaused, hasOpenInvoices } from './pause.js';
+import { isPaused, hasOpenInvoices, oldestOpenInvoiceAgeMs } from './pause.js';
+
+const WAKE_MARGIN_MS = 600_000; // read this much further back than the oldest open invoice (clock and block-time slack)
 
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
 const HASH = /^0x[0-9a-fA-F]{64}$/;
@@ -302,7 +305,8 @@ export function startScanner(scanner, { intervalMs, catchupMs = 6 * 3_600_000, l
           return;
         }
         if (!awake) {
-          const w = await scanner.wake(catchupMs);
+          const age = await oldestOpenInvoiceAgeMs(scanner.network);
+          const w = await scanner.wake(age === null ? catchupMs : Math.min(catchupMs, age + WAKE_MARGIN_MS));
           awake = true;
           note(log, 'info', 'scanner.wake', { network: scanner.network, ...w });
         }
