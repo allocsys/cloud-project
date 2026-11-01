@@ -9,6 +9,8 @@
 // Failure policy (one retry layer): a failed send (network error, timeout, any non-2xx answer) records the error and schedules the
 // next try with exponential backoff (30 s, 1 min, 2 min ... up to 1 hour). After MAX_ATTEMPTS the row is parked (next_try_at =
 // infinity), an audit entry is written, and it stays undelivered for a person to look at. Nothing is ever dropped silently.
+// A person can put parked rows back from the admin Gateway tab (retryParked in admin-api.js): they get a fresh set of tries.
+// Every send puts sent_at (the moment of sending) inside the signed body, so the app can refuse an old copy replayed later.
 // Redirects are refused (a signed body must not be forwarded elsewhere). Neither the secret nor the body is ever logged.
 import { createHmac } from 'node:crypto';
 import { q } from './db.js';
@@ -52,15 +54,16 @@ async function send(row, { url, secret }, fetchImpl, timeoutMs) {
   const ctl = new AbortController();
   const timer = setTimeout(() => ctl.abort(), timeoutMs); // a real timer: it is cleared below, and never leaves the loop hanging
   try {
+    const body = { ...row.payload, sent_at: new Date().toISOString() }; // a retry gets a new sent_at
     const res = await fetchImpl(url, {
       method: 'POST',
       headers: {
         'content-type': 'application/json',
-        'x-gateway-sig': signBody(row.payload, secret),
+        'x-gateway-sig': signBody(body, secret),
         'x-gateway-event': row.event,
         'x-gateway-delivery': String(row.id),
       },
-      body: JSON.stringify(row.payload),
+      body: JSON.stringify(body),
       redirect: 'error',
       signal: ctl.signal,
     });
