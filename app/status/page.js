@@ -2,12 +2,12 @@ import BackLink from '@/components/BackLink';
 import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { getLive } from '@/lib/server/market';
+import { NETWORK_MOCK as MOCK } from '@/lib/status-mock';
 
 // The first two cards are REAL: Bitcoin network difficulty from the live market (lib/server/market.js) and the hash power
 // that follows from it. With no live reading they show a dash, never a made-up number.
-// MOCK FIGURES: every value below is a placeholder, not read from the app. Replace each one with a real number
-// (miners and payouts from the database, uptime from the health checks) before launch, then drop `robots` below.
-const MOCK = { miners: '3,412', paid: '12.84 BTC', last: 'Today, 00:00 UTC', up: '99.98%' };
+// MOCK FIGURES: miners, paid, last payout and uptime come from lib/status-mock.js (shared with the dashboard). Replace them with
+// real numbers before launch, then drop `robots` below.
 const ROWS = ['net', 'diff', 'miners', 'paid', 'last', 'up'];
 const DASH = '\u2014';
 
