@@ -136,6 +136,38 @@ test('a full address takes no new payment, says so once an hour, and still updat
   assert.equal(await call([c]), 1);
 });
 
+const keep = (t, handled) =>
+  q(
+    `INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations, handled_at)
+     VALUES ('btc', 'btc', $1, $2, 0, $3, 1, ${handled ? 'now()' : 'NULL'})`,
+    [ADDR, t.txid, t.amount],
+  );
+
+test('a payment kept aside never pays a new invoice, even with the exact amount', { skip }, async () => {
+  const a = await mk();
+  const held = pay('held', a.amount_atomic);
+  await keep(held, true); // put aside earlier and returned by hand
+  const r = await observe(a.id, [held]);
+  assert.equal(r.status, 'pending');
+  assert.equal(r.queued, null);
+  assert.equal((await q('SELECT count(*)::int AS n FROM chain_txs WHERE txid = $1', [held.txid])).rows[0].n, 0);
+  // still open (not handled) is held just the same, and a poll leaves it alone
+  const b = await mk();
+  const open = pay('held-open', b.amount_atomic);
+  await keep(open, false);
+  await pollOnce({ explorers: { btc: fake({ [ADDR]: [open] }) }, log: quiet });
+  assert.equal((await row(b.id)).status, 'pending');
+});
+
+test('a payment already counted for an invoice stays counted', { skip }, async () => {
+  const a = await mk();
+  const mine = pay('mine', a.amount_atomic, 0);
+  assert.equal((await observe(a.id, [mine])).status, 'confirming');
+  await keep(mine, false); // a stray copy in unmatched_txs must not un-count it
+  assert.equal((await observe(a.id, [mine])).status, 'confirming');
+  assert.equal((await q('SELECT count(*)::int AS n FROM chain_txs WHERE txid = $1', [mine.txid])).rows[0].n, 1);
+});
+
 test('a fixed-address invoice needs an amount', { skip }, async () => {
   await assert.rejects(
     () => createInvoice({ ref: `${run}-dep`, kind: 'deposit', user_ref: 'u1', network: 'btc', asset: 'btc' }),
