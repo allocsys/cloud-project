@@ -77,6 +77,30 @@ export async function closeInvoice(input) {
   });
 }
 
+// Puts parked callbacks (the ones that failed MAX_ATTEMPTS times) back in the queue with a fresh set of tries. { id } picks one outbox row,
+// no id means all of them. A row that is delivered or still waiting is not touched, so repeating it is fine. Audited as 'webhook.retry'.
+export async function retryParked(input) {
+  const id = input?.id;
+  if (id !== undefined && id !== null && !Number.isInteger(id)) throw new ApiError(400, 'Invalid request.');
+  return tx(async (c) => {
+    const r = await c.query(
+      `UPDATE webhook_outbox SET attempts = 0, next_try_at = now()
+       WHERE delivered_at IS NULL AND next_try_at = 'infinity' AND ($1::bigint IS NULL OR id = $1)
+       RETURNING id`,
+      [id ?? null],
+    );
+    if (r.rowCount > 0) {
+      await c.query("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('admin', 'webhook.retry', 'outbox', $1::jsonb)", [JSON.stringify({ ids: r.rows.map((x) => Number(x.id)) })]);
+    }
+    return { retried: r.rowCount };
+  });
+}
+
+// How many address indexes in a row, after the last one that ever received money, have been handed out with nothing on them.
+// A wallet restored from the seed stops looking after 20 unused addresses in a row, so money past that may not show in it.
+export const BTC_GAP_LIMIT = 20;
+export const gapCount = (next, used) => Math.max(0, Number(next ?? 0) - 1 - (used === null || used === undefined ? -1 : Number(used)));
+
 // Pauses or resumes one network. A paused network refuses new invoices, the watcher skips it and its block scanner stops calling the node.
 // Pausing is refused while invoices are open on it (nothing would check them). Resuming changes nothing else: when an invoice opens the
 // scanner wakes and reads back at most EVM_CATCHUP_HOURS (payments older than that are not tracked).
@@ -111,7 +135,7 @@ export async function setNetworkPaused(input) {
 }
 
 export async function adminOverview() {
-  const [cursors, counts, recent, unmatched, unmatchedCount, outbox, failing, audit, pausedRows, openRows] = await Promise.all([
+  const [cursors, counts, recent, unmatched, unmatchedCount, outbox, failing, audit, pausedRows, openRows, alertRows, gapRows] = await Promise.all([
     q('SELECT network, height::text AS height, tip::text AS tip, EXTRACT(EPOCH FROM now() - updated_at)::int AS age_s FROM chain_cursors ORDER BY network'),
     q('SELECT status, count(*)::int AS n FROM invoices GROUP BY status'),
     q(
@@ -122,13 +146,15 @@ export async function adminOverview() {
     q('SELECT count(*)::int AS n FROM unmatched_txs WHERE handled_at IS NULL'),
     q(
       `SELECT count(*) FILTER (WHERE delivered_at IS NULL)::int AS pending,
-              count(*) FILTER (WHERE delivered_at IS NULL AND attempts > 0)::int AS failing
+              count(*) FILTER (WHERE delivered_at IS NULL AND attempts > 0)::int AS failing,
+              count(*) FILTER (WHERE delivered_at IS NULL AND next_try_at = 'infinity')::int AS parked
        FROM webhook_outbox`,
     ),
     q(
-      `SELECT o.event, o.attempts, o.last_error, o.next_try_at, i.ref
+      `SELECT o.event, o.attempts, o.last_error, (o.next_try_at = 'infinity') AS parked,
+              CASE WHEN o.next_try_at = 'infinity' THEN NULL ELSE o.next_try_at END AS next_try_at, i.ref
        FROM webhook_outbox o JOIN invoices i ON i.id = o.invoice_id
-       WHERE o.delivered_at IS NULL AND o.attempts > 0 ORDER BY o.next_try_at LIMIT 10`,
+       WHERE o.delivered_at IS NULL AND o.attempts > 0 ORDER BY (o.next_try_at = 'infinity') DESC, o.next_try_at LIMIT 10`,
     ),
     q('SELECT at, actor, action, subject FROM audit_log ORDER BY id DESC LIMIT 20'),
     q('SELECT network FROM paused_networks'),
@@ -138,7 +164,26 @@ export async function adminOverview() {
          AND NOT EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)
        GROUP BY network`,
     ),
+    // Things a person has to look at, last 30 days: a payment that came after its invoice ended, a callback that gave up, an address that is full.
+    q(
+      `SELECT a.at, a.action, a.subject, a.detail, i.ref, i.network, i.asset
+       FROM audit_log a LEFT JOIN invoices i ON i.id = a.subject
+       WHERE a.action IN ('payment.late', 'webhook.gave_up', 'unmatched.full') AND a.at > now() - interval '30 days'
+       ORDER BY a.id DESC LIMIT 20`,
+    ),
+    q(
+      `SELECT (SELECT next_index FROM address_counters WHERE network = 'btc')::bigint AS next,
+              (SELECT max(i.deriv_index) FROM invoices i
+               WHERE i.network = 'btc' AND NOT i.match_amount
+                 AND (EXISTS (SELECT 1 FROM chain_txs c WHERE c.invoice_id = i.id)
+                      OR EXISTS (SELECT 1 FROM unmatched_txs u WHERE u.network = 'btc' AND u.address = i.address)))::bigint AS used`,
+    ),
   ]);
+  // Only when Bitcoin gives each invoice its own address (extended key); a fixed address has no gap.
+  let btcGap = null;
+  try {
+    if (CHAINS.btc.configured() && !CHAINS.btc.shared()) btcGap = { gap: gapCount(gapRows.rows[0].next, gapRows.rows[0].used), limit: BTC_GAP_LIMIT };
+  } catch {}
   return {
     now: new Date().toISOString(),
     networks: networks(new Set(pausedRows.rows.map((r) => r.network)), new Map(openRows.rows.map((r) => [r.network, r.n]))),
@@ -176,8 +221,26 @@ export async function adminOverview() {
     callbacks: {
       pending: outbox.rows[0].pending,
       failing: outbox.rows[0].failing,
-      stuck: failing.rows.map((r) => ({ ref: r.ref, event: r.event, attempts: r.attempts, last_error: r.last_error ? String(r.last_error).slice(0, 200) : null, next_try_at: r.next_try_at })),
+      parked: outbox.rows[0].parked,
+      stuck: failing.rows.map((r) => ({ ref: r.ref, event: r.event, attempts: r.attempts, parked: r.parked === true, last_error: r.last_error ? String(r.last_error).slice(0, 200) : null, next_try_at: r.next_try_at })),
     },
     audit: audit.rows,
+    alerts: alertRows.rows.map((r) => {
+      const d = r.detail && typeof r.detail === 'object' ? r.detail : {};
+      const known = r.network && r.asset && /^[0-9]{1,38}$/.test(String(d.amount ?? ''));
+      return {
+        at: r.at,
+        action: r.action,
+        subject: r.subject,
+        ref: r.ref || null,
+        network: r.network || null,
+        asset: r.asset || null,
+        amount: known ? coin(r.network, r.asset, d.amount) : null,
+        txid: typeof d.txid === 'string' ? d.txid : null,
+        event: typeof d.event === 'string' ? d.event : null,
+        error: typeof d.error === 'string' ? d.error.slice(0, 200) : null,
+      };
+    }),
+    btcGap,
   };
 }
