@@ -1,4 +1,5 @@
 import { cookies } from 'next/headers';
+import { redirect } from 'next/navigation';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
@@ -10,6 +11,7 @@ export const dynamic = 'force-dynamic';
 // images, no fonts, no libraries, so it opens at once (about 5 KB). Colours are the app palette (app/globals.css :root).
 // In Telegram the button signs in with the Mini App data (the same /api/auth/telegram the sheet uses) and opens Plans.
 // Elsewhere it opens the sign-up sheet on the home page. Outside Telegram and the installed app it also hints how to install.
+// The installed app starts here (app/manifest.js). Someone already signed in is sent straight to the dashboard.
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
 const CSS = `*{box-sizing:border-box}html,body{margin:0;height:100%;background:#0B0F1A;color:#E8ECF4}
@@ -42,7 +44,7 @@ try{d=new URLSearchParams(location.hash.slice(1)).get('tgWebAppData')}catch(x){}
 function ev(k,v){try{var w=window.TelegramWebviewProxy;if(w&&w.postEvent)w.postEvent(k,JSON.stringify(v||{}));else if(parent!==window)parent.postMessage(JSON.stringify({eventType:k,eventData:v||{}}),'*')}catch(x){}}
 if(d){
 ev('web_app_ready');ev('web_app_expand');ev('web_app_set_header_color',{color:'#0B0F1A'});ev('web_app_set_background_color',{color:'#0B0F1A'});
-if(b.dataset.in!=='1'){b.onclick=function(a){
+{b.onclick=function(a){
 a.preventDefault();if(b.disabled)return;b.disabled=true;e.hidden=true;
 var r='';try{r=new URLSearchParams(d).get('start_param')||''}catch(x){}
 if(!/^[\\w-]{1,24}$/.test(r)){r='';try{r=(localStorage.getItem('vtx-ref')||'').trim().slice(0,24)}catch(x){}}
@@ -58,7 +60,7 @@ n.firstChild.onclick=function(){a.prompt();n.hidden=true}});
 
 export async function GET() {
   const jar = await cookies();
-  const signedIn = jar.has(COOKIE);
+  if (jar.has(COOKIE)) redirect('/dashboard');
   const lang = await getLang();
   const t = await getT();
   const html = `<!doctype html><html lang="${lang}" dir="${LANGS[lang].dir}"><head><meta charset="utf-8">
@@ -67,7 +69,7 @@ export async function GET() {
 <title>Vertexhash</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icons/apple">
 <style>${CSS}</style></head><body><main>${LOGO}
 <h1><span>${esc(t('landing.h1a'))}</span><span class="y">${esc(t('landing.h1b'))}</span></h1>
-<a id="b" class="b" href="${signedIn ? '/dashboard' : '/?auth=signup'}" data-in="${signedIn ? 1 : 0}">${esc(t(signedIn ? 'landing.dashboard' : 'landing.start'))}${ARROW}</a>
+<a id="b" class="b" href="/?auth=signup">${esc(t('landing.start'))}${ARROW}</a>
 <p id="e" class="e" hidden>${esc(t('go.err'))}</p></main>
 <p id="n" class="n" hidden data-ios="${esc(t('go.ios'))}" data-inst="${esc(t('go.install'))}"></p>
 <script>${JS}${process.env.NODE_ENV === 'production' ? `if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});` : ''}</script></body></html>`;
