@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { getSettings, saveSettings } from '@/lib/server/account';
 import { userId, unauthorized } from '@/lib/server/auth';
 
@@ -17,7 +18,7 @@ export async function POST(req) {
   if (!id) return unauthorized();
   let body = null;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {}
   const { status, ...rest } = await saveSettings(id, body);
   return NextResponse.json(rest, { status, headers: NO_STORE });
