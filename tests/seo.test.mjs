@@ -47,6 +47,14 @@ test('middleware: /fa addresses show the normal page in Persian and remember it'
   }
 });
 
+test('middleware: a visitor who already has the language cookie gets no new Set-Cookie', () => {
+  const withCookie = (url, lang) => middleware(new NextRequest(`https://x.test${url}`, { headers: { cookie: `${LANG_COOKIE}=${lang}` } }));
+  const same = withCookie('/fa/terms', 'fa');
+  assert.equal(new URL(same.headers.get('x-middleware-rewrite')).pathname, '/terms');
+  assert.equal(same.headers.get('set-cookie'), null);
+  assert.match(withCookie('/fa/terms', 'en').headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
+});
+
 test('middleware: an old ?lang address is sent on to its language address', () => {
   const fa = call('/terms?lang=fa');
   assert.equal(fa.status, 308);
