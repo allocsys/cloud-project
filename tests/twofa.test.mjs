@@ -329,5 +329,4 @@ test('the reset route: wrong two-factor codes lock the account for every address
   }
   const locked = await post({ token: tk, code: code(secret) }, '10.8.8.8'); // the right code, from a new address
   assert.equal(locked.status, 429);
-  assert.equal((await login(id, { code: code(secret) })).status, 200 - 0 === 200 ? (await login(id, { code: code(secret) })).status : 0, 'the library call is not behind the route lock');
 });
