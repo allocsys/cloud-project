@@ -13,6 +13,8 @@
 //  - Fixed-address invoices (match_amount): only payments of the asset AND the exact expected amount count for the invoice.
 //    Any other payment to that address is kept aside by recordUnmatched() for a person to resolve. Dust (about one dollar or less)
 //    is ignored, and one address keeps at most MAX_UNMATCHED open rows, so address-poisoning spam cannot grow the tables.
+//  - A payment kept aside in unmatched_txs (open or handled: a person may have returned it) never counts for an invoice, so an old refunded
+//    payment cannot pay a new invoice that happens to get the same exact amount. A payment already counted for an invoice stays counted.
 import { q, tx } from './db.js';
 import { CHAINS } from './chains/index.js';
 import { fmtAtomic } from './invoices.js';
@@ -148,6 +150,20 @@ export async function recordUnmatched({ network, address, defaultAsset, payments
   return added;
 }
 
+// Drops the payments that were put aside in unmatched_txs (any state) and never counted for an invoice. Run inside observe()'s transaction.
+async function withoutHeld(c, network, list) {
+  if (!list.length) return list;
+  const r = await c.query(
+    `SELECT u.txid, u.vout FROM unmatched_txs u
+     WHERE u.network = $1 AND u.txid = ANY($2::text[])
+       AND NOT EXISTS (SELECT 1 FROM chain_txs c WHERE c.network = u.network AND c.txid = u.txid AND c.vout = u.vout)`,
+    [network, list.map((t) => t.txid)],
+  );
+  if (!r.rows.length) return list;
+  const held = new Set(r.rows.map((x) => `${x.txid}:${x.vout}`));
+  return list.filter((t) => !held.has(`${t.txid}:${t.vout}`));
+}
+
 // seen: [{ txid, vout, amount (atomic units, string), confirmations, height, asset? }] paying this invoice's address.
 export async function observe(invoiceId, seen, now = new Date()) {
   const all = seen.map(clean);
@@ -155,7 +171,7 @@ export async function observe(invoiceId, seen, now = new Date()) {
     const inv = (await c.query('SELECT * FROM invoices WHERE id = $1 FOR UPDATE', [invoiceId])).rows[0];
     if (!inv) throw new Error(`Unknown invoice ${invoiceId}.`);
     if (inv.kind !== 'order' || inv.expected_atomic === null) throw new Error('Only order invoices are settled here.');
-    const list = paymentsFor(inv, all);
+    const list = await withoutHeld(c, inv.network, paymentsFor(inv, all));
     const minConf = CHAINS[inv.network].confirmations();
     const hasEvent = (await c.query('SELECT 1 FROM webhook_outbox WHERE invoice_id = $1 LIMIT 1', [inv.id])).rowCount > 0;
     const open = OPEN.includes(inv.status) && !hasEvent;
