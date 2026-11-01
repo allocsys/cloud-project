@@ -1,5 +1,4 @@
 import { cookies } from 'next/headers';
-import { redirect } from 'next/navigation';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
@@ -11,7 +10,7 @@ export const dynamic = 'force-dynamic';
 // images, no fonts, no libraries, so it opens at once (about 6 KB). Colours are the app palette (app/globals.css :root).
 // In Telegram the button signs in with the Mini App data (the same /api/auth/telegram the sheet uses) and opens Plans.
 // Elsewhere it opens the sign-up sheet on the home page. Outside Telegram and the installed app it also hints how to install.
-// The installed app starts here (app/manifest.js). Someone already signed in is sent straight to the dashboard.
+// The installed app starts here (app/manifest.js). Someone already signed in sees the same screen with a loading bar instead of the button, then goes to the dashboard (about 1.5 s).
 // Motion is CSS only (transform and opacity). The slow, soft effects (rings, drifting bits, entrance) also run when the phone's
 // "reduce motion" is on, because a still page looked unfinished; only the quick ones (button shimmer, arrow nudge) stop then.
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
@@ -48,6 +47,9 @@ h1 span{display:block;animation:u .7s cubic-bezier(.2,.7,.2,1) .3s backwards}h1 
 .e{margin:-12px 0 0;color:#EF4444;font-size:14px;line-height:20px}
 .n{position:relative;align-self:center;margin:0 24px 24px;padding:8px 16px;border:1px solid #263047;border-radius:20px;background:#121826;color:#8A94A8;font-size:14px;line-height:20px;text-align:center}
 .n button{background:none;border:0;padding:0;color:#F5A524;font:inherit;cursor:pointer}
+.l{width:100%;max-width:240px;height:4px;border-radius:2px;background:#263047;overflow:hidden;animation:u .7s cubic-bezier(.2,.7,.2,1) .5s backwards}
+.l::after{content:'';display:block;height:100%;border-radius:2px;background:linear-gradient(90deg,#FFC463,#F5A524);transform-origin:left;animation:k 1s ease-in-out .5s both}
+@keyframes k{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 @media (prefers-reduced-motion:reduce){.b::after,.b svg{animation:none}}`;
 
 const LOGO = `<div class="m"><span class="r"></span><span class="r"></span><span class="r"></span><div class="t"><svg viewBox="0 0 87 78" role="img" aria-label="Vertexhash"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#FFB84D"/><stop offset=".55" stop-color="#F5A524"/><stop offset="1" stop-color="#D4880F"/></linearGradient></defs><path d="M0 0H28.5L43.5 44L58.5 0H87L43.5 78Z" fill="url(#g)"/><path d="M-6 47.1L96 5.6" stroke="#121826" stroke-width="4" fill="none"/><path d="M-6 65.1L96 23.5" stroke="#121826" stroke-width="4" fill="none"/></svg></div></div>`;
@@ -60,8 +62,11 @@ const JS = `(function(){
 var $=function(i){return document.getElementById(i)},b=$('b'),e=$('e'),n=$('n'),d=null;
 try{d=new URLSearchParams(location.hash.slice(1)).get('tgWebAppData')}catch(x){}
 function ev(k,v){try{var w=window.TelegramWebviewProxy;if(w&&w.postEvent)w.postEvent(k,JSON.stringify(v||{}));else if(parent!==window)parent.postMessage(JSON.stringify({eventType:k,eventData:v||{}}),'*')}catch(x){}}
+if(d){ev('web_app_ready');ev('web_app_expand');ev('web_app_set_header_color',{color:'#0B0F1A'});ev('web_app_set_background_color',{color:'#0B0F1A'})}
+if(document.body.hasAttribute('data-in')){
+var l=document.createElement('link');l.rel='prefetch';l.href='/dashboard';document.head.appendChild(l);
+setTimeout(function(){location.replace('/dashboard')},1500);return}
 if(d){
-ev('web_app_ready');ev('web_app_expand');ev('web_app_set_header_color',{color:'#0B0F1A'});ev('web_app_set_background_color',{color:'#0B0F1A'});
 {b.onclick=function(a){
 a.preventDefault();if(b.disabled)return;b.disabled=true;e.hidden=true;
 var r='';try{r=new URLSearchParams(d).get('start_param')||''}catch(x){}
@@ -78,16 +83,16 @@ n.firstChild.onclick=function(){a.prompt();n.hidden=true}});
 
 export async function GET() {
   const jar = await cookies();
-  if (jar.has(COOKIE)) redirect('/dashboard');
+  const signed = jar.has(COOKIE);
   const lang = await getLang();
   const t = await getT();
   const html = `<!doctype html><html lang="${lang}" dir="${LANGS[lang].dir}"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#0B0F1A"><meta name="color-scheme" content="dark"><meta name="robots" content="noindex">
 <title>Vertexhash</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icons/apple">
-<style>${CSS}</style></head><body><div class="s" aria-hidden="true">${SPARKS}</div><main>${LOGO}
+<style>${CSS}</style>${signed ? '<meta http-equiv="refresh" content="4;url=/dashboard">' : ''}</head><body${signed ? ' data-in' : ''}><div class="s" aria-hidden="true">${SPARKS}</div><main>${LOGO}
 <h1><span>${esc(t('go.h1a'))}</span><span class="y">${esc(t('go.h1b'))}</span></h1>
-<a id="b" class="b" href="/?auth=signup"><span>${esc(t('landing.start'))}</span>${ARROW}</a>
+${signed ? '<div class="l" aria-hidden="true"></div>' : `<a id="b" class="b" href="/?auth=signup"><span>${esc(t('landing.start'))}</span>${ARROW}</a>`}
 <p id="e" class="e" hidden>${esc(t('go.err'))}</p></main>
 <p id="n" class="n" hidden data-ios="${esc(t('go.ios'))}" data-inst="${esc(t('go.install'))}"></p>
 <script>${JS}${process.env.NODE_ENV === 'production' ? `if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});` : ''}</script></body></html>`;
