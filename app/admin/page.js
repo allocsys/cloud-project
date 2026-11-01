@@ -73,6 +73,9 @@ const mb = (n) => `${(n / 1048576).toFixed(1)} MB`;
 const when = (t) => (t ? new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '');
 const ORDER = { pending: 'Waiting', review: 'Needs a check', paid: 'Paid', cancelled: 'Closed', expired: 'Expired', failed: 'Failed' };
 const WD = { pending: 'Needs approval', approved: 'Approved, pay it', sent: 'Sent', failed: 'Failed, refunded', rejected: 'Rejected, refunded' };
+const RR = { pending: 'Needs a decision', approved: 'Refunded', rejected: 'Declined' };
+const RR_WHY = { mistake: 'Bought by mistake', wrong: 'Wrong plan or amount', low: 'Returns look too low', better: 'Found a better option', money: 'Needs the money back', broken: 'Something did not work', other: 'Other' };
+const RR_AGAIN = { yes: 'Yes', maybe: 'Maybe', no: 'No' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
@@ -653,7 +656,7 @@ function Login({ onDone, setup }) {
 const GROUPS = [
   ['home', 'Overview', ['overview']],
   ['people', 'People', ['users', 'referrals', 'boosts', 'send']],
-  ['money', 'Money', ['orders', 'withdrawals', 'gateway']],
+  ['money', 'Money', ['orders', 'withdrawals', 'refunds', 'gateway']],
   ['mining', 'Mining', ['halls', 'smart', 'guard']],
   ['system', 'System', ['database', 'settings']],
 ];
@@ -1421,7 +1424,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, orders = [], withdrawals = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
+  const { stats, users, orders = [], withdrawals = [], refunds = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
   const toNeedle = toq.trim().toLowerCase();
   const toList = users.filter((u) => !toNeedle || u.id === to || `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(toNeedle)).slice(0, 50);
@@ -1450,6 +1453,8 @@ export default function Admin() {
   const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
   const shownOrders = flt === 'open' ? orders.filter(orderOpen) : [...orders].sort(openFirst(orderOpen));
   const shownWds = flt === 'open' ? withdrawals.filter(wdOpen) : [...withdrawals].sort(openFirst(wdOpen));
+  const rrOpen = (r) => r.status === 'pending';
+  const shownRrs = flt === 'open' ? refunds.filter(rrOpen) : [...refunds].sort(openFirst(rrOpen));
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
   const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
@@ -1481,7 +1486,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['refunds', 'Refunds', stats.refundsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
@@ -2035,6 +2040,38 @@ export default function Admin() {
               </Fold>
             );
           })}
+        </div>
+      )}
+
+      {tab === 'refunds' && (
+        <div className="adm-stack">
+          <Filter value={flt} onPick={setFlt} open={refunds.filter(rrOpen).length} all={refunds.length} />
+          {shownRrs.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{refunds.length === 0 ? 'No refund requests yet.' : 'Nothing open.'}</p>}
+          {shownRrs.map((r) => (
+            <Fold key={r.id} title={`${r.serial} · ${RR_WHY[r.reason] || r.reason}`} sub={`${r.userId} · ${when(r.at)}`} start={rrOpen(r)} pill={<Pill tone={r.status === 'approved' ? 'ok' : r.status === 'pending' ? 'warn' : 'bad'}>{RR[r.status] || r.status}</Pill>}>
+              <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
+                <div><small>Reason</small><b>{RR_WHY[r.reason] || r.reason}</b></div>
+                {r.again && <div><small>Buy again?</small><b>{RR_AGAIN[r.again] || r.again}</b></div>}
+              </div>
+              {r.note && <div className="adm-addr"><small>Their note</small><span>{r.note}</span></div>}
+              {r.answer && <div className="adm-addr"><small>Our answer</small><span>{r.answer}</span></div>}
+              {r.status === 'pending' && (
+                <div className="adm-actions">
+                  <button
+                    className="btn ghost danger"
+                    disabled={busy}
+                    onClick={async () => {
+                      const note = await askText(`Decline the refund for ${r.serial}?`, { label: 'Note for the user', ok: 'Decline', required: true });
+                      if (note) run({ action: 'refund-request', userId: r.userId, id: r.id, decision: 'reject', note }, 'Declined');
+                    }}
+                  >
+                    Decline
+                  </button>
+                  <button className="btn" disabled={busy} onClick={() => ask(`Refund ${r.serial} for ${r.userId}? The price goes back to their balance and the miner is removed.`, { ok: 'Refund' }).then((yes) => yes && run({ action: 'refund-request', userId: r.userId, id: r.id, decision: 'approve' }, (x) => `Refunded $${x.usd}`))}>Refund</button>
+                </div>
+              )}
+            </Fold>
+          ))}
         </div>
       )}
 
