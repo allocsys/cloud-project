@@ -71,6 +71,23 @@ test('nested objects are sorted recursively', () => {
   assert.ok(withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET }, () => verifyGatewaySig(JSON.stringify(nested), sign(nested))));
 });
 
+test('a callback with a fresh sent_at is accepted; an old, future or malformed one is refused; none is still accepted', () => {
+  const at = (ms) => ({ ...payload, sent_at: new Date(Date.now() + ms).toISOString() });
+  withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET }, () => {
+    const ok = at(-1000);
+    assert.deepEqual(verifyGatewaySig(JSON.stringify(ok), sign(ok)), ok);
+    for (const ms of [-2 * 3_600_000, 2 * 3_600_000]) {
+      const b = at(ms);
+      assert.equal(verifyGatewaySig(JSON.stringify(b), sign(b)), null);
+    }
+    for (const bad of ['yesterday', 123, null]) {
+      const b = { ...payload, sent_at: bad };
+      assert.equal(verifyGatewaySig(JSON.stringify(b), sign(b)), null);
+    }
+    assert.ok(verifyGatewaySig(JSON.stringify(payload), sign(payload)), 'an older gateway sends no sent_at');
+  });
+});
+
 test('uppercase hex and surrounding spaces are accepted', () => {
   const raw = JSON.stringify(payload);
   assert.ok(withEnv({ GATEWAY_WEBHOOK_SECRET: SECRET }, () => verifyGatewaySig(raw, ` ${sign(payload).toUpperCase()} `)));
