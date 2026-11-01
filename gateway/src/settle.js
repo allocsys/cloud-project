@@ -7,7 +7,8 @@
 //  - Confirmed total >= expected  ->  'paid' (overpaying is fine and recorded), event 'finished'.
 //  - After the invoice expires: some confirmed money -> 'partial' (event 'partially_paid'); none -> 'expired' (event 'expired').
 //    If a payment is still unconfirmed at expiry we wait for it, but at most 1 hour.
-//  - Once an event is queued the outcome never changes. Money that arrives later is recorded and audited ('payment.late').
+//  - Once an event is queued the outcome never changes. Money that arrives later is kept aside in unmatched_txs for a person: on a shared
+//    address by the watcher's normal pass, on a per-invoice address by the watcher's sweepEnded() (LATE_DAYS after the invoice expired).
 //  - Calling observe() again with the same data changes nothing (idempotent). Never call it when the chain lookup failed:
 //    an empty list means "nothing on chain", and unconfirmed payments missing from it are dropped.
 //  - Fixed-address invoices (match_amount): only payments of the asset AND the exact expected amount count for the invoice.
@@ -75,6 +76,23 @@ export async function openInvoices() {
   return r.rows;
 }
 
+// How long (days after expiry) the address of an ended per-invoice-address order is still watched for late money.
+export const LATE_DAYS = 14;
+
+// Order invoices on their OWN address (not fixed-address mode) whose outcome is already queued, so openInvoices() no longer lists them.
+// The watcher keeps looking at these for LATE_DAYS: a payment after expiry, cancel or reject would otherwise never be seen. Newest first.
+export async function endedInvoices(now = new Date()) {
+  const r = await q(
+    `SELECT id, network, asset, address, expires_at FROM invoices i
+     WHERE kind = 'order' AND NOT match_amount
+       AND expires_at > $1::timestamptz - ($2::int * interval '1 day')
+       AND EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)
+     ORDER BY expires_at DESC, id LIMIT 500`,
+    [now, LATE_DAYS],
+  );
+  return r.rows;
+}
+
 // Which of these payments belong to the invoice: same asset, and for a fixed-address invoice the exact expected amount.
 export function paymentsFor(inv, list) {
   return list.filter(
@@ -110,7 +128,8 @@ function isDust(network, t, defaultAsset) {
 // Payments to a fixed address that no open invoice claimed. Recent ones only (history of the address is not our business),
 // and never one already counted for an invoice. Idempotent; a new one is audited once as 'payment.unmatched'.
 // Dust is skipped, and a full address (maxRows open rows) takes no new payment; one it already holds still gets its confirmations updated.
-export async function recordUnmatched({ network, address, defaultAsset, payments, claimed, maxRows = MAX_UNMATCHED }) {
+// invoiceId (optional) goes on the audit line, for money that came to the address of an ended per-invoice-address order.
+export async function recordUnmatched({ network, address, defaultAsset, payments, claimed, maxRows = MAX_UNMATCHED, invoiceId = null }) {
   const max = CHAINS[network].recentConfirmations;
   let added = 0;
   let room = null; // how many more rows fit; read once, on the first payment that needs it
@@ -136,7 +155,7 @@ export async function recordUnmatched({ network, address, defaultAsset, payments
       room--;
       await q("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('watcher', 'payment.unmatched', $1, $2::jsonb)", [
         `${network}:${t.txid}`,
-        JSON.stringify({ address, asset: t.asset ?? defaultAsset, amount: t.amount, vout: t.vout }),
+        JSON.stringify({ address, asset: t.asset ?? defaultAsset, amount: t.amount, vout: t.vout, ...(invoiceId ? { invoice: invoiceId } : {}) }),
       ]);
     } else if (room <= 0 && !r.rows.length) {
       await q(
