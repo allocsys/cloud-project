@@ -46,6 +46,9 @@ export default async function Privacy() {
         <h2 style={h2}>{t('privacy.h7')}</h2>
         <p className="mute">{t('privacy.p7')}</p>
 
+        <h2 style={h2}>{t('privacy.h8')}</h2>
+        <p className="mute">{t('privacy.p8')}</p>
+
         <div style={{ height: '14px' }} />
         <BackLink />
       </div>
