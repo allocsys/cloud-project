@@ -21,7 +21,7 @@ export default function StickyCta() {
       setOn(vis.size === 0);
     });
     const scan = () => {
-      for (const el of document.querySelectorAll('.calc-go, .boost-go')) {
+      for (const el of document.querySelectorAll('.lp-start, .calc-go, .boost-go')) {
         if (!seen.has(el)) {
           seen.add(el);
           io.observe(el);
