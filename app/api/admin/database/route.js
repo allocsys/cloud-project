@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminEnabled, isAdmin } from '@/lib/server/admin';
 import { databaseOverview, tableRows, deleteRow, clearTable, dropTable } from '@/lib/server/db-admin';
 import { makeBackup, inspectBackup, restoreBackup, MAX_UPLOAD } from '@/lib/server/db-backup';
-import { readCapped } from '@/lib/server/body';
+import { readCapped, readJson } from '@/lib/server/body';
 
 export const dynamic = 'force-dynamic';
 
@@ -61,7 +61,7 @@ export async function DELETE(req) {
   if (mode === 'row') {
     let body = {};
     try {
-      body = await req.json();
+      body = await readJson(req, 256 * 1024);
     } catch {}
     r = await deleteRow(table, body?.key);
   } else if (mode === 'clear') {
