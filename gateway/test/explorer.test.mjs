@@ -122,6 +122,50 @@ test('a slow explorer times out', async () => {
   await assert.rejects(() => ex.addressPayments(ADDR), isExplorerError(/timed out after 30 ms/));
 });
 
+// A busy address: every page holds 25 confirmed transactions. Page k has numbers k*25+1 .. k*25+25, and `step` blocks lie between neighbours.
+const id = (n) => n.toString(16).padStart(64, '0');
+const pageOf = (k, step, pay) =>
+  Array.from({ length: 25 }, (_, i) => {
+    const n = k * 25 + i + 1;
+    return confirmed(id(n), 100000 - n * step, [to(pay[n] ?? 0)]);
+  });
+const busy = (calls, step, pay = {}) => async (url) => {
+  calls.push(url);
+  const p = new URL(url).pathname;
+  if (p === '/api/blocks/tip/height') return new Response('100000');
+  if (p === `/api/address/${ADDR}/txs`) return new Response(JSON.stringify(pageOf(0, step, pay)));
+  const m = p.match(/\/txs\/chain\/([0-9a-f]{64})$/);
+  if (m) return new Response(JSON.stringify(pageOf(parseInt(m[1], 16) / 25, step, pay)));
+  return new Response('not found', { status: 404 });
+};
+
+test('a payment behind a full page of other transfers is still found', async () => {
+  const calls = [];
+  const ex = btcExplorer({ baseUrl: BASE, fetchImpl: busy(calls, 1, { 30: 777 }) });
+  const got = await ex.addressPayments(ADDR);
+  assert.deepEqual(got, [{ txid: id(30), vout: 0, amount: '777', confirmations: 31, height: 100000 - 30 }]);
+  assert.ok(calls.includes(`${BASE}/address/${ADDR}/txs/chain/${id(25)}`), 'the second page is asked for after the last transaction of the first');
+});
+
+test('paging is capped by maxPages, and one tip read follows the pages', async () => {
+  const calls = [];
+  await btcExplorer({ baseUrl: BASE, fetchImpl: busy(calls, 1), maxPages: 3 }).addressPayments(ADDR);
+  assert.equal(calls.length, 4);
+  assert.equal(calls.at(-1), `${BASE}/blocks/tip/height`);
+});
+
+test('paging stops once a page reaches back past recent history', async () => {
+  const calls = [];
+  await btcExplorer({ baseUrl: BASE, fetchImpl: busy(calls, 100) }).addressPayments(ADDR); // 25 transactions span 2400 blocks
+  assert.equal(calls.length, 2, 'the first page and the tip, nothing older');
+});
+
+test('a failing later page is an ExplorerError, not a shorter list', async () => {
+  const base = busy([], 1);
+  const flaky = async (url) => (/\/txs\/chain\//.test(url) ? new Response('busy', { status: 503 }) : base(url));
+  await assert.rejects(() => btcExplorer({ baseUrl: BASE, fetchImpl: flaky }).addressPayments(ADDR), isExplorerError(/503/));
+});
+
 test('only https explorer URLs are accepted', () => {
   for (const u of ['http://explorer.test/api', '', undefined, 'explorer.test', 'ftp://x']) {
     assert.throws(() => btcExplorer({ baseUrl: u }), /https/, String(u));
