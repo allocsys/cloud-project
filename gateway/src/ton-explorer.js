@@ -1,11 +1,12 @@
 // TON explorer client for the toncenter v3 HTTP API (or any compatible indexer). It only reads. Every call has a timeout, and anything
 // unexpected throws ExplorerError: a broken answer is never turned into "no payments", because settlement treats an empty list as truth.
 //
-// How it works: one call lists the newest transactions of the address (newest first, last 14 days, up to 100). A transaction counts as a
+// How it works: a call lists the newest transactions of the address (newest first, last 14 days, 100 per page). A full page is followed
+// by the next one (offset), up to maxPages, so dust spam cannot push a real payment out of view. A transaction counts as a
 // payment when it came from another account (not an external message), was not bounced, did not abort or fail, and carries a value to this
 // address. Transaction hashes come as base64 and are turned into 64 hex characters (what settlement stores).
 // Finality on TON is fast: a transaction already in a masterchain block, or older than 30 seconds, shows 1 confirmation; a younger one 0.
-// Limits: the newest 100 transactions within 14 days. Only plain TON transfers (jettons such as USDT are not read).
+// Limits: the newest limit * maxPages transactions within 14 days. Only plain TON transfers (jettons such as USDT are not read).
 import { ExplorerError } from './explorer.js';
 import { tonParse } from './chains/ton.js';
 
@@ -25,7 +26,7 @@ function txHash(h) {
   throw bad();
 }
 
-export function tonExplorer({ baseUrl, apiKey = '', fetchImpl = fetch, timeoutMs = 10_000, now = () => Date.now(), lookbackMs = 14 * DAY, limit = 100 }) {
+export function tonExplorer({ baseUrl, apiKey = '', fetchImpl = fetch, timeoutMs = 10_000, now = () => Date.now(), lookbackMs = 14 * DAY, limit = 100, maxPages = 5 }) {
   const base = String(baseUrl || '').trim().replace(/\/+$/, '');
   if (!/^https:\/\/[^\s/]+/.test(base)) throw new Error('TON_API_URL must be an https URL.');
 
@@ -56,11 +57,21 @@ export function tonExplorer({ baseUrl, apiKey = '', fetchImpl = fetch, timeoutMs
   async function addressPayments(address) {
     const want = tonParse(address);
     const t0 = now();
-    const qs = new URLSearchParams({ account: String(address), limit: String(limit), sort: 'desc', start_utime: String(Math.floor((t0 - lookbackMs) / 1000)) });
+    const start = String(Math.floor((t0 - lookbackMs) / 1000));
+    const txs = [];
+    for (let n = 0; n < maxPages; n++) {
+      const qs = new URLSearchParams({ account: String(address), limit: String(limit), offset: String(n * limit), sort: 'desc', start_utime: start });
+      const page = await get(`/api/v3/transactions?${qs}`);
+      txs.push(...page);
+      if (page.length < limit) break;
+    }
     const out = [];
-    for (const t of await get(`/api/v3/transactions?${qs}`)) {
+    const done = new Set(); // a transaction that arrived between two pages can show up twice
+    for (const t of txs) {
       if (!t || typeof t !== 'object') throw bad();
       const txid = txHash(t.hash);
+      if (done.has(txid)) continue;
+      done.add(txid);
       if (!t.description || typeof t.description !== 'object') throw bad();
       const m = t.in_msg;
       if (!m || typeof m !== 'object') continue; // no incoming message (a tick-tock transaction)
