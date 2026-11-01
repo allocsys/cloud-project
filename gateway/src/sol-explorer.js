@@ -135,8 +135,8 @@ export function solExplorer({
         if (!had || (had.confirmationStatus !== 'finalized' && s.confirmationStatus === 'finalized')) bySig.set(s.signature, s);
       }
     }
-    const keep = [...bySig.values()].sort((x, y) => y.slot - x.slot); // newest first, so a big backlog is read from the newest
-    const need = keep.filter((s) => !cache.has(s.signature));
+    const keep = [...bySig.values()];
+    const need = keep.filter((s) => !cache.has(s.signature)).sort((x, y) => y.slot - x.slot); // a big backlog is read from the newest
     for (let i = 0; i < need.length; i += batchSize) {
       const chunk = need.slice(i, i + batchSize);
       const part = await client.batch(
