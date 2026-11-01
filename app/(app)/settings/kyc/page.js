@@ -201,6 +201,7 @@ export default function Kyc() {
         </div>
       ) : (
         <div className="card" style={hide}>
+          {kd?.rejectedAt && <div className="ferr" role="status" style={{ marginBottom: 12 }}>{t('kyc.rejected')}</div>}
           <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-label={t('kyc.progress')}>
             {STEPS.map((s, i) => (
               <i key={s} className={i <= step ? 'on' : undefined} />
