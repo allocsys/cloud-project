@@ -9,17 +9,16 @@ import { ripemd160 } from '@noble/hashes/ripemd160';
 const b58c = createBase58check(sha256);
 
 // Public extended key version bytes, and the address prefix each one implies.
+// Mainnet only: testnet keys (tpub, vpub) would give tb1 addresses that hold no real money.
 const VERSIONS = {
   0x0488b21e: { hrp: 'bc' }, // xpub
   0x04b24746: { hrp: 'bc' }, // zpub
-  0x043587cf: { hrp: 'tb' }, // tpub
-  0x045f1cf6: { hrp: 'tb' }, // vpub
 };
 const XPUB = 0x0488b21e;
 
 const bad = (msg) => new Error(msg); // never put the key itself in an error message
 
-// Accepts xpub/zpub/tpub/vpub. Returns the key re-encoded as a plain xpub, and the address prefix.
+// Accepts xpub/zpub. Returns the key re-encoded as a plain xpub, and the address prefix.
 export function normalizeXpub(key) {
   let raw;
   try {
