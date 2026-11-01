@@ -67,14 +67,14 @@ if(document.body.hasAttribute('data-in')){
 var l=document.createElement('link');l.rel='prefetch';l.href='/dashboard';document.head.appendChild(l);
 setTimeout(function(){location.replace('/dashboard')},1500);return}
 if(d){
-{b.onclick=function(a){
-a.preventDefault();if(b.disabled)return;b.disabled=true;e.hidden=true;
+var bar=$('l');function go(a){
+if(a)a.preventDefault();if(b.disabled)return;b.disabled=true;e.hidden=true;b.style.display='none';bar.style.display='block';
 var r='';try{r=new URLSearchParams(d).get('start_param')||''}catch(x){}
 if(!/^[\\w-]{1,24}$/.test(r)){r='';try{r=(localStorage.getItem('vtx-ref')||'').trim().slice(0,24)}catch(x){}}
 fetch('/api/auth/telegram',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(r?{initData:d,ref:r}:{initData:d})})
 .then(function(s){if(!s.ok)throw 0;try{localStorage.removeItem('vtx-ref')}catch(x){}location.href='/plans'})
-.catch(function(){b.disabled=false;e.hidden=false})}}
-return}
+.catch(function(){b.disabled=false;e.hidden=false;bar.style.display='none';b.style.display=''})}
+b.onclick=go;go();return}
 if(matchMedia('(display-mode: standalone)').matches||navigator.standalone)return;
 if(/iphone|ipad|ipod/i.test(navigator.userAgent)){n.textContent=n.dataset.ios;n.hidden=false}
 addEventListener('beforeinstallprompt',function(a){a.preventDefault();n.innerHTML='<button type="button">'+n.dataset.inst+'</button>';n.hidden=false;
@@ -92,7 +92,7 @@ export async function GET() {
 <title>Vertexhash</title><link rel="manifest" href="/manifest.webmanifest"><link rel="icon" href="/logo.svg" type="image/svg+xml"><link rel="apple-touch-icon" href="/icons/apple">
 <style>${CSS}</style>${signed ? '<meta http-equiv="refresh" content="4;url=/dashboard">' : ''}</head><body${signed ? ' data-in' : ''}><div class="s" aria-hidden="true">${SPARKS}</div><main>${LOGO}
 <h1><span>${esc(t('go.h1a'))}</span><span class="y">${esc(t('go.h1b'))}</span></h1>
-${signed ? '<div class="l" aria-hidden="true"></div>' : `<a id="b" class="b" href="/?auth=signup"><span>${esc(t('landing.start'))}</span>${ARROW}</a>`}
+${signed ? '<div class="l" aria-hidden="true"></div>' : `<a id="b" class="b" href="/?auth=signup"><span>${esc(t('landing.start'))}</span>${ARROW}</a><div id="l" class="l" style="display:none" aria-hidden="true"></div>`}
 <p id="e" class="e" hidden>${esc(t('go.err'))}</p></main>
 <p id="n" class="n" hidden data-ios="${esc(t('go.ios'))}" data-inst="${esc(t('go.install'))}"></p>
 <script>${JS}${process.env.NODE_ENV === 'production' ? `if('serviceWorker' in navigator)navigator.serviceWorker.register('/sw.js').catch(function(){});` : ''}</script></body></html>`;
