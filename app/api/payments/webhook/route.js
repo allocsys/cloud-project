@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readCapped } from '@/lib/server/body';
 import { settleOrder } from '@/lib/server/miners';
 import { callbacksEnabled, verifyCallback } from '@/lib/server/pay-provider';
 
@@ -9,8 +10,9 @@ export const dynamic = 'force-dynamic';
 // Duplicate deliveries are harmless: settleOrder activates an order once.
 export async function POST(req) {
   if (!callbacksEnabled()) return NextResponse.json({ ok: false }, { status: 503 });
-  const raw = await req.text();
-  if (raw.length > 50_000) return NextResponse.json({ ok: false }, { status: 413 });
+  const buf = await readCapped(req, 50_000);
+  if (buf === null) return NextResponse.json({ ok: false }, { status: 413 });
+  const raw = buf.toString('utf8');
   const body = verifyCallback(raw, req.headers);
   if (!body) return NextResponse.json({ ok: false, error: 'Bad signature.' }, { status: 401 });
   const { status, ...rest } = await settleOrder(body);
