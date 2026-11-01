@@ -6,7 +6,7 @@ import { q, closeDb } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
 import { createInvoice } from '../src/invoices.js';
 import { adminOverview, setNetworkPaused } from '../src/admin-api.js';
-import { pausedNetworks, isPaused, hasOpenInvoices } from '../src/pause.js';
+import { pausedNetworks, isPaused, hasOpenInvoices, oldestOpenInvoiceAgeMs } from '../src/pause.js';
 import { startScanner } from '../src/evm-scanner.js';
 
 const ZPUB = 'zpub6rFR7y4Q2AijBEqTUquhVz398htDFrtymD9xYYfG1m4wAcvPhXNfE3EfH1r1ADqtfSdVCToUG868RvUUkgDKf31mGDtKsAYz2oz2AGutZYs';
@@ -73,10 +73,12 @@ test('a network with open invoices cannot be paused', { skip }, async () => {
 test('an idle scanner makes no node calls, wakes when an invoice opens and sleeps again when it closes', { skip }, async () => {
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
   const calls = { wake: 0, scan: 0 };
+  let windowSeen = null;
   const fake = {
     network: 'sol',
-    wake: async () => {
+    wake: async (windowMs) => {
       calls.wake++;
+      windowSeen = windowMs;
       return { kept: true };
     },
     scanOnce: async () => {
@@ -90,6 +92,7 @@ test('an idle scanner makes no node calls, wakes when an invoice opens and sleep
     await sleep(200);
     assert.deepEqual(calls, { wake: 0, scan: 0 }, 'no open invoice: no calls');
     assert.equal(await hasOpenInvoices('sol'), false);
+    assert.equal(await oldestOpenInvoiceAgeMs('sol'), null);
 
     await q(
       "INSERT INTO invoices (id, ref, network, asset, address, deriv_index, expires_at, status) VALUES ($1, $2, 'sol', 'sol', $3, 0, now() + interval '10 minutes', 'pending')",
@@ -99,6 +102,8 @@ test('an idle scanner makes no node calls, wakes when an invoice opens and sleep
     const until = Date.now() + 3000;
     while (Date.now() < until && calls.scan < 2) await sleep(20);
     assert.equal(calls.wake, 1, 'woken once');
+    assert.ok(windowSeen >= 600_000 && windowSeen <= 660_000, `a fresh invoice wakes the scanner for about 10 minutes, not 6 hours (got ${windowSeen} ms)`);
+    assert.ok((await oldestOpenInvoiceAgeMs('sol')) >= 0);
     assert.ok(calls.scan >= 2, 'scanning while the invoice is open');
 
     await q("UPDATE invoices SET status = 'expired' WHERE id = $1", [`inv_${run}`]);
