@@ -15,6 +15,7 @@ import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
+import { NETWORK_MOCK } from '@/lib/status-mock';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -400,6 +401,17 @@ export default function Dashboard() {
               })}
             </div>
           )}
+        </div>
+
+        <div className="card" style={hideTail}>
+          <div className="cardhead">
+            <h3>{t('dash.network')}</h3>
+          </div>
+          <div className="egrid">
+            <div className="hcell"><span>{t('status.miners')}</span><b>{NETWORK_MOCK.miners}</b></div>
+            <div className="hcell"><span>{t('status.paid')}</span><b>{NETWORK_MOCK.paid}</b></div>
+            <div className="hcell ok"><span>{t('status.up')}</span><b>{NETWORK_MOCK.up}</b></div>
+          </div>
         </div>
 
         {split.length > 0 && (
