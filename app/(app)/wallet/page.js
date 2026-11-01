@@ -1,5 +1,6 @@
 'use client';
 import PageHead from '@/components/PageHead';
+import { PendingCards } from '@/components/PendingOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
@@ -418,6 +419,8 @@ export default function Wallet() {
           <span className="mute" style={{ display: 'block', fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
           <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{ready && wd.mined != null ? t('wal.totalMined', { n: formatBtc(wd.mined + mined) }) : '\u00a0'}</span>
         </div>
+
+        <PendingCards show={show} />
 
         {rein && (
           <Link href={reinvestHref(rein)} className="card rein" style={hideCalm}>
