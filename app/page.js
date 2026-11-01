@@ -9,6 +9,7 @@ import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
 import WinnersBar from '@/components/WinnersBar';
+import NetworkLive from '@/components/NetworkLive';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
@@ -162,6 +163,8 @@ export default async function Home() {
 
         <LandingTail>
         <WinnersBar />
+
+        <NetworkLive />
 
         <section className="lp-sec" aria-labelledby="why">
           <Reveal>
