@@ -1,7 +1,7 @@
 // Gateway settings, read from environment variables at the moment they are needed (so tests can change them).
 // GATEWAY_DB_NAME     optional. Shared Postgres server: DATABASE_URL points at the server, the gateway creates and uses its own database with this name (read in server.js)
 // GATEWAY_DB_USER, GATEWAY_DB_PASSWORD  optional, one-time: with the admin DATABASE_URL, creates a limited login (owns only the gateway database, 16+ char password). Then set DATABASE_URL to that login and remove these three variables.
-// GATEWAY_API_SECRET  shared secret the app sends as a Bearer token
+// GATEWAY_API_SECRET  shared secret the app sends as a Bearer token. At least 16 characters (a shorter one is refused, and the service will not start).
 // BTC_XPUB            account-level extended PUBLIC key (xpub or zpub). Never a private key or seed. A fresh address per invoice.
 // PAY_ADDR_BTC        fixed-address mode: one public BTC address; invoices are told apart by exact amount. Used when BTC_XPUB is not set.
 // PAY_ADDR_EVM, PAY_ADDR_TRX, PAY_ADDR_SOL, PAY_ADDR_TON  public receiving addresses (EVM chains share one) for the fixed-address networks.
