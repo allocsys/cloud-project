@@ -12,8 +12,8 @@ import { useT } from '@/components/I18nProvider';
 
 const tierName = (t, tier) => t(`tier.${tier.id}`);
 
-const AMBER = '#EF9F27';
-const AMBER_L = '#FAC775';
+const AMBER = '#F5A524';
+const AMBER_L = '#FFB84D';
 const TEAL = '#5DCAA5';
 const PURPLE = '#AFA9EC';
 const COINS = ['BTC', 'KAS', 'RVN', 'XMR', 'ETC'];
