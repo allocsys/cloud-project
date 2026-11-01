@@ -726,6 +726,7 @@ function Filter({ value, onPick, open, all }) {
 // Gateway tab: the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
 const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana', ton: 'TON' };
 const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
+const ALERT = { 'payment.late': 'Late payment', 'webhook.gave_up': 'Callback gave up', 'unmatched.full': 'Address full' };
 const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s || '');
 const agoText = (s) => (s < 90 ? `${s}s ago` : s < 5400 ? `${Math.round(s / 60)} min ago` : `${Math.round(s / 3600)} h ago`);
 const WARN = { color: 'var(--gold)' };
@@ -794,6 +795,19 @@ function GatewayTab({ pp, run, lock, g, reload }) {
     await load();
   };
 
+  // Callbacks the gateway gave up on: send them again, each with a fresh set of tries.
+  const retryParked = async () => {
+    if (!(await ask('Send the parked callbacks again?', { ok: 'Retry' }))) return;
+    setBusy(true);
+    try {
+      const r = await call('POST', '/api/admin/gateway', { retry: true });
+      if (!r.ok) await tell(r.error || 'Could not save.');
+    } catch {
+      await tell('No connection. Try again.');
+    }
+    await load();
+  };
+
   // Pause a network that is not in use (no new invoices, no scanning) or bring it back.
   const toggle = async (n) => {
     const name = NET[n.network] || n.network;
@@ -826,6 +840,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
     );
   }
   const counts = g.invoices.counts || {};
+  const alerts = g.alerts || [];
   return (
     <div className="adm-stack">
       {card}
@@ -844,6 +859,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
                 {NET[n.network] || n.network}
                 <small>{n.assets.map((a) => a.toUpperCase()).join(', ')} · {n.confirmations} conf</small>
                 {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
+                {n.network === 'btc' && g.btcGap && g.btcGap.gap >= 15 && <small style={WARN}>{g.btcGap.gap} unused addresses in a row. Wallets stop at {g.btcGap.limit}.</small>}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : n.open === 0 ? 'Idle' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
@@ -883,6 +899,22 @@ function GatewayTab({ pp, run, lock, g, reload }) {
         ))}
       </Fold>
 
+      <Fold title="Needs a look" sub={alerts.length ? `${alerts.length} in 30 days` : 'None'} start={alerts.length > 0}>
+        <p className="fine" style={{ margin: '0 0 4px' }}>A late payment came after its invoice ended. Return it by hand.</p>
+        {alerts.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None.</p>}
+        {alerts.map((a, i) => (
+          <div className="row adm-m" key={`${a.at}-${i}`}>
+            <div>
+              {ALERT[a.action] || a.action}{a.amount ? ` · ${trimAmount(a.amount)} ${String(a.asset).toUpperCase()}` : ''}
+              <small>{a.network ? NET[a.network] || a.network : a.subject ? shortId(a.subject) : ''}{a.ref ? ` · ${shortId(a.ref)}` : ''}</small>
+              {a.txid && <small className="serial" style={{ wordBreak: 'break-all', userSelect: 'all' }}>{a.txid}</small>}
+              {a.error && <small>{a.error}</small>}
+            </div>
+            <span className="mute">{when(a.at)}</span>
+          </div>
+        ))}
+      </Fold>
+
       <Fold title="Unmatched payments" sub={g.unmatched.total ? `${g.unmatched.total} to return` : 'None'} start={g.unmatched.total > 0}>
         <p className="fine" style={{ margin: '0 0 4px' }}>Money that reached a shared address with no invoice for that exact amount. Return it by hand, then tap Handled.</p>
         {g.unmatched.recent.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>None.</p>}
@@ -899,12 +931,18 @@ function GatewayTab({ pp, run, lock, g, reload }) {
       </Fold>
 
       <Fold title="Callbacks to the app" sub={`${g.callbacks.pending} waiting · ${g.callbacks.failing} failing`} start={g.callbacks.failing > 0}>
+        {g.callbacks.parked > 0 && (
+          <div className="row adm-m">
+            <div>Gave up<small>{g.callbacks.parked} parked</small></div>
+            <button className="swap" style={SM} disabled={busy || lock} onClick={retryParked}>Retry</button>
+          </div>
+        )}
         <div className="row"><span className="mute">Waiting to send</span><b>{g.callbacks.pending}</b></div>
         <div className="row"><span className="mute">Failing</span><b style={g.callbacks.failing > 0 ? WARN : undefined}>{g.callbacks.failing}</b></div>
         {g.callbacks.stuck.map((c) => (
           <div className="row adm-m" key={`${c.ref}-${c.event}`}>
             <div>
-              {c.event} · {c.attempts} tries
+              {c.event} · {c.attempts} tries{c.parked ? ' · gave up' : ''}
               <small className="serial">{shortId(c.ref)}</small>
               {c.last_error && <small>{c.last_error}</small>}
             </div>
