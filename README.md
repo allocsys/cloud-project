@@ -48,4 +48,4 @@ Health check: `GET /api/health`.
 
 ## Not built yet
 
-Real deposit addresses, KYC photo storage, email verification, native app (the site can be wrapped as a TWA).
+KYC photo storage (no ID is needed to start, so none is kept) and a native app (the APK pipeline; the site can be wrapped as a TWA). Deposit addresses and email verification are built.
