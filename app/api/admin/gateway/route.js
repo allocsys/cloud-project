@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { adminEnabled, isAdmin } from '@/lib/server/admin';
-import { closeInvoice, gatewayOverview, handleUnmatched, setNetworkPaused } from '@/lib/server/gateway-admin';
+import { closeInvoice, gatewayOverview, handleUnmatched, retryCallbacks, setNetworkPaused } from '@/lib/server/gateway-admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +18,8 @@ export async function GET(req) {
   return (await gate(req)) || json(await gatewayOverview());
 }
 
-// { close: invoiceId }: close a waiting invoice. { network, paused }: pause or resume a network. Otherwise { network, txid, vout, note }: the payment was returned by hand.
+// { retry: true }: send the parked callbacks again. { close: invoiceId }: close a waiting invoice. { network, paused }: pause or resume a network.
+// Otherwise { network, txid, vout, note }: the payment was returned by hand.
 export async function POST(req) {
   const denied = await gate(req);
   if (denied) return denied;
@@ -27,10 +28,12 @@ export async function POST(req) {
     body = await readJson(req, 256 * 1024);
   } catch {}
   const r =
-    body && typeof body.close === 'string'
-      ? await closeInvoice({ id: body.close })
-      : body && typeof body.paused === 'boolean'
-        ? await setNetworkPaused(body)
-        : await handleUnmatched(body);
+    body && body.retry === true
+      ? await retryCallbacks()
+      : body && typeof body.close === 'string'
+        ? await closeInvoice({ id: body.close })
+        : body && typeof body.paused === 'boolean'
+          ? await setNetworkPaused(body)
+          : await handleUnmatched(body);
   return json(r, r.ok ? 200 : r.off ? 503 : 400);
 }
