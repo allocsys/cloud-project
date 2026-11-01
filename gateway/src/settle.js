@@ -11,7 +11,8 @@
 //  - Calling observe() again with the same data changes nothing (idempotent). Never call it when the chain lookup failed:
 //    an empty list means "nothing on chain", and unconfirmed payments missing from it are dropped.
 //  - Fixed-address invoices (match_amount): only payments of the asset AND the exact expected amount count for the invoice.
-//    Any other payment to that address is kept aside by recordUnmatched() for a person to resolve.
+//    Any other payment to that address is kept aside by recordUnmatched() for a person to resolve. Dust (about one dollar or less)
+//    is ignored, and one address keeps at most MAX_UNMATCHED open rows, so address-poisoning spam cannot grow the tables.
 import { q, tx } from './db.js';
 import { CHAINS } from './chains/index.js';
 import { fmtAtomic } from './invoices.js';
@@ -79,28 +80,69 @@ export function paymentsFor(inv, list) {
   );
 }
 
+// The smallest payment worth a person's attention, per asset, in whole coins (about one dollar). Anything below it, and any zero
+// transfer, is address-poisoning dust: it is not recorded and not audited.
+export const DUST = { btc: '0.00001', eth: '0.0003', bnb: '0.002', pol: '2', trx: '5', sol: '0.005', ton: '0.5', usdt: '1', usdc: '1' };
+// Open (not handled) unmatched rows one address may hold. When it is full, new payments are not recorded (one audit line an hour says so).
+export const MAX_UNMATCHED = 1000;
+
+function dustAtomic(network, asset) {
+  const human = DUST[asset];
+  if (!human) return 0n;
+  const dec = CHAINS[network].decimalsOf(asset);
+  const [whole, frac = ''] = human.split('.');
+  return BigInt(whole + frac.padEnd(dec, '0').slice(0, dec));
+}
+
+// Decided before clean(), so a zero or tiny transfer can never make the whole list fail. A malformed amount is not dust: clean() refuses it.
+function isDust(network, t, defaultAsset) {
+  const s = String(t?.amount);
+  if (!/^[0-9]{1,38}$/.test(s)) return false;
+  try {
+    return BigInt(s) === 0n || BigInt(s) < dustAtomic(network, t.asset ?? defaultAsset);
+  } catch {
+    return false;
+  }
+}
+
 // Payments to a fixed address that no open invoice claimed. Recent ones only (history of the address is not our business),
 // and never one already counted for an invoice. Idempotent; a new one is audited once as 'payment.unmatched'.
-export async function recordUnmatched({ network, address, defaultAsset, payments, claimed }) {
+// Dust is skipped, and a full address (maxRows open rows) takes no new payment; one it already holds still gets its confirmations updated.
+export async function recordUnmatched({ network, address, defaultAsset, payments, claimed, maxRows = MAX_UNMATCHED }) {
   const max = CHAINS[network].recentConfirmations;
   let added = 0;
+  let room = null; // how many more rows fit; read once, on the first payment that needs it
   for (const raw of payments) {
+    if (isDust(network, raw, defaultAsset)) continue;
     const t = clean(raw);
     if (claimed.has(`${t.txid}:${t.vout}`) || t.confirmations > max) continue;
+    if (room === null) {
+      const open = await q('SELECT count(*) AS n FROM unmatched_txs WHERE network = $1 AND address = $2 AND handled_at IS NULL', [network, address]);
+      room = maxRows - Number(open.rows[0].n);
+    }
     const r = await q(
       `INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations)
        SELECT $1, $2, $3, $4, $5, $6, $7
        WHERE NOT EXISTS (SELECT 1 FROM chain_txs c WHERE c.network = $1 AND c.txid = $4 AND c.vout = $5)
+         AND ($8::boolean OR EXISTS (SELECT 1 FROM unmatched_txs u WHERE u.network = $1 AND u.txid = $4 AND u.vout = $5))
        ON CONFLICT (network, txid, vout) DO UPDATE SET confirmations = EXCLUDED.confirmations
        RETURNING (xmax = 0) AS inserted`,
-      [network, t.asset ?? defaultAsset, address, t.txid, t.vout, t.amount, t.confirmations],
+      [network, t.asset ?? defaultAsset, address, t.txid, t.vout, t.amount, t.confirmations, room > 0],
     );
     if (r.rows[0]?.inserted) {
       added++;
+      room--;
       await q("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('watcher', 'payment.unmatched', $1, $2::jsonb)", [
         `${network}:${t.txid}`,
         JSON.stringify({ address, asset: t.asset ?? defaultAsset, amount: t.amount, vout: t.vout }),
       ]);
+    } else if (room <= 0 && !r.rows.length) {
+      await q(
+        `INSERT INTO audit_log (actor, action, subject, detail)
+         SELECT 'watcher', 'unmatched.full', $1::text, $2::jsonb
+         WHERE NOT EXISTS (SELECT 1 FROM audit_log WHERE action = 'unmatched.full' AND subject = $1::text AND at > now() - interval '1 hour')`,
+        [`${network}:${address}`, JSON.stringify({ maxRows })],
+      );
     }
   }
   return added;
