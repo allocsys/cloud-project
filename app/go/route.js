@@ -16,9 +16,9 @@ const CSS = `*{box-sizing:border-box}html,body{margin:0;height:100%;background:#
 body{display:flex;flex-direction:column;height:100dvh;overflow:hidden;font:400 16px/24px Roboto,system-ui,-apple-system,"Segoe UI",Tahoma,sans-serif;padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:24px;gap:24px}
 svg{width:72px;height:72px;border-radius:20px}
-h1{margin:0;font:500 26px/32px inherit;font-size:26px;line-height:32px;max-width:320px}
+h1{margin:0;font-weight:500;font-size:26px;line-height:32px;max-width:320px}
 h1 span{color:#F5A524}
-.b{display:inline-flex;align-items:center;justify-content:center;width:100%;max-width:320px;min-height:52px;border:0;border-radius:26px;background:#F5A524;color:#0B0F1A;font:500 16px/24px inherit;text-decoration:none;cursor:pointer}
+.b{display:inline-flex;align-items:center;justify-content:center;width:100%;max-width:320px;min-height:52px;border:0;border-radius:26px;background:#F5A524;color:#0B0F1A;font-family:inherit;font-weight:500;font-size:16px;line-height:24px;text-decoration:none;cursor:pointer}
 .b:hover{background:#FFB84D}.b[disabled]{opacity:.6}
 .e{margin:0;color:#EF4444;font-size:14px;line-height:20px}
 .n{margin:0;padding:0 24px 20px;text-align:center;color:#8A94A8;font-size:14px;line-height:20px}
