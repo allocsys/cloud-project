@@ -6,7 +6,7 @@ import { migrate } from './migrate.js';
 import { ensureDatabase } from './ensure-db.js';
 import { provisionRole } from './provision-role.js';
 import { json } from './http.js';
-import { handleApi } from './api.js';
+import { handleApi, MIN_SECRET } from './api.js';
 import { config } from './config.js';
 import { CHAINS } from './chains/index.js';
 import { btcExplorer } from './explorer.js';
@@ -68,6 +68,8 @@ async function main() {
   let stopScanners = async () => {};
   let watching = false;
   const c = config();
+  // Same idea as the callback secret below: a weak secret stops the service at boot instead of quietly guarding the API.
+  if (c.apiSecret && c.apiSecret.length < MIN_SECRET) throw new Error(`GATEWAY_API_SECRET must be at least ${MIN_SECRET} characters`);
   if (hasDb() && c.watcherEnabled) {
     // Throws at boot if an explorer or RPC URL is not https: better to refuse to start than to watch nothing.
     const explorers = {};
