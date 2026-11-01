@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gatewayOverview, handleUnmatched } from '../lib/server/gateway-admin.js';
+import { gatewayOverview, handleUnmatched, retryCallbacks } from '../lib/server/gateway-admin.js';
 
 const KEYS = ['GATEWAY_URL', 'GATEWAY_API_SECRET'];
 const SECRET = 's'.repeat(16);
@@ -67,6 +67,20 @@ test('handleUnmatched checks its input before it calls the gateway', async () =>
   assert.equal(calls, 0);
   assert.equal((await withEnv({}, fetchImpl, () => handleUnmatched({ network: 'btc', txid: tx, vout: 0 }))).off, true);
   assert.equal(calls, 0);
+});
+
+test('retryCallbacks posts to the gateway with the Bearer secret and reports how many were sent again', async () => {
+  const env = { GATEWAY_URL: 'https://g.example/', GATEWAY_API_SECRET: SECRET };
+  const seen = [];
+  const fetchImpl = (status, body) => async (url, opts) => {
+    seen.push({ url, method: opts.method, auth: opts.headers.authorization });
+    return new Response(JSON.stringify(body), { status });
+  };
+  assert.deepEqual(await withEnv(env, fetchImpl(200, { ok: true, retried: 3 }), retryCallbacks), { ok: true, retried: 3 });
+  assert.deepEqual(seen, [{ url: 'https://g.example/v1/admin/callbacks/retry', method: 'POST', auth: `Bearer ${SECRET}` }]);
+  assert.deepEqual(await withEnv(env, fetchImpl(401, { ok: false }), retryCallbacks), { ok: false, error: 'The gateway answered 401.' });
+  assert.deepEqual(await withEnv(env, async () => { throw new Error(`boom ${SECRET}`); }, retryCallbacks), { ok: false, error: 'The gateway cannot be reached.' });
+  assert.equal((await withEnv({}, fetchImpl(200, {}), retryCallbacks)).off, true);
 });
 
 test('handleUnmatched posts to the gateway with the Bearer secret and reports the result', async () => {
