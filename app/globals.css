@@ -2061,25 +2061,3 @@ a.stat:active { background: var(--s3); }
 .mrow .mt b { font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mrow .mt em { font-style: normal; font-size: 13px; line-height: 18px; color: var(--green); }
 .mrow .mdot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
-
-/* Landing: live counter, plans and short FAQ */
-.lp-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; min-height: 76px; }
-.lp-stat { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 14px; border-radius: 16px; background: var(--s2); }
-.lp-stat b { font-size: clamp(22px, 6vw, 30px); line-height: 1.1; font-weight: 500; color: var(--gold2); font-variant-numeric: tabular-nums; }
-.lp-stat span { display: flex; align-items: center; gap: 6px; color: var(--mute); font-size: 12px; line-height: 16px; }
-.lp-stat span i { width: 6px; height: 6px; flex: none; border-radius: 50%; background: var(--gold); animation: blink 1.3s ease-in-out infinite; }
-.lp-plans { display: grid; gap: 12px; }
-.lp-pg { padding: 14px; border-radius: 16px; background: var(--s2); }
-.lp-pg h3 { margin: 0 0 10px; }
-.lp-pl { display: flex; flex-wrap: wrap; gap: 8px; }
-.lp-pl span { padding: 6px 10px; border-radius: 8px; background: var(--s4); font-size: 12px; line-height: 16px; font-weight: 500; white-space: nowrap; }
-.lp-pl small { margin-inline-start: 6px; color: var(--mute); font-size: 12px; font-weight: 400; }
-.lp-faq { overflow: hidden; border-radius: 16px; background: var(--s2); }
-.lp-faq details + details { border-top: 1px solid var(--line); }
-.lp-faq summary { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 52px; padding: 8px 14px; font-size: 14px; line-height: 20px; font-weight: 500; cursor: pointer; list-style: none; }
-.lp-faq summary::-webkit-details-marker { display: none; }
-.lp-faq summary::after { content: ''; flex: none; width: 7px; height: 7px; border-right: 2px solid var(--mute); border-bottom: 2px solid var(--mute); transform: rotate(45deg); transition: transform 0.2s; }
-.lp-faq details[open] summary::after { transform: rotate(-135deg); }
-.lp-faq p { margin: 0; padding: 0 14px 14px; color: var(--mute); font-size: 13px; line-height: 18px; }
-:root[data-theme="light"] :is(.lp-stat, .lp-pg, .lp-faq) { box-shadow: inset 0 0 0 1px var(--line); }
-@media (min-width: 720px) { .lp-plans { grid-template-columns: 1fr 1fr; } }
