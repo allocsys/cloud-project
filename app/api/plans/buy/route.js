@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { buyPlan } from '@/lib/server/miners';
 import { userId, unauthorized } from '@/lib/server/auth';
 
@@ -9,7 +10,7 @@ export async function POST(req) {
   if (!id) return unauthorized();
   let body;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400 });
   }
