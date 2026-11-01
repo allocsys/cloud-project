@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { login, setSession, clientIp, reserve, giveBack, clearFails } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
@@ -9,7 +10,7 @@ const tooMany = () => NextResponse.json({ ok: false, error: 'Too many attempts. 
 export async function POST(req) {
   let body;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
