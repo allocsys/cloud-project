@@ -26,10 +26,12 @@ test('a zpub and the same key as an xpub give the same addresses', () => {
   assert.equal(deriveBtcAddress(xpub, 7), deriveBtcAddress(ZPUB, 7));
 });
 
-test('a testnet key gives tb1q addresses', () => {
+test('testnet keys (tpub, vpub) are refused', () => {
   const tpub = withVersion(ZPUB, 0x043587cf);
+  const vpub = withVersion(ZPUB, 0x045f1cf6);
   assert.ok(tpub.startsWith('tpub'));
-  assert.ok(deriveBtcAddress(tpub, 0).startsWith('tb1q'));
+  assert.throws(() => deriveBtcAddress(tpub, 0), /Unsupported/);
+  assert.throws(() => deriveBtcAddress(vpub, 0), /Unsupported/);
 });
 
 test('addresses differ by index and are stable', () => {
