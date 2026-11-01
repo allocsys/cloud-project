@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { getReferral, inviteGate } from '@/lib/server/account';
 import { createCode, raiseCode, deleteCode } from '@/lib/server/referrals';
 import { userId, unauthorized } from '@/lib/server/auth';
@@ -18,7 +19,7 @@ export async function POST(req) {
   if (!id) return unauthorized();
   let body = null;
   try {
-    body = await req.json();
+    body = await readJson(req);
   } catch {}
   if (!(await inviteGate(id)).unlocked) return NextResponse.json({ ok: false, error: 'Buy a plan to manage your own codes.' }, { status: 403, headers: NO_STORE });
   const a = body?.action;
