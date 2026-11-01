@@ -6,14 +6,14 @@ const PAGES = `${VERSION}-pages`;
 
 const OFFLINE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#12110d"><title>Offline</title>
+<meta name="theme-color" content="#0B0F1A"><title>Offline</title>
 <style>
-html,body{margin:0;height:100%;background:#12110d;color:#ebe6da;font:400 14px/20px Roboto,system-ui,sans-serif}
+html,body{margin:0;height:100%;background:#0B0F1A;color:#E8ECF4;font:400 14px/20px Roboto,system-ui,sans-serif}
 body{display:grid;place-items:center;text-align:center;padding:24px}
-.m{width:56px;height:56px;border-radius:16px;margin:0 auto 20px;display:grid;place-items:center;background:#4f3d0e;color:#ffdf9b;font-size:26px;font-weight:500}
+.m{width:56px;height:56px;border-radius:16px;margin:0 auto 20px;display:grid;place-items:center;background:#3A2A0C;color:#FFCF7A;font-size:26px;font-weight:500}
 h1{font-size:22px;line-height:28px;font-weight:400;margin:0 0 8px}
-p{margin:0 0 24px;color:#aaa28f}
-button{min-height:48px;padding:0 24px;border:0;border-radius:24px;background:#e9c46a;color:#3b2a00;font:500 14px Roboto,system-ui,sans-serif}
+p{margin:0 0 24px;color:#8A94A8}
+button{min-height:48px;padding:0 24px;border:0;border-radius:24px;background:#F5A524;color:#0B0F1A;font:500 14px Roboto,system-ui,sans-serif}
 </style></head><body><div><div class="m">V</div>
 <h1>You're offline</h1><p>Check your connection and try again.</p>
 <button onclick="location.reload()">Retry</button></div></body></html>`;

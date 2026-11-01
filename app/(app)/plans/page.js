@@ -502,7 +502,7 @@ export default function Plans() {
                   <b className="v" style={{ color: 'var(--green)' }}>{t('plans.bonusLine', { b: bonusText(fb.bonus) })}<small>{t('plans.fullTerm')}</small></b>
                 </div>
               )}
-              <div className="row" style={{ borderTop: '1px solid rgba(233, 196, 106, 0.25)' }}>
+              <div className="row" style={{ borderTop: '1px solid rgba(245, 165, 36, 0.25)' }}>
                 <span className="mute" style={{ fontWeight: 600 }}>{t('plans.due')}</span>
                 <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
               </div>

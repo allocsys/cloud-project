@@ -19,11 +19,11 @@ export default function Image() {
           flexDirection: 'column',
           justifyContent: 'center',
           padding: '0 90px',
-          background: '#12110d',
-          color: '#f3ead2',
+          background: '#0B0F1A',
+          color: '#E8ECF4',
         }}
       >
-        <div style={{ display: 'flex', fontSize: 120, fontWeight: 700, color: '#e9c46a' }}>{brand}</div>
+        <div style={{ display: 'flex', fontSize: 120, fontWeight: 700, color: '#F5A524' }}>{brand}</div>
         {line ? <div style={{ display: 'flex', fontSize: 52, marginTop: 24 }}>{line}</div> : null}
       </div>
     ),

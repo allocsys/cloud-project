@@ -52,7 +52,7 @@ export const viewport = {
   width: 'device-width',
   initialScale: 1,
   viewportFit: 'cover',
-  themeColor: '#12110d',
+  themeColor: '#0B0F1A',
   colorScheme: 'dark',
 };
 

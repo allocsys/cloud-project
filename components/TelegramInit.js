@@ -16,8 +16,8 @@ export default function TelegramInit() {
       try {
         w.ready();
         w.expand();
-        if (w.setHeaderColor) w.setHeaderColor('#12110d');
-        if (w.setBackgroundColor) w.setBackgroundColor('#12110d');
+        if (w.setHeaderColor) w.setHeaderColor('#0B0F1A');
+        if (w.setBackgroundColor) w.setBackgroundColor('#0B0F1A');
       } catch {}
     };
     start();

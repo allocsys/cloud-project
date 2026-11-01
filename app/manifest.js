@@ -17,8 +17,8 @@ export default async function manifest() {
     scope: '/',
     display: 'standalone',
     orientation: 'portrait',
-    background_color: '#12110d',
-    theme_color: '#12110d',
+    background_color: '#0B0F1A',
+    theme_color: '#0B0F1A',
     categories: ['finance'],
     icons: [
       { src: '/logo.svg', sizes: 'any', type: 'image/svg+xml', purpose: 'any' },

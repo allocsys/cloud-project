@@ -19,13 +19,13 @@ export const rigFor = (x) => {
   return th >= 1000 ? RIG.elite : th >= 500 ? RIG.pro : th >= 250 ? RIG.plus : th >= 100 ? RIG.growth : th >= 30 ? RIG.basic : RIG.starter;
 };
 
-const GOLD = '#e9c46a';
-const GOLD_LIGHT = '#f6dc9a';
-const GREEN = '#7dd6a0';
+const GOLD = '#F5A524';
+const GOLD_LIGHT = '#FFB84D';
+const GREEN = '#22C55E';
 
 const Fan = ({ cx, cy, r = 7.5, n = 3 }) => (
   <g transform={`translate(${cx} ${cy})`}>
-    <circle r={r} fill="#0e0d0a" stroke={GOLD} strokeOpacity=".5" />
+    <circle r={r} fill="#070A12" stroke={GOLD} strokeOpacity=".5" />
     <g className="fan">
       {Array.from({ length: n }).map((_, i) => (
         <ellipse key={i} rx={r * 0.24} ry={r * 0.8} fill={GOLD_LIGHT} transform={`rotate(${(i * 360) / n})`} />
@@ -67,7 +67,7 @@ function Asic({ u }) {
     <>
       <rect x="22" y="26" width="76" height="52" rx="7" fill={`url(#${u})`} stroke={GOLD} strokeOpacity=".55" />
       <Fan cx={48} cy={52} r={17} n={5} />
-      <rect x="74" y="36" width="18" height="30" rx="3" fill="#0e0d0a" stroke={GOLD} strokeOpacity=".3" />
+      <rect x="74" y="36" width="18" height="30" rx="3" fill="#070A12" stroke={GOLD} strokeOpacity=".3" />
       {bars.map((i) => (
         <rect
           key={i}
@@ -113,7 +113,7 @@ function Tank({ u, id }) {
       <rect x="25" y="36" width="70" height="45" rx="5" fill={`url(#l${id})`} />
       {[36, 52, 68, 84].map((x, i) => (
         <g key={x}>
-          <rect x={x - 3} y="42" width="6" height="30" rx="1.5" fill="#0e0d0a" stroke={GOLD} strokeOpacity=".4" />
+          <rect x={x - 3} y="42" width="6" height="30" rx="1.5" fill="#070A12" stroke={GOLD} strokeOpacity=".4" />
           <Led cx={x} cy={48} d={i * 0.35} c={i % 2 ? GOLD_LIGHT : GREEN} />
           <Led cx={x} cy={56} d={i * 0.35 + 0.5} />
         </g>
@@ -135,7 +135,7 @@ function Cabinet({ u }) {
         const y = 32 + i * 11;
         return (
           <g key={i}>
-            <rect x="40" y={y} width="40" height="8" rx="2" fill="#0e0d0a" stroke={GOLD} strokeOpacity=".3" />
+            <rect x="40" y={y} width="40" height="8" rx="2" fill="#070A12" stroke={GOLD} strokeOpacity=".3" />
             {[0, 1, 2, 3].map((j) => (
               <circle
                 key={j}
@@ -166,11 +166,11 @@ function Container({ u }) {
       ))}
       {[30, 60, 90].map((cx) => (
         <g key={cx}>
-          <rect x={cx - 10} y="36" width="20" height="4" rx="1.5" fill="#0e0d0a" stroke={GOLD} strokeOpacity=".4" />
+          <rect x={cx - 10} y="36" width="20" height="4" rx="1.5" fill="#070A12" stroke={GOLD} strokeOpacity=".4" />
           <Fan cx={cx} cy={32} r={6.5} n={4} />
         </g>
       ))}
-      <rect x="92" y="48" width="14" height="26" rx="2" fill="#0e0d0a" stroke={GOLD} strokeOpacity=".4" />
+      <rect x="92" y="48" width="14" height="26" rx="2" fill="#070A12" stroke={GOLD} strokeOpacity=".4" />
       <Led cx={99} cy={54} c={GREEN} />
       <Led cx={99} cy={60} d={0.4} />
       <Led cx={99} cy={66} d={0.8} c={GREEN} />
@@ -199,8 +199,8 @@ export default function RigArt({ kind = 'rack', units = 1, speed = 1.4, id = 'a'
       <svg viewBox="0 0 120 100" aria-hidden="true">
         <defs>
           <linearGradient id={u} x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0" stopColor="#27241c" />
-            <stop offset="1" stopColor="#161410" />
+            <stop offset="0" stopColor="#1A2233" />
+            <stop offset="1" stopColor="#0F1522" />
           </linearGradient>
           <linearGradient id={`l${id}`} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0" stopColor={GOLD} stopOpacity=".28" />

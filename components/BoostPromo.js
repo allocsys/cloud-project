@@ -11,7 +11,7 @@ import { useT } from '@/components/I18nProvider';
 
 const whole = (n) => n.toLocaleString('en-US');
 const usd = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-const COLOR = { t1: '#EF9F27', t10: '#5DCAA5', t100: '#AFA9EC' }; // the same tier colours as the dial on the Boost tab
+const COLOR = { t1: '#F5A524', t10: '#5DCAA5', t100: '#AFA9EC' }; // the same tier colours as the dial on the Boost tab
 
 // A miner solves a block every 2 s (three bars, one per tier colour). The 6 s loop sends up a $1 bubble, a $10 bubble, then a big shiny $100 one.
 const ART_CSS = `
@@ -38,7 +38,7 @@ const ART_CSS = `
 `;
 
 const Ray = ({ a }) => <line x1="23" y1="0" x2="31" y2="0" transform={`rotate(${a})`} />;
-const Spokes = () => <path d="M-14 0H14M0 -14V14M-10 -10L10 10M-10 10L10 -10" stroke="#EF9F27" strokeWidth="2" strokeLinecap="round" />;
+const Spokes = () => <path d="M-14 0H14M0 -14V14M-10 -10L10 10M-10 10L10 -10" stroke="#F5A524" strokeWidth="2" strokeLinecap="round" />;
 
 function BoostArt() {
   const ref = useRef(null);
@@ -59,7 +59,7 @@ function BoostArt() {
         </clipPath>
       </defs>
       <rect x="16" y="36" width="100" height="76" rx="8" fill="currentColor" fillOpacity="0.06" stroke="var(--border-strong)" strokeWidth="0.5" />
-      <circle cx="26" cy="46" r="2.5" fill="#EF9F27" />
+      <circle cx="26" cy="46" r="2.5" fill="#F5A524" />
       {[46, 86].map((x) => (
         <g key={x} transform={`translate(${x} 78)`}>
           <circle r="17" fill="none" stroke="var(--border-strong)" strokeWidth="0.5" />
@@ -69,20 +69,20 @@ function BoostArt() {
         </g>
       ))}
       <line x1="122" y1="74" x2="186" y2="74" stroke="var(--border-strong)" strokeWidth="0.5" strokeDasharray="3 3" />
-      <rect className="bp-pk" x="122" y="71.5" width="9" height="5" rx="2.5" fill="#EF9F27" />
+      <rect className="bp-pk" x="122" y="71.5" width="9" height="5" rx="2.5" fill="#F5A524" />
       <rect className="bp-pk bp-p2" x="122" y="71.5" width="9" height="5" rx="2.5" fill="#5DCAA5" />
       <rect className="bp-pk bp-p3" x="122" y="71.5" width="9" height="5" rx="2.5" fill="#AFA9EC" />
       <rect x="190" y="44" width="84" height="68" rx="8" fill="currentColor" fillOpacity="0.06" stroke="var(--border-strong)" strokeWidth="0.5" />
       {[58, 74, 90].map((y) => (
         <rect key={y} x="202" y={y} width="60" height="8" rx="4" fill="none" stroke="var(--border-strong)" strokeWidth="0.5" />
       ))}
-      <rect className="bp-bar" x="202" y="58" width="60" height="8" rx="4" fill="#EF9F27" />
+      <rect className="bp-bar" x="202" y="58" width="60" height="8" rx="4" fill="#F5A524" />
       <rect className="bp-bar bp-b2" x="202" y="74" width="60" height="8" rx="4" fill="#5DCAA5" />
       <rect className="bp-bar bp-b3" x="202" y="90" width="60" height="8" rx="4" fill="#AFA9EC" />
-      <rect className="bp-fh" x="190" y="44" width="84" height="68" rx="8" fill="none" stroke="#EF9F27" strokeWidth="2" />
+      <rect className="bp-fh" x="190" y="44" width="84" height="68" rx="8" fill="none" stroke="#F5A524" strokeWidth="2" />
       <g className="bp-sb" style={{ '--dx': '-8px', animationDelay: '1.2s' }}>
-        <circle cx="232" cy="44" r="10" fill="#EF9F27" fillOpacity="0.2" stroke="#EF9F27" strokeWidth="1" />
-        <text x="232" y="48" textAnchor="middle" fontSize="11" fontWeight="500" fill="#EF9F27">$1</text>
+        <circle cx="232" cy="44" r="10" fill="#F5A524" fillOpacity="0.2" stroke="#F5A524" strokeWidth="1" />
+        <text x="232" y="48" textAnchor="middle" fontSize="11" fontWeight="500" fill="#F5A524">$1</text>
       </g>
       <g className="bp-sb" style={{ '--dx': '10px', animationDelay: '3.2s' }}>
         <circle cx="232" cy="44" r="12" fill="#5DCAA5" fillOpacity="0.22" stroke="#5DCAA5" strokeWidth="1.2" />
