@@ -4,14 +4,17 @@ import { config } from './config.js';
 import { hasDb } from './db.js';
 import { ApiError, json, readJson } from './http.js';
 import { createInvoice, getInvoice } from './invoices.js';
-import { adminOverview, closeInvoice, handleUnmatched, setNetworkPaused } from './admin-api.js';
+import { adminOverview, closeInvoice, handleUnmatched, retryParked, setNetworkPaused } from './admin-api.js';
 import { solTransferTx } from './sol-tx.js';
+
+// The shortest API secret the gateway accepts. Same minimum as the app's, so a weak secret is refused on both sides.
+export const MIN_SECRET = 16;
 
 const digest = (s) => createHash('sha256').update(s).digest();
 
 function authorized(req) {
   const secret = config().apiSecret;
-  if (!secret) throw new ApiError(503, 'The gateway API is not configured.');
+  if (secret.length < MIN_SECRET) throw new ApiError(503, 'The gateway API is not configured.');
   const m = /^Bearer (.+)$/.exec(req.headers.authorization || '');
   return !!m && timingSafeEqual(digest(m[1]), digest(secret));
 }
@@ -36,6 +39,9 @@ export async function handleApi(req, res, url) {
     }
     if (url.pathname === '/v1/admin/network/pause' && req.method === 'POST') {
       return json(res, 200, { ok: true, ...(await setNetworkPaused(await readJson(req))) });
+    }
+    if (url.pathname === '/v1/admin/callbacks/retry' && req.method === 'POST') {
+      return json(res, 200, { ok: true, ...(await retryParked()) });
     }
     const sm = /^\/v1\/invoices\/([^/]+)\/sol-tx$/.exec(url.pathname);
     if (sm && req.method === 'GET') {
