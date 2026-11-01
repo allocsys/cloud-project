@@ -214,6 +214,8 @@ export default async function Home() {
           <Link href={pagePath('/about', lang)} style={foot}>{t('about.link')}</Link>
           {' \u00b7 '}
           <Link href={pagePath('/refunds', lang)} style={foot}>{t('refunds.link')}</Link>
+          {' \u00b7 '}
+          <Link href={pagePath('/status', lang)} style={foot}>{t('status.link')}</Link>
         </p>
         <SocialLinks />
         </LandingTail>
