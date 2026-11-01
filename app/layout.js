@@ -7,6 +7,7 @@ import Ripple from '@/components/Ripple';
 import ThemeSync from '@/components/ThemeSync';
 import TelegramInit from '@/components/TelegramInit';
 import I18nProvider from '@/components/I18nProvider';
+import CookieNotice from '@/components/CookieNotice';
 import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
 import { SITE_URL } from '@/lib/site';
@@ -79,6 +80,7 @@ export default async function RootLayout({ children }) {
           <Ripple />
           <ThemeSync />
           <TelegramInit />
+          <CookieNotice />
         </I18nProvider>
       </body>
     </html>
