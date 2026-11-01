@@ -23,7 +23,7 @@ function left(t, ms) {
 const SLOTS = 20;
 const R1 = 46;
 const R2 = 138;
-const tier = (price) => (price >= 100 ? { c: '#AFA9EC', w: 5 } : price >= 10 ? { c: '#5DCAA5', w: 4 } : { c: '#EF9F27', w: 3 });
+const tier = (price) => (price >= 100 ? { c: '#AFA9EC', w: 5 } : price >= 10 ? { c: '#5DCAA5', w: 4 } : { c: '#F5A524', w: 3 });
 const pt = (r, d) => {
   const a = ((d - 90) * Math.PI) / 180;
   return [150 + r * Math.cos(a), 150 + r * Math.sin(a)];
