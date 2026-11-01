@@ -118,14 +118,28 @@ const solTxToken = {
 };
 const solTxElsewhere = { meta: { err: null, preBalances: [10], postBalances: [5] }, transaction: { message: { accountKeys: [{ pubkey: SOTHER }] } } };
 
-function solRpc({ sigs, txs, slot = 1040 }) {
-  const calls = { getTransaction: 0, batches: 0 };
+const TOKACC = `TokenAcct${'1'.repeat(34)}`; // a token account of SADDR (a valid base58 address)
+
+// accounts: { [mint]: [token account, ...] }; tokenSigs: { [token account]: [signature, ...] }; sigs are the wallet's own
+function solRpc({ sigs, txs, slot = 1040, accounts = {}, tokenSigs = {} }) {
+  const calls = { getTransaction: 0, batches: 0, lookups: 0, listed: [] };
   return {
     calls,
     batch: async (reqs) => {
       calls.batches++;
       return reqs.map((r) => {
-        if (r.method === 'getSignaturesForAddress') return sigs;
+        if (r.method === 'getSignaturesForAddress') {
+          const [account, opts] = r.params;
+          calls.listed.push(account);
+          const all = account === SADDR ? sigs : (tokenSigs[account] ?? []);
+          if (!Array.isArray(all)) return all;
+          const from = opts.before ? all.findIndex((s) => s.signature === opts.before) + 1 : 0;
+          return all.slice(from, from + opts.limit);
+        }
+        if (r.method === 'getTokenAccountsByOwner') {
+          calls.lookups++;
+          return { value: (accounts[r.params[1].mint] ?? []).map((pubkey) => ({ pubkey, account: {} })) };
+        }
         if (r.method === 'getSlot') return slot;
         if (r.method === 'getTransaction') {
           calls.getTransaction++;
@@ -175,6 +189,61 @@ test('sol: a missing or malformed answer throws instead of looking like no payme
   await assert.rejects(solExplorer({ rpc: solRpc({ sigs: 'nope', txs: {} }), now: () => NOW }).addressPayments(SADDR), isExplorerError(/malformed/));
   await assert.rejects(solExplorer({ rpc: solRpc({ sigs: [{ signature: 'short', slot: 1 }], txs: {} }), now: () => NOW }).addressPayments(SADDR), isExplorerError(/malformed/));
   assert.throws(() => solExplorer({ urls: ['http://sol.test'] }), /https/);
+});
+
+test('sol: a token payment that touches only the token account is found through the wallet token accounts', async () => {
+  let t = NOW;
+  const rpc = solRpc({
+    sigs: [],
+    accounts: { [USDC]: [TOKACC] },
+    tokenSigs: { [TOKACC]: [{ signature: sig('3'), slot: 1001, err: null, blockTime: null, confirmationStatus: 'finalized' }] },
+    txs: { [sig('3')]: solTxToken },
+  });
+  const ex = solExplorer({ rpc, now: () => t });
+  const want = [{ txid: sig('3'), vout: 3, amount: '5000000', confirmations: 40, height: 1001, asset: 'usdc' }];
+  assert.deepEqual(await ex.addressPayments(SADDR), want);
+  assert.deepEqual(await ex.addressPayments(SADDR), want);
+  assert.equal(rpc.calls.lookups, 2); // one lookup per accepted mint (USDT, USDC), then cached
+  assert.equal(rpc.calls.getTransaction, 1);
+  assert.ok(rpc.calls.listed.includes(TOKACC));
+  t += 61_000; // the cache is a minute old: the accounts are looked up again
+  await ex.addressPayments(SADDR);
+  assert.equal(rpc.calls.lookups, 4);
+});
+
+test('sol: a signature listed by the wallet and by its token account is counted once', async () => {
+  const one = { signature: sig('3'), slot: 1001, err: null, blockTime: null, confirmationStatus: 'finalized' };
+  const rpc = solRpc({ sigs: [one], accounts: { [USDC]: [TOKACC] }, tokenSigs: { [TOKACC]: [one] }, txs: { [sig('3')]: solTxToken } });
+  const got = await solExplorer({ rpc, now: () => NOW }).addressPayments(SADDR);
+  assert.equal(got.length, 1);
+  assert.equal(rpc.calls.getTransaction, 1);
+});
+
+test('sol: a malformed token account list throws', async () => {
+  const rpc = solRpc({ sigs: [], txs: {}, accounts: { [USDC]: ['short'] } });
+  await assert.rejects(solExplorer({ rpc, now: () => NOW }).addressPayments(SADDR), isExplorerError(/malformed/));
+});
+
+test('sol: older pages are read up to the page cap, and never past the age limit', async () => {
+  const mk = (c, slot, blockTime = null) => ({ signature: sig(c), slot, err: null, blockTime, confirmationStatus: 'finalized' });
+  const dust = [mk('1', 2000), mk('2', 1999), mk('3', 1998), mk('4', 1997)];
+  const txs = { [sig('9')]: solTxSol };
+  for (const d of dust) txs[d.signature] = solTxElsewhere;
+  const sigs = [...dust, mk('9', 1000)]; // the real payment is behind four dust transfers
+
+  const rpc = solRpc({ sigs, txs });
+  const got = await solExplorer({ rpc, now: () => NOW, sigLimit: 2 }).addressPayments(SADDR);
+  assert.deepEqual(got.map((p) => p.txid), [sig('9')]);
+  assert.equal(rpc.calls.listed.length, 3); // pages of 2, 2 and 1
+
+  const capped = solRpc({ sigs, txs });
+  assert.deepEqual(await solExplorer({ rpc: capped, now: () => NOW, sigLimit: 2, maxPages: 2 }).addressPayments(SADDR), []);
+  assert.equal(capped.calls.listed.length, 2);
+
+  const old = Math.floor((NOW - 10 * 86_400_000) / 1000);
+  const history = solRpc({ sigs: [mk('1', 2000, Math.floor(NOW / 1000)), mk('2', 1999, old), mk('3', 1998, old)], txs: { [sig('1')]: solTxElsewhere } });
+  assert.deepEqual(await solExplorer({ rpc: history, now: () => NOW, sigLimit: 2 }).addressPayments(SADDR), []);
+  assert.equal(history.calls.listed.length, 1); // the first page already ends in history
 });
 
 // ---------- Registry ----------
