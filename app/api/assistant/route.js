@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readCapped } from '@/lib/server/body';
 import { ask } from '@/lib/server/assistant-service';
 import { llmEnabled } from '@/lib/server/assistant-llm';
 import { userId, unauthorized } from '@/lib/server/auth';
@@ -26,7 +27,9 @@ export async function POST(req) {
 
   let question = '';
   try {
-    const raw = await req.text();
+    const buf = await readCapped(req, MAX_BODY * 4); // MAX_BODY characters take at most 4 bytes each
+    if (buf === null) return fail('Question too long', 413);
+    const raw = buf.toString('utf8');
     if (raw.length > MAX_BODY) return fail('Question too long', 413);
     const body = JSON.parse(raw);
     question = typeof body?.question === 'string' ? body.question : '';
