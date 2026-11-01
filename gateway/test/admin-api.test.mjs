@@ -5,7 +5,7 @@ import { createServer } from 'node:http';
 import { randomBytes } from 'node:crypto';
 import { q, closeDb } from '../src/db.js';
 import { migrate } from '../src/migrate.js';
-import { adminOverview, handleUnmatched } from '../src/admin-api.js';
+import { adminOverview, handleUnmatched, gapCount } from '../src/admin-api.js';
 import { recordUnmatched } from '../src/settle.js';
 import { handler } from '../src/server.js';
 
@@ -65,7 +65,78 @@ test('the overview lists networks, scanners, invoices, unmatched payments, callb
   assert.equal(typeof o.callbacks.pending, 'number');
   assert.equal(typeof o.callbacks.failing, 'number');
   assert.ok(Array.isArray(o.callbacks.stuck));
+  assert.equal(typeof o.callbacks.parked, 'number');
   assert.ok(Array.isArray(o.audit));
+  assert.ok(Array.isArray(o.alerts));
+  assert.ok(o.btcGap === null || typeof o.btcGap.gap === 'number');
+});
+
+test('the BTC address gap counts the unused addresses handed out after the last one that got money', () => {
+  assert.equal(gapCount(null, null), 0);
+  assert.equal(gapCount(0, null), 0);
+  assert.equal(gapCount(3, null), 3);
+  assert.equal(gapCount('8', '5'), 2);
+  assert.equal(gapCount(6, 5), 0);
+  assert.equal(gapCount(5, 9), 0);
+});
+
+test('a short API secret is refused even when the caller sends the same one', async () => {
+  const s = await serve();
+  const saved = process.env.GATEWAY_API_SECRET;
+  process.env.GATEWAY_API_SECRET = 'short-secret';
+  try {
+    const r = await fetch(`http://127.0.0.1:${s.address().port}/v1/admin/overview`, { headers: { authorization: 'Bearer short-secret' } });
+    assert.equal(r.status, 503);
+  } finally {
+    process.env.GATEWAY_API_SECRET = saved;
+    s.close();
+  }
+});
+
+test('the retry route needs the Bearer secret', async () => {
+  const s = await serve();
+  try {
+    const url = `http://127.0.0.1:${s.address().port}/v1/admin/callbacks/retry`;
+    assert.equal((await fetch(url, { method: 'POST' })).status, 401);
+    assert.equal((await fetch(url, { method: 'POST', headers: { authorization: 'Bearer wrong-secret-0123456789' } })).status, 401);
+  } finally {
+    s.close();
+  }
+});
+
+test('the overview lists late payments and gave-up callbacks of the last 30 days for a person to look at', { skip }, async () => {
+  const real = `inv_${run}r`;
+  const gone = `inv_${run}x`;
+  const idx = 9_000_000_000 + Math.floor(Math.random() * 1_000_000);
+  const t1 = randomBytes(32).toString('hex');
+  const t2 = randomBytes(32).toString('hex');
+  const audit = (action, subject, detail) => q('INSERT INTO audit_log (actor, action, subject, detail) VALUES (\'watcher\', $1, $2, $3::jsonb)', [action, subject, JSON.stringify(detail)]);
+  try {
+    // A paid invoice is not watched, so no other test sees this row.
+    await q(
+      `INSERT INTO invoices (id, ref, kind, network, asset, address, deriv_index, usd, expected_atomic, status, expires_at, match_amount)
+       VALUES ($1, $2, 'order', 'btc', 'btc', $3, $4, 50, 50000, 'paid', now(), true)`,
+      [real, `${run}-late`, `bc1q${run}late`, idx],
+    );
+    await audit('payment.late', real, { txid: t1, vout: 0, amount: '12345', status: 'expired' });
+    await audit('payment.late', gone, { txid: t2, vout: 0, amount: '777', status: 'expired' });
+    await audit('webhook.gave_up', gone, { outbox: 1, event: 'finished', attempts: 24, error: 'app answered HTTP 503' });
+    const o = await adminOverview();
+    assert.ok(o.alerts.length <= 20);
+    const a = o.alerts.find((x) => x.txid === t1);
+    assert.equal(a.action, 'payment.late');
+    assert.equal(a.ref, `${run}-late`);
+    assert.equal(a.network, 'btc');
+    assert.equal(a.amount, '0.00012345');
+    const b = o.alerts.find((x) => x.txid === t2);
+    assert.equal(b.subject, gone);
+    assert.equal(b.amount, null, 'no invoice row, so there is no coin to show it in');
+    const g = o.alerts.find((x) => x.action === 'webhook.gave_up' && x.subject === gone);
+    assert.equal(g.event, 'finished');
+    assert.equal(g.error, 'app answered HTTP 503');
+  } finally {
+    await q('DELETE FROM invoices WHERE id = $1', [real]);
+  }
 });
 
 test('the handle route needs the Bearer secret', async () => {
