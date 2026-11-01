@@ -85,7 +85,7 @@ test('Handled hides an unmatched payment, audits it once and the scanner seeing 
   const txid = randomBytes(32).toString('hex');
   const txid2 = randomBytes(32).toString('hex');
   const insert = (id) =>
-    q("INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations) VALUES ('btc', 'btc', $1, $2, 0, 777, 1)", [addr, id]);
+    q("INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations) VALUES ('btc', 'btc', $1, $2, 0, 50777, 1)", [addr, id]);
   const shown = async (id) => (await adminOverview()).unmatched.recent.some((x) => x.txid === id);
   const audits = async (id) => (await q("SELECT detail FROM audit_log WHERE action = 'unmatched.handled' AND subject = $1", [`btc:${id}`])).rows;
   const s = await serve();
@@ -111,7 +111,7 @@ test('Handled hides an unmatched payment, audits it once and the scanner seeing 
       network: 'btc',
       address: addr,
       defaultAsset: 'btc',
-      payments: [{ txid, vout: 0, amount: '777', confirmations: 2, height: 10 }],
+      payments: [{ txid, vout: 0, amount: '50777', confirmations: 2, height: 10 }],
       claimed: new Set(),
     });
     assert.equal(added, 0);
