@@ -14,14 +14,17 @@ const live = (net) => ({ BTC: { gross: 0.04, net, price: 100000 } });
 const rowOf = async (day) => (await q("SELECT net_per_rig FROM coin_days WHERE day = $1 AND coin = 'BTC'", [day])).rows;
 
 const wipe = () => q("DELETE FROM coin_days WHERE coin = 'BTC' AND day = ANY($1)", [[finished, today]]);
+let seeds = []; // recordCoins sets the shared Smart anchor when none exists; put it back so other tests see what they expect
 
 before(async () => {
   await migrate();
+  seeds = (await q('SELECT symbol, ref_net FROM smart_coins')).rows;
   await wipe();
 });
 
 after(async () => {
   await wipe();
+  for (const s of seeds) await q('UPDATE smart_coins SET ref_net = $2 WHERE symbol = $1', [s.symbol, s.ref_net]);
   await pool().end();
 });
 
