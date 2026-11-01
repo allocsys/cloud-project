@@ -2108,6 +2108,10 @@ export default function Admin() {
                   <Field key={k} id={`rf-${k}`} label={l} inputMode="decimal" value={d[k]} onChange={(v) => put(k, v)} />
                 ))}
               </div>
+              <Pick id="rf-overLimit" label="Friend over the monthly limit" value={d.overLimit || 'never'} onChange={(v) => put('overLimit', v)}>
+                <option value="never">Never rewarded</option>
+                <option value="later">Rewarded from the first month with room</option>
+              </Pick>
               <p className="fine" style={{ margin: '12px 0 0' }}>
                 Gift TH/s and Tickets/inviter: 0 = off. The referrer&apos;s total is capped at the cap share of what the friend spends, minus the cost of the friend&apos;s gift miner. Changes apply to rewards from now on.
               </p>
@@ -2150,7 +2154,7 @@ export default function Admin() {
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${l.rewardUsd.toFixed(2)}</b>
-                    <small>{l.rewarded ? 'rewarded' : 'pending'}</small>
+                    <small>{l.rewarded ? 'rewarded' : l.startsAt ? `starts ${when(l.startsAt)}` : 'pending'}</small>
                   </div>
                 </div>
               ))}
