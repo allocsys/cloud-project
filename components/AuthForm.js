@@ -4,7 +4,7 @@ import Link from 'next/link';
 import Field from '@/components/Field';
 import { fill, useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
-import { post, clearApiCache, signOut } from '@/lib/api';
+import { post, clearApiCache, clearOut, signOut } from '@/lib/api';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
 
 // The sign-in form that lives inside the sheet (components/AuthSheet.js): sign in, sign up, forgot and reset password,
@@ -106,6 +106,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
           ? await post('/api/auth/reset/confirm', { email: email.trim(), token: rtoken, password, ...(needCode ? { code: code.trim() } : {}) })
           : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}), ...(!signup && needCode ? { code: code.trim() } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
+      clearOut();
       try {
         if (signup && !view) localStorage.removeItem('vtx-ref');
       } catch {}
@@ -159,6 +160,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
     try {
       const res = await post('/api/auth/telegram', { initData: window.Telegram?.WebApp?.initData || '', ...(ref ? { ref } : {}) });
       clearApiCache();
+      clearOut();
       try {
         localStorage.removeItem('vtx-ref');
       } catch {}
