@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server';
+import { readJson } from '@/lib/server/body';
 import { adminEnabled, isAdmin } from '@/lib/server/admin';
 import { closeInvoice, gatewayOverview, handleUnmatched, setNetworkPaused } from '@/lib/server/gateway-admin';
 
@@ -23,7 +24,7 @@ export async function POST(req) {
   if (denied) return denied;
   let body = null;
   try {
-    body = await req.json();
+    body = await readJson(req, 256 * 1024);
   } catch {}
   const r =
     body && typeof body.close === 'string'
