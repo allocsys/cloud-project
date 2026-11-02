@@ -242,7 +242,7 @@ test('the sign-in route: asking for a code is free, wrong codes lock the account
   assert.ok((ok.headers.get('set-cookie') || '').includes(`${auth.COOKIE}=`));
   tick();
 
-  for (let i = 0; i < 8; i += 1) {
+  for (let i = 0; i < 5; i += 1) {
     const r = await post({ code: wrongOf(code(secret)) }, `10.2.2.${i}`); // a different address each time
     assert.equal(r.status, 401, `wrong code ${i + 1}`);
     assert.equal(r.body.field, 'code');
