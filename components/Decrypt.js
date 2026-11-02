@@ -55,9 +55,9 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1.5 }) 
           els[order[p]].classList.remove('dc-s');
           p += 1;
         }
-        if (t - last > 110) {
+        if (t - last > 150) {
           last = t;
-          const end = Math.min(n, p + 6);
+          const end = Math.min(n, p + 3);
           for (let k = p; k < end; k += 1) paint(els[order[k]]);
         }
         if (p < n) raf = requestAnimationFrame(tick);
