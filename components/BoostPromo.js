@@ -6,7 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
-import { AuthButton } from '@/components/AuthSheet';
+import HoldButton from '@/components/HoldButton';
 import { useT } from '@/components/I18nProvider';
 
 const whole = (n) => n.toLocaleString('en-US');
@@ -145,9 +145,7 @@ export default function BoostPromo({ signedIn = false }) {
           {t('boost.open')}
         </Link>
       ) : (
-        <AuthButton mode="signup" className="btn boost-go">
-          {t('common.getStarted')}
-        </AuthButton>
+        <HoldButton mode="signup" className="boost-go" />
       )}
       <p className="fine" style={{ margin: '12px 0 0' }}>{same ? t('boost.footChance', { n: b.tickets[0].chance }) : t('boost.foot')}</p>
     </div>
