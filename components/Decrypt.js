@@ -16,7 +16,7 @@ const glyphs = (n) => {
   return s;
 };
 
-export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
+export default function Decrypt({ text, when = 'load', delay = 0, pace = 1.5 }) {
   const ref = useRef(null);
 
   useEffect(() => {
