@@ -10,6 +10,7 @@ import Splash from '@/components/Splash';
 import StickyCta from '@/components/StickyCta';
 import WinnersBar from '@/components/WinnersBar';
 import NetworkLive from '@/components/NetworkLive';
+import LandingMenu from '@/components/LandingMenu';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
 import { getLang, getT } from '@/lib/i18n/server';
@@ -131,6 +132,17 @@ export default async function Home() {
             ) : (
               <AuthButton className="lp-signin">{t('auth.signIn')}</AuthButton>
             )}
+            <LandingMenu
+              label={t('landing.menu')}
+              links={[
+                { href: pagePath('/how-it-works', lang), label: t('how.link') },
+                { href: pagePath('/faq', lang), label: t('faq.link') },
+                { href: pagePath('/glossary', lang), label: t('glo.link') },
+                { href: pagePath('/about', lang), label: t('about.link') },
+                { href: pagePath('/refunds', lang), label: t('refunds.link') },
+                { href: pagePath('/status', lang), label: t('status.link') },
+              ]}
+            />
           </div>
         </header>
 
