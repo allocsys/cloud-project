@@ -30,7 +30,7 @@ test('app and gateway backups are separate series', async () => {
   assert.equal((await listBackups(kv, APP)).length, 5); // the app series is untouched
   const newest = (await listBackups(kv, GATEWAY))[0];
   assert.equal((await download(kv, newest, GATEWAY)).blob.toString(), 'gw5');
-  await assert.rejects(download(kv, newest, APP).then((r) => r.blob.toString().startsWith('gw') && Promise.reject(new Error('mixed'))), /mixed|No finished/);
+  assert.equal((await download(kv, newest, APP)).blob.toString(), 'app5'); // same day, other series, other data
 });
 
 test('apply.parse reads a dump file and rejects other files', () => {
