@@ -7,6 +7,7 @@ export const dynamic = 'force-dynamic';
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const tooMany = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
+const tooManyAcct = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 5 minutes.' }, { status: 429, headers: NO_STORE });
 
 export async function POST(req) {
   let body;
@@ -28,7 +29,7 @@ export async function POST(req) {
   if (await reserve(key)) return tooMany();
   if (email && (await reserveAcct(acctKey))) {
     await giveBack(key);
-    return tooMany();
+    return tooManyAcct();
   }
   const withCode = !!body?.code;
   if (withCode && (await reserve(codeKey))) return tooMany();
