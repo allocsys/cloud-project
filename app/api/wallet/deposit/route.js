@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { startDeposit } from '@/lib/server/miners';
-import { userId, unauthorized } from '@/lib/server/auth';
+import { userId, unauthorized, reserveAcct } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -9,6 +9,10 @@ export const dynamic = 'force-dynamic';
 export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
+  // A person starts a few top-ups at most; a script that floods the provider with pending orders is stopped here.
+  if (await reserveAcct(`dep:${id}`)) {
+    return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store' } });
+  }
   let body;
   try {
     body = await readJson(req);
