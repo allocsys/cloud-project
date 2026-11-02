@@ -2,7 +2,8 @@ import BackLink from '@/components/BackLink';
 import { getLang, getT } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { getLive } from '@/lib/server/market';
-import { NETWORK_MOCK as MOCK } from '@/lib/status-mock';
+import { NETWORK_MOCK as MOCK, minersText } from '@/lib/status-mock';
+import { minersRunning } from '@/lib/server/network-stats';
 
 // The first two cards are REAL: Bitcoin network difficulty from the live market (lib/server/market.js) and the hash power
 // that follows from it. With no live reading they show a dash, never a made-up number.
@@ -30,7 +31,7 @@ export default async function Status() {
   try {
     d = (await getLive())?.difficulty ?? null;
   } catch {}
-  const values = { ...MOCK, net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH };
+  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH };
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
