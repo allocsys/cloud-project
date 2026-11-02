@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Field from '@/components/Field';
+import Captcha from '@/components/Captcha';
 import { fill, useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache, clearOut, signOut } from '@/lib/api';
@@ -30,6 +31,9 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
   const [tg, setTg] = useState(false); // opened inside Telegram: Telegram sign-in is offered
   const [tgBusy, setTgBusy] = useState(false);
   const [notice, setNotice] = useState(''); // set after sign-up when the invite code was not recognised; the form then waits for Continue
+  const [capOn, setCapOn] = useState(false); // the bot check is switched on (components/Captcha.js)
+  const [capToken, setCapToken] = useState('');
+  const [capKey, setCapKey] = useState(0); // a new number mounts the check again, for a fresh one after each attempt
 
   // Telegram's script may load after the page does, so look a few times.
   useEffect(() => {
@@ -91,11 +95,23 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
       return;
     }
 
+    if (capOn && view !== 'reset' && !capToken) {
+      triggerHaptic('error');
+      setErrors({ form: t('auth.errCaptcha') });
+      return;
+    }
+
     setErrors({});
+    // Each check works once: take its token, then ask for a fresh check right away.
+    const captcha = capToken;
+    if (capOn && view !== 'reset') {
+      setCapToken('');
+      setCapKey((k) => k + 1);
+    }
     setLoading(true);
     try {
       if (view === 'forgot') {
-        await post('/api/auth/reset', { email: email.trim() });
+        await post('/api/auth/reset', { email: email.trim(), captcha });
         triggerHaptic('success');
         setSent(true);
         setLoading(false);
@@ -104,7 +120,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
       const res =
         view === 'reset'
           ? await post('/api/auth/reset/confirm', { email: email.trim(), token: rtoken, password, ...(needCode ? { code: code.trim() } : {}) })
-          : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, ...(signup && ref ? { ref } : {}), ...(!signup && needCode ? { code: code.trim() } : {}) });
+          : await post(signup ? '/api/auth/signup' : '/api/auth/login', { email: email.trim(), password, captcha, ...(signup && ref ? { ref } : {}), ...(!signup && needCode ? { code: code.trim() } : {}) });
       clearApiCache(); // nothing from a previous account (or the demo) may show for this one
       clearOut();
       try {
@@ -312,6 +328,8 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
           {refOpen && ref && offer > 0 && <p className="fine">{t('auth.rebate', { n: offer })}</p>}
         </>
       )}
+
+      {view !== 'reset' && !notice && <Captcha key={capKey} onActive={setCapOn} onToken={setCapToken} />}
 
       {errors.form && <div className="ferr" role="alert">{errors.form}</div>}
 
