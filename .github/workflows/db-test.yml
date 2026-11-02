@@ -3,6 +3,10 @@ name: DB tests
 on:
   push:
     branches: [main, db-scale]
+    paths-ignore:
+      - '**.css'
+      - '**.md'
+      - 'public/**'
   pull_request:
   workflow_dispatch:
 
