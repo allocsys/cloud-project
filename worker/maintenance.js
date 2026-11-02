@@ -45,7 +45,7 @@ function down(request) {
 }
 
 const PAGE = `<!doctype html>
-<html lang="en"><head><meta charset="utf-8">
+<html lang="en" class="en"><head><meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="robots" content="noindex"><meta name="theme-color" content="#0B0F1A">
 <title>Vertexhash</title>
@@ -76,7 +76,7 @@ html.en .row [data-l=en],html.fa .row [data-l=fa]{display:inline-block}
 @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
 @media (prefers-reduced-motion:reduce){.o,.i,.d,.bar i{animation:none}}
 </style></head>
-<body class="en"><div class="card">
+<body><div class="card">
 <svg viewBox="0 0 100 100" aria-hidden="true">
 <polygon class="o" points="50,6 88.1,28 88.1,72 50,94 11.9,72 11.9,28"/>
 <polygon class="i" points="50,22 74.2,36 74.2,64 50,78 25.8,64 25.8,36"/>
