@@ -8,7 +8,8 @@ import { useEffect, useRef } from 'react';
 // One element per word (not per letter): far fewer nodes to hydrate, style and repaint, and it keeps joined
 // scripts like Persian intact.
 const G = '0123456789ABCDEF';
-const SCRAMBLE = /[A-Za-z0-9\u0590-\u08FF]/;
+const SCRAMBLE = /[A-Za-z0-9]/;
+const JOINED = /[\u0590-\u08FF]/;
 const glyph = () => G[Math.floor(Math.random() * 16)];
 const glyphs = (n) => {
   let s = '';
@@ -123,17 +124,28 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1.5 }) 
     };
   }, [text, when, delay, pace]);
 
+  const words = JOINED.test(text);
   return (
     <span ref={ref}>
-      {text.split(/(\s+)/).map((w, i) =>
-        SCRAMBLE.test(w) ? (
-          <span className="dc" data-n={Math.min(w.length, 8)} key={i}>
-            {w}
-          </span>
-        ) : (
-          w
-        ),
-      )}
+      {words
+        ? text.split(/(\s+)/).map((w, i) =>
+            /\S/.test(w) ? (
+              <span className="dc" data-n={Math.min(w.length, 8)} key={i}>
+                {w}
+              </span>
+            ) : (
+              w
+            ),
+          )
+        : Array.from(text).map((c, i) =>
+            SCRAMBLE.test(c) ? (
+              <span className="dc" key={i}>
+                {c}
+              </span>
+            ) : (
+              c
+            ),
+          )}
     </span>
   );
 }
