@@ -827,11 +827,12 @@ nav {
 nav .brand, nav .out { display: none; }
 
 nav a {
-  flex: 1;
+  flex: 1 1 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 3px;
+  gap: 2px;
   min-height: 46px;
   color: var(--mute);
   text-decoration: none;
@@ -842,9 +843,9 @@ nav a {
 }
 
 nav .ind {
-  width: 56px;
-  height: 28px;
-  border-radius: 14px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
   transition: background 0.2s;
@@ -898,7 +899,7 @@ nav a.fab[aria-current=page]:hover .ind {
 
 main {
   flex: 1;
-  padding: 0 16px calc(84px + env(safe-area-inset-bottom, 0px));
+  padding: 0 16px calc(152px + env(safe-area-inset-bottom, 0px));
   max-width: 980px;
   width: 100%;
   margin: 0 auto;
@@ -1746,7 +1747,7 @@ a.stat:active { background: var(--s3); }
   display: grid;
   place-items: center;
   border: 0;
-  border-radius: 16px;
+  border-radius: 50%;
   background: var(--gold-c);
   color: var(--on-gold-c);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
