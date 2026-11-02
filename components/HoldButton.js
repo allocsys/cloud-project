@@ -23,7 +23,6 @@ export default function HoldButton({ mode = 'signup', className = '', ...rest })
   const paint = (p) => {
     if (!fill.current || !txt.current || !btn.current) return;
     fill.current.style.transform = `scaleX(${p})`;
-    btn.current.style.color = p > 0.5 ? 'var(--on-gold)' : '';
     if (p === 0) {
       txt.current.textContent = label;
       return;
