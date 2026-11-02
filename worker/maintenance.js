@@ -74,7 +74,6 @@ html.en .row [data-l=en],html.fa .row [data-l=fa]{display:inline-block}
 @keyframes spin{to{transform:rotate(360deg)}}
 @keyframes pulse{0%,100%{transform:scale(.6);opacity:.5}50%{transform:scale(1.15);opacity:1}}
 @keyframes sweep{0%{transform:translateX(-100%)}100%{transform:translateX(290%)}}
-@media (prefers-reduced-motion:reduce){.o,.i,.d,.bar i{animation:none}}
 </style></head>
 <body><div class="card">
 <svg viewBox="0 0 100 100" aria-hidden="true">
@@ -96,8 +95,7 @@ html.en .row [data-l=en],html.fa .row [data-l=fa]{display:inline-block}
 (function(){
 var h=document.getElementById('h'),t=document.getElementById('t'),c='0123456789abcdef',d=document.documentElement;
 function tick(){var s='',i;for(i=0;i<16;i++)s+=c.charAt(Math.random()*16|0);h.textContent=s}
-tick();
-if(!(window.matchMedia&&matchMedia('(prefers-reduced-motion:reduce)').matches))setInterval(tick,90);
+tick();setInterval(tick,90);
 function set(l){d.className=l;d.lang=l;d.dir=l==='fa'?'rtl':'ltr';t.textContent=l==='fa'?'English':'فارسی'}
 set((navigator.language||'').slice(0,2)==='fa'?'fa':'en');
 t.onclick=function(){set(d.className==='fa'?'en':'fa')};
