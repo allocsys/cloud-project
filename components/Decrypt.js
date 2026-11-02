@@ -21,6 +21,8 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 1 }) {
   const ref = useRef(null);
 
   useEffect(() => {
+    const TEST_OFF = true;
+    if (TEST_OFF) return undefined;
     const root = ref.current;
     const els = root ? Array.from(root.querySelectorAll('.dc')) : [];
     if (!els.length) return undefined;
