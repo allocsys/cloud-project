@@ -57,5 +57,5 @@ export default function Captcha({ onActive, onToken }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  return <div ref={box} style={{ marginTop: '12px', minHeight: 0 }} />;
+  return <div ref={box} style={{ marginTop: '12px', minHeight: 0, display: 'flex', justifyContent: 'center' }} />;
 }
