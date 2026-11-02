@@ -142,7 +142,10 @@ export default async function Home() {
                 { href: pagePath('/refunds', lang), label: t('refunds.link') },
                 { href: pagePath('/status', lang), label: t('status.link') },
               ]}
-            />
+              contact={t('landing.contact')}
+            >
+              <SocialLinks className="lp-social lm-soc" />
+            </LandingMenu>
           </div>
         </header>
 
