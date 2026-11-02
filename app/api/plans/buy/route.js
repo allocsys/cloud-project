@@ -1,14 +1,14 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { buyPlan } from '@/lib/server/miners';
-import { userId, unauthorized, reserveAcct } from '@/lib/server/auth';
+import { userId, unauthorized, reserveAction } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
 export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
-  if (id !== 'demo' && (await reserveAcct(`buy:${id}`))) {
+  if (id !== 'demo' && (await reserveAction(`buy:${id}`))) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store' } });
   }
   let body;
