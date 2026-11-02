@@ -5,6 +5,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { useCountUp } from '@/lib/useCountUp';
+import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
 
 const REFRESH = 60000;
 const EH = (d) => (d * 2 ** 32) / 600 / 1e18; // hashes per second: difficulty x 2^32 per block, one block every 600 s
@@ -31,7 +32,7 @@ export default function NetworkLive() {
     const load = () =>
       fetch('/api/network', { cache: 'no-store' })
         .then((r) => r.json())
-        .then((j) => on && setD(j?.live ? { btc: j.btc, diff: j.difficulty } : null))
+        .then((j) => on && setD(j?.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null))
         .catch(() => {});
     load();
     const id = setInterval(load, REFRESH);
@@ -59,6 +60,9 @@ export default function NetworkLive() {
     { k: 'price', n: <Num value={d.btc} pre="$" /> },
     { k: 'hash', n: <Num value={EH(d.diff)} suf=" EH/s" /> },
     { k: 'diff', n: <Num value={d.diff / 1e12} dec={2} suf=" T" /> },
+    { k: 'miners', n: <Num value={minersCount(d.miners)} /> },
+    { k: 'paid', n: <Num value={PAID_BTC} dec={2} suf=" BTC" /> },
+    { k: 'up', n: <Num value={UPTIME_PCT} dec={2} suf="%" /> },
   ];
   return (
     <div ref={ref} className="nl" aria-label={t('netlive.title')}>
@@ -66,7 +70,7 @@ export default function NetworkLive() {
         .nl{border:1px solid rgba(232,184,74,.3);border-radius:14px;padding:12px 14px;margin:6px 0}
         .nl-h{display:flex;align-items:center;gap:8px;font-size:13px;color:#a89868;margin-bottom:10px}
         .nl-dot{width:8px;height:8px;border-radius:50%;background:#7fd8a0;box-shadow:0 0 0 0 rgba(127,216,160,.6);animation:nlPulse 1.8s infinite}
-        .nl-g{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+        .nl-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
         .nl-c{text-align:center;animation:nlIn .6s ease both}
         .nl-n{font-size:17px;font-weight:700;color:#e8b84a;white-space:nowrap}
         .nl-l{font-size:11px;color:#a89868;white-space:nowrap}
