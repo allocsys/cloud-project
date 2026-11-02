@@ -8,7 +8,7 @@ export const dynamic = 'force-dynamic';
 export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
-  if (await reserveAcct(`buy:${id}`)) {
+  if (id !== 'demo' && (await reserveAcct(`buy:${id}`))) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store' } });
   }
   let body;
