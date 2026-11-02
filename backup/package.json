@@ -1,0 +1,16 @@
+{
+  "name": "vtx-backup",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vertexhash nightly encrypted database backup. Railway cron service: dump, encrypt, upload to Cloudflare KV, keep the last 14.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/run.js",
+    "restore": "node src/restore.js",
+    "test": "node --test \"test/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}
