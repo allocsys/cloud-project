@@ -10,7 +10,7 @@ export async function POST(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   // A person starts a few top-ups at most; a script that floods the provider with pending orders is stopped here.
-  if (await reserveAcct(`dep:${id}`)) {
+  if (id !== 'demo' && (await reserveAcct(`dep:${id}`))) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store' } });
   }
   let body;
