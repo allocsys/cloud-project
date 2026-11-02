@@ -1785,11 +1785,6 @@ a.stat:active { background: var(--s3); }
 .asst-actions { display: flex; align-items: center; gap: 4px; flex: none; }
 .asst-new { display: inline-flex; align-items: center; gap: 4px; height: 36px; padding: 0 12px 0 8px; border: 0; border-radius: 18px; background: var(--s4); color: var(--gold2); font: inherit; font-size: 13px; cursor: pointer; }
 .asst-new svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
-@media (prefers-reduced-motion: reduce) {
-  .asst-fab,
-  .ai-mark path,
-  .ai-mark.busy path { animation: none; }
-}
 .asst-fab svg,
 .asst-x svg,
 .asst-send svg { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
