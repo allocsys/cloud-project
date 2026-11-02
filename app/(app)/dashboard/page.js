@@ -15,7 +15,7 @@ import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
-import { NETWORK_MOCK } from '@/lib/status-mock';
+import { NETWORK_MOCK, minersText } from '@/lib/status-mock';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -143,6 +143,7 @@ export default function Dashboard() {
   const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
 
   const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
+  const { data: nw } = useApi('/api/network', { ttl: 30000, poll: 60000 });
   const dash = dd || EMPTY;
 
   // Shares are a simulated feed. The big number is the server figure plus the online rate since the server's asOf,
@@ -408,7 +409,7 @@ export default function Dashboard() {
             <h3>{t('dash.network')}</h3>
           </div>
           <div className="egrid">
-            <div className="hcell"><span>{t('status.miners')}</span><b>{NETWORK_MOCK.miners}</b></div>
+            <div className="hcell"><span>{t('status.miners')}</span><b>{minersText(nw?.miners)}</b></div>
             <div className="hcell"><span>{t('status.paid')}</span><b>{NETWORK_MOCK.paid}</b></div>
             <div className="hcell ok"><span>{t('status.up')}</span><b>{NETWORK_MOCK.up}</b></div>
           </div>
