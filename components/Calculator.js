@@ -11,7 +11,7 @@ import { BTC_USD } from '@/lib/data';
 import { SMART, smartEstimate } from '@/lib/smart';
 import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { triggerHaptic } from '@/lib/haptics';
-import { AuthButton } from '@/components/AuthSheet';
+import HoldButton from '@/components/HoldButton';
 import { fill, useT } from '@/components/I18nProvider';
 
 const TICKS = [100, 1000, 5000, 10000];
@@ -173,9 +173,7 @@ export default function Calculator({ signedIn = false }) {
             {t('calc.open')}
           </Link>
         ) : (
-          <AuthButton mode="signup" className="btn calc-go">
-            {t('common.getStarted')}
-          </AuthButton>
+          <HoldButton mode="signup" className="calc-go" />
         )}
         <button type="button" className={`calc-more${note ? ' open' : ''}`} aria-expanded={note} aria-label={t('calc.about')} onClick={() => setNote((v) => !v)}>
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
