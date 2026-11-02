@@ -117,7 +117,7 @@ export default function BoostPromo({ signedIn = false }) {
   const same = b.tickets.every((t) => t.chance === b.tickets[0].chance); // one chance for all: say it once, in the footnote
 
   return (
-    <div className="card" style={{ marginTop: 14 }}>
+    <div className="card boost-promo" style={{ marginTop: 14 }}>
       <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('boost.sub', { h: b.hours })}</p>
       <BoostArt />
