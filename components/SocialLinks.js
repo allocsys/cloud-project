@@ -32,11 +32,11 @@ const NAMES = { x: 'X', telegram: 'Telegram channel', bot: 'Telegram app', insta
 const ORDER = ['x', 'telegram', 'bot', 'instagram'];
 
 // Round icon links (X, Telegram, Instagram). A network with no address in lib/site.js is left out; with none, nothing shows.
-export default function SocialLinks() {
+export default function SocialLinks({ className = 'lp-social' }) {
   const items = ORDER.filter((k) => /^https:\/\//.test(SOCIALS[k] || ''));
   if (!items.length) return null;
   return (
-    <div className="lp-social">
+    <div className={className}>
       {items.map((k) => (
         <a key={k} href={SOCIALS[k]} target="_blank" rel="noopener noreferrer me" aria-label={NAMES[k]}>
           {ICONS[k]}
