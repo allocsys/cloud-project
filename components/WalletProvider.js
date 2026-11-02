@@ -10,7 +10,6 @@ const FLAG = 'vtx-wc';
 const Ctx = createContext(null);
 
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
-const refused = (e) => /reject|denied|declin|cancel|closed/i.test(String(e?.message || e));
 const remember = (on) => {
   try {
     if (on) localStorage.setItem(FLAG, '1');
@@ -90,15 +89,7 @@ export default function WalletProvider({ children }) {
         if (p.session) await p.disconnect().catch(() => {});
         try {
           mark('connecting');
-          try {
-            await p.connect();
-          } catch (e) {
-            // One more try on a slow link, but not when the buyer closed or refused it.
-            if (refused(e)) throw e;
-            mark('retrying');
-            await new Promise((r) => setTimeout(r, 1500));
-            await p.connect();
-          }
+          await p.connect();
           if (!p.accounts?.[0]) throw new Error('no account');
         } catch (e) {
           p.disconnect().catch(() => {});
