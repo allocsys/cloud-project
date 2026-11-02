@@ -546,6 +546,8 @@ input::placeholder { color: var(--ph); }
 .calc-main { display: flex; align-items: center; gap: 14px; margin-top: 12px; }
 .calc-art { flex: none; width: 104px; padding: 6px 4px 2px; border-radius: 18px; background: var(--s2); }
 :root[data-theme="light"] .calc-art { background: var(--art); }
+/* The Boost box under the calculator wears the same frame. */
+.card.boost-promo { overflow: hidden; padding: 16px; border: 1px solid var(--line); border-radius: 24px; background: var(--s1); }
 .calc-art .art { margin: 0; }
 .calc-art.off * { animation-play-state: paused; }
 .calc-art .art svg { height: auto; }
