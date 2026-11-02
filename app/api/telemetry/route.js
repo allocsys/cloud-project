@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { feedEnabled, checkKey, ingest } from '@/lib/server/telemetry';
 import { readCapped } from '@/lib/server/body';
+import { clientIp, reserve, giveBack } from '@/lib/server/auth';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,7 +16,11 @@ const json = (body, status = 200) => NextResponse.json(body, { status, headers: 
 export async function POST(req) {
   if (!feedEnabled()) return json({ ok: false, error: 'The hashrate feed is off. Set TELEMETRY_KEY (16 or more characters) and redeploy.' }, 503);
   const auth = req.headers.get('authorization') || '';
+  // Every attempt is counted first; a right key gives it back, so only wrong keys add up (8 in 15 minutes per address).
+  const tries = `tel:${clientIp(req)}`;
+  if (await reserve(tries)) return json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, 429);
   if (!auth.startsWith('Bearer ') || !checkKey(auth.slice(7).trim())) return json({ ok: false, error: 'Wrong key.' }, 401);
+  await giveBack(tries);
   if (Number(req.headers.get('content-length') || 0) > MAX_BODY) return json({ ok: false, error: 'Too large.' }, 413);
   let body;
   try {
