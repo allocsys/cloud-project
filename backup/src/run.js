@@ -22,13 +22,29 @@ async function backupOne(label, url, cfg, kv, prefix) {
   }
 }
 
+// Names only, no secrets: helps to find the value for GATEWAY_DB_NAME.
+async function logDatabaseNames(url) {
+  const pool = new pg.Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 });
+  try {
+    const r = await pool.query('SELECT datname FROM pg_database WHERE NOT datistemplate ORDER BY datname');
+    console.warn(`[backup] databases on this server: ${r.rows.map((x) => x.datname).join(', ')}`);
+  } catch (e) {
+    console.warn('[backup] could not list databases:', String(e?.message || e).slice(0, 120));
+  } finally {
+    await pool.end().catch(() => {});
+  }
+}
+
 export async function main(env = process.env) {
   const cfg = readConfig(env);
   if (!cfg.dbUrl) throw new Error('Missing variables: DATABASE_URL');
   const kv = kvClient({ account: cfg.account, namespace: cfg.namespace, token: cfg.token });
   const jobs = [['app', cfg.dbUrl, APP]];
   if (cfg.gatewayDb) jobs.push(['gateway', withDatabase(cfg.dbUrl, cfg.gatewayDb), GATEWAY]);
-  else console.warn('[backup] GATEWAY_DB_NAME is not set: the gateway database is NOT backed up');
+  else {
+    console.warn('[backup] GATEWAY_DB_NAME is not set: the gateway database is NOT backed up');
+    await logDatabaseNames(cfg.dbUrl);
+  }
   const failed = [];
   for (const [label, url, prefix] of jobs) {
     try {
