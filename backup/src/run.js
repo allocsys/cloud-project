@@ -7,6 +7,22 @@ import { dumpDatabase } from './dump.js';
 import { encrypt } from './crypt.js';
 import { kvClient } from './kv.js';
 import { upload, download, prune, APP, GATEWAY } from './store.js';
+import { verifyLatest } from './verify.js';
+
+// Restore rehearsal on the backup just written; the result (no data, only counts) goes to KV key restoretest:<label>
+// for the Worker dashboard. A failed check makes the run fail, but the backup itself is already saved.
+async function checkRestore(label, pool, cfg, kv, prefix) {
+  const key = `restoretest:${label}`;
+  try {
+    const r = await verifyLatest({ kv, pool, secret: cfg.secret, prefix });
+    await kv.put(key, JSON.stringify({ ok: true, at: new Date().toISOString(), backup: r.stamp, tables: r.tables, rows: r.rows }));
+    console.log(`[backup] ${label} restore check ok: ${r.tables} tables, ${r.rows} rows loaded into a scratch schema and rolled back`);
+  } catch (e) {
+    const error = String(e?.message || e).slice(0, 200);
+    await kv.put(key, JSON.stringify({ ok: false, at: new Date().toISOString(), error })).catch(() => {});
+    throw new Error(`restore check failed: ${error}`);
+  }
+}
 
 async function backupOne(label, url, cfg, kv, prefix) {
   const pool = new pg.Pool({ connectionString: url, max: 1, connectionTimeoutMillis: 10_000 });
@@ -17,6 +33,7 @@ async function backupOne(label, url, cfg, kv, prefix) {
     await download(kv, meta.stamp, prefix); // reads it all back and checks size and checksum
     const removed = await prune(kv, cfg.keep, prefix);
     console.log(`[backup] ${label} ok ${meta.stamp}: ${dump.tables} tables, ${dump.rows} rows, ${meta.bytes} bytes, ${meta.parts} part(s), ${removed} old key(s) removed`);
+    await checkRestore(label, pool, cfg, kv, prefix);
   } finally {
     await pool.end().catch(() => {});
   }
