@@ -1,12 +1,38 @@
 import { NextResponse } from 'next/server';
 import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, stripLang } from '@/lib/i18n/codes';
+import { over, addressOf, isTool, LIMITS } from '@/lib/rate-mem';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
 
 // Persian lives under /fa (/fa, /fa/terms, /fa/privacy). Those addresses show the normal page in that language and
 // remember it, the same as the language switch. An old ?lang=fa address is sent on to its /fa address.
+// Paths that machines call on purpose (the payment gateway, the hall monitoring, uptime checks): no limits, no tool blocking.
+const MACHINE = ['/api/payments/webhook', '/api/telemetry', '/api/health'];
+
+// Every API call and every public page passes here first: scraping tools are refused, and one address that sends far more than a
+// person could (per minute) is slowed with 429. Calls with no readable address are not limited.
+function gate(req, pathname) {
+  const api = pathname.startsWith('/api/');
+  if (api && MACHINE.includes(pathname)) return null;
+  const ip = addressOf(req.headers);
+  const ua = req.headers.get('user-agent') || '';
+  const deny = (status, text) =>
+    api
+      ? NextResponse.json({ ok: false, error: text }, { status, headers: { 'Cache-Control': 'no-store', ...(status === 429 ? { 'Retry-After': '60' } : {}) } })
+      : new NextResponse(text, { status, headers: { 'Cache-Control': 'no-store', 'Content-Type': 'text/plain; charset=utf-8' } });
+  // An empty user agent is only refused on the API (a browser always sends one); pages stay open to it.
+  if (isTool(ua) || (api && !ua)) return deny(403, 'Forbidden.');
+  if (!ip) return null;
+  const kind = !api ? 'page' : req.method === 'GET' || req.method === 'HEAD' ? 'read' : 'write';
+  if (over(`${kind}:${ip}`, LIMITS[kind])) return deny(429, 'Too many requests. Try again in a minute.');
+  return null;
+}
+
 export function middleware(req) {
   const { pathname } = req.nextUrl;
+  const blocked = gate(req, pathname);
+  if (blocked) return blocked;
+  if (pathname.startsWith('/api/')) return NextResponse.next();
   const base = stripLang(pathname);
   const lang = LANG_CODES.find((l) => l !== DEFAULT_LANG && base !== pathname && (pathname === `/${l}` || pathname.startsWith(`/${l}/`)));
   if (lang) {
@@ -31,4 +57,4 @@ export function middleware(req) {
 }
 
 // A literal list (Next reads it at build time). tests/seo.test.mjs checks it covers every public page in every language.
-export const config = { matcher: ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status'] };
+export const config = { matcher: ['/api/:path*', '/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status'] };
