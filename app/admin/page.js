@@ -79,6 +79,15 @@ const RR_AGAIN = { yes: 'Yes', maybe: 'Maybe', no: 'No' };
 const KYC = { none: 'Not verified', pending: 'Pending review', verified: 'Verified' };
 const CORE_HALLS = ['tx-1', 'is-2', 'no-1'];
 const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
+const VIP_ADMIN = [
+  ['minSpendUsd', 'Min spend $'],
+  ['minFriends', 'Min active friends'],
+  ['firstPct', 'First purchase %'],
+  ['dailyPct', 'Daily payouts %'],
+  ['capPct', 'Cap %'],
+  ['monthlyLimit', 'Friends/month'],
+  ['ticketsPerMonth', 'Tickets/month'],
+];
 const REF_FIELDS = [
   ['firstPct', 'First purchase %'],
   ['dailyPct', 'Daily payouts %'],
@@ -2170,8 +2179,12 @@ export default function Admin() {
 
       {tab === 'referrals' && (() => {
         const R = data.referrals;
-        const d = refDraft || Object.fromEntries(Object.entries(R.settings).map(([k, v]) => [k, String(v)]));
+        const d = refDraft || {
+          ...Object.fromEntries(Object.entries(R.settings).filter(([k]) => k !== 'vip').map(([k, v]) => [k, String(v)])),
+          vip: (R.settings.vip || []).map((t) => Object.fromEntries(VIP_ADMIN.map(([k]) => [k, String(t[k])]))),
+        };
         const put = (k, v) => setRefDraft({ ...d, [k]: v });
+        const putVip = (i, k, v) => setRefDraft({ ...d, vip: d.vip.map((t, j) => (j === i ? { ...t, [k]: v } : t)) });
         const code = tf.code || R.codes[0]?.code || '';
         const th = tf.th ?? '15';
         return (
@@ -2192,6 +2205,23 @@ export default function Admin() {
               </p>
               <div className="adm-actions">
                 <button className="btn ghost" disabled={busy} onClick={async () => { if (await run({ action: 'ref-reset' }, 'Reset to defaults')) setRefDraft(null); }}>Defaults</button>
+                <button className="btn" disabled={busy} onClick={async () => { if (await run({ action: 'ref-settings', settings: d }, 'Saved')) setRefDraft(null); }}>Save</button>
+              </div>
+            </div>
+
+            <div className="card">
+              <h3>VIP levels</h3>
+              <p className="fine" style={{ margin: '0 0 8px' }}>A user holds the highest level whose minimum spend OR minimum active friends is reached (0 = that rule is off). Levels never go down. VIP 0 is the Rewards above. A friend keeps the rates of the inviter&apos;s level when the friend&apos;s reward started.</p>
+              {d.vip.map((row, i) => (
+                <Fold key={i} title={`VIP ${i + 1}`} sub={`$${row.minSpendUsd} or ${row.minFriends} friends · ${row.firstPct}% + ${row.dailyPct}%`}>
+                  <div className="adm-2col">
+                    {VIP_ADMIN.map(([k, l]) => (
+                      <Field key={k} id={`vip-${i}-${k}`} label={l} inputMode="decimal" value={row[k]} onChange={(v) => putVip(i, k, v)} />
+                    ))}
+                  </div>
+                </Fold>
+              ))}
+              <div className="adm-actions">
                 <button className="btn" disabled={busy} onClick={async () => { if (await run({ action: 'ref-settings', settings: d }, 'Saved')) setRefDraft(null); }}>Save</button>
               </div>
             </div>
