@@ -44,6 +44,9 @@ test('the admin table is checked', async () => {
   await bad([{ ...ROW, firstPct: 99 }]);
   await bad([{ ...ROW, monthlyLimit: 1.5 }]);
   await bad([ROW, { ...ROW, minSpendUsd: 10 }]); // a higher level cannot ask for less
+  await bad([{ ...ROW, firstPct: 2 }]); // lower than VIP 0
+  await bad([{ ...ROW, firstPct: 8, capPct: 7 }]); // cap below the first reward
+  await bad([ROW, { ...ROW, minSpendUsd: 2000000, minFriends: 2, dailyPct: 1 }]); // rates cannot drop at a higher level
   const { minSpendUsd, ...noSpend } = ROW;
   await bad([noSpend]);
   assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, true);
@@ -59,7 +62,7 @@ async function friend(name, code) {
 }
 
 test('a friend keeps the rates of the level the inviter had when the reward started', async () => {
-  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, true); // VIP 1 needs 1 active friend (spend is out of reach)
+  assert.equal((await referrals.saveSettings({ vipFriendMinUsd: 1, vip: [ROW] })).ok, true); // VIP 1 needs 1 active friend (spend is out of reach)
   assert.ok((await auth.signup({ email: email('inv'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('inv'), SMALL)).ok);
   const inv = await getUser(email('inv'));
@@ -99,4 +102,11 @@ test('monthly tickets: given once a month, only while boost tickets are on', asy
   assert.equal(await held(), a + ROW.ticketsPerMonth);
   assert.equal(await referrals.claimVipTickets(email('inv')), 0, 'a second visit the same month gives nothing');
   assert.equal(await held(), a + ROW.ticketsPerMonth);
+});
+
+test('a friend whose first purchase is too small does not count toward VIP', async () => {
+  assert.equal((await referrals.saveSettings({ vipFriendMinUsd: 10000 })).ok, true);
+  assert.equal(referrals.vipViewOf(await referrals.getRefCtx(email('inv'))).friends, 0);
+  assert.equal((await referrals.saveSettings({ vipFriendMinUsd: 1 })).ok, true);
+  assert.equal(referrals.vipViewOf(await referrals.getRefCtx(email('inv'))).friends, 2);
 });
