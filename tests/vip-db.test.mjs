@@ -1,4 +1,4 @@
-// VIP levels: the level comes from own spend or active friends and never drops, a friend keeps the rates of the inviter's level
+// VIP levels: the level comes from own spend or active friends in the last 90 days and drops one step a month, a friend keeps the rates of the inviter's level
 // at the time the friend's reward started, monthly tickets are given once a month, and the admin table is checked.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -26,18 +26,41 @@ after(async () => {
   await pool().end();
 });
 
-test('level: highest tier reached by spend or active friends, never lower than the peak', () => {
+test('level: highest tier reached by spend or active friends in the last 90 days', () => {
   const S = referrals.settings();
-  const u = (price, peak) => ({ contracts: price ? [{ plan: 'Custom', price }] : [], vipPeak: peak || 0 });
+  const u = (price) => ({ contracts: price ? [{ plan: 'Custom', price }] : [] });
   assert.equal(referrals.vipOf(u(0), 0, S).level, 0);
   assert.equal(referrals.vipOf(u(0), 2, S).level, 0, 'two friends are not enough for VIP 1');
   assert.equal(referrals.vipOf(u(0), 3, S).level, 1, 'three active friends');
   assert.equal(referrals.vipOf(u(600), 0, S).level, 2, 'spend alone');
-  assert.equal(referrals.vipOf(u(0, 3), 0, S).level, 3, 'the peak is kept');
   assert.equal(referrals.vipOf(u(0), 100, S).level, 15, 'the top level');
   assert.equal(referrals.vipOf(u(75000), 0, S).level, 15, 'the top level by spend');
   assert.equal(S.vip.length, 15);
-  assert.equal(referrals.vipOf({ contracts: [{ plan: 'Custom', price: 5000, bonus: true }], vipPeak: 0 }, 0, S).level, 0, 'gift miners do not count');
+  assert.equal(referrals.vipOf({ contracts: [{ plan: 'Custom', price: 5000, bonus: true }] }, 0, S).level, 0, 'gift miners do not count');
+});
+
+test('level drops one step a month once the spend is out of the last 90 days', () => {
+  const S = referrals.settings();
+  const D = 86400000;
+  const now = Date.now();
+  const u = (price, ago, days = 90) => ({ contracts: [{ plan: 'Custom', price, days, startedAt: now - ago * D }] });
+  const at = (user, firsts = 0) => referrals.vipOf(user, firsts, S, now).level;
+  assert.equal(at(u(10000, 5)), 8, 'bought this week');
+  assert.equal(at(u(10000, 85)), 8, 'still inside the quarter');
+  assert.equal(at(u(10000, 95)), 7, 'one month after it left the quarter');
+  assert.equal(at(u(10000, 125)), 6, 'two months');
+  assert.equal(at(u(10000, 155)), 5, 'three months');
+  assert.equal(at(u(10000, 200, 365)), 8, 'a miner that is still running keeps counting');
+  assert.equal(at(u(500, 100)), 1, 'VIP 2 drops to VIP 1');
+  assert.equal(at(u(500, 130)), 0, 'and then to VIP 0');
+  const friends = (ago) => Array.from({ length: 5 }, () => ({ at: now - ago * D, x: 100 }));
+  const none = { contracts: [] };
+  assert.equal(at(none, friends(5)), 2, 'five fresh friends');
+  assert.equal(at(none, friends(95)), 1, 'friends older than a quarter count one level lower');
+  assert.equal(at(none, friends(130)), 0);
+  const keep = referrals.vipKeepsUntil(u(10000, 5), 0, S, now);
+  assert.ok(Math.abs(keep - (now + 85 * D)) <= D, 'keeps VIP 8 for about 85 more days');
+  assert.equal(referrals.vipKeepsUntil({ contracts: [] }, 0, S, now), null, 'nothing to keep at VIP 0');
 });
 
 test('the admin table is checked', async () => {
@@ -78,7 +101,7 @@ test('a friend keeps the rates of the level the inviter had when the reward star
   const f1 = await friend('f1', inv.refCode);
   assert.equal(f1.refRates.vip, 0);
   assert.equal(f1.refRates.firstPct, referrals.settings().firstPct, 'locked at the plain rates');
-  assert.equal((await getUser(email('inv'))).vipPeak, 1, 'the first active friend lifts the inviter');
+  assert.equal((await getUser(email('inv'))).vipSeen, 1, 'the first active friend lifts the inviter');
 
   const f2 = await friend('f2', inv.refCode);
   assert.equal(f2.refRates.vip, 1);
@@ -120,7 +143,7 @@ test('a friend whose first purchase is too small does not count toward VIP', asy
 
 test('each level sets its own smallest first purchase for a friend', () => {
   const S = { ...referrals.settings(), vip: [{ ...ROW, friendMinUsd: 50 }, { ...ROW, minSpendUsd: 2000000, friendMinUsd: 100 }] };
-  const u = { contracts: [], vipPeak: 0 };
+  const u = { contracts: [] };
   assert.equal(referrals.vipOf(u, [60], S).level, 1, '$60 is enough for VIP 1');
   assert.equal(referrals.vipOf(u, [120], S).level, 2, '$120 reaches VIP 2');
   assert.equal(referrals.vipOf(u, [40], S).level, 0, 'below the minimum');
@@ -150,7 +173,7 @@ test('rates of a later-month friend and of an older friend are locked once', asy
 
 test('levels that users hold cannot be removed', async () => {
   assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true);
-  await pool().query("UPDATE users SET data = jsonb_set(data, '{vipPeak}', '2') WHERE id = $1", [email('inv')]);
+  await pool().query("UPDATE users SET data = jsonb_set(data, '{vipSeen}', '2') WHERE id = $1", [email('inv')]);
   assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, false, 'VIP 2 is held by a user');
   assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true);
 });
