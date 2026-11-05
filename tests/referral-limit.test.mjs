@@ -68,6 +68,6 @@ test('the setting is checked', async () => {
   assert.equal((await referrals.saveSettings({ overLimit: 'sometimes' })).ok, false);
   assert.equal((await referrals.saveSettings({ overLimit: ' later ' })).ok, true);
   assert.equal(referrals.settings().overLimit, 'later');
-  assert.equal((await referrals.saveSettings({ monthlyLimit: 5 })).ok, true);
+  assert.equal((await referrals.saveSettings({ monthlyLimit: 1 })).ok, true);
   assert.equal(referrals.settings().overLimit, 'later', 'a save that leaves it out keeps it');
 });
