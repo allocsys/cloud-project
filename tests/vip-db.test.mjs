@@ -120,9 +120,9 @@ test('the admin table is checked', async () => {
   await bad(Array(16).fill(ROW)); // at most 15 levels
   const { minSpendUsd, ...noSpend } = ROW;
   await bad([noSpend]);
-  assert.equal((await referrals.saveSettings({ vip: Array(15).fill(ROW) })).ok, true);
+  assert.equal((await referrals.saveSettings({ vip: Array(15).fill({ ...ROW, minFriends: 0 }) })).ok, true); // levels that nobody can reach by friends
   assert.equal(referrals.settings().vip.length, 15);
-  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, true);
+  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, true, 'nobody holds a level, so the table can shrink');
   assert.equal(referrals.settings().vip.length, 1);
   assert.equal((await referrals.saveSettings({ monthlyLimit: 20 })).ok, true);
   assert.equal(referrals.settings().vip.length, 1, 'a save that leaves the table out keeps it');
