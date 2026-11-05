@@ -233,3 +233,20 @@ test('levels that users hold cannot be removed', async () => {
   assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, false, 'VIP 2 is held by a user');
   assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true);
 });
+
+test('a heads-up comes a week before a level drops, once', async () => {
+  await referrals.resetSettings(); // the 15 default levels
+  const id = email('warn');
+  assert.ok((await auth.signup({ email: id, password: PW })).ok);
+  const D = 86400000;
+  const give = (ago) => pool().query("UPDATE users SET data = jsonb_set(data, '{contracts}', $2::jsonb) WHERE id = $1", [id, JSON.stringify([{ plan: 'Custom', price: 10000, days: 90, startedAt: Date.now() - ago * D }])]);
+  const notes = async () => ((await getUser(id)).notifications || []).filter((n) => n.code === 'vipDrop').length;
+  await give(40); // the quarter ends in 50 days: too early
+  assert.equal(await referrals.warnVipDrop(id), false);
+  assert.equal(await notes(), 0);
+  await give(85); // ends in 5 days
+  assert.equal(await referrals.warnVipDrop(id), true);
+  assert.equal(await notes(), 1);
+  assert.equal(await referrals.warnVipDrop(id), false, 'only once for this drop');
+  assert.equal(await notes(), 1);
+});
