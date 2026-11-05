@@ -89,6 +89,19 @@ test('keeps-until is found from event times and matches a day-by-day check', () 
   }
 });
 
+test('a level held by decay says what keeps it', () => {
+  const S = referrals.settings();
+  const D = 86400000;
+  const mine = (ago) => ({ contracts: [{ plan: 'Custom', price: 10000, days: 90, startedAt: Date.now() - ago * D }] });
+  const fresh = referrals.vipViewOf({ u: mine(5), friends: [], S });
+  assert.equal(fresh.level, 8);
+  assert.equal(fresh.hold, null, 'earned now: nothing to add');
+  const held = referrals.vipViewOf({ u: mine(95), friends: [], S });
+  assert.equal(held.level, 7, 'one step down');
+  assert.equal(held.hold.leftUsd, S.vip[6].minSpendUsd, 'what VIP 7 asks for, as nothing counts now');
+  assert.equal(held.hold.leftFriends, S.vip[6].minFriends);
+});
+
 test('the admin table is checked', async () => {
   const bad = async (vip) => assert.equal((await referrals.saveSettings({ vip })).ok, false);
   await bad([]);
