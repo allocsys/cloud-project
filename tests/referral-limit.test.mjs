@@ -33,7 +33,7 @@ test('over the monthly limit: never by default, from the first month with room w
   assert.ok((await auth.signup({ email: email('inv'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('inv'), SMALL)).ok); // a plan lifts the invite limit
   const code = (await getUser(email('inv'))).refCode;
-  assert.equal((await referrals.saveSettings({ monthlyLimit: 1 })).ok, true);
+  assert.equal((await referrals.saveSettings({ monthlyLimit: 1, vip: [{ minSpendUsd: 1000000, minFriends: 100000, firstPct: 4, dailyPct: 1.5, capPct: 6, monthlyLimit: 1, ticketsPerMonth: 0 }] })).ok, true); // an unreachable VIP level with the same limit
   assert.equal(referrals.settings().overLimit, 'never');
 
   const now = new Date();
