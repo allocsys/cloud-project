@@ -28,7 +28,7 @@ after(async () => {
 
 test('level: highest tier reached by spend or active friends in the last 90 days', () => {
   const S = referrals.settings();
-  const u = (price) => ({ contracts: price ? [{ plan: 'Custom', price }] : [] });
+  const u = (price) => ({ contracts: price ? [{ plan: 'Custom', price, startedAt: Date.now() }] : [] });
   assert.equal(referrals.vipOf(u(0), 0, S).level, 0);
   assert.equal(referrals.vipOf(u(0), 2, S).level, 0, 'two friends are not enough for VIP 1');
   assert.equal(referrals.vipOf(u(0), 3, S).level, 1, 'three active friends');
@@ -254,4 +254,55 @@ test('a heads-up comes a week before a level drops, once', async () => {
   assert.equal(await notes(), 1);
   assert.equal(await referrals.warnVipDrop(id), false, 'only once for this drop');
   assert.equal(await notes(), 1);
+});
+
+test('a miner with no start date, or one not started yet, counts for nothing', () => {
+  const S = referrals.settings();
+  const D = 86400000;
+  const now = Date.now();
+  const lv = (c) => referrals.vipOf({ contracts: [{ plan: 'Custom', days: 90, ...c }] }, 0, S, now).level;
+  assert.equal(lv({ price: 10000 }), 0, 'no start date');
+  assert.equal(lv({ price: 10000, startedAt: now + D }), 0, 'not started yet');
+  assert.equal(lv({ price: 10000, startedAt: now }), 8, 'started now');
+});
+
+test('day boundaries: the 90th day and the exact minimums', () => {
+  const S = referrals.settings();
+  const D = 86400000;
+  const now = Date.now();
+  const mine = (price, startedAt, days = 90) => ({ contracts: [{ plan: 'Custom', price, days, startedAt }] });
+  const lvl = (user, firsts = 0) => referrals.vipOf(user, firsts, S, now).level;
+  assert.equal(lvl(mine(10000, now - 90 * D + 1)), 8, 'a millisecond inside the quarter');
+  assert.equal(lvl(mine(10000, now - 90 * D)), 7, 'exactly 90 days: out of the quarter, one step down');
+  assert.equal(lvl(mine(150, now)), 1, 'exactly the minimum spend');
+  assert.equal(lvl(mine(149.99, now)), 0, 'a cent below');
+  const three = (x) => Array.from({ length: 3 }, () => ({ at: now, x }));
+  assert.equal(lvl({ contracts: [] }, three(50)), 1, 'exactly the smallest first purchase');
+  assert.equal(lvl({ contracts: [] }, three(49.99)), 0, 'a cent below');
+  const five = (at) => Array.from({ length: 5 }, () => ({ at, x: 100 }));
+  assert.equal(lvl({ contracts: [] }, five(now - 90 * D + 1)), 2, 'friends a millisecond inside the quarter');
+  assert.equal(lvl({ contracts: [] }, five(now - 90 * D)), 1, 'exactly 90 days: one step down');
+  assert.equal(lvl({ contracts: [] }, five(now + 1)), 0, 'a reward that has not started');
+});
+
+test('tickets: a drop or a level up in the same month never gives more than the level allows', async () => {
+  await referrals.resetSettings(); // the 15 default levels: VIP 7 = 4 tickets, VIP 8 = 5, VIP 9 = 6
+  await boost.saveBoostSettings({ enabled: true });
+  const id = email('tk');
+  assert.ok((await auth.signup({ email: id, password: PW })).ok);
+  const D = 86400000;
+  const give = (price, ago) => pool().query("UPDATE users SET data = jsonb_set(data, '{contracts}', $2::jsonb) WHERE id = $1", [id, JSON.stringify([{ plan: 'Custom', price, days: 90, startedAt: Date.now() - ago * D }])]);
+  const held = async () => (await getUser(id)).freeTickets || 0;
+  await give(10000, 5); // VIP 8
+  assert.equal(await referrals.claimVipTickets(id), 5, 'VIP 8 gives its 5');
+  assert.equal(await held(), 5);
+  await give(10000, 95); // dropped to VIP 7
+  assert.equal(await referrals.claimVipTickets(id), 0, 'after a drop the same month gives nothing more');
+  assert.equal(await held(), 5);
+  await give(10000, 5); // back at VIP 8
+  assert.equal(await referrals.claimVipTickets(id), 0, 'back up the same month: still nothing more');
+  assert.equal(await held(), 5);
+  await give(15000, 5); // VIP 9
+  assert.equal(await referrals.claimVipTickets(id), 1, 'a level up gives only the difference (6 - 5)');
+  assert.equal(await held(), 6);
 });
