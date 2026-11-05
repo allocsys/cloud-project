@@ -85,6 +85,10 @@ export default function Terms() {
         <p className="mute">{t('terms.p7a')}</p>
         <p className="mute">{t('terms.p7b', { minBtc: MIN_WITHDRAW })}</p>
 
+        <h2 style={h2}>{t('terms.h9')}</h2>
+        <p className="mute">{t('terms.p9a')}</p>
+        <p className="mute">{t('terms.p9b')}</p>
+
         <h2 style={h2}>{t('terms.h8')}</h2>
         <p className="mute">{t('terms.p8')}</p>
 
