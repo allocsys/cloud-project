@@ -215,6 +215,14 @@ export default function Referrals() {
               </small>
               {nx && <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNext', { first: nx.first, daily: nx.daily })}</small>}
               {vip.keeps && <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipKeeps', { n: vip.level, date: new Date(vip.keeps).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) })}</small>}
+              {vip.hold && (
+                <small className="mute" style={{ display: 'block', marginTop: 4 }}>
+                  {[
+                    vip.hold.leftUsd !== null ? t('ref.vipHoldUsd', { usd: vip.hold.leftUsd, n: vip.level }) : null,
+                    vip.hold.leftFriends !== null ? t(vip.hold.leftFriends === 1 ? 'ref.vipHoldFr1' : 'ref.vipHoldFr', { left: vip.hold.leftFriends, n: vip.level }) : null,
+                  ].filter(Boolean).join(` ${t('ref.vipOr')} `)}
+                </small>
+              )}
               <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNote')}</small>
             </div>
           )}
