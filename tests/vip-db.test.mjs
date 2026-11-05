@@ -233,8 +233,9 @@ test('rates of a later-month friend and of an older friend are locked once', asy
 
 test('levels that users hold cannot be removed', async () => {
   assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true);
-  await pool().query("UPDATE users SET data = jsonb_set(data, '{vipSeen}', '2') WHERE id = $1", [email('inv')]);
-  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, false, 'VIP 2 is held by a user');
+  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, false, 'VIP 2 is really held: the inviter has enough active friends');
+  await pool().query("UPDATE users SET data = jsonb_set(data, '{vipSeen}', '15') WHERE id = $1", [email('inv')]);
+  assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true, 'a stale saved level blocks nothing');
   assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minFriends: 2 }] })).ok, true);
 });
 
