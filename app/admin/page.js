@@ -82,6 +82,7 @@ const SM = { width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 };
 const VIP_ADMIN = [
   ['minSpendUsd', 'Min spend $'],
   ['minFriends', 'Min active friends'],
+  ['friendMinUsd', 'Each friend min buy $'],
   ['firstPct', 'First purchase %'],
   ['dailyPct', 'Daily payouts %'],
   ['capPct', 'Cap %'],
