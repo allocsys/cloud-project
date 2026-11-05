@@ -2212,7 +2212,7 @@ export default function Admin() {
 
             <div className="card">
               <h3>VIP levels</h3>
-              <p className="fine" style={{ margin: '0 0 8px' }}>A user holds the highest level whose minimum spend OR minimum active friends is reached (0 = that rule is off). Levels never go down. VIP 0 is the Rewards above. A friend keeps the rates of the inviter&apos;s level when the friend&apos;s reward started.</p>
+              <p className="fine" style={{ margin: '0 0 8px' }}>A user holds the highest level whose minimum spend OR minimum active friends is reached (0 = that rule is off). Spend and friends count for the last 90 days; a level that is no longer earned drops one step a month. VIP 0 is the Rewards above. A friend keeps the rates of the inviter&apos;s level when the friend&apos;s reward started.</p>
               {d.vip.map((row, i) => (
                 <Fold key={i} title={`VIP ${i + 1}`} sub={`$${row.minSpendUsd} or ${row.minFriends} friends · ${row.firstPct}% + ${row.dailyPct}%`}>
                   <div className="adm-2col">
