@@ -110,3 +110,40 @@ test('a friend whose first purchase is too small does not count toward VIP', asy
   assert.equal((await referrals.saveSettings({ vipFriendMinUsd: 1 })).ok, true);
   assert.equal(referrals.vipViewOf(await referrals.getRefCtx(email('inv'))).friends, 2);
 });
+
+test('a higher level needs a bigger first purchase from each friend', () => {
+  const S = { ...referrals.settings(), vipFriendMinUsd: 50, vip: [ROW, { ...ROW, minSpendUsd: 2000000 }] };
+  const u = { contracts: [], vipPeak: 0 };
+  assert.equal(referrals.vipOf(u, [60], S).level, 1, '$60 is enough for VIP 1');
+  assert.equal(referrals.vipOf(u, [120], S).level, 2, '$120 reaches VIP 2');
+  assert.equal(referrals.vipOf(u, [40], S).level, 0, 'below the minimum');
+});
+
+test('rates of a later-month friend and of an older friend are locked once', async () => {
+  const set = (id, sql) => pool().query(`UPDATE users SET data = ${sql} WHERE id = $1`, [id]);
+  await friend('f3', (await getUser(email('inv'))).refCode);
+  await friend('f4', (await getUser(email('inv'))).refCode);
+  // f3 looks like an older friend (no saved rates), f4 like a friend held for a later month (rates pending).
+  await set(email('f3'), "data - 'refRates'");
+  await set(email('f4'), "(data - 'refRates') || '{\"refRatesPending\": true}'::jsonb");
+  await referrals.getRefCtx(email('inv')); // reading locks them
+  const S = referrals.settings();
+  const f3 = await getUser(email('f3'));
+  const f4 = await getUser(email('f4'));
+  assert.equal(f3.refRates.vip, 0);
+  assert.equal(f3.refRates.firstPct, S.firstPct, 'an older friend gets the plain numbers');
+  assert.equal(f4.refRates.vip, 1);
+  assert.equal(f4.refRates.firstPct, S.vip[0].firstPct, 'a later-month friend gets the level held when the reward starts');
+  assert.equal(f4.refRatesPending, undefined);
+  // Locked: a later table change does not move them.
+  assert.equal((await referrals.saveSettings({ vip: [{ ...ROW, firstPct: 9 }] })).ok, true);
+  await referrals.getRefCtx(email('inv'));
+  assert.equal((await getUser(email('f4'))).refRates.firstPct, S.vip[0].firstPct);
+});
+
+test('levels that users hold cannot be removed', async () => {
+  assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minSpendUsd: 2000000, minFriends: 2 }] })).ok, true);
+  await pool().query("UPDATE users SET data = jsonb_set(data, '{vipPeak}', '2') WHERE id = $1", [email('inv')]);
+  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, false, 'VIP 2 is held by a user');
+  assert.equal((await referrals.saveSettings({ vip: [ROW, { ...ROW, minSpendUsd: 2000000, minFriends: 2 }] })).ok, true);
+});
