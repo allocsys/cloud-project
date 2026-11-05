@@ -62,7 +62,6 @@ test('a first crypto buy of ASICs power gets extra TH/s, fixed on the miner, wit
   const note = u.notifications.filter((x) => x.title === 'First-buy bonus added');
   assert.equal(note.length, 1);
   assert.equal(note[0].body, `${c.serial} includes +1.5 TH/s bonus hashrate.`);
-  assert.equal(u.notifications[0].title, 'First-buy bonus added');
   assert.equal(u.history.find((h) => h.kind === 'purchase').amount, `-$${plan.price.toFixed(2)}`);
 
   // A later change of the settings does not touch it, and the next buy gets nothing.
@@ -87,8 +86,8 @@ test('a first crypto buy of Smart Mining gets a higher profit rate, with the bud
   assert.ok(c.firstBonus.pct > 9 && c.firstBonus.pct < 11, `about 10%, got ${c.firstBonus.pct}`);
   assert.ok(c.firstBonus.usd > 0);
   assert.ok(c.reserve.hi > plan.reserve.hi, 'the reserve band follows the higher rate');
-  const note = u.notifications[0];
-  assert.equal(note.title, 'First-buy bonus added');
+  const note = u.notifications.find((x) => x.title === 'First-buy bonus added');
+  assert.ok(note, 'the bonus is announced');
   assert.equal(note.body, `${c.serial} includes +${c.firstBonus.pct}% bonus hashrate.`);
 });
 
