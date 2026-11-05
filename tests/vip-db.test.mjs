@@ -107,6 +107,10 @@ test('the admin table is checked', async () => {
   await bad([]);
   await bad([{ ...ROW, minSpendUsd: 0, minFriends: 0 }]);
   await bad([{ ...ROW, firstPct: 99 }]);
+  await bad([{ ...ROW, firstPct: 11 }]); // above the margin limits
+  await bad([{ ...ROW, dailyPct: 6 }]);
+  await bad([{ ...ROW, capPct: 17 }]);
+  assert.equal((await referrals.saveSettings({ capPct: 17 })).ok, false, 'the plain cap has the same limit');
   await bad([{ ...ROW, monthlyLimit: 1.5 }]);
   await bad([ROW, { ...ROW, minSpendUsd: 10 }]); // a higher level cannot ask for less
   await bad([{ ...ROW, firstPct: 2 }]); // lower than VIP 0
