@@ -141,6 +141,23 @@ test('a friend whose first purchase is too small does not count toward VIP', asy
   assert.equal(referrals.vipViewOf(await referrals.getRefCtx(email('inv'))).friends, 2);
 });
 
+test('a refunded friend does not count toward VIP', async () => {
+  assert.equal((await referrals.saveSettings({ vip: [ROW] })).ok, true);
+  const view = async () => referrals.vipViewOf(await referrals.getRefCtx(email('inv'))).friends;
+  const inviter = (await getUser(email('inv'))).id;
+  const count = async () => (await referrals.firstsOf(pool(), inviter)).length;
+  assert.equal(await view(), 2);
+  assert.equal(await count(), 2);
+  const all = (await getUser(email('f2'))).contracts;
+  const set = (list) => pool().query("UPDATE users SET data = jsonb_set(data, '{contracts}', $2::jsonb) WHERE id = $1", [email('f2'), JSON.stringify(list)]);
+  await set(all.filter((c) => c.bonus)); // refunded: only the gift miner is left
+  assert.equal(await view(), 1, 'the refunded friend drops out');
+  assert.equal(await count(), 1, 'also in the one-query count');
+  await set(all); // back as it was for the next tests
+  assert.equal(await view(), 2);
+  assert.equal(await count(), 2);
+});
+
 test('each level sets its own smallest first purchase for a friend', () => {
   const S = { ...referrals.settings(), vip: [{ ...ROW, friendMinUsd: 50 }, { ...ROW, minSpendUsd: 2000000, friendMinUsd: 100 }] };
   const u = { contracts: [] };
