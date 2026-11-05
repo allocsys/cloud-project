@@ -63,6 +63,32 @@ test('level drops one step a month once the spend is out of the last 90 days', (
   assert.equal(referrals.vipKeepsUntil({ contracts: [] }, 0, S, now), null, 'nothing to keep at VIP 0');
 });
 
+test('keeps-until is found from event times and matches a day-by-day check', () => {
+  const S = referrals.settings();
+  const D = 86400000;
+  const now = Date.now();
+  const near = (got, days) => assert.ok(got !== null && Math.abs(got - (now + days * D)) <= D, `expected about ${days} days, got ${got === null ? null : (got - now) / D}`);
+  const u = (price, ago, days = 90) => ({ contracts: [{ plan: 'Custom', price, days, startedAt: now - ago * D }] });
+  near(referrals.vipKeepsUntil(u(10000, 5, 365), 0, S, now), 360); // a running miner holds the level until it ends
+  const friends = Array.from({ length: 5 }, () => ({ at: now - 5 * D, x: 100 }));
+  near(referrals.vipKeepsUntil({ contracts: [] }, friends, S, now), 85); // friends hold it until their quarter ends
+  assert.equal(referrals.vipKeepsUntil({ contracts: [{ plan: 'Custom', price: 10000, bonus: true }] }, 0, S, now), null, 'gift miners hold nothing');
+  // The old way: ask for the level every day and take the first day it is lower.
+  const slow = (user, firsts) => {
+    const level = referrals.vipOf(user, firsts, S, now).level;
+    if (!level) return null;
+    for (let d = 1; d <= 600; d += 1) if (referrals.vipOf(user, firsts, S, now + d * D).level < level) return now + d * D;
+    return null;
+  };
+  const cases = [[u(10000, 5), 0], [u(500, 40), 0], [u(2500, 70, 120), 0], [{ contracts: [] }, friends], [u(1000, 10), friends], [{ contracts: [...u(700, 30).contracts, ...u(900, 3, 200).contracts] }, 0]];
+  for (const [user, firsts] of cases) {
+    const fast = referrals.vipKeepsUntil(user, firsts, S, now);
+    const old = slow(user, firsts);
+    if (old === null) assert.equal(fast, null);
+    else assert.ok(fast !== null && fast > old - D && fast <= old, 'same day as the day-by-day answer');
+  }
+});
+
 test('the admin table is checked', async () => {
   const bad = async (vip) => assert.equal((await referrals.saveSettings({ vip })).ok, false);
   await bad([]);
