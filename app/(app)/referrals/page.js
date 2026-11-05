@@ -214,6 +214,7 @@ export default function Referrals() {
                   : t('ref.vipTop')}
               </small>
               {nx && <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNext', { first: nx.first, daily: nx.daily })}</small>}
+              {vip.keeps && <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipKeeps', { n: vip.level, date: new Date(vip.keeps).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }) })}</small>}
               <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNote')}</small>
             </div>
           )}
