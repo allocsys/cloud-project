@@ -163,6 +163,9 @@ export default function Referrals() {
         t('ref.rule7', rv),
       ]
     : referral.rules;
+  const vip = rd?.vip;
+  const nx = vip?.next;
+  const vipFrac = nx ? Math.max(nx.leftUsd !== null && nx.minSpendUsd > 0 ? 1 - nx.leftUsd / nx.minSpendUsd : 0, nx.leftFriends !== null && nx.minFriends > 0 ? 1 - nx.leftFriends / nx.minFriends : 0) : 1;
   const steps = [
     { icon: ICONS.share, title: t('ref.share'), sub: t('ref.sendCode') },
     { icon: ICONS.join, title: t('ref.joins'), sub: giftText ? t('ref.gets', { gift: giftText }) : t('ref.signsUp') },
@@ -189,6 +192,31 @@ export default function Referrals() {
         </div>
 
         <div className="grid wal" style={hideCalm}>
+          {vip && (
+            <div className="card">
+              <div className="itop">
+                <span className="mute eyebrow">{t('ref.vipLevel')}</span>
+                <span className="badge ok">{t('ref.vip', { n: vip.level })}</span>
+              </div>
+              <p style={{ margin: '8px 0' }}>
+                <b>{t('ref.vipPerk', { first: vip.now.first, daily: vip.now.daily })}</b> · {t('ref.vipCap', { cap: vip.now.cap })}
+                {vip.now.tickets > 0 && <> · {vip.now.tickets === 1 ? t('ref.vipTix1') : t('ref.vipTix', { n: vip.now.tickets })}</>}
+              </p>
+              <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={Math.round(vipFrac * 100)} style={{ height: 8, borderRadius: 4, background: 'var(--line, rgba(128,128,128,.25))', overflow: 'hidden' }}>
+                <div style={{ width: `${Math.round(vipFrac * 100)}%`, height: '100%', background: 'var(--gold2)', transition: 'width .4s ease' }} />
+              </div>
+              <small className="mute" style={{ display: 'block', marginTop: 8 }}>
+                {nx
+                  ? [
+                      nx.leftUsd !== null ? t('ref.vipLeftUsd', { usd: nx.leftUsd, n: nx.level }) : null,
+                      nx.leftFriends !== null ? t(nx.leftFriends === 1 ? 'ref.vipLeftFr1' : 'ref.vipLeftFr', { left: nx.leftFriends, n: nx.level }) : null,
+                    ].filter(Boolean).join(` ${t('ref.vipOr')} `)
+                  : t('ref.vipTop')}
+              </small>
+              {nx && <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNext', { first: nx.first, daily: nx.daily })}</small>}
+              <small className="mute" style={{ display: 'block', marginTop: 4 }}>{t('ref.vipNote')}</small>
+            </div>
+          )}
           {locked && (
             <div className="card">
               <span className="mute eyebrow">{t('ref.freeInvites')}</span>
