@@ -75,6 +75,9 @@ export default function Settings() {
   const [clForfeit, setClForfeit] = useState(false);
   const [clErr, setClErr] = useState({});
   const [clBusy, setClBusy] = useState(false);
+  // Telegram bot link code (email accounts): the code is shown once, only on this screen.
+  const [bl, setBl] = useState(null);
+  const [blBusy, setBlBusy] = useState(false);
 
   useEffect(() => {
     setTheme(readTheme());
@@ -386,6 +389,32 @@ export default function Settings() {
     }
   }
 
+  async function getBotCode() {
+    if (blBusy) return;
+    triggerHaptic('light');
+    setBlBusy(true);
+    try {
+      const r = await post('/api/account/bot-link', {});
+      triggerHaptic('success');
+      setBl(r.code);
+    } catch (err) {
+      triggerHaptic('error');
+      show(err.status ? err.message : t('common.noConnection'));
+    } finally {
+      setBlBusy(false);
+    }
+  }
+
+  async function copyBotCode() {
+    triggerHaptic('light');
+    try {
+      await navigator.clipboard.writeText(`/link ${bl}`);
+      show(t('set.copied'));
+    } catch {
+      show(t('set.copyFail'));
+    }
+  }
+
   function verify() {
     triggerHaptic('light');
     markDrill();
@@ -644,6 +673,25 @@ export default function Settings() {
                     {pwBusy ? t('set.updating') : t('set.update')}
                   </button>
                 </form>
+              )}
+            </>
+          )}
+          {me?.email && !me.botLinked && (
+            <>
+              <div className="row">
+                <div>
+                  <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.bot')}</div>
+                  <small>{t('set.botSub')}</small>
+                </div>
+                {!bl && <button className="btn ghost" type="button" disabled={blBusy} onClick={getBotCode}>{t('set.botGet')}</button>}
+              </div>
+              {bl && (
+                <div style={{ paddingBottom: '8px' }}>
+                  <small style={{ display: 'block' }}>{t('set.botSend')}</small>
+                  <div dir="ltr" style={{ fontFamily: 'monospace', fontSize: '15px', userSelect: 'all', padding: '10px 12px', margin: '8px 0', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>/link {bl}</div>
+                  <small style={{ display: 'block' }}>{t('set.botValid')}</small>
+                  <button className="btn ghost" type="button" onClick={copyBotCode} style={{ marginTop: '8px' }}>{t('set.copyCodes')}</button>
+                </div>
               )}
             </>
           )}
