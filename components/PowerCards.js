@@ -269,6 +269,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
       <div className="slide">
         <div className="big top">
           <label className="amt">
+            <small>{t('pc.budgetLabel')}</small>
             <i aria-hidden="true">$</i>
             <input
               type="number"
