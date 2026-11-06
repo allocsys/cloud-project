@@ -42,7 +42,7 @@ test('/start opens the app with a Web App button and saves the chat', async () =
   const tg = fakeTg();
   const bot = makeBot({ config: cfg, tg });
   await bot.handleUpdate(msg('/start'));
-  assert.equal(tg.sent.length, 1);
+  assert.equal(tg.sent.length, 2, 'the menu, then the Menu button message');
   assert.equal(tg.sent[0].chat, 1001);
   assert.equal(tg.sent[0].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com');
   const r = await q('SELECT lang, active FROM chats WHERE tg_id = 1001');
@@ -54,7 +54,7 @@ test('/start@SomeBot and a start payload still work', async () => {
   const tg = fakeTg();
   const bot = makeBot({ config: cfg, tg });
   await bot.handleUpdate(msg('/start@SomeBot VTX-1234'));
-  assert.equal(tg.sent.length, 1);
+  assert.equal(tg.sent.length, 2);
   assert.ok(tg.sent[0].extra.reply_markup.inline_keyboard[0][0].web_app);
 });
 
@@ -64,7 +64,7 @@ test('/start CODE opens the app on sign-up with the code, case kept; a bad code 
   await bot.handleUpdate(msg('/start VTX-AbC1'));
   assert.equal(tg.sent[0].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com/login?ref=VTX-AbC1');
   await bot.handleUpdate(msg('/start x<y>'));
-  assert.equal(tg.sent[1].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com');
+  assert.equal(tg.sent[2].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com');
 });
 
 test('unknown text and /help show the command list', async () => {
