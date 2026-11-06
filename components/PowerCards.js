@@ -6,7 +6,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
-import { SMART, smartBand } from '@/lib/smart';
+import { SMART, smartBand, smartPlan } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 import { useT } from '@/components/I18nProvider';
 
@@ -177,7 +177,8 @@ function Ticks({ tiers, at, tier, label, onPick }) {
 
 const stop = (e) => e.stopPropagation();
 
-function TermChips({ terms, term, setTerm }) {
+// sub (optional) gives a second line for each chip, e.g. the profit of that term.
+function TermChips({ terms, term, setTerm, sub }) {
   const t = useT();
   return (
     <div className="terms" role="group" aria-label={t('calc.term')}>
@@ -185,6 +186,7 @@ function TermChips({ terms, term, setTerm }) {
         <button
           key={d}
           type="button"
+          className={sub ? 'two' : undefined}
           aria-pressed={term === d}
           onClick={() => {
             triggerHaptic('selection');
@@ -192,6 +194,7 @@ function TermChips({ terms, term, setTerm }) {
           }}
         >
           {t('calc.days', { d })}
+          {sub && <small>{sub(d)}</small>}
         </button>
       ))}
     </div>
@@ -250,11 +253,12 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
 }
 
 // budget is the text in the amount box, bNum the budget it means; spos is the slider position (see lib/tiers.js).
-export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy }) {
+export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, within, onAmount, onAmountBlur, onSlide, onBuy }) {
   const t = useT();
   const tier = tierOf(SMART_TIERS, bNum);
   const level = SMART_TIERS.indexOf(tier) + 1;
   const band = smartBand(plan); // profit range for the term (lib/smart.js)
+  const profitOf = (d) => smartBand(smartPlan(bNum, d, table))?.mid ?? 0; // the middle profit of each term, for its chip
   useTierBuzz(tier.id);
   return (
     <div className="card pcard">
@@ -263,7 +267,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
         <SmartArt level={level} />
       </div>
       <div className="slide">
-        <div className="big">
+        <div className="big top">
           <label className="amt">
             <i aria-hidden="true">$</i>
             <input
@@ -278,8 +282,14 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
               onBlur={onAmountBlur}
             />
           </label>
-          <span>~{plan.daily}/{t('calc.day')}</span>
+          {band && (
+            <div className="gain">
+              <small>{t('pc.profitLabel')}</small>
+              <b>${fmtUsd(band.mid)}</b>
+            </div>
+          )}
         </div>
+        {band && <div className="gsub">{t('pc.bandIn', { d: plan.days, low: fmtUsd(band.low), high: fmtUsd(band.high) })}</div>}
         <input
           type="range"
           min="0"
@@ -301,7 +311,8 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
           label={(x) => t('pc.tickUsd', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => onSlide(posFromBudget(t.from))}
         />
-        <TermChips terms={SMART.terms} term={term} setTerm={setTerm} />
+        <TermChips terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
+        {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd(band.mid / plan.days) })}</div>}
       </div>
       <div className="prow">
         <div>
@@ -310,11 +321,6 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
         </div>
         <b>${fmtUsd(plan.price)}</b>
       </div>
-      {band && (
-        <div className="tcan">
-          {t('pc.bandLine', { mid: fmtUsd(band.mid), d: plan.days, low: fmtUsd(band.low), high: fmtUsd(band.high) })}
-        </div>
-      )}
       {within && <div className="tcan">{t('pc.within')}</div>}
       <button type="button" className="btn" onClick={onBuy}>{t('pc.buySmart')}</button>
     </div>
