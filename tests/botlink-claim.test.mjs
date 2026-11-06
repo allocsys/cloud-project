@@ -6,8 +6,8 @@ import assert from 'node:assert/strict';
 const { pool, getUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
-const { botLinkStart, botLinkClaim, botUnlink } = await import('@/lib/server/botlink');
-const { linkFor, referralsFor, unlinkFor } = await import('@/lib/server/botapi');
+const { botLinkStart, botLinkClaim, botDisconnect } = await import('@/lib/server/botlink');
+const { linkFor, referralsFor } = await import('@/lib/server/botapi');
 
 const run = `bc${Date.now().toString(36)}`;
 const PW = 'correct horse 1';
@@ -89,20 +89,22 @@ test('linkFor checks its input, and the bot calls then answer for the linked ema
   assert.equal(ref.json.ok, true);
 });
 
-test('unlink removes the link, the bot calls stop answering, and the Telegram id can link again', async () => {
+test('disconnect removes the link, the bot calls stop answering, and the Telegram id can link again', async () => {
   const id = await account('f');
   const tg = tgId();
-  assert.equal((await unlinkFor({ tg_id: 'x' })).status, 400);
-  assert.equal((await unlinkFor({ tg_id: -1 })).status, 400);
-  assert.equal((await unlinkFor({ tg_id: tg })).status, 404, 'nothing linked yet');
+  assert.equal((await botDisconnect('demo')).status, 403);
+  assert.equal((await botDisconnect(null)).status, 403);
+  assert.equal((await botDisconnect(`tg:${tg}`)).status, 403, 'a Telegram account has no link');
+  assert.equal((await botDisconnect(`nobody-${run}@test.dev`)).status, 404);
+  assert.equal((await botDisconnect(id)).status, 409, 'nothing linked yet');
   assert.equal((await botLinkClaim(tg, (await botLinkStart(id)).code)).ok, true);
   assert.equal((await referralsFor({ tg_id: tg })).status, 200);
-  const r = await unlinkFor({ tg_id: tg });
+  const r = await botDisconnect(id);
   assert.equal(r.status, 200);
-  assert.deepEqual(r.json, { ok: true });
+  assert.equal(r.ok, true);
   assert.equal((await getUser(id)).botTg, undefined);
   assert.equal((await referralsFor({ tg_id: tg })).status, 404, 'no account answers any more');
-  assert.equal((await botUnlink(tg)).status, 404, 'a second unlink finds nothing');
+  assert.equal((await botDisconnect(id)).status, 409, 'a second disconnect finds nothing');
   const again = await botLinkStart(id);
   assert.equal(again.ok, true, 'the account can ask for a new code');
   assert.equal((await botLinkClaim(tg, again.code)).ok, true, 'the same Telegram id links again');
