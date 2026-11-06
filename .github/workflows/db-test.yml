@@ -7,7 +7,6 @@ on:
       - '**.css'
       - '**.md'
       - 'public/**'
-      - 'bot/**'
   pull_request:
   workflow_dispatch:
 
