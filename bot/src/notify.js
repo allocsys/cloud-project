@@ -35,7 +35,7 @@ export function verifySig(raw, sig, secret, now = Date.now()) {
 }
 
 // A kind is known when its English text n_<kind> exists in texts.js.
-export const kindKnown = (k) => typeof k === 'string' && /^[a-z][a-z0-9_]{0,31}$/.test(k) && !!texts.en['n_' + k];
+export const kindKnown = (k) => typeof k === 'string' && /^[a-z][A-Za-z0-9_]{0,31}$/.test(k) && !!texts.en['n_' + k];
 
 // Checks the body fields. { ok: true, value } or { ok: false, error }.
 export function parseNotify(b) {
