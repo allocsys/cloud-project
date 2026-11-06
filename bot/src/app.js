@@ -11,6 +11,9 @@ const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
 const btcText = (n) => Number(n).toFixed(8);
 const CODE = /^[A-Za-z0-9-]{3,32}$/;
+// Button taps: m:<action>:<version>. The version is the menu's counter: a tap is used once, then the counter moves on.
+const MENU_DATA = /^m:([a-z_]{1,8}):(\d{1,9})$/;
+const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'link', 'faq', 'help', 'lang', 'l_en', 'l_fa', 'stop']);
 
 export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
@@ -35,45 +38,48 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return r;
   }
 
-  const openButton = (lang, url = config.appUrl) => ({ reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url } }]] } });
+  const openRow = (lang, url = config.appUrl) => [{ text: t(lang, 'open'), web_app: { url } }];
+  const keyboard = (rows) => (rows.length ? { reply_markup: { inline_keyboard: rows } } : undefined);
   const botName = config.botUsername || 'vertexhashbot';
+  const faqPath = (lang) => (lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq');
+
+  // A view is { text, rows }: the message text and the inline button rows under it.
+  // Commands send a view as it is; the menu adds its own buttons.
+  const send = (chatId, v) => reply(chatId, v.text, keyboard(v.rows));
 
   // Asks the app for one set of numbers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
-  // Sends the 'no account' or 'try again' message itself and returns null; returns the answer only when it is good (valid(answer)).
-  async function ask(chatId, lang, userId, name, valid) {
+  // Returns { data } when the answer is good (valid(answer)), else { view } with the 'no account' or 'try again' message.
+  async function fetchApp(lang, userId, name, valid) {
     const r = await appApi(name, { tg_id: userId });
-    if (r.status === 404) {
-      await reply(chatId, t(lang, 'noAcc'), openButton(lang));
-      return null;
-    }
-    if (!r.ok || !r.json || !valid(r.json)) {
-      await reply(chatId, t(lang, 'busy'));
-      return null;
-    }
-    return r.json;
+    if (r.status === 404) return { view: { text: t(lang, 'noAcc'), rows: [openRow(lang)] } };
+    if (!r.ok || !r.json || !valid(r.json)) return { view: { text: t(lang, 'busy'), rows: [] } };
+    return { data: r.json };
   }
 
-  async function balance(chatId, lang, userId) {
-    const b = await ask(chatId, lang, userId, 'balance', (x) => Number.isFinite(x.btc) && Number.isFinite(x.locked));
-    if (!b) return;
+  async function balanceView(lang, userId) {
+    const a = await fetchApp(lang, userId, 'balance', (x) => Number.isFinite(x.btc) && Number.isFinite(x.locked));
+    if (!a.data) return a.view;
+    const b = a.data;
     const lines = [t(lang, 'bal', { btc: btcText(b.btc) })];
     if (Number.isFinite(b.usd)) lines.push(t(lang, 'balUsd', { usd: b.usd.toFixed(2) }));
     if (b.locked > 0) lines.push(t(lang, 'balHold', { locked: btcText(b.locked) }));
-    return reply(chatId, lines.join('\n'));
+    return { text: lines.join('\n'), rows: [] };
   }
 
-  async function earnings(chatId, lang, userId) {
-    const b = await ask(chatId, lang, userId, 'earnings', (x) => typeof x.miners === 'boolean' && Number.isFinite(x.today) && Number.isFinite(x.total));
-    if (!b) return;
-    if (!b.miners) return reply(chatId, t(lang, 'noMiners'), openButton(lang));
+  async function earningsView(lang, userId) {
+    const a = await fetchApp(lang, userId, 'earnings', (x) => typeof x.miners === 'boolean' && Number.isFinite(x.today) && Number.isFinite(x.total));
+    if (!a.data) return a.view;
+    const b = a.data;
+    if (!b.miners) return { text: t(lang, 'noMiners'), rows: [openRow(lang)] };
     const lines = [t(lang, 'earnToday', { btc: btcText(b.today) }), t(lang, 'earnTotal', { btc: btcText(b.total) })];
     if (Number.isFinite(b.avgUsd)) lines.push(t(lang, 'earnAvg', { usd: b.avgUsd.toFixed(2) }));
-    return reply(chatId, lines.join('\n'));
+    return { text: lines.join('\n'), rows: [] };
   }
 
-  async function referrals(chatId, lang, userId) {
-    const b = await ask(chatId, lang, userId, 'referrals', (x) => Number.isInteger(x.friends) && Number.isInteger(x.active) && Number.isFinite(x.earned) && Number.isInteger(x.vip));
-    if (!b) return;
+  async function referralsView(lang, userId) {
+    const a = await fetchApp(lang, userId, 'referrals', (x) => Number.isInteger(x.friends) && Number.isInteger(x.active) && Number.isFinite(x.earned) && Number.isInteger(x.vip));
+    if (!a.data) return a.view;
+    const b = a.data;
     const lines = [];
     if (typeof b.code === 'string' && CODE.test(b.code)) {
       lines.push(t(lang, 'refCode', { code: b.code }));
@@ -83,8 +89,11 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     lines.push(t(lang, 'refFriends', { n: b.friends, active: b.active }));
     lines.push(t(lang, 'refEarned', { btc: btcText(b.earned) }));
     if (b.vip > 0) lines.push(t(lang, 'refVip', { n: b.vip }));
-    return reply(chatId, lines.join('\n'), openButton(lang));
+    return { text: lines.join('\n'), rows: [openRow(lang)] };
   }
+
+  const faqView = (lang) => ({ text: t(lang, 'faq'), rows: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${faqPath(lang)}` }]] });
+  const supportView = (lang) => ({ text: t(lang, 'support', { email: config.supportEmail }), rows: [] });
 
   // Links the Telegram id to the email account that made the code. The code is never logged or stored here.
   async function link(chatId, lang, userId, code) {
@@ -95,7 +104,111 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return reply(chatId, t(lang, key || 'busy'));
   }
 
+  // ---- Button menu ----
+  // One live menu per chat: chats.menu_msg_id is its message, chats.menu_ver its counter. Every tap moves the counter on in one
+  // UPDATE, so a second tap on the same buttons (double tap) or a button of an older menu finds the counter changed and is ignored.
+  const mbtn = (lang, key, action, ver) => ({ text: t(lang, key), callback_data: `m:${action}:${ver}` });
+  const menuRow = (lang, ver) => [mbtn(lang, 'b_menu', 'menu', ver)];
+  const mainRows = (lang, ver, url) => [
+    openRow(lang, url),
+    [mbtn(lang, 'b_balance', 'bal', ver), mbtn(lang, 'b_earnings', 'ear', ver)],
+    [mbtn(lang, 'b_friends', 'ref', ver), mbtn(lang, 'b_more', 'more', ver)],
+  ];
+  const moreRows = (lang, ver) => [
+    [mbtn(lang, 'b_link', 'link', ver), mbtn(lang, 'b_faq', 'faq', ver)],
+    hasLang('fa') ? [mbtn(lang, 'b_help', 'help', ver), mbtn(lang, 'b_lang', 'lang', ver)] : [mbtn(lang, 'b_help', 'help', ver)],
+    [mbtn(lang, 'b_stop', 'stop', ver)],
+    [mbtn(lang, 'b_back', 'menu', ver)],
+  ];
+  const langRows = (lang, ver) => [
+    [
+      { text: 'English', callback_data: `m:l_en:${ver}` },
+      { text: '\u0641\u0627\u0631\u0633\u06cc', callback_data: `m:l_fa:${ver}` },
+    ],
+    [mbtn(lang, 'b_back', 'menu', ver)],
+  ];
+
+  // Sends the main menu as a new message and makes it the only live one: the buttons of the previous menu are taken away.
+  async function sendMenu(chatId, lang, text, url) {
+    const row = (
+      await q(
+        `WITH old AS (SELECT menu_msg_id FROM chats WHERE tg_id = $1)
+         UPDATE chats SET menu_ver = menu_ver + 1, menu_msg_id = NULL FROM old WHERE tg_id = $1
+         RETURNING chats.menu_ver AS ver, old.menu_msg_id AS old_id`,
+        [chatId],
+      )
+    ).rows[0];
+    const r = await reply(chatId, text, { reply_markup: { inline_keyboard: mainRows(lang, row.ver, url) } });
+    const mid = r.result && r.result.message_id;
+    if (r.ok && Number.isSafeInteger(mid)) {
+      await q('UPDATE chats SET menu_msg_id = $2 WHERE tg_id = $1 AND menu_ver = $3', [chatId, mid, row.ver]);
+      if (row.old_id) await tg.editMessageReplyMarkup(chatId, Number(row.old_id), { inline_keyboard: [] });
+    }
+    return r;
+  }
+
+  async function handleCallback(cb) {
+    const msg = cb.message;
+    if (!msg || !msg.chat || msg.chat.type !== 'private' || !cb.from || cb.from.is_bot || typeof cb.data !== 'string') return;
+    const id = msg.chat.id;
+    const mid = msg.message_id;
+    await tg.answerCallbackQuery(cb.id); // stops the spinner on the button at once
+    if (limited(id)) return;
+    const d = MENU_DATA.exec(cb.data);
+    if (!d || !MENU_ACTIONS.has(d[1]) || !Number.isSafeInteger(mid)) return;
+    const act = d[1];
+
+    // Take the tap: only the live menu with the matching counter gets through, and only once.
+    const row = (
+      await q(
+        `UPDATE chats SET menu_ver = menu_ver + 1, active = true, last_seen_at = now()
+         WHERE tg_id = $1 AND menu_msg_id = $2 AND menu_ver = $3 RETURNING menu_ver, lang`,
+        [id, mid, Number(d[2])],
+      )
+    ).rows[0];
+    if (!row) {
+      // A double tap on the live menu is just ignored. A button of an older menu loses its buttons.
+      const cur = (await q('SELECT menu_msg_id FROM chats WHERE tg_id = $1', [id])).rows[0];
+      if (cur && String(cur.menu_msg_id) !== String(mid)) await tg.editMessageReplyMarkup(id, mid, { inline_keyboard: [] });
+      return;
+    }
+    const ver = row.menu_ver;
+    let lang = row.lang;
+    let view;
+    if (act === 'menu') view = { text: t(lang, 'start'), rows: mainRows(lang, ver) };
+    else if (act === 'bal') view = await balanceView(lang, cb.from.id);
+    else if (act === 'ear') view = await earningsView(lang, cb.from.id);
+    else if (act === 'ref') view = await referralsView(lang, cb.from.id);
+    else if (act === 'faq') view = faqView(lang);
+    else if (act === 'help') view = supportView(lang);
+    else if (act === 'link') view = { text: t(lang, 'linkUsage'), rows: [] };
+    else if (act === 'stop') {
+      await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
+      view = { text: t(lang, 'stopOk'), rows: [] };
+    } else if (act === 'lang') {
+      if (!hasLang('fa')) view = { text: t(lang, 'langSet'), rows: [] };
+      else view = { text: t(lang, 'langSet'), rows: langRows(lang, ver) };
+    } else if (act === 'l_en' || act === 'l_fa') {
+      lang = act === 'l_fa' && hasLang('fa') ? 'fa' : 'en';
+      await q('UPDATE chats SET lang = $2 WHERE tg_id = $1', [id, lang]);
+      view = { text: t(lang, 'start'), rows: mainRows(lang, ver) };
+    }
+    // Answers end with one Menu button; the menu pages carry their own buttons.
+    const own = act === 'menu' || act === 'l_en' || act === 'l_fa' || (act === 'lang' && hasLang('fa'));
+    const rows = own ? view.rows : [...(view.rows || []), menuRow(lang, ver)];
+    const done =
+      act === 'more'
+        ? await tg.editMessageReplyMarkup(id, mid, { inline_keyboard: moreRows(lang, ver) })
+        : await tg.editMessageText(id, mid, view.text, { reply_markup: { inline_keyboard: rows } });
+    if (!done.ok && !/not modified/i.test(done.description || '')) {
+      // The buttons on screen still carry the old counter: give it back so they keep working.
+      if (done.status === 403) await q('UPDATE chats SET active = false WHERE tg_id = $1', [id]);
+      await q('UPDATE chats SET menu_ver = menu_ver - 1 WHERE tg_id = $1 AND menu_msg_id = $2 AND menu_ver = $3', [id, mid, ver]);
+    }
+  }
+
   async function handleUpdate(update) {
+    if (update.callback_query) return handleCallback(update.callback_query);
     const mc = update.my_chat_member;
     if (mc && mc.chat && mc.chat.type === 'private') {
       const left = mc.new_chat_member && ['kicked', 'left'].includes(mc.new_chat_member.status);
@@ -131,21 +244,18 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
         await q('UPDATE chats SET news = true WHERE tg_id = $1', [id]);
         text += '\n' + t(lang, 'newsOn');
       }
-      return reply(id, text, openButton(lang, url));
+      return sendMenu(id, lang, text, url);
     }
     if (cmd === 'stop') {
       await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
       return reply(id, t(lang, 'stopOk'));
     }
-    if (cmd === 'balance') return balance(id, lang, m.from.id);
-    if (cmd === 'earnings') return earnings(id, lang, m.from.id);
-    if (cmd === 'referrals') return referrals(id, lang, m.from.id);
+    if (cmd === 'balance') return send(id, await balanceView(lang, m.from.id));
+    if (cmd === 'earnings') return send(id, await earningsView(lang, m.from.id));
+    if (cmd === 'referrals') return send(id, await referralsView(lang, m.from.id));
     if (cmd === 'link') return link(id, lang, m.from.id, arg);
-    if (cmd === 'faq') {
-      const path = lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq';
-      return reply(id, t(lang, 'faq'), { reply_markup: { inline_keyboard: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${path}` }]] } });
-    }
-    if (cmd === 'support') return reply(id, t(lang, 'support', { email: config.supportEmail }));
+    if (cmd === 'faq') return send(id, faqView(lang));
+    if (cmd === 'support') return send(id, supportView(lang));
     if (cmd === 'lang' && hasLang('fa')) {
       if (arg === 'en' || arg === 'fa') {
         await q('UPDATE chats SET lang = $2 WHERE tg_id = $1', [id, arg]);
@@ -153,7 +263,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       }
       return reply(id, t(lang, 'langUsage'));
     }
-    return reply(id, helpText(lang));
+    return sendMenu(id, lang, helpText(lang));
   }
 
   async function handler(req, res) {
