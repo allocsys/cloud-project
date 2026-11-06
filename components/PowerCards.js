@@ -335,13 +335,6 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
         <TermChips terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
         {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd(band.mid / plan.days) })}</div>}
       </div>
-      <div className="prow">
-        <div>
-          <span>{t('pc.pick')}</span>
-          <small>{t('pc.paidBtc')}</small>
-        </div>
-        <b>${fmtUsd(plan.price)}</b>
-      </div>
       {within && <div className="tcan">{t('pc.within')}</div>}
       <button type="button" className="btn" onClick={onBuy}>{t('pc.buySmart')}</button>
     </div>
