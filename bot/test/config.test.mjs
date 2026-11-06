@@ -27,6 +27,8 @@ test('weak or missing settings stop the boot and the error never shows a value',
     assert.throws(() => checkConfig(config({ ...good, [k]: v })), (e) => e.message.includes(k.split(' ')[0]) && !e.message.includes(String(v)));
   }
   assert.throws(() => checkConfig(config({ ...good, BOT_WEBHOOK_SECRET: good.BOT_WEBHOOK_PATH })), /must differ/);
+  assert.equal(config(good).botUsername, 'vertexhashbot');
+  assert.throws(() => checkConfig(config({ ...good, BOT_USERNAME: 'bad name!' })), /BOT_USERNAME/);
 });
 
 test('every fa key exists in en with the same placeholders', () => {
