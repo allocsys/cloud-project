@@ -111,6 +111,13 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return reply(chatId, t(lang, key || 'busy'));
   }
 
+  // Removes the link between this Telegram id and its email account (bot notices stop; the account itself is untouched).
+  async function unlink(chatId, lang, userId) {
+    const r = await appApi('unlink', { tg_id: userId });
+    if (r.ok) return reply(chatId, t(lang, 'unlinkOk'));
+    return reply(chatId, t(lang, r.status === 404 ? 'unlinkNone' : 'busy'));
+  }
+
   // ---- Button menu ----
   // One live menu per chat: chats.menu_msg_id is its message, chats.menu_ver its counter. Every tap moves the counter on in one
   // UPDATE, so a second tap on the same buttons (double tap) or a button of an older menu finds the counter changed and is ignored.
@@ -262,6 +269,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (cmd === 'earnings') return send(id, await earningsView(lang, m.from.id));
     if (cmd === 'referrals') return send(id, await referralsView(lang, m.from.id));
     if (cmd === 'link') return link(id, lang, m.from.id, arg);
+    if (cmd === 'unlink') return unlink(id, lang, m.from.id);
     if (cmd === 'faq') return send(id, faqView(lang));
     if (cmd === 'support') return send(id, supportView(lang));
     if (cmd === 'lang' && hasLang('fa')) {
