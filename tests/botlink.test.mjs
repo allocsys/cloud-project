@@ -62,9 +62,9 @@ test('a second code within a minute is refused; later it replaces the first', as
 test('demo, Telegram and unknown accounts get no code; a linked account is told so', async () => {
   assert.equal((await botLinkStart('demo')).status, 403);
   assert.equal((await botLinkStart(null)).status, 403);
-  await tx((c) => createUser(c, `tg:${7000000 + (Date.now() % 1000000)}`));
-  const tgRow = (await pool().query("SELECT id FROM users WHERE id LIKE 'tg:%' ORDER BY updated_at DESC LIMIT 1")).rows[0];
-  assert.equal((await botLinkStart(tgRow.id)).status, 403);
+  const tgId = `tg:${7000000 + (Date.now() % 1000000)}`;
+  await tx((c) => createUser(c, tgId));
+  assert.equal((await botLinkStart(tgId)).status, 403);
   assert.equal((await botLinkStart(`nobody-${run}@test.dev`)).status, 404);
   const id = await account('c');
   await withUser(id, (u) => {
@@ -75,7 +75,7 @@ test('demo, Telegram and unknown accounts get no code; a linked account is told 
   assert.equal((await getUser(id)).botLink, undefined);
 });
 
-test('the route needs a signed-in account and sends no cache headers body twice', async () => {
+test('the route needs a signed-in account, gives a code, and keeps the one-minute wait', async () => {
   const noCookie = await post();
   assert.ok([401, 403].includes(noCookie.status), `no session: ${noCookie.status}`);
   assert.equal(noCookie.body.ok, false);
