@@ -176,6 +176,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     let lang = row.lang;
     let view;
     if (act === 'menu') view = { text: t(lang, 'start'), rows: mainRows(lang, ver) };
+    else if (act === 'more') view = { text: '', rows: [] }; // only the buttons change, below
     else if (act === 'bal') view = await balanceView(lang, cb.from.id);
     else if (act === 'ear') view = await earningsView(lang, cb.from.id);
     else if (act === 'ref') view = await referralsView(lang, cb.from.id);
