@@ -99,8 +99,8 @@ test('the queue sends the text with the Open app button, in the chat language', 
   await send(body({ tg_id: 5002, kind: 'wdSent', vars: { amt: '0.5 BTC' } }));
   const out = await mkQueue().deliverDue();
   assert.equal(out.sent, 2);
-  const fa = sent.find((s) => s.chat === 5001);
-  const en = sent.find((s) => s.chat === 5002);
+  const fa = sent.find((s) => Number(s.chat) === 5001);
+  const en = sent.find((s) => Number(s.chat) === 5002);
   assert.equal(fa.text, 'واریز شد: $50.00.');
   assert.equal(en.text, 'Withdrawal sent: 0.5 BTC.');
   assert.equal(en.extra.reply_markup.inline_keyboard[0][0].web_app.url, cfg.appUrl);
