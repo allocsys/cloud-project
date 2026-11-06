@@ -58,6 +58,15 @@ test('/start@SomeBot and a start payload still work', async () => {
   assert.ok(tg.sent[0].extra.reply_markup.inline_keyboard[0][0].web_app);
 });
 
+test('/start CODE opens the app on sign-up with the code, case kept; a bad code is ignored', async () => {
+  const tg = fakeTg();
+  const bot = makeBot({ config: cfg, tg });
+  await bot.handleUpdate(msg('/start VTX-AbC1'));
+  assert.equal(tg.sent[0].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com/login?ref=VTX-AbC1');
+  await bot.handleUpdate(msg('/start x<y>'));
+  assert.equal(tg.sent[1].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com');
+});
+
 test('unknown text and /help show the command list', async () => {
   const tg = fakeTg();
   const bot = makeBot({ config: cfg, tg });
