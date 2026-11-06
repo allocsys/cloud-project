@@ -24,11 +24,11 @@ test('the other files re-export the numbers, they do not hold copies', () => {
 
 test('service fee tiers keep the shape the text helpers expect', () => {
   const t = R.SERVICE_TIERS;
-  assert.equal(t.length, 3);
+  assert.equal(t.length, 4);
   assert.equal(t[0].from, 0);
-  assert.ok(t[1].from > t[0].from && t[2].from > t[1].from);
-  assert.ok(t[0].pct > t[1].pct && t[1].pct > t[2].pct);
-  assert.equal(t[2].pct, 0);
+  assert.ok(t[1].from > t[0].from && t[2].from > t[1].from && t[3].from > t[2].from);
+  assert.ok(t[0].pct > t[1].pct && t[1].pct > t[2].pct && t[2].pct > t[3].pct);
+  assert.equal(t[3].pct, 0);
 });
 
 test('the FAQ answers carry the numbers from rules and smart', () => {
@@ -36,7 +36,8 @@ test('the FAQ answers carry the numbers from rules and smart', () => {
   const wf = faqAnswer('withdraw_fee');
   assert.ok(wf.includes(`${t[0].pct}% if it\u2019s been under ${t[1].from} days`));
   assert.ok(wf.includes(`${t[1].pct}% from ${t[1].from} to ${t[2].from - 1} days`));
-  assert.ok(wf.includes(`no fee from ${t[2].from} days`));
+  assert.ok(wf.includes(`${t[2].pct}% from ${t[2].from} to ${t[3].from - 1} days`));
+  assert.ok(wf.includes(`no fee from ${t[3].from} days`));
   assert.ok(wf.includes(`plus ${R.SWAP_FEE_PCT}% if you\u2019re paid in a coin other than BTC`));
   assert.ok(faqAnswer('fees').includes(`other coins pay a ${R.SWAP_FEE_PCT}% swap fee`));
   assert.ok(faqAnswer('refund').includes(`within ${R.REFUND_HOURS} hours of buying it`));
@@ -52,6 +53,7 @@ test('the Terms page reads its numbers instead of typing them', () => {
   assert.ok(s.includes('up: Math.round(UP_RATIO * 100)'));
   assert.ok(en.includes('within {hours} hours of buying'));
   assert.ok(!s.includes('2%, 1% or 0%'));
+  assert.ok(!s.includes('3%, 2.5%, 2% or 0%'));
   assert.ok(!/'terms\.p3b': "[^"]*within 24 hours/.test(en));
 });
 
