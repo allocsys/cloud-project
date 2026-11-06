@@ -3,8 +3,8 @@ import { q } from './db.js';
 import { json, readJson, readRaw, ApiError } from './http.js';
 import { t, helpText, hasLang } from './texts.js';
 import { safeEqual } from './util.js';
-import { verifySig, parseNotify, MAX_PENDING } from './notify.js';
-import { enqueue, pendingCount } from './queue.js';
+import { verifySig, parseNotify, parseBroadcast, MAX_PENDING } from './notify.js';
+import { enqueue, enqueueBroadcast, pendingCount } from './queue.js';
 import { makeAppApi } from './appapi.js';
 
 const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
@@ -111,7 +111,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     const row = (
       await q(
         `INSERT INTO chats (tg_id, lang) VALUES ($1, $2)
-         ON CONFLICT (tg_id) DO UPDATE SET active = true, last_seen_at = now() RETURNING lang`,
+         ON CONFLICT (tg_id) DO UPDATE SET active = true, last_seen_at = now() RETURNING lang, news`,
         [id, guess],
       )
     ).rows[0];
@@ -125,7 +125,17 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       // A start payload is a referral code: the app opens on the sign-up page with it. The code keeps its case.
       const code = rawArg.split(/\s+/)[0];
       const url = CODE.test(code) ? `${config.appUrl}/login?ref=${encodeURIComponent(code)}` : config.appUrl;
-      return reply(id, t(lang, 'start'), openButton(lang, url));
+      // Writing /start turns news back on; say so only when it was off.
+      let text = t(lang, 'start');
+      if (row.news === false) {
+        await q('UPDATE chats SET news = true WHERE tg_id = $1', [id]);
+        text += '\n' + t(lang, 'newsOn');
+      }
+      return reply(id, text, openButton(lang, url));
+    }
+    if (cmd === 'stop') {
+      await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
+      return reply(id, t(lang, 'stopOk'));
     }
     if (cmd === 'balance') return balance(id, lang, m.from.id);
     if (cmd === 'earnings') return earnings(id, lang, m.from.id);
@@ -167,6 +177,19 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
         if (!p.ok) return json(res, 400, { ok: false, error: p.error });
         if ((await pendingCount()) >= MAX_PENDING) return json(res, 503, { ok: false, error: 'Queue is full.' });
         const added = await enqueue(p.value);
+        if (added && queue) queue.wake();
+        return json(res, 200, { ok: true, queued: added });
+      }
+      // The app asks for a news message to all chats that have news on, or one test message. Signed like /notify. Off (404) until APP_BOT_SECRET is set.
+      if (req.method === 'POST' && url.pathname === '/broadcast') {
+        if (!config.notifySecret) return json(res, 404, NOT_FOUND);
+        const raw = await readRaw(req, 16 * 1024);
+        const body = verifySig(raw, req.headers['x-app-sig'], config.notifySecret);
+        if (!body) return json(res, 401, { ok: false, error: 'Bad signature.' });
+        const p = parseBroadcast(body);
+        if (!p.ok) return json(res, 400, { ok: false, error: p.error });
+        if ((await pendingCount()) >= MAX_PENDING) return json(res, 503, { ok: false, error: 'Queue is full.' });
+        const added = await enqueueBroadcast(p.value);
         if (added && queue) queue.wake();
         return json(res, 200, { ok: true, queued: added });
       }
