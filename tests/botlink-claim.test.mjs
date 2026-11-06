@@ -3,10 +3,10 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser, withUser } = await import('@/lib/server/db');
+const { pool, getUser, withUser, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
-const { botLinkStart, botLinkClaim, botDisconnect } = await import('@/lib/server/botlink');
+const { botLinkStart, botLinkClaim, botDisconnect, maskEmail } = await import('@/lib/server/botlink');
 const { linkFor, referralsFor } = await import('@/lib/server/botapi');
 
 const run = `bc${Date.now().toString(36)}`;
@@ -83,10 +83,41 @@ test('linkFor checks its input, and the bot calls then answer for the linked ema
   const { code } = await botLinkStart(id);
   const r = await linkFor({ tg_id: tg, code: ` ${code.toLowerCase()} ` });
   assert.equal(r.status, 200);
-  assert.deepEqual(r.json, { ok: true });
+  assert.deepEqual(r.json, { ok: true, email: maskEmail(id) });
+  assert.ok(r.json.email.includes('***@') && !r.json.email.startsWith(id), 'only the masked email is returned');
   const ref = await referralsFor({ tg_id: tg });
   assert.equal(ref.status, 200, 'the linked email account answers');
   assert.equal(ref.json.ok, true);
+});
+
+test('maskEmail keeps the first letter and the domain only', () => {
+  assert.equal(maskEmail('mineropus@gmail.com'), 'm***@gmail.com');
+  assert.equal(maskEmail('a@b.co'), 'a***@b.co');
+});
+
+test('a Telegram id that already has its own account is refused (403), the code stays valid, nothing changes', async () => {
+  const id = await account('g');
+  const tg = tgId();
+  await tx((c) => createUser(c, `tg:${tg}`));
+  const { code } = await botLinkStart(id);
+  const r = await botLinkClaim(tg, code);
+  assert.equal(r.status, 403);
+  assert.equal(r.ok, false);
+  assert.equal((await linkFor({ tg_id: tg, code })).status, 403);
+  assert.equal((await getUser(id)).botTg, undefined, 'nothing was linked');
+  assert.ok((await getUser(id)).botLink, 'the code was not used up');
+  assert.equal((await getUser(`tg:${tg}`)).botTg, undefined, 'the Telegram account is untouched');
+  // Another Telegram id without an account still links with the same code.
+  assert.equal((await botLinkClaim(tgId(), code)).ok, true);
+});
+
+test('already linked stays 409 even when the Telegram id also has its own account', async () => {
+  const a = await account('h1');
+  const b = await account('h2');
+  const tg = tgId();
+  assert.equal((await botLinkClaim(tg, (await botLinkStart(a)).code)).ok, true);
+  await tx((c) => createUser(c, `tg:${tg}`));
+  assert.equal((await botLinkClaim(tg, (await botLinkStart(b)).code)).status, 409);
 });
 
 test('disconnect removes the link, the bot calls stop answering, and the Telegram id can link again', async () => {
