@@ -22,13 +22,10 @@ export const texts = {
     refVip: 'VIP: {n}',
     noAcc: 'No account found. Open the app first.',
     busy: 'Try again in a minute.',
-    linkUsage: 'Send /link CODE. Get the code in Settings.',
     linkOk: 'Account linked.',
     linkBad: 'Code not valid.',
     linkTaken: 'Already linked to another account.',
     linkMany: 'Too many tries. Wait a few minutes.',
-    unlinkOk: 'Account unlinked.',
-    unlinkNone: 'No account is linked.',
     d_start: 'Open the app',
     d_balance: 'Show balance',
     d_earnings: 'Show earnings',
@@ -36,8 +33,6 @@ export const texts = {
     d_faq: 'Read the FAQ',
     d_support: 'Get help',
     d_lang: 'Change language',
-    d_link: 'Link your account',
-    d_unlink: 'Unlink your account',
     stopOk: 'News turned off. Send /start to turn it on.',
     newsOn: 'News turned on.',
     d_stop: 'Stop news',
@@ -47,7 +42,6 @@ export const texts = {
     b_more: 'More',
     b_back: 'Back',
     b_menu: 'Menu',
-    b_link: 'Link account',
     b_faq: 'FAQ',
     b_help: 'Help',
     b_lang: 'Language',
@@ -80,7 +74,6 @@ export const texts = {
     refVip: 'VIP: {n}',
     noAcc: 'حسابی پیدا نشد. اول برنامه را باز کنید.',
     busy: 'کمی بعد دوباره امتحان کنید.',
-    linkUsage: 'کد را بعد از /link بفرستید. کد در تنظیمات است.',
     linkOk: 'حساب متصل شد.',
     linkBad: 'کد معتبر نیست.',
     linkTaken: 'قبلاً به حساب دیگری متصل شده است.',
@@ -92,7 +85,6 @@ export const texts = {
     d_faq: 'سؤال‌های رایج',
     d_support: 'دریافت کمک',
     d_lang: 'تغییر زبان',
-    d_link: 'اتصال حساب',
     stopOk: 'اخبار خاموش شد. برای روشن کردن /start را بفرستید.',
     newsOn: 'اخبار روشن شد.',
     d_stop: 'توقف اخبار',
@@ -102,7 +94,6 @@ export const texts = {
     b_more: 'بیشتر',
     b_back: 'بازگشت',
     b_menu: 'منو',
-    b_link: 'اتصال حساب',
     b_faq: 'سؤال‌های رایج',
     b_help: 'کمک',
     b_lang: 'زبان',
@@ -124,7 +115,7 @@ export function t(lang, key, vars = {}) {
 }
 
 export function commandList(lang) {
-  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'unlink', 'faq', 'support', 'stop'];
+  const names = ['start', 'balance', 'earnings', 'referrals', 'faq', 'support', 'stop'];
   if (hasLang('fa')) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }
