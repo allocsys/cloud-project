@@ -1496,9 +1496,11 @@ main {
 .tmeta { font-size: 12px; line-height: 16px; color: var(--mute); }
 .tmeta b { color: var(--green); font-weight: 500; }
 
-.slide .big .amt { display: flex; align-items: baseline; gap: 2px; margin: 0; font-size: 24px; line-height: 30px; font-weight: 500; color: var(--gold2); }
+.slide .big .amt { display: grid; grid-template-columns: auto auto auto; justify-content: start; align-items: baseline; column-gap: 2px; margin: 0; font-size: 22px; line-height: 30px; font-weight: 500; color: var(--gold2); }
+.slide .big .amt small { grid-column: 1 / -1; font-size: 12px; line-height: 16px; font-weight: 400; color: var(--mute); }
+.slide .big .amt::after { content: "\270E"; margin-inline-start: 6px; font-size: 12px; color: var(--mute); }
 .slide .big .amt i { font-style: normal; }
-.slide .big .amt input { width: 6ch; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-bottom: 1px dashed rgba(var(--gold-rgb), 0.4); border-radius: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; font-size: 24px; line-height: 30px; font-weight: 500; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
+.slide .big .amt input { width: 6ch; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; color: inherit; font: inherit; font-size: 22px; line-height: 30px; font-weight: 500; font-variant-numeric: tabular-nums; -moz-appearance: textfield; appearance: textfield; }
 .slide .big .amt input:focus { border-bottom-color: var(--gold2); box-shadow: none; }
 .slide .big .amt input::-webkit-outer-spin-button, .slide .big .amt input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 /* Custom power slider */
@@ -1523,7 +1525,7 @@ main {
 .slide .big.top { align-items: flex-start; }
 .slide .big .gain { display: flex; flex-direction: column; align-items: flex-end; }
 .slide .big .gain small { font-size: 12px; line-height: 16px; color: var(--mute); }
-.slide .big .gain b { font-size: 30px; line-height: 36px; color: var(--green); }
+.slide .big .gain b { font-size: 22px; line-height: 30px; color: var(--green); }
 .gsub { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); text-align: end; }
 .gnote { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); text-align: end; }
 
