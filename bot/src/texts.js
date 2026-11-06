@@ -1,5 +1,5 @@
 // All bot texts. English is the base; a language with no entry for a key falls back to English.
-// Persian (fa) stays empty until the owner approves the wording.
+// Persian (fa) wording approved by the owner on 6 Nov 2026.
 export const texts = {
   en: {
     start: 'Welcome to VERTEXHASH.\nTap the button to open the app.',
@@ -14,7 +14,19 @@ export const texts = {
     d_support: 'Get help',
     d_lang: 'Change language',
   },
-  fa: {},
+  fa: {
+    start: 'به VERTEXHASH خوش آمدید.\nبرای باز کردن برنامه دکمه را بزنید.',
+    open: 'باز کردن برنامه',
+    faq: 'پاسخ سؤال‌های رایج در سایت ما است.',
+    faqBtn: 'خواندن سؤال‌ها',
+    support: 'به کمک نیاز دارید؟ به {email} بنویسید.',
+    langSet: 'زبان: فارسی',
+    langUsage: 'از /lang en یا /lang fa استفاده کنید.',
+    d_start: 'باز کردن برنامه',
+    d_faq: 'سؤال‌های رایج',
+    d_support: 'دریافت کمک',
+    d_lang: 'تغییر زبان',
+  },
 };
 
 export const hasLang = (l) => l === 'en' || Object.keys(texts[l] || {}).length > 0;
