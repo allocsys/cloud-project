@@ -37,6 +37,26 @@ export function verifySig(raw, sig, secret, now = Date.now()) {
 // A kind is known when its English text n_<kind> exists in texts.js.
 export const kindKnown = (k) => typeof k === 'string' && /^[a-z][A-Za-z0-9_]{0,31}$/.test(k) && !!texts.en['n_' + k];
 
+// Checks the /broadcast body: id, en text, optional fa text, optional test_tg_id (one test message to that chat only).
+export const MAX_BROADCAST_CHARS = 1000;
+export function parseBroadcast(b) {
+  if (typeof b.id !== 'string' || !/^[A-Za-z0-9:_.-]{8,64}$/.test(b.id)) return { ok: false, error: 'Bad id.' };
+  const clean = (v) => (typeof v === 'string' ? v.trim() : null);
+  const en = clean(b.en);
+  if (!en || en.length > MAX_BROADCAST_CHARS) return { ok: false, error: 'Bad text.' };
+  let fa = null;
+  if (b.fa !== undefined && b.fa !== null && b.fa !== '') {
+    fa = clean(b.fa);
+    if (!fa || fa.length > MAX_BROADCAST_CHARS) return { ok: false, error: 'Bad fa text.' };
+  }
+  let test = null;
+  if (b.test_tg_id !== undefined && b.test_tg_id !== null) {
+    if (!Number.isSafeInteger(b.test_tg_id) || b.test_tg_id <= 0) return { ok: false, error: 'Bad test_tg_id.' };
+    test = b.test_tg_id;
+  }
+  return { ok: true, value: { id: b.id, en, fa, test } };
+}
+
 // Checks the body fields. { ok: true, value } or { ok: false, error }.
 export function parseNotify(b) {
   if (!Number.isSafeInteger(b.tg_id) || b.tg_id <= 0) return { ok: false, error: 'Bad tg_id.' };
