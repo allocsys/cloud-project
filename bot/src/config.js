@@ -9,6 +9,7 @@ export function config(env = process.env) {
     appUrl: (env.APP_URL || '').replace(/\/+$/, ''),
     publicHost: env.BOT_PUBLIC_HOST || env.RAILWAY_PUBLIC_DOMAIN || '',
     supportEmail: env.SUPPORT_EMAIL || 'support@vertexhash.com',
+    botUsername: env.BOT_USERNAME || 'vertexhashbot',
     chatLimitPerMin: num(env.CHAT_LIMIT_PER_MIN, 20),
     // Shared with the app. Empty = POST /notify is switched off (404).
     notifySecret: env.APP_BOT_SECRET || '',
@@ -26,5 +27,6 @@ export function checkConfig(c) {
   if (!/^https:\/\/[^\s/]+$/.test(c.appUrl)) bad.push('APP_URL (https, no path)');
   if (c.notifySecret && c.notifySecret.length < 16) bad.push('APP_BOT_SECRET (at least 16 characters)');
   if (c.notifySecret && (c.notifySecret === c.secret || c.notifySecret === c.path)) bad.push('APP_BOT_SECRET must differ from the webhook values');
+  if (!/^[A-Za-z0-9_]{5,32}$/.test(c.botUsername)) bad.push('BOT_USERNAME (5-32 letters, digits or _)');
   if (bad.length) throw new Error(`Bad or missing settings: ${bad.join(', ')}`);
 }
