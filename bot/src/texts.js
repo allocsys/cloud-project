@@ -23,6 +23,11 @@ export const texts = {
     refVip: 'VIP: {n}',
     noAcc: 'No account found. Open the app first.',
     busy: 'Try again in a minute.',
+    linkUsage: 'Send /link CODE. Get the code in Settings.',
+    linkOk: 'Account linked.',
+    linkBad: 'Code not valid.',
+    linkTaken: 'Already linked to another account.',
+    linkMany: 'Too many tries. Wait a few minutes.',
     d_start: 'Open the app',
     d_balance: 'Show balance',
     d_earnings: 'Show earnings',
@@ -30,6 +35,7 @@ export const texts = {
     d_faq: 'Read the FAQ',
     d_support: 'Get help',
     d_lang: 'Change language',
+    d_link: 'Link your account',
     n_depPaid: 'Deposit received: ${usd}.',
     n_wdSent: 'Withdrawal sent: {amt}.',
     n_vipDrop: 'VIP {n} drops on {date}.',
@@ -56,6 +62,11 @@ export const texts = {
     refVip: 'VIP: {n}',
     noAcc: 'حسابی پیدا نشد. اول برنامه را باز کنید.',
     busy: 'کمی بعد دوباره امتحان کنید.',
+    linkUsage: 'کد را بعد از /link بفرستید. کد در تنظیمات است.',
+    linkOk: 'حساب متصل شد.',
+    linkBad: 'کد معتبر نیست.',
+    linkTaken: 'قبلاً به حساب دیگری متصل شده است.',
+    linkMany: 'تلاش زیاد. چند دقیقه صبر کنید.',
     d_start: 'باز کردن برنامه',
     d_balance: 'نمایش موجودی',
     d_earnings: 'نمایش درآمد',
@@ -63,6 +74,7 @@ export const texts = {
     d_faq: 'سؤال‌های رایج',
     d_support: 'دریافت کمک',
     d_lang: 'تغییر زبان',
+    d_link: 'اتصال حساب',
     n_depPaid: 'واریز شد: ${usd}.',
     n_wdSent: 'برداشت ارسال شد: {amt}.',
     n_vipDrop: 'سطح VIP {n} در {date} کاهش می‌یابد.',
@@ -77,7 +89,7 @@ export function t(lang, key, vars = {}) {
 }
 
 export function commandList(lang) {
-  const names = ['start', 'balance', 'earnings', 'referrals', 'faq', 'support'];
+  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'faq', 'support'];
   if (hasLang('fa')) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }
