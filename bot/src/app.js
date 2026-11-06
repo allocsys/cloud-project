@@ -1,13 +1,15 @@
 // Webhook handler and command logic. No network of its own: Telegram calls go through `tg`, so tests can fake it.
 import { q } from './db.js';
-import { json, readJson, ApiError } from './http.js';
+import { json, readJson, readRaw, ApiError } from './http.js';
 import { t, helpText, hasLang } from './texts.js';
 import { safeEqual } from './util.js';
+import { verifySig, parseNotify, MAX_PENDING } from './notify.js';
+import { enqueue, pendingCount } from './queue.js';
 
 const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
 
-export function makeBot({ config, tg }) {
+export function makeBot({ config, tg, queue = null }) {
   const hits = new Map();
   const pending = new Set();
 
@@ -83,6 +85,19 @@ export function makeBot({ config, tg }) {
           return json(res, 503, { ok: false, service: 'vtx-bot', db: 'down' });
         }
         return json(res, 200, { ok: true, service: 'vtx-bot', db: 'ok' });
+      }
+      // The app asks for a message to be sent. Signed (HMAC), so only the app can call it. Off (404) until APP_BOT_SECRET is set.
+      if (req.method === 'POST' && url.pathname === '/notify') {
+        if (!config.notifySecret) return json(res, 404, NOT_FOUND);
+        const raw = await readRaw(req, 16 * 1024);
+        const body = verifySig(raw, req.headers['x-app-sig'], config.notifySecret);
+        if (!body) return json(res, 401, { ok: false, error: 'Bad signature.' });
+        const p = parseNotify(body);
+        if (!p.ok) return json(res, 400, { ok: false, error: p.error });
+        if ((await pendingCount()) >= MAX_PENDING) return json(res, 503, { ok: false, error: 'Queue is full.' });
+        const added = await enqueue(p.value);
+        if (added && queue) queue.wake();
+        return json(res, 200, { ok: true, queued: added });
       }
       const m = /^\/tg\/([^/]{1,200})$/.exec(url.pathname);
       if (req.method === 'POST' && m && config.path && safeEqual(m[1], config.path)) {
