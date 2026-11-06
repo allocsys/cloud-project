@@ -27,6 +27,8 @@ export const texts = {
     linkBad: 'Code not valid.',
     linkTaken: 'Already linked to another account.',
     linkMany: 'Too many tries. Wait a few minutes.',
+    unlinkOk: 'Account unlinked.',
+    unlinkNone: 'No account is linked.',
     d_start: 'Open the app',
     d_balance: 'Show balance',
     d_earnings: 'Show earnings',
@@ -35,6 +37,7 @@ export const texts = {
     d_support: 'Get help',
     d_lang: 'Change language',
     d_link: 'Link your account',
+    d_unlink: 'Unlink your account',
     stopOk: 'News turned off. Send /start to turn it on.',
     newsOn: 'News turned on.',
     d_stop: 'Stop news',
@@ -121,7 +124,7 @@ export function t(lang, key, vars = {}) {
 }
 
 export function commandList(lang) {
-  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'faq', 'support', 'stop'];
+  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'unlink', 'faq', 'support', 'stop'];
   if (hasLang('fa')) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }
