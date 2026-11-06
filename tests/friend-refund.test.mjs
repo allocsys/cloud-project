@@ -9,7 +9,7 @@ const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const { getWallet } = await import('@/lib/server/wallet');
-const { firstsOf, getRefCtx, friendReward, DEFAULTS } = await import('@/lib/server/referrals');
+const { firstsOf, getRefCtx, friendReward, DEFAULTS, saveSettings, resetSettings } = await import('@/lib/server/referrals');
 const { refundMiner } = await import('@/lib/server/admin');
 const { createRequest, decideRefund } = await import('@/lib/server/refund-requests');
 const { REASONS } = await import('@/lib/refund-rules');
@@ -136,4 +136,60 @@ test('a refund approved after the window closed says so and the request stays op
   assert.ok((await getUser(fr)).contracts.some((m) => m.serial === serial), 'the miner is still there');
   const no = await decideRefund(fr, made.id, 'reject', 'Window closed.', later);
   assert.ok(no.ok, no.error);
+});
+
+// The clock is set for the purchase only (Date.now), then put back.
+const at = async (ms, fn) => {
+  const real = Date.now;
+  Date.now = () => ms;
+  try {
+    return await fn();
+  } finally {
+    Date.now = real;
+  }
+};
+
+// A purchase on the last UTC day of a month: the refund window ends at midnight, so the reward starts in the NEXT month.
+// The friend then uses next month's friend slot, not the slot of the month of the purchase.
+test('a purchase on the last day of a month starts the reward next month and uses next month\'s slot', async () => {
+  const inv = await account('mon-inv');
+  const code = (await getUser(inv)).refCode;
+  const mk = async (name) => {
+    const fr = await account(`mon-${name}`, { ref: code });
+    await credit(fr, 0.02);
+    return fr;
+  };
+  const a = await mk('a');
+  const c = await mk('c');
+  const b = await mk('b');
+  const buys = [
+    [a, Date.UTC(2026, 9, 31, 23, 0)], // last day of October, late: reward starts 1 Nov
+    [c, Date.UTC(2026, 9, 15, 12, 0)], // mid October: reward starts 16 Oct, October slot is still free
+    [b, Date.UTC(2026, 9, 31, 23, 30)], // last day of October again: November slot is taken by the first one
+  ];
+  assert.ok((await saveSettings({ monthlyLimit: 1 })).ok);
+  try {
+    for (const [id, t] of buys) {
+      await at(t, () => buy(id));
+      await empty(id);
+    }
+  } finally {
+    await resetSettings();
+  }
+
+  const fa = await getUser(a);
+  const fc = await getUser(c);
+  const fb = await getUser(b);
+  assert.equal(fa.contracts.find((m) => !m.bonus).startedAt, Date.UTC(2026, 9, 31, 23, 0), 'the miner started at the purchase time');
+  assert.equal(fa.refRewardAt, Date.UTC(2026, 10, 1), 'the reward starts at midnight, in November');
+  assert.equal(fc.refRewardAt, Date.UTC(2026, 9, 16), 'a mid-month purchase starts the next day');
+  assert.equal(fb.refRewardAt, undefined, 'November has room for one friend only, and the first one took it');
+  assert.ok(fb.refBonusAt, 'the friend still gets the gift miner');
+
+  // Nothing is paid or counted in October for the first friend; from 1 Nov 00:00 it is.
+  const lastMoment = Date.UTC(2026, 10, 1) - 1;
+  assert.equal(friendReward(fa, DEFAULTS, lastMoment).usd, 0);
+  assert.ok(friendReward(fa, DEFAULTS, Date.UTC(2026, 10, 1)).usd > 0);
+  assert.equal((await at(lastMoment, () => firstsOf(pool(), inv))).length, 1, 'only the mid-month friend counts for VIP in October');
+  assert.equal((await at(Date.UTC(2026, 10, 1), () => firstsOf(pool(), inv))).length, 2, 'the late friend counts from 1 Nov');
 });
