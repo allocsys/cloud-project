@@ -71,9 +71,9 @@ test('/referrals shows code, friends, earned and VIP; code and links are buttons
   assert.deepEqual(calls, [{ name: 'referrals', payload: { tg_id: 7002 } }]);
   assert.equal(sent[0].text, 'Your code: VTX-AB2C\nFriends: 3 (2 active)\nEarned: 0.00020000 BTC\nVIP: 1');
   const kb = sent[0].extra.reply_markup.inline_keyboard;
-  assert.deepEqual(kb[0], [{ text: 'Copy code', copy_text: { text: 'VTX-AB2C' }, style: 'primary' }]);
-  assert.deepEqual(kb[1], [{ text: 'Copy link', copy_text: { text: 'https://vertexhash.com/login?ref=VTX-AB2C' }, style: 'primary' }]);
-  assert.deepEqual(kb[2], [{ text: 'Share', url: 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/vertexhashbot?start=VTX-AB2C'), style: 'success' }]);
+  assert.deepEqual(kb[0], [{ text: '📋 Copy code', copy_text: { text: 'VTX-AB2C' }, style: 'primary' }]);
+  assert.deepEqual(kb[1], [{ text: '🔗 Copy link', copy_text: { text: 'https://vertexhash.com/login?ref=VTX-AB2C' }, style: 'primary' }]);
+  assert.deepEqual(kb[2], [{ text: '📤 Share', url: 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/vertexhashbot?start=VTX-AB2C'), style: 'success' }]);
   assert.equal(kb[3][0].web_app.url, cfg.appUrl);
   assert.equal(kb[3][0].style, 'primary');
   assert.ok(kb.every((r) => r.length === 1), 'one button per row');
