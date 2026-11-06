@@ -81,15 +81,22 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (!a.data) return a.view;
     const b = a.data;
     const lines = [];
+    const rows = [];
     if (typeof b.code === 'string' && CODE.test(b.code)) {
+      const c = encodeURIComponent(b.code);
       lines.push(t(lang, 'refCode', { code: b.code }));
-      lines.push(t(lang, 'refLink', { link: `${config.appUrl}/login?ref=${encodeURIComponent(b.code)}` }));
-      lines.push(t(lang, 'refLink', { link: `https://t.me/${botName}?start=${encodeURIComponent(b.code)}` }));
+      // No links in the text (no big preview card): the code and links are buttons that copy or share.
+      rows.push([
+        { text: t(lang, 'b_copyCode'), copy_text: { text: b.code } },
+        { text: t(lang, 'b_copyLink'), copy_text: { text: `${config.appUrl}/login?ref=${c}` } },
+      ]);
+      rows.push([{ text: t(lang, 'b_share'), url: `https://t.me/share/url?url=${encodeURIComponent(`https://t.me/${botName}?start=${c}`)}` }]);
     }
     lines.push(t(lang, 'refFriends', { n: b.friends, active: b.active }));
     lines.push(t(lang, 'refEarned', { btc: btcText(b.earned) }));
     if (b.vip > 0) lines.push(t(lang, 'refVip', { n: b.vip }));
-    return { text: lines.join('\n'), rows: [openRow(lang)] };
+    rows.push(openRow(lang));
+    return { text: lines.join('\n'), rows };
   }
 
   const faqView = (lang) => ({ text: t(lang, 'faq'), rows: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${faqPath(lang)}` }]] });
