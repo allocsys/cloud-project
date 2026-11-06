@@ -38,4 +38,8 @@ export const MIGRATIONS = [
       CREATE INDEX notify_outbox_done ON notify_outbox (done_at) WHERE status <> 'pending';
     `,
   },
+  {
+    id: '003_chats_news',
+    sql: `ALTER TABLE chats ADD COLUMN news boolean NOT NULL DEFAULT true;`,
+  },
 ];
