@@ -11,6 +11,10 @@ const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
 const btcText = (n) => Number(n).toFixed(8);
 const CODE = /^[A-Za-z0-9-]{3,32}$/;
+// Button colors (Bot API 'style'): blue = main action, green = good news / share, red = stop. No style = the app's default grey.
+const BLUE = 'primary';
+const GREEN = 'success';
+const RED = 'danger';
 // Start payload from Settings > Connect Telegram: lnk_<link code>. Referral codes have no underscore, so the two cannot be mixed up.
 const LINK_START = /^lnk_([A-Za-z0-9]{3,32})$/;
 // Button taps: m:<action>:<version>. The version is the menu's counter: a tap is used once, then the counter moves on.
@@ -40,7 +44,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return r;
   }
 
-  const openRow = (lang, url = config.appUrl) => [{ text: t(lang, 'open'), web_app: { url } }];
+  const openRow = (lang, url = config.appUrl) => [{ text: t(lang, 'open'), web_app: { url }, style: BLUE }];
   const keyboard = (rows) => (rows.length ? { reply_markup: { inline_keyboard: rows } } : undefined);
   const botName = config.botUsername || 'vertexhashbot';
   const faqPath = (lang) => (lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq');
@@ -88,11 +92,10 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       const c = encodeURIComponent(b.code);
       lines.push(t(lang, 'refCode', { code: b.code }));
       // No links in the text (no big preview card): the code and links are buttons that copy or share.
-      rows.push([
-        { text: t(lang, 'b_copyCode'), copy_text: { text: b.code } },
-        { text: t(lang, 'b_copyLink'), copy_text: { text: `${config.appUrl}/login?ref=${c}` } },
-      ]);
-      rows.push([{ text: t(lang, 'b_share'), url: `https://t.me/share/url?url=${encodeURIComponent(`https://t.me/${botName}?start=${c}`)}` }]);
+      // One button per row: full width, easy to tap.
+      rows.push([{ text: t(lang, 'b_copyCode'), copy_text: { text: b.code }, style: BLUE }]);
+      rows.push([{ text: t(lang, 'b_copyLink'), copy_text: { text: `${config.appUrl}/login?ref=${c}` }, style: BLUE }]);
+      rows.push([{ text: t(lang, 'b_share'), url: `https://t.me/share/url?url=${encodeURIComponent(`https://t.me/${botName}?start=${c}`)}`, style: GREEN }]);
     }
     lines.push(t(lang, 'refFriends', { n: b.friends, active: b.active }));
     lines.push(t(lang, 'refEarned', { btc: btcText(b.earned) }));
@@ -101,7 +104,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return { text: lines.join('\n'), rows };
   }
 
-  const faqView = (lang) => ({ text: t(lang, 'faq'), rows: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${faqPath(lang)}` }]] });
+  const faqView = (lang) => ({ text: t(lang, 'faq'), rows: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${faqPath(lang)}`, style: BLUE }]] });
   const supportView = (lang) => ({ text: t(lang, 'support', { email: config.supportEmail }), rows: [] });
 
   // Links the Telegram id to the email account that made the code (Settings > Connect Telegram). The code is never logged or stored here.
@@ -116,16 +119,16 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   // ---- Button menu ----
   // One live menu per chat: chats.menu_msg_id is its message, chats.menu_ver its counter. Every tap moves the counter on in one
   // UPDATE, so a second tap on the same buttons (double tap) or a button of an older menu finds the counter changed and is ignored.
-  const mbtn = (lang, key, action, ver) => ({ text: t(lang, key), callback_data: `m:${action}:${ver}` });
+  const mbtn = (lang, key, action, ver, style) => ({ text: t(lang, key), callback_data: `m:${action}:${ver}`, ...(style ? { style } : {}) });
   const menuRow = (lang, ver) => [mbtn(lang, 'b_menu', 'menu', ver)];
   const mainRows = (lang, ver, url) => [
     openRow(lang, url),
-    [mbtn(lang, 'b_balance', 'bal', ver), mbtn(lang, 'b_earnings', 'ear', ver)],
-    [mbtn(lang, 'b_friends', 'ref', ver), mbtn(lang, 'b_more', 'more', ver)],
+    [mbtn(lang, 'b_balance', 'bal', ver, GREEN), mbtn(lang, 'b_earnings', 'ear', ver, GREEN)],
+    [mbtn(lang, 'b_friends', 'ref', ver, BLUE), mbtn(lang, 'b_more', 'more', ver)],
   ];
   const moreRows = (lang, ver) => [
-    [mbtn(lang, 'b_faq', 'faq', ver), mbtn(lang, 'b_help', 'help', ver)],
-    hasLang('fa') ? [mbtn(lang, 'b_lang', 'lang', ver), mbtn(lang, 'b_stop', 'stop', ver)] : [mbtn(lang, 'b_stop', 'stop', ver)],
+    [mbtn(lang, 'b_faq', 'faq', ver, BLUE), mbtn(lang, 'b_help', 'help', ver, BLUE)],
+    hasLang('fa') ? [mbtn(lang, 'b_lang', 'lang', ver), mbtn(lang, 'b_stop', 'stop', ver, RED)] : [mbtn(lang, 'b_stop', 'stop', ver, RED)],
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
   const langRows = (lang, ver) => [
