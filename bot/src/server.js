@@ -9,7 +9,6 @@ import { config, checkConfig } from './config.js';
 import { telegram } from './telegram.js';
 import { makeBot } from './app.js';
 import { makeQueue } from './queue.js';
-import { commandList } from './texts.js';
 
 const PORT = Number(process.env.PORT) || 4000;
 
@@ -22,12 +21,13 @@ async function setup(tg, c) {
   const w = await tg.call('setWebhook', {
     url: `https://${c.publicHost}/tg/${c.path}`,
     secret_token: c.secret,
-    allowed_updates: ['message', 'my_chat_member'],
+    allowed_updates: ['message', 'my_chat_member', 'callback_query'],
     max_connections: 40,
   });
   console.log(w.ok ? '[bot] webhook set' : `[bot] webhook NOT set: ${w.description || w.status}`);
-  const m = await tg.call('setMyCommands', { commands: commandList('en') });
-  console.log(m.ok ? '[bot] commands set' : `[bot] commands NOT set: ${m.description || m.status}`);
+  // The buttons replace the slash list: clear it (typed commands still work).
+  const m = await tg.call('deleteMyCommands');
+  console.log(m.ok ? '[bot] command list cleared' : `[bot] command list NOT cleared: ${m.description || m.status}`);
 }
 
 async function main() {
