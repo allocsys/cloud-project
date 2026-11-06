@@ -25,11 +25,30 @@ export async function enqueue({ tg_id, kind, key, lang = null, vars = {} }) {
 
 export const pendingCount = async () => (await q("SELECT count(*)::int AS n FROM notify_outbox WHERE status = 'pending'")).rows[0].n;
 
+// Queues a broadcast. test = one row for that chat only (sent even if it did /stop). Otherwise one row per active chat that has news on.
+// Returns the number of rows added; the same id again adds nothing.
+export async function enqueueBroadcast({ id, en, fa = null, test = null }) {
+  const vars = JSON.stringify(fa ? { en, fa } : { en });
+  if (test) {
+    const v = JSON.stringify(fa ? { en, fa, test: true } : { en, test: true });
+    const r = await q("INSERT INTO notify_outbox (dedupe_key, tg_id, kind, vars) VALUES ($1, $2, 'broadcast', $3::jsonb) ON CONFLICT (dedupe_key) DO NOTHING", [`bct:${id}:${test}`, test, v]);
+    return r.rowCount;
+  }
+  const r = await q(
+    `INSERT INTO notify_outbox (dedupe_key, tg_id, kind, lang, vars)
+     SELECT 'bc:' || $1::text || ':' || tg_id, tg_id, 'broadcast', lang, $2::jsonb FROM chats WHERE active AND news
+     ON CONFLICT (dedupe_key) DO NOTHING`,
+    [id, vars],
+  );
+  return r.rowCount;
+}
+
 const finish = (id, status, error = null) =>
   q('UPDATE notify_outbox SET status = $2, last_error = $3, attempts = attempts + 1, done_at = now() WHERE id = $1', [id, status, error]);
 
 export function makeQueue({ tg, config, sleep = defaultSleep, now = Date.now, log = console, batch = 50 }) {
   const gap = Math.ceil(1000 / (config.notifyPerSec || 25));
+  const bgap = Math.ceil(1000 / (config.broadcastPerSec || 10));
   const markup = config.appUrl ? { reply_markup: { inline_keyboard: [[{ text: '', web_app: { url: config.appUrl } }]] } } : {};
   let pausedUntil = 0;
   let running = null;
@@ -46,28 +65,34 @@ export function makeQueue({ tg, config, sleep = defaultSleep, now = Date.now, lo
     const rows = (
       await q(
         `UPDATE notify_outbox SET next_try_at = now() + make_interval(secs => $2)
-         WHERE id IN (SELECT id FROM notify_outbox WHERE status = 'pending' AND next_try_at <= now() ORDER BY id LIMIT $1 FOR UPDATE SKIP LOCKED)
+         WHERE id IN (SELECT id FROM notify_outbox WHERE status = 'pending' AND next_try_at <= now() ORDER BY (kind = 'broadcast'), id LIMIT $1 FOR UPDATE SKIP LOCKED)
          RETURNING id, tg_id, kind, lang, vars, attempts`,
         [batch, LEASE_SECONDS],
       )
-    ).rows.sort((a, b) => Number(a.id) - Number(b.id));
+    ).rows.sort((a, b) => (a.kind === 'broadcast') - (b.kind === 'broadcast') || Number(a.id) - Number(b.id));
     out.claimed = rows.length;
     let sentAny = false;
     for (const [i, row] of rows.entries()) {
-      const chat = (await q('SELECT lang, active FROM chats WHERE tg_id = $1', [row.tg_id])).rows[0];
+      const chat = (await q('SELECT lang, active, news FROM chats WHERE tg_id = $1', [row.tg_id])).rows[0];
+      const bc = row.kind === 'broadcast';
       if (chat && !chat.active) {
         await finish(row.id, 'skipped', 'blocked');
         out.skipped++;
         continue;
       }
+      if (bc && chat && chat.news === false && !(row.vars && row.vars.test)) {
+        await finish(row.id, 'skipped', 'news off');
+        out.skipped++;
+        continue;
+      }
       const lang = (chat && chat.lang) || row.lang || 'en';
-      const text = t(lang, 'n_' + row.kind, row.vars);
+      const text = bc ? String((row.vars && (row.vars[lang] || row.vars.en)) || '') : t(lang, 'n_' + row.kind, row.vars);
       if (!text) {
         await finish(row.id, 'failed', 'no text');
         out.failed++;
         continue;
       }
-      if (sentAny) await sleep(gap);
+      if (sentAny) await sleep(bc ? bgap : gap);
       sentAny = true;
       const extra = markup.reply_markup ? { reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } } : {};
       const r = await tg.sendMessage(row.tg_id, text, extra);
