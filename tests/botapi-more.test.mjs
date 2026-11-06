@@ -2,11 +2,11 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, tx, withUser, createUser, getUser } = await import('@/lib/server/db');
+const { pool, tx, withUser, createUser, saveUser, getUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { signBody } = await import('@/lib/server/botnotify');
 const { serve, earningsFor, referralsFor } = await import('@/lib/server/botapi');
-const { applyLink } = await import('@/lib/server/referrals');
+const { applyLink, assignCode } = await import('@/lib/server/referrals');
 
 const SECRET = 'k'.repeat(32);
 const env = { APP_BOT_SECRET: SECRET };
@@ -15,6 +15,13 @@ const call = (fn, extra) => {
   return serve(JSON.stringify(body), signBody(body, SECRET), fn, { env });
 };
 const tgId = (n) => 8000000 + ((Date.now() + n) % 1000000);
+// A new account with its invite code, as sign-up makes it.
+const mk = (id) =>
+  tx(async (c) => {
+    const u = await createUser(c, id);
+    await assignCode(c, u);
+    await saveUser(c, u);
+  });
 
 before(async () => {
   await migrate();
@@ -62,7 +69,7 @@ test('/earnings: an account with a miner has numbers that are finite and never n
 test('/referrals: the default code, no friends yet, VIP 0', async () => {
   const n = tgId(4);
   const id = `tg:${n}`;
-  await tx((c) => createUser(c, id));
+  await mk(id);
   const r = await call(referralsFor, { tg_id: n });
   assert.equal(r.status, 200);
   assert.equal(r.json.ok, true);
@@ -77,8 +84,8 @@ test('/referrals: the default code, no friends yet, VIP 0', async () => {
 test('/referrals: a friend who signed up counts as a friend, not yet active', async () => {
   const inv = tgId(5);
   const fr = tgId(6);
-  await tx((c) => createUser(c, `tg:${inv}`));
-  await tx((c) => createUser(c, `tg:${fr}`));
+  await mk(`tg:${inv}`);
+  await mk(`tg:${fr}`);
   const code = (await getUser(`tg:${inv}`)).refCode;
   const linked = await withUser(`tg:${fr}`, (f, c) => applyLink(c, f, code));
   assert.equal(linked.ok, true);
