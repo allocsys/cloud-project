@@ -28,7 +28,7 @@ test('scraping tools are refused on the API and on public pages, browsers and li
 
 test('machine calls (payment webhook, hall monitoring, health) are never limited or blocked', () => {
   clearCounters();
-  for (const p of ['/api/payments/webhook', '/api/telemetry', '/api/health']) {
+  for (const p of ['/api/payments/webhook', '/api/telemetry', '/api/health', '/api/bot/balance']) {
     assert.equal(call(p, { ua: 'curl/8.4.0', method: 'POST' }).headers.get('x-middleware-next'), '1', p);
   }
 });
