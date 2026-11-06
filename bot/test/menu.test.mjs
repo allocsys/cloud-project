@@ -114,7 +114,7 @@ test('More opens the second page, Back returns', async () => {
   const m = tg.of('markup')[0];
   assert.equal(m.message_id, mid);
   const actions = buttons(m.markup.inline_keyboard).map((b) => b.callback_data.split(':')[1]);
-  assert.deepEqual(actions, ['link', 'faq', 'help', 'lang', 'stop', 'menu']);
+  assert.deepEqual(actions, ['faq', 'help', 'lang', 'stop', 'menu']);
   await bot.handleUpdate(tap(dataOf(m.markup.inline_keyboard, 'menu'), mid));
   assert.ok(tg.of('edit')[0].text.includes('VERTEXHASH'));
 });
