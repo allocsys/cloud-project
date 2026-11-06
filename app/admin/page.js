@@ -1292,6 +1292,7 @@ export default function Admin() {
   const [toq, setToq] = useState(''); // search text for the recipient on the Send tab
   const [title, setTitle] = useState('');
   const [msg, setMsg] = useState('');
+  const [tg, setTg] = useState({ en: '', fa: '', id: '', tested: '' }); // Telegram news form; tested = the text last sent as a test
   const [edit, setEdit] = useState(null); // { kind: 'hall', id, draft }
   const [setup, setSetup] = useState(false); // first run: no admin account yet
   const [refDraft, setRefDraft] = useState(null); // referral settings being edited, as strings
@@ -2274,6 +2275,7 @@ export default function Admin() {
       {tab === 'database' && <DatabaseTab />}
 
       {tab === 'send' && (
+        <>
         <div className="card adm-stack">
           <h3>Send a notification</h3>
           <div className="field" style={{ marginTop: 4 }}>
@@ -2306,6 +2308,36 @@ export default function Admin() {
             Send
           </button>
         </div>
+        <div className="card adm-stack">
+          <h3>Telegram news</h3>
+          <textarea aria-label="English text" placeholder="English text" maxLength={1000} value={tg.en} onChange={(e) => setTg({ ...tg, en: e.target.value })} />
+          <textarea aria-label="Persian text" placeholder="Persian text (optional)" maxLength={1000} dir="rtl" value={tg.fa} onChange={(e) => setTg({ ...tg, fa: e.target.value })} />
+          <div className="field" style={{ marginTop: 4 }}>
+            <input id="tgid" inputMode="numeric" autoComplete="off" placeholder=" " value={tg.id} onChange={(e) => setTg({ ...tg, id: e.target.value })} />
+            <label htmlFor="tgid">Your Telegram ID</label>
+          </div>
+          <button
+            className="btn"
+            disabled={busy || !tg.en.trim() || !tg.id.trim()}
+            onClick={async () => {
+              const key = `${tg.en.trim()}|${tg.fa.trim()}`;
+              if (await run({ action: 'tg-broadcast', mode: 'test', text: tg.en, textFa: tg.fa, testId: tg.id }, 'Test sent')) setTg((t) => ({ ...t, tested: key }));
+            }}
+          >
+            Send test
+          </button>
+          <button
+            className="btn"
+            disabled={busy || !tg.en.trim() || tg.tested !== `${tg.en.trim()}|${tg.fa.trim()}`}
+            onClick={async () => {
+              if (!(await ask('Send this to every Telegram chat? It cannot be undone.', { ok: 'Send to all', danger: true }))) return;
+              if (await run({ action: 'tg-broadcast', mode: 'all', text: tg.en, textFa: tg.fa }, (x) => `Queued for ${x.queued} chats`)) setTg((t) => ({ ...t, en: '', fa: '', tested: '' }));
+            }}
+          >
+            Send to all
+          </button>
+        </div>
+        </>
       )}
       <AskHost />
       {toast}
