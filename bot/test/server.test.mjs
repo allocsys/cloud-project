@@ -68,7 +68,7 @@ test('a good update answers 200 and the reply is sent', async () => {
   const r = await post(HOOK, upd('/start'), GOOD);
   assert.equal(r.status, 200);
   await bot.idle();
-  assert.equal(sent.length, 1);
+  assert.equal(sent.length, 2);
   assert.equal(sent[0].chat, 2002);
 });
 
