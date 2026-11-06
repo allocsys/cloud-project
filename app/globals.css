@@ -1517,6 +1517,15 @@ main {
 .terms { display: flex; gap: 8px; margin-top: 10px; }
 .terms button { flex: 1; min-height: 36px; border: 0; border-radius: 20px; background: var(--s4); color: var(--text); font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
 .terms button[aria-pressed=true] { background: var(--gold); color: var(--on-gold); }
+.terms button.two { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 52px; padding: 6px 2px; line-height: 18px; }
+.terms button.two small { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--green); font-variant-numeric: tabular-nums; }
+.terms button.two[aria-pressed=true] small { color: inherit; }
+.slide .big.top { align-items: flex-start; }
+.slide .big .gain { display: flex; flex-direction: column; align-items: flex-end; }
+.slide .big .gain small { font-size: 12px; line-height: 16px; color: var(--mute); }
+.slide .big .gain b { font-size: 30px; line-height: 36px; color: var(--green); }
+.gsub { margin: 2px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); text-align: end; }
+.gnote { margin: 8px 0 0; font-size: 12px; line-height: 16px; color: var(--mute); text-align: end; }
 
 /* Payout countdown */
 .payout { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--ov-l); }
