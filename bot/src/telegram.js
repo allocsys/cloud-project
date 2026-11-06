@@ -19,5 +19,8 @@ export function telegram(token, fetchFn = fetch) {
   return {
     call,
     sendMessage: (chat_id, text, extra = {}) => call('sendMessage', { chat_id, text, ...extra }),
+    editMessageText: (chat_id, message_id, text, extra = {}) => call('editMessageText', { chat_id, message_id, text, ...extra }),
+    editMessageReplyMarkup: (chat_id, message_id, reply_markup) => call('editMessageReplyMarkup', { chat_id, message_id, reply_markup }),
+    answerCallbackQuery: (callback_query_id) => call('answerCallbackQuery', { callback_query_id }),
   };
 }
