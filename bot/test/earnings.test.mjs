@@ -65,22 +65,30 @@ test('/earnings in Persian', async () => {
   assert.equal(sent[0].text, 'امروز: 0.00000000 BTC\nمجموع: 0.50000000 BTC\nروزانه: ≈ $1.00');
 });
 
-test('/referrals shows code, link, friends, earned and VIP, with an Open app button', async () => {
+test('/referrals shows code, friends, earned and VIP; code and links are buttons', async () => {
   answer = good({ code: 'VTX-AB2C', friends: 3, active: 2, earned: 0.0002, vip: 1 });
   await say('/referrals');
   assert.deepEqual(calls, [{ name: 'referrals', payload: { tg_id: 7002 } }]);
-  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nLink: https://t.me/vertexhashbot?start=VTX-AB2C\nFriends: 3 (2 active)\nEarned: 0.00020000 BTC\nVIP: 1');
-  assert.equal(sent[0].extra.reply_markup.inline_keyboard[0][0].web_app.url, cfg.appUrl);
+  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nFriends: 3 (2 active)\nEarned: 0.00020000 BTC\nVIP: 1');
+  const kb = sent[0].extra.reply_markup.inline_keyboard;
+  assert.deepEqual(kb[0], [
+    { text: 'Copy code', copy_text: { text: 'VTX-AB2C' } },
+    { text: 'Copy link', copy_text: { text: 'https://vertexhash.com/login?ref=VTX-AB2C' } },
+  ]);
+  assert.deepEqual(kb[1], [{ text: 'Share', url: 'https://t.me/share/url?url=' + encodeURIComponent('https://t.me/vertexhashbot?start=VTX-AB2C') }]);
+  assert.equal(kb[2][0].web_app.url, cfg.appUrl);
 });
 
 test('/referrals: no VIP line at VIP 0, and a odd code is not shown', async () => {
   answer = good({ code: 'VTX-AB2C', friends: 0, active: 0, earned: 0, vip: 0 });
   await say('/referrals');
-  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nLink: https://t.me/vertexhashbot?start=VTX-AB2C\nFriends: 0 (0 active)\nEarned: 0.00000000 BTC');
+  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nFriends: 0 (0 active)\nEarned: 0.00000000 BTC');
   sent.length = 0;
   answer = good({ code: 'x y<>', friends: 0, active: 0, earned: 0, vip: 0 });
   await say('/referrals');
   assert.equal(sent[0].text, 'Friends: 0 (0 active)\nEarned: 0.00000000 BTC');
+  assert.equal(sent[0].extra.reply_markup.inline_keyboard.length, 1);
+  assert.ok(sent[0].extra.reply_markup.inline_keyboard[0][0].web_app);
 });
 
 test('no account: message and Open app button, for both commands', async () => {
@@ -113,6 +121,6 @@ test('the menu lists both commands and the texts exist in en and fa', () => {
   const cmds = commandList('en');
   assert.ok(cmds.some((c) => c.command === 'earnings' && c.description === 'Show earnings'));
   assert.ok(cmds.some((c) => c.command === 'referrals' && c.description === 'Invite friends'));
-  for (const k of ['earnToday', 'earnTotal', 'earnAvg', 'noMiners', 'refCode', 'refLink', 'refFriends', 'refEarned', 'refVip', 'd_earnings', 'd_referrals']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  for (const k of ['earnToday', 'earnTotal', 'earnAvg', 'noMiners', 'refCode', 'refFriends', 'refEarned', 'refVip', 'd_earnings', 'd_referrals', 'b_copyCode', 'b_copyLink', 'b_share']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   assert.equal(t('fa', 'd_referrals'), 'دعوت دوستان');
 });
