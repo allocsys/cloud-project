@@ -10,6 +10,7 @@ import { makeAppApi } from './appapi.js';
 const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
 const btcText = (n) => Number(n).toFixed(8);
+const CODE = /^[A-Za-z0-9-]{3,32}$/;
 
 export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
@@ -36,16 +37,51 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
 
   const openButton = (lang) => ({ reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } });
 
-  // /balance: the app answers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
+  // Asks the app for one set of numbers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
+  // Sends the 'no account' or 'try again' message itself and returns null; returns the answer only when it is good (valid(answer)).
+  async function ask(chatId, lang, userId, name, valid) {
+    const r = await appApi(name, { tg_id: userId });
+    if (r.status === 404) {
+      await reply(chatId, t(lang, 'noAcc'), openButton(lang));
+      return null;
+    }
+    if (!r.ok || !r.json || !valid(r.json)) {
+      await reply(chatId, t(lang, 'busy'));
+      return null;
+    }
+    return r.json;
+  }
+
   async function balance(chatId, lang, userId) {
-    const r = await appApi('balance', { tg_id: userId });
-    if (r.status === 404) return reply(chatId, t(lang, 'noAcc'), openButton(lang));
-    const b = r.json;
-    if (!r.ok || !b || !Number.isFinite(b.btc) || !Number.isFinite(b.locked)) return reply(chatId, t(lang, 'busy'));
+    const b = await ask(chatId, lang, userId, 'balance', (x) => Number.isFinite(x.btc) && Number.isFinite(x.locked));
+    if (!b) return;
     const lines = [t(lang, 'bal', { btc: btcText(b.btc) })];
     if (Number.isFinite(b.usd)) lines.push(t(lang, 'balUsd', { usd: b.usd.toFixed(2) }));
     if (b.locked > 0) lines.push(t(lang, 'balHold', { locked: btcText(b.locked) }));
     return reply(chatId, lines.join('\n'));
+  }
+
+  async function earnings(chatId, lang, userId) {
+    const b = await ask(chatId, lang, userId, 'earnings', (x) => typeof x.miners === 'boolean' && Number.isFinite(x.today) && Number.isFinite(x.total));
+    if (!b) return;
+    if (!b.miners) return reply(chatId, t(lang, 'noMiners'), openButton(lang));
+    const lines = [t(lang, 'earnToday', { btc: btcText(b.today) }), t(lang, 'earnTotal', { btc: btcText(b.total) })];
+    if (Number.isFinite(b.avgUsd)) lines.push(t(lang, 'earnAvg', { usd: b.avgUsd.toFixed(2) }));
+    return reply(chatId, lines.join('\n'));
+  }
+
+  async function referrals(chatId, lang, userId) {
+    const b = await ask(chatId, lang, userId, 'referrals', (x) => Number.isInteger(x.friends) && Number.isInteger(x.active) && Number.isFinite(x.earned) && Number.isInteger(x.vip));
+    if (!b) return;
+    const lines = [];
+    if (typeof b.code === 'string' && CODE.test(b.code)) {
+      lines.push(t(lang, 'refCode', { code: b.code }));
+      lines.push(t(lang, 'refLink', { link: `${config.appUrl}/login?ref=${encodeURIComponent(b.code)}` }));
+    }
+    lines.push(t(lang, 'refFriends', { n: b.friends, active: b.active }));
+    lines.push(t(lang, 'refEarned', { btc: btcText(b.earned) }));
+    if (b.vip > 0) lines.push(t(lang, 'refVip', { n: b.vip }));
+    return reply(chatId, lines.join('\n'), openButton(lang));
   }
 
   async function handleUpdate(update) {
@@ -77,6 +113,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       return reply(id, t(lang, 'start'), openButton(lang));
     }
     if (cmd === 'balance') return balance(id, lang, m.from.id);
+    if (cmd === 'earnings') return earnings(id, lang, m.from.id);
+    if (cmd === 'referrals') return referrals(id, lang, m.from.id);
     if (cmd === 'faq') {
       const path = lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq';
       return reply(id, t(lang, 'faq'), { reply_markup: { inline_keyboard: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${path}` }]] } });
