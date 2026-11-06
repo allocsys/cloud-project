@@ -13,7 +13,7 @@ const MACHINE = ['/api/payments/webhook', '/api/telemetry', '/api/health'];
 // person could (per minute) is slowed with 429. Calls with no readable address are not limited.
 function gate(req, pathname) {
   const api = pathname.startsWith('/api/');
-  if (api && MACHINE.includes(pathname)) return null;
+  if (api && (MACHINE.includes(pathname) || pathname.startsWith('/api/bot/'))) return null; // bot calls are signed; an unsigned one costs one cheap check
   const ip = addressOf(req.headers);
   const ua = req.headers.get('user-agent') || '';
   const deny = (status, text) =>
