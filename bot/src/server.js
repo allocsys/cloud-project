@@ -8,6 +8,7 @@ import { json } from './http.js';
 import { config, checkConfig } from './config.js';
 import { telegram } from './telegram.js';
 import { makeBot } from './app.js';
+import { makeQueue } from './queue.js';
 import { commandList } from './texts.js';
 
 const PORT = Number(process.env.PORT) || 4000;
@@ -49,7 +50,8 @@ async function main() {
   await migrate();
 
   const tg = telegram(c.token);
-  const bot = makeBot({ config: c, tg });
+  const queue = makeQueue({ tg, config: c });
+  const bot = makeBot({ config: c, tg, queue });
   const server = createServer((req, res) => {
     bot.handler(req, res).catch((e) => {
       console.error('[bot] request failed:', e.message);
@@ -64,10 +66,12 @@ async function main() {
   server.listen(PORT, '0.0.0.0', () => {
     console.log(`[bot] listening on ${PORT}`);
     setup(tg, c).catch((e) => console.error('[bot] setup failed:', e.message));
+    if (c.notifySecret) queue.start();
   });
   const stop = () =>
     server.close(async () => {
       clearInterval(clean);
+      await queue.stop();
       await bot.idle();
       await closeDb();
       process.exit(0);
