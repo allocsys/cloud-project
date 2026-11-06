@@ -252,6 +252,26 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
   );
 }
 
+// The profit number swings between the low and high estimate, settles on the middle, rests, and replays (about every 6.5 s).
+// It writes straight to the element, so there is no re-render per frame. No reduced-motion rule (owner's choice).
+function RangeNum({ low, mid, high, label }) {
+  const el = useRef(null);
+  useEffect(() => {
+    const amp = (high - low) / 2;
+    const t0 = performance.now();
+    let raf = 0;
+    const tick = (now) => {
+      const c = ((now - t0) / 1000) % 6.5;
+      const v = c > 4.5 ? mid : mid - amp * Math.cos((2 * Math.PI * c) / 1.8) * Math.exp(-c / 1.4);
+      if (el.current) el.current.textContent = `$${fmtUsd(v)}`;
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [low, mid, high]);
+  return <b ref={el} role="img" aria-label={label}>${fmtUsd(mid)}</b>;
+}
+
 // budget is the text in the amount box, bNum the budget it means; spos is the slider position (see lib/tiers.js).
 export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, within, onAmount, onAmountBlur, onSlide, onBuy }) {
   const t = useT();
@@ -267,7 +287,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
         <SmartArt level={level} />
       </div>
       <div className="slide">
-        <div className="big top">
+        <div className="big gtop">
           <label className="amt">
             <small>{t('pc.budgetLabel')}</small>
             <i aria-hidden="true">$</i>
@@ -286,11 +306,11 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
           {band && (
             <div className="gain">
               <small>{t('pc.profitLabel')}</small>
-              <b>${fmtUsd(band.mid)}</b>
+              <RangeNum low={band.low} mid={band.mid} high={band.high} label={t('pc.bandIn', { d: plan.days, low: fmtUsd(band.low), high: fmtUsd(band.high) })} />
             </div>
           )}
         </div>
-        {band && <div className="gsub">{t('pc.bandIn', { d: plan.days, low: fmtUsd(band.low), high: fmtUsd(band.high) })}</div>}
+        {band && <div className="gsub">{t('pc.inDays', { d: plan.days })}</div>}
         <input
           type="range"
           min="0"
