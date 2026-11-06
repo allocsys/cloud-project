@@ -111,8 +111,12 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   // Returns the text to show.
   async function linkText(lang, userId, code) {
     const r = await appApi('link', { tg_id: userId, code });
-    if (r.ok) return t(lang, 'linkOk');
-    const key = { 404: 'linkBad', 409: 'linkTaken', 429: 'linkMany' }[r.status];
+    if (r.ok) {
+      // The app sends the masked email (m***@gmail.com). An older app sends none: say the short text.
+      const mail = r.json && r.json.email;
+      return typeof mail === 'string' && /^[^\s@]{1,64}@[^\s@]{1,255}$/.test(mail) ? t(lang, 'linkDone', { email: mail }) : t(lang, 'linkOk');
+    }
+    const key = { 403: 'linkHas', 404: 'linkBad', 409: 'linkTaken', 429: 'linkMany' }[r.status];
     return t(lang, key || 'busy');
   }
 
