@@ -366,6 +366,7 @@ export default function Plans() {
           term={term}
           setTerm={setTerm}
           plan={sp}
+          table={cat?.smartTable}
           within={balUsd >= sp.price}
           onAmount={onAmount}
           onAmountBlur={onAmountBlur}
