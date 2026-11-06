@@ -123,18 +123,23 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   const menuRow = (lang, ver) => [mbtn(lang, 'b_menu', 'menu', ver)];
   const mainRows = (lang, ver, url) => [
     openRow(lang, url),
-    [mbtn(lang, 'b_balance', 'bal', ver, GREEN), mbtn(lang, 'b_earnings', 'ear', ver, GREEN)],
-    [mbtn(lang, 'b_friends', 'ref', ver, BLUE), mbtn(lang, 'b_more', 'more', ver)],
+    [mbtn(lang, 'b_balance', 'bal', ver, GREEN)],
+    [mbtn(lang, 'b_earnings', 'ear', ver, GREEN)],
+    [mbtn(lang, 'b_friends', 'ref', ver, BLUE)],
+    [mbtn(lang, 'b_more', 'more', ver)],
   ];
   const moreRows = (lang, ver) => [
-    [mbtn(lang, 'b_faq', 'faq', ver, BLUE), mbtn(lang, 'b_help', 'help', ver, BLUE)],
-    hasLang('fa') ? [mbtn(lang, 'b_lang', 'lang', ver), mbtn(lang, 'b_stop', 'stop', ver, RED)] : [mbtn(lang, 'b_stop', 'stop', ver, RED)],
+    [mbtn(lang, 'b_faq', 'faq', ver, BLUE)],
+    [mbtn(lang, 'b_help', 'help', ver, BLUE)],
+    ...(hasLang('fa') ? [[mbtn(lang, 'b_lang', 'lang', ver, BLUE)]] : []),
+    [mbtn(lang, 'b_stop', 'stop', ver, RED)],
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
   const langRows = (lang, ver) => [
     [
-      { text: 'English', callback_data: `m:l_en:${ver}` },
-      { text: '\u0641\u0627\u0631\u0633\u06cc', callback_data: `m:l_fa:${ver}` },
+      { text: 'English', callback_data: `m:l_en:${ver}`, style: BLUE }],
+    [
+      { text: '\u0641\u0627\u0631\u0633\u06cc', callback_data: `m:l_fa:${ver}`, style: BLUE },
     ],
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
