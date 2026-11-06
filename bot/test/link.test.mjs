@@ -50,6 +50,18 @@ test('/start lnk_CODE asks the app with the Telegram id and the code, then says 
   assert.equal(sent[0].text, 'Account linked.');
 });
 
+test('a good link with a masked email names it; no email (older app) says the short text', async () => {
+  answer = { ok: true, status: 200, json: { ok: true, email: 'm***@gmail.com' } };
+  await say('/start lnk_AB12CD34');
+  assert.equal(sent[0].text, 'Linked to m***@gmail.com. The bot now shows this account.');
+  for (const bad of ['x', 5, null, 'a b@c.d', 'a@' + 'b'.repeat(300)]) {
+    sent.length = 0;
+    answer = { ok: true, status: 200, json: { ok: true, email: bad } };
+    await say('/start lnk_AB12CD34');
+    assert.equal(sent[0].text, 'Account linked.', String(bad));
+  }
+});
+
 test('a referral code or a bad link shape does not call the app', async () => {
   for (const text of ['/start', '/start abc123', '/start lnk_', '/start lnk_a', '/start lnk_has-dash', '/start lnk_' + 'a'.repeat(33), '/start lnk_bad*chars']) {
     sent.length = 0;
@@ -61,6 +73,7 @@ test('a referral code or a bad link shape does not call the app', async () => {
 
 test('wrong or expired code, already linked, too many tries, app down', async () => {
   const cases = [
+    [{ ok: false, status: 403, json: { ok: false } }, 'This Telegram already has an account. Open the app here and tap Add email in Settings.'],
     [{ ok: false, status: 404, json: { ok: false } }, 'Code not valid.'],
     [{ ok: false, status: 409, json: { ok: false } }, 'Already linked to another account.'],
     [{ ok: false, status: 429, json: { ok: false } }, 'Too many tries. Wait a few minutes.'],
@@ -79,6 +92,15 @@ test('Persian chat gets the Persian text', async () => {
   await q("INSERT INTO chats (tg_id, lang) VALUES (7101, 'fa')");
   await say('/start lnk_abc123');
   assert.equal(sent[0].text, 'حساب متصل شد.');
+  sent.length = 0;
+  answer = { ok: true, status: 200, json: { ok: true, email: 'm***@gmail.com' } };
+  await say('/start lnk_abc123');
+  assert.equal(sent[0].text, 'به m***@gmail.com وصل شد. ربات از این پس این حساب را نشان می‌دهد.');
+  sent.length = 0;
+  answer = { ok: false, status: 403, json: { ok: false } };
+  await say('/start lnk_abc123');
+  assert.equal(sent[0].text, t('fa', 'linkHas'));
+  assert.ok(sent[0].text.includes('«افزودن ایمیل»'));
 });
 
 test('the code is not saved in the bot database', async () => {
@@ -102,5 +124,5 @@ test('the command list has no link or unlink; the link answers exist in en and f
     const names = commandList(lang).map((c) => c.command);
     assert.ok(!names.includes('link') && !names.includes('unlink'));
   }
-  for (const k of ['linkOk', 'linkBad', 'linkTaken', 'linkMany']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  for (const k of ['linkOk', 'linkDone', 'linkHas', 'linkBad', 'linkTaken', 'linkMany']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
 });
