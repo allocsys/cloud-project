@@ -37,6 +37,17 @@ test('every fa key exists in en with the same placeholders', () => {
   }
 });
 
+test('notification texts exist in en and fa and fill their values', () => {
+  for (const k of ['n_depPaid', 'n_wdSent', 'n_vipDrop']) {
+    assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  }
+  assert.equal(t('en', 'n_depPaid', { usd: '50.00' }), 'Deposit received: $50.00.');
+  assert.equal(t('fa', 'n_depPaid', { usd: '50.00' }), 'واریز شد: $50.00.');
+  assert.equal(t('en', 'n_wdSent', { amt: '0.5 BTC' }), 'Withdrawal sent: 0.5 BTC.');
+  assert.equal(t('en', 'n_vipDrop', { n: 2, date: '30 Nov' }), 'VIP 2 drops on 30 Nov.');
+  assert.ok(t('fa', 'n_vipDrop', { n: 2, date: 'x' }).includes('VIP 2'));
+});
+
 test('texts fall back to English and fill placeholders', () => {
   assert.equal(hasLang('en'), true);
   assert.equal(t('fa', 'open'), hasLang('fa') ? texts.fa.open : texts.en.open);
