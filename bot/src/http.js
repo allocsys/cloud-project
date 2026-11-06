@@ -11,8 +11,8 @@ export const json = (res, status, body) => {
   res.end(JSON.stringify(body));
 };
 
-// Reads a JSON object body of at most `max` bytes.
-export async function readJson(req, max = 64 * 1024) {
+// Reads the body as text, at most `max` bytes.
+export async function readRaw(req, max = 64 * 1024) {
   const chunks = [];
   let size = 0;
   for await (const c of req) {
@@ -20,9 +20,15 @@ export async function readJson(req, max = 64 * 1024) {
     if (size > max) throw new ApiError(413, 'Body too large.');
     chunks.push(c);
   }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
+// Reads a JSON object body of at most `max` bytes.
+export async function readJson(req, max = 64 * 1024) {
+  const raw = await readRaw(req, max);
   let body;
   try {
-    body = JSON.parse(Buffer.concat(chunks).toString('utf8'));
+    body = JSON.parse(raw);
   } catch {
     throw new ApiError(400, 'Body must be JSON.');
   }
