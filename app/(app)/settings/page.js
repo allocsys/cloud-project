@@ -723,7 +723,7 @@ export default function Settings() {
               </div>
               {bl && !me.botLinked && (
                 <div style={{ paddingBottom: '8px' }}>
-                  <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center' }}>{t('set.botOpen')}</a>
+                  <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>{t('set.botOpen')}</a>
                 </div>
               )}
             </>
