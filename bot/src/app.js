@@ -11,9 +11,11 @@ const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
 const btcText = (n) => Number(n).toFixed(8);
 const CODE = /^[A-Za-z0-9-]{3,32}$/;
+// Start payload from Settings > Connect Telegram: lnk_<link code>. Referral codes have no underscore, so the two cannot be mixed up.
+const LINK_START = /^lnk_([A-Za-z0-9]{3,32})$/;
 // Button taps: m:<action>:<version>. The version is the menu's counter: a tap is used once, then the counter moves on.
 const MENU_DATA = /^m:([a-z_]{1,8}):(\d{1,9})$/;
-const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'link', 'faq', 'help', 'lang', 'l_en', 'l_fa', 'stop']);
+const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'faq', 'help', 'lang', 'l_en', 'l_fa', 'stop']);
 
 export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
@@ -102,20 +104,13 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   const faqView = (lang) => ({ text: t(lang, 'faq'), rows: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${faqPath(lang)}` }]] });
   const supportView = (lang) => ({ text: t(lang, 'support', { email: config.supportEmail }), rows: [] });
 
-  // Links the Telegram id to the email account that made the code. The code is never logged or stored here.
-  async function link(chatId, lang, userId, code) {
-    if (!CODE.test(code)) return reply(chatId, t(lang, 'linkUsage'));
+  // Links the Telegram id to the email account that made the code (Settings > Connect Telegram). The code is never logged or stored here.
+  // Returns the text to show.
+  async function linkText(lang, userId, code) {
     const r = await appApi('link', { tg_id: userId, code });
-    if (r.ok) return reply(chatId, t(lang, 'linkOk'));
+    if (r.ok) return t(lang, 'linkOk');
     const key = { 404: 'linkBad', 409: 'linkTaken', 429: 'linkMany' }[r.status];
-    return reply(chatId, t(lang, key || 'busy'));
-  }
-
-  // Removes the link between this Telegram id and its email account (bot notices stop; the account itself is untouched).
-  async function unlink(chatId, lang, userId) {
-    const r = await appApi('unlink', { tg_id: userId });
-    if (r.ok) return reply(chatId, t(lang, 'unlinkOk'));
-    return reply(chatId, t(lang, r.status === 404 ? 'unlinkNone' : 'busy'));
+    return t(lang, key || 'busy');
   }
 
   // ---- Button menu ----
@@ -129,9 +124,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     [mbtn(lang, 'b_friends', 'ref', ver), mbtn(lang, 'b_more', 'more', ver)],
   ];
   const moreRows = (lang, ver) => [
-    [mbtn(lang, 'b_link', 'link', ver), mbtn(lang, 'b_faq', 'faq', ver)],
-    hasLang('fa') ? [mbtn(lang, 'b_help', 'help', ver), mbtn(lang, 'b_lang', 'lang', ver)] : [mbtn(lang, 'b_help', 'help', ver)],
-    [mbtn(lang, 'b_stop', 'stop', ver)],
+    [mbtn(lang, 'b_faq', 'faq', ver), mbtn(lang, 'b_help', 'help', ver)],
+    hasLang('fa') ? [mbtn(lang, 'b_lang', 'lang', ver), mbtn(lang, 'b_stop', 'stop', ver)] : [mbtn(lang, 'b_stop', 'stop', ver)],
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
   const langRows = (lang, ver) => [
@@ -196,7 +190,6 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     else if (act === 'ref') view = await referralsView(lang, cb.from.id);
     else if (act === 'faq') view = faqView(lang);
     else if (act === 'help') view = supportView(lang);
-    else if (act === 'link') view = { text: t(lang, 'linkUsage'), rows: [] };
     else if (act === 'stop') {
       await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
       view = { text: t(lang, 'stopOk'), rows: [] };
@@ -251,10 +244,12 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
 
     if (cmd === 'start') {
       // A start payload is a referral code: the app opens on the sign-up page with it. The code keeps its case.
+      // A payload lnk_<code> is a link code from Settings > Connect Telegram: it links the account and says so.
       const code = rawArg.split(/\s+/)[0];
+      const lk = LINK_START.exec(code);
       const url = CODE.test(code) ? `${config.appUrl}/login?ref=${encodeURIComponent(code)}` : config.appUrl;
       // Writing /start turns news back on; say so only when it was off.
-      let text = t(lang, 'start');
+      let text = lk ? await linkText(lang, m.from.id, lk[1]) : t(lang, 'start');
       if (row.news === false) {
         await q('UPDATE chats SET news = true WHERE tg_id = $1', [id]);
         text += '\n' + t(lang, 'newsOn');
@@ -268,8 +263,6 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (cmd === 'balance') return send(id, await balanceView(lang, m.from.id));
     if (cmd === 'earnings') return send(id, await earningsView(lang, m.from.id));
     if (cmd === 'referrals') return send(id, await referralsView(lang, m.from.id));
-    if (cmd === 'link') return link(id, lang, m.from.id, arg);
-    if (cmd === 'unlink') return unlink(id, lang, m.from.id);
     if (cmd === 'faq') return send(id, faqView(lang));
     if (cmd === 'support') return send(id, supportView(lang));
     if (cmd === 'lang' && hasLang('fa')) {
