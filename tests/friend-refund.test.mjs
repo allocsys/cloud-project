@@ -1,7 +1,7 @@
 // A friend's refund against the inviter's reward and VIP, on a real Postgres: the reward waits for the refund window,
 // a refunded first purchase pays nothing and does not count for VIP, even if the friend buys a smaller miner afterwards.
 // Each test uses its own accounts, so reruns on the same database are fine.
-import { test, before, after } from 'node:test';
+import { test, before, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
 const { pool, withUser, getUser } = await import('@/lib/server/db');
@@ -138,14 +138,13 @@ test('a refund approved after the window closed says so and the request stays op
   assert.ok(no.ok, no.error);
 });
 
-// The clock is set for the purchase only (Date.now), then put back.
+// The whole clock (Date.now and new Date()) is set for one call, then put back.
 const at = async (ms, fn) => {
-  const real = Date.now;
-  Date.now = () => ms;
+  mock.timers.enable({ apis: ['Date'], now: ms });
   try {
     return await fn();
   } finally {
-    Date.now = real;
+    mock.timers.reset();
   }
 };
 
