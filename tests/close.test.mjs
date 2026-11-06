@@ -173,6 +173,10 @@ test('closing a friend does not change what the inviter earned, and the list cal
   await credit(fr, 0.02);
   await buy(fr);
   await empty(fr);
+  // The reward starts after the refund window of the first purchase: make that window closed.
+  await withUser(fr, (u) => {
+    u.refRewardAt = Date.now() - 60000;
+  });
   const before = await availOf(inv);
   assert.ok(before > 0, 'the inviter has a reward to protect');
 
