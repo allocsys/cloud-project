@@ -36,6 +36,9 @@ export const texts = {
     d_support: 'Get help',
     d_lang: 'Change language',
     d_link: 'Link your account',
+    stopOk: 'News turned off. Send /start to turn it on.',
+    newsOn: 'News turned on.',
+    d_stop: 'Stop news',
     n_depPaid: 'Deposit received: ${usd}.',
     n_wdSent: 'Withdrawal sent: {amt}.',
     n_vipDrop: 'VIP {n} drops on {date}.',
@@ -89,7 +92,7 @@ export function t(lang, key, vars = {}) {
 }
 
 export function commandList(lang) {
-  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'faq', 'support'];
+  const names = ['start', 'balance', 'earnings', 'referrals', 'link', 'faq', 'support', 'stop'];
   if (hasLang('fa')) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }
