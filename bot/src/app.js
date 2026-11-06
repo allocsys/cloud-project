@@ -35,7 +35,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return r;
   }
 
-  const openButton = (lang) => ({ reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } });
+  const openButton = (lang, url = config.appUrl) => ({ reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url } }]] } });
+  const botName = config.botUsername || 'vertexhashbot';
 
   // Asks the app for one set of numbers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
   // Sends the 'no account' or 'try again' message itself and returns null; returns the answer only when it is good (valid(answer)).
@@ -77,6 +78,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (typeof b.code === 'string' && CODE.test(b.code)) {
       lines.push(t(lang, 'refCode', { code: b.code }));
       lines.push(t(lang, 'refLink', { link: `${config.appUrl}/login?ref=${encodeURIComponent(b.code)}` }));
+      lines.push(t(lang, 'refLink', { link: `https://t.me/${botName}?start=${encodeURIComponent(b.code)}` }));
     }
     lines.push(t(lang, 'refFriends', { n: b.friends, active: b.active }));
     lines.push(t(lang, 'refEarned', { btc: btcText(b.earned) }));
@@ -116,10 +118,14 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     const lang = row.lang;
     const c = CMD.exec(m.text.slice(0, 500).trim());
     const cmd = c ? c[1].toLowerCase() : '';
-    const arg = c && c[2] ? c[2].trim().toLowerCase() : '';
+    const rawArg = c && c[2] ? c[2].trim() : '';
+    const arg = rawArg.toLowerCase();
 
     if (cmd === 'start') {
-      return reply(id, t(lang, 'start'), openButton(lang));
+      // A start payload is a referral code: the app opens on the sign-up page with it. The code keeps its case.
+      const code = rawArg.split(/\s+/)[0];
+      const url = CODE.test(code) ? `${config.appUrl}/login?ref=${encodeURIComponent(code)}` : config.appUrl;
+      return reply(id, t(lang, 'start'), openButton(lang, url));
     }
     if (cmd === 'balance') return balance(id, lang, m.from.id);
     if (cmd === 'earnings') return earnings(id, lang, m.from.id);
