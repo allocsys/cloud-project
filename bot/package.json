@@ -1,0 +1,15 @@
+{
+  "name": "vtx-bot",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Vertexhash Telegram bot. Separate service with its own database; talks to the app only over signed HTTPS.",
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "start": "node src/server.js",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.mjs\""
+  },
+  "dependencies": {
+    "pg": "8.16.3"
+  }
+}
