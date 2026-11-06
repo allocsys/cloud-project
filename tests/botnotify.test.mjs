@@ -41,7 +41,11 @@ test('jobFor: Telegram accounts and the three events only, with every value the 
   assert.deepEqual(bn.jobFor(tg, { id: 'n1abc', ...dep() }), { tg_id: 123456, kind: 'depPaid', key: 'n1abc', vars: { usd: '50.00' } });
   assert.deepEqual(bn.jobFor(tg, { id: 'n2abc', code: 'wdSent', vars: { amt: '0.5 BTC' } }), { tg_id: 123456, kind: 'wdSent', key: 'n2abc', vars: { amt: '0.5 BTC' } });
   assert.deepEqual(bn.jobFor(tg, { id: 'n3abc', code: 'vipDrop', vars: { n: 2, date: '30 Nov' } }).vars, { n: 2, date: '30 Nov' });
-  assert.equal(bn.jobFor({ id: 'a@b.com' }, { id: 'n1abc', ...dep() }), null, 'email account');
+  assert.equal(bn.jobFor({ id: 'a@b.com' }, { id: 'n1abc', ...dep() }), null, 'email account that is not linked');
+  assert.deepEqual(bn.jobFor({ id: 'a@b.com', botTg: 777 }, { id: 'n1abc', ...dep() }), { tg_id: 777, kind: 'depPaid', key: 'n1abc', vars: { usd: '50.00' } }, 'email account linked to Telegram');
+  assert.equal(bn.jobFor({ id: 'a@b.com', botTg: 'x' }, { id: 'n1abc', ...dep() }), null, 'odd link value');
+  assert.equal(bn.jobFor({ id: 'a@b.com', botTg: -5 }, { id: 'n1abc', ...dep() }), null);
+  assert.equal(bn.jobFor({ id: 'demo', botTg: 777 }, { id: 'n1abc', ...dep() }), null, 'only email accounts use the link');
   assert.equal(bn.jobFor({ id: 'demo' }, { id: 'n1abc', ...dep() }), null);
   assert.equal(bn.jobFor(tg, { id: 'n1abc', code: 'welcome' }), null, 'not one of the events');
   assert.equal(bn.jobFor(tg, { id: 'n1abc', code: 'toString' }), null);
