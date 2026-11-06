@@ -69,14 +69,14 @@ test('/referrals shows code, link, friends, earned and VIP, with an Open app but
   answer = good({ code: 'VTX-AB2C', friends: 3, active: 2, earned: 0.0002, vip: 1 });
   await say('/referrals');
   assert.deepEqual(calls, [{ name: 'referrals', payload: { tg_id: 7002 } }]);
-  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nFriends: 3 (2 active)\nEarned: 0.00020000 BTC\nVIP: 1');
+  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nLink: https://t.me/vertexhashbot?start=VTX-AB2C\nFriends: 3 (2 active)\nEarned: 0.00020000 BTC\nVIP: 1');
   assert.equal(sent[0].extra.reply_markup.inline_keyboard[0][0].web_app.url, cfg.appUrl);
 });
 
 test('/referrals: no VIP line at VIP 0, and a odd code is not shown', async () => {
   answer = good({ code: 'VTX-AB2C', friends: 0, active: 0, earned: 0, vip: 0 });
   await say('/referrals');
-  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nFriends: 0 (0 active)\nEarned: 0.00000000 BTC');
+  assert.equal(sent[0].text, 'Your code: VTX-AB2C\nLink: https://vertexhash.com/login?ref=VTX-AB2C\nLink: https://t.me/vertexhashbot?start=VTX-AB2C\nFriends: 0 (0 active)\nEarned: 0.00000000 BTC');
   sent.length = 0;
   answer = good({ code: 'x y<>', friends: 0, active: 0, earned: 0, vip: 0 });
   await say('/referrals');
