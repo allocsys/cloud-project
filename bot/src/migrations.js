@@ -42,4 +42,8 @@ export const MIGRATIONS = [
     id: '003_chats_news',
     sql: `ALTER TABLE chats ADD COLUMN news boolean NOT NULL DEFAULT true;`,
   },
+  {
+    id: '004_chats_menu',
+    sql: `ALTER TABLE chats ADD COLUMN menu_msg_id bigint, ADD COLUMN menu_ver int NOT NULL DEFAULT 0;`,
+  },
 ];
