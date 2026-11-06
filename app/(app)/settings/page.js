@@ -466,8 +466,7 @@ export default function Settings() {
         <div className="card" style={hideCalm}>
           <div className="row" style={{ borderTop: 0 }}>
             <div>
-              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('auth.email')}</div>
-              <small>{me ? me.email || (me.demo ? t('set.demo') : me.name ? t('set.tg', { name: me.name }) : t('set.tgAcc')) : account.email}</small>
+              <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{me && !me.email ? t('set.account') : t('auth.email')} || (me.demo ? t('set.demo') : me.name ? t('set.tg', { name: me.name }) : t('set.tgAcc')) : account.email}</small>
             </div>
             {me?.email &&
               (me.verified ? (
