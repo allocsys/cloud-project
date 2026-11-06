@@ -84,17 +84,29 @@ test('/start shows the app button and four buttons plus More, and remembers the 
   assert.ok(buttons(rows).every((b) => !b.callback_data || b.callback_data.endsWith(`:${c.menu_ver}`)));
 });
 
+test('/start also puts one permanent Menu button under the chat; tapping its label opens the menu', async () => {
+  const { tg, bot } = await started();
+  const kb = tg.of('send')[1];
+  assert.deepEqual(kb.extra.reply_markup, { keyboard: [[{ text: texts.en.b_menu }]], resize_keyboard: true, is_persistent: true });
+  await bot.handleUpdate(msg(texts.en.b_menu));
+  const last = tg.of('send').at(-1);
+  assert.equal(last.text, texts.en.start);
+  assert.ok(last.extra.reply_markup.inline_keyboard.length > 0);
+  await bot.handleUpdate(msg(texts.fa.b_menu));
+  assert.equal(tg.of('send').at(-1).text, texts.en.start, 'the chat is English: same text');
+});
+
 test('a tap answers in the same message, the menu buttons go, one Menu button comes back', async () => {
   const { tg, bot, mid, rows } = await started();
   await bot.handleUpdate(tap(dataOf(rows, 'bal'), mid));
   assert.equal(tg.of('answer').length, 1);
-  assert.equal(tg.of('send').length, 1, 'no new message');
+  assert.equal(tg.of('send').length, 2, 'no new message: only the menu and the Menu button message from /start');
   const e = tg.of('edit')[0];
   assert.equal(e.message_id, mid);
   assert.ok(e.text.includes('Balance: 0.50000000 BTC'), e.text);
   const after = rowsOf(e);
   assert.deepEqual(buttons(after).map((b) => b.callback_data.split(':')[1]), ['menu']);
-  assert.equal(buttons(after)[0].text, 'Menu');
+  assert.equal(buttons(after)[0].text, texts.en.b_menu);
   const c = await chat();
   assert.ok(buttons(after)[0].callback_data.endsWith(`:${c.menu_ver}`));
 });
@@ -138,7 +150,7 @@ test('an old counter on the live menu is ignored', async () => {
 test('a new /start takes the buttons off the old menu, and old buttons do nothing', async () => {
   const { tg, bot, mid, rows } = await started();
   await bot.handleUpdate(msg('/start'));
-  const second = tg.of('send')[1];
+  const second = tg.of('send').filter((c) => c.extra.reply_markup && c.extra.reply_markup.inline_keyboard)[1];
   const stripped = tg.of('markup').find((c) => c.message_id === mid);
   assert.ok(stripped && stripped.markup.inline_keyboard.length === 0);
   assert.equal(String((await chat()).menu_msg_id), String(second.message_id));
@@ -174,7 +186,7 @@ test('an app error shows the try-again text with a Menu button', async () => {
   await bot.handleUpdate(tap(dataOf(rows, 'ear'), mid));
   const e = tg.of('edit')[0];
   assert.equal(e.text, texts.en.busy);
-  assert.equal(buttons(rowsOf(e))[0].text, 'Menu');
+  assert.equal(buttons(rowsOf(e))[0].text, texts.en.b_menu);
 });
 
 test('a failed edit gives the counter back so the buttons keep working', async () => {
@@ -197,7 +209,7 @@ test('taps from groups, bots, bad data and unknown actions are ignored', async (
 });
 
 test('every button text exists in en and fa', () => {
-  for (const k of ['b_balance', 'b_earnings', 'b_friends', 'b_more', 'b_back', 'b_menu', 'b_link', 'b_faq', 'b_help', 'b_lang', 'b_stop']) {
+  for (const k of ['b_balance', 'b_earnings', 'b_friends', 'b_more', 'b_back', 'b_menu', 'b_faq', 'b_help', 'b_lang', 'b_stop', 'b_copyCode', 'b_copyLink', 'b_share', 'kbOn']) {
     assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   }
 });
