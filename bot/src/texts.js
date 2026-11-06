@@ -13,6 +13,9 @@ export const texts = {
     d_faq: 'Read the FAQ',
     d_support: 'Get help',
     d_lang: 'Change language',
+    n_depPaid: 'Deposit received: ${usd}.',
+    n_wdSent: 'Withdrawal sent: {amt}.',
+    n_vipDrop: 'VIP {n} drops on {date}.',
   },
   fa: {
     start: 'به VERTEXHASH خوش آمدید.\nبرای باز کردن برنامه دکمه را بزنید.',
@@ -26,6 +29,9 @@ export const texts = {
     d_faq: 'سؤال‌های رایج',
     d_support: 'دریافت کمک',
     d_lang: 'تغییر زبان',
+    n_depPaid: 'واریز شد: ${usd}.',
+    n_wdSent: 'برداشت ارسال شد: {amt}.',
+    n_vipDrop: 'سطح VIP {n} در {date} کاهش می‌یابد.',
   },
 };
 
