@@ -66,7 +66,7 @@ export default function Terms() {
           ))}
         </div>
         <p className="fine">{t('terms.fine4')}</p>
-        <p className="mute">{t('terms.p4b', { a: pct[0], b: pct[1], c: pct[2] })}</p>
+        <p className="mute">{t('terms.p4b', { a: pct[0], b: pct[1], c: pct[2], d: pct[3] })}</p>
         <p className="mute">{t('terms.p4c')}</p>
 
         <h2 style={h2}>{t('terms.h5')}</h2>
