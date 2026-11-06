@@ -9,7 +9,13 @@ export const texts = {
     support: 'Need help? Write to {email}.',
     langSet: 'Language: English',
     langUsage: 'Use /lang en or /lang fa.',
+    bal: 'Balance: {btc} BTC',
+    balUsd: '≈ ${usd}',
+    balHold: 'On hold: {locked} BTC',
+    noAcc: 'No account found. Open the app first.',
+    busy: 'Try again in a minute.',
     d_start: 'Open the app',
+    d_balance: 'Show balance',
     d_faq: 'Read the FAQ',
     d_support: 'Get help',
     d_lang: 'Change language',
@@ -25,7 +31,13 @@ export const texts = {
     support: 'به کمک نیاز دارید؟ به {email} بنویسید.',
     langSet: 'زبان: فارسی',
     langUsage: 'از /lang en یا /lang fa استفاده کنید.',
+    bal: 'موجودی: {btc} BTC',
+    balUsd: '≈ ${usd}',
+    balHold: 'مسدود: {locked} BTC',
+    noAcc: 'حسابی پیدا نشد. اول برنامه را باز کنید.',
+    busy: 'کمی بعد دوباره امتحان کنید.',
     d_start: 'باز کردن برنامه',
+    d_balance: 'نمایش موجودی',
     d_faq: 'سؤال‌های رایج',
     d_support: 'دریافت کمک',
     d_lang: 'تغییر زبان',
@@ -43,7 +55,7 @@ export function t(lang, key, vars = {}) {
 }
 
 export function commandList(lang) {
-  const names = ['start', 'faq', 'support'];
+  const names = ['start', 'balance', 'faq', 'support'];
   if (hasLang('fa')) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }

@@ -1,15 +1,17 @@
-// Webhook handler and command logic. No network of its own: Telegram calls go through `tg`, so tests can fake it.
+// Webhook handler and command logic. No network of its own: Telegram calls go through `tg`, app calls through `appApi`, so tests can fake both.
 import { q } from './db.js';
 import { json, readJson, readRaw, ApiError } from './http.js';
 import { t, helpText, hasLang } from './texts.js';
 import { safeEqual } from './util.js';
 import { verifySig, parseNotify, MAX_PENDING } from './notify.js';
 import { enqueue, pendingCount } from './queue.js';
+import { makeAppApi } from './appapi.js';
 
 const CMD = /^\/([a-z_]{1,32})(?:@\w+)?(?:\s+([\s\S]*))?$/i;
 const NOT_FOUND = { ok: false, error: 'Not found.' };
+const btcText = (n) => Number(n).toFixed(8);
 
-export function makeBot({ config, tg, queue = null }) {
+export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
   const pending = new Set();
 
@@ -30,6 +32,20 @@ export function makeBot({ config, tg, queue = null }) {
     // 403 = the user blocked the bot: stop sending to this chat until it writes again.
     if (!r.ok && r.status === 403) await q('UPDATE chats SET active = false WHERE tg_id = $1', [chatId]);
     return r;
+  }
+
+  const openButton = (lang) => ({ reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } });
+
+  // /balance: the app answers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
+  async function balance(chatId, lang, userId) {
+    const r = await appApi('balance', { tg_id: userId });
+    if (r.status === 404) return reply(chatId, t(lang, 'noAcc'), openButton(lang));
+    const b = r.json;
+    if (!r.ok || !b || !Number.isFinite(b.btc) || !Number.isFinite(b.locked)) return reply(chatId, t(lang, 'busy'));
+    const lines = [t(lang, 'bal', { btc: btcText(b.btc) })];
+    if (Number.isFinite(b.usd)) lines.push(t(lang, 'balUsd', { usd: b.usd.toFixed(2) }));
+    if (b.locked > 0) lines.push(t(lang, 'balHold', { locked: btcText(b.locked) }));
+    return reply(chatId, lines.join('\n'));
   }
 
   async function handleUpdate(update) {
@@ -58,8 +74,9 @@ export function makeBot({ config, tg, queue = null }) {
     const arg = c && c[2] ? c[2].trim().toLowerCase() : '';
 
     if (cmd === 'start') {
-      return reply(id, t(lang, 'start'), { reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } });
+      return reply(id, t(lang, 'start'), openButton(lang));
     }
+    if (cmd === 'balance') return balance(id, lang, m.from.id);
     if (cmd === 'faq') {
       const path = lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq';
       return reply(id, t(lang, 'faq'), { reply_markup: { inline_keyboard: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${path}` }]] } });
