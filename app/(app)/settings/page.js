@@ -12,6 +12,7 @@ import LangSwitch from '@/components/LangSwitch';
 import { useT, useLang } from '@/components/I18nProvider';
 import { translateError } from '@/lib/i18n/errors';
 import { applyTheme, readTheme } from '@/lib/theme';
+import { SOCIALS } from '@/lib/site';
 
 const KYC = {
   none: { label: 'set.notVerified', cls: 'warn', cta: 'set.verify' },
@@ -75,9 +76,27 @@ export default function Settings() {
   const [clForfeit, setClForfeit] = useState(false);
   const [clErr, setClErr] = useState({});
   const [clBusy, setClBusy] = useState(false);
-  // Telegram bot link code (email accounts): the code is shown once, only on this screen.
+  // Telegram bot link (email accounts): bl = the bot link with a one-time code (valid 10 minutes) while the person is in Telegram.
   const [bl, setBl] = useState(null);
   const [blBusy, setBlBusy] = useState(false);
+  // While the link is open, check now and then (and on return to this screen) whether the bot took the code.
+  useEffect(() => {
+    if (!bl) return undefined;
+    if (me?.botLinked) {
+      setBl(null);
+      show(t('set.botDone'));
+      return undefined;
+    }
+    const tick = () => refreshMe();
+    const poll = setInterval(tick, 4000);
+    const stop = setTimeout(() => setBl(null), 10 * 60_000);
+    document.addEventListener('visibilitychange', tick);
+    return () => {
+      clearInterval(poll);
+      clearTimeout(stop);
+      document.removeEventListener('visibilitychange', tick);
+    };
+  }, [bl, me?.botLinked]);
 
   useEffect(() => {
     setTheme(readTheme());
@@ -389,14 +408,19 @@ export default function Settings() {
     }
   }
 
-  async function getBotCode() {
+  // Asks for a one-time code and opens the bot with it: one tap on Start in Telegram links the account.
+  async function connectBot() {
     if (blBusy) return;
     triggerHaptic('light');
     setBlBusy(true);
     try {
       const r = await post('/api/account/bot-link', {});
+      const url = `${SOCIALS.bot}?start=lnk_${r.code}`;
       triggerHaptic('success');
-      setBl(r.code);
+      setBl(url);
+      const w = window.Telegram?.WebApp;
+      if (w?.openTelegramLink) w.openTelegramLink(url);
+      else window.open(url, '_blank', 'noopener'); // a blocked pop-up is fine: the Open Telegram button stays on screen
     } catch (err) {
       triggerHaptic('error');
       show(err.status ? err.message : t('common.noConnection'));
@@ -405,13 +429,21 @@ export default function Settings() {
     }
   }
 
-  async function copyBotCode() {
+  async function disconnectBot() {
+    if (blBusy) return;
     triggerHaptic('light');
+    setBlBusy(true);
     try {
-      await navigator.clipboard.writeText(`/link ${bl}`);
-      show(t('set.copied'));
-    } catch {
-      show(t('set.copyFail'));
+      await post('/api/account/bot-unlink', {});
+      triggerHaptic('success');
+      setBl(null);
+      refreshMe();
+      show(t('set.botGone'));
+    } catch (err) {
+      triggerHaptic('error');
+      show(err.status ? err.message : t('common.noConnection'));
+    } finally {
+      setBlBusy(false);
     }
   }
 
@@ -676,21 +708,22 @@ export default function Settings() {
               )}
             </>
           )}
-          {me?.email && !me.botLinked && (
+          {me?.email && (
             <>
               <div className="row">
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.bot')}</div>
-                  <small>{t('set.botSub')}</small>
+                  <small>{me.botLinked ? t('set.botOn') : t('set.botSub')}</small>
                 </div>
-                {!bl && <button className="btn ghost" type="button" disabled={blBusy} onClick={getBotCode}>{t('set.botGet')}</button>}
+                {me.botLinked ? (
+                  <button className="btn ghost" type="button" disabled={blBusy} onClick={disconnectBot}>{t('set.botOff')}</button>
+                ) : (
+                  <button className="btn ghost" type="button" disabled={blBusy} onClick={connectBot}>{t('set.botConnect')}</button>
+                )}
               </div>
-              {bl && (
+              {bl && !me.botLinked && (
                 <div style={{ paddingBottom: '8px' }}>
-                  <small style={{ display: 'block' }}>{t('set.botSend')}</small>
-                  <div dir="ltr" style={{ fontFamily: 'monospace', fontSize: '15px', userSelect: 'all', padding: '10px 12px', margin: '8px 0', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>/link {bl}</div>
-                  <small style={{ display: 'block' }}>{t('set.botValid')}</small>
-                  <button className="btn ghost" type="button" onClick={copyBotCode} style={{ marginTop: '8px' }}>{t('set.botCopy')}</button>
+                  <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center' }}>{t('set.botOpen')}</a>
                 </div>
               )}
             </>
