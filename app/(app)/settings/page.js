@@ -690,7 +690,7 @@ export default function Settings() {
                   <small style={{ display: 'block' }}>{t('set.botSend')}</small>
                   <div dir="ltr" style={{ fontFamily: 'monospace', fontSize: '15px', userSelect: 'all', padding: '10px 12px', margin: '8px 0', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>/link {bl}</div>
                   <small style={{ display: 'block' }}>{t('set.botValid')}</small>
-                  <button className="btn ghost" type="button" onClick={copyBotCode} style={{ marginTop: '8px' }}>{t('set.copyCodes')}</button>
+                  <button className="btn ghost" type="button" onClick={copyBotCode} style={{ marginTop: '8px' }}>{t('set.botCopy')}</button>
                 </div>
               )}
             </>
