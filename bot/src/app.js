@@ -245,6 +245,9 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       )
     ).rows[0];
     const lang = row.lang;
+    // The permanent Menu button under the chat sends its own label as text: open the menu.
+    const said = m.text.trim();
+    if (said === t('en', 'b_menu') || said === t('fa', 'b_menu')) return sendMenu(id, lang, t(lang, 'start'));
     const c = CMD.exec(m.text.slice(0, 500).trim());
     const cmd = c ? c[1].toLowerCase() : '';
     const rawArg = c && c[2] ? c[2].trim() : '';
@@ -262,7 +265,10 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
         await q('UPDATE chats SET news = true WHERE tg_id = $1', [id]);
         text += '\n' + t(lang, 'newsOn');
       }
-      return sendMenu(id, lang, text, url);
+      const sentMenu = await sendMenu(id, lang, text, url);
+      // Puts the permanent Menu button under the chat (it stays until removed).
+      await reply(id, t(lang, 'kbOn'), { reply_markup: { keyboard: [[{ text: t(lang, 'b_menu') }]], resize_keyboard: true, is_persistent: true } });
+      return sentMenu;
     }
     if (cmd === 'stop') {
       await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
