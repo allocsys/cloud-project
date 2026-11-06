@@ -84,6 +84,15 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return reply(chatId, lines.join('\n'), openButton(lang));
   }
 
+  // Links the Telegram id to the email account that made the code. The code is never logged or stored here.
+  async function link(chatId, lang, userId, code) {
+    if (!CODE.test(code)) return reply(chatId, t(lang, 'linkUsage'));
+    const r = await appApi('link', { tg_id: userId, code });
+    if (r.ok) return reply(chatId, t(lang, 'linkOk'));
+    const key = { 404: 'linkBad', 409: 'linkTaken', 429: 'linkMany' }[r.status];
+    return reply(chatId, t(lang, key || 'busy'));
+  }
+
   async function handleUpdate(update) {
     const mc = update.my_chat_member;
     if (mc && mc.chat && mc.chat.type === 'private') {
@@ -115,6 +124,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (cmd === 'balance') return balance(id, lang, m.from.id);
     if (cmd === 'earnings') return earnings(id, lang, m.from.id);
     if (cmd === 'referrals') return referrals(id, lang, m.from.id);
+    if (cmd === 'link') return link(id, lang, m.from.id, arg);
     if (cmd === 'faq') {
       const path = lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq';
       return reply(id, t(lang, 'faq'), { reply_markup: { inline_keyboard: [[{ text: t(lang, 'faqBtn'), url: `${config.appUrl}${path}` }]] } });
