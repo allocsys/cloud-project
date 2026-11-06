@@ -87,8 +87,30 @@ test('the code is not saved in the bot database', async () => {
   assert.ok(!dump.toLowerCase().includes('secretcode1'));
 });
 
+test('/unlink asks the app with the Telegram id and says unlinked', async () => {
+  await say('/unlink');
+  assert.deepEqual(calls, [{ name: 'unlink', payload: { tg_id: 7101 } }]);
+  assert.equal(sent[0].text, 'Account unlinked.');
+});
+
+test('/unlink with nothing linked, or app down', async () => {
+  const cases = [
+    [{ ok: false, status: 404, json: { ok: false } }, 'No account is linked.'],
+    [{ ok: false, status: 0, json: null }, 'Try again in a minute.'],
+    [{ ok: false, status: 503, json: { ok: false } }, 'Try again in a minute.'],
+  ];
+  for (const [a, text] of cases) {
+    answer = a;
+    sent.length = 0;
+    await say('/unlink');
+    assert.equal(sent[0].text, text);
+  }
+});
+
 test('the menu lists /link and the texts exist in en and fa', () => {
   assert.ok(commandList('en').some((c) => c.command === 'link' && c.description === 'Link your account'));
   for (const k of ['linkUsage', 'linkOk', 'linkBad', 'linkTaken', 'linkMany', 'd_link']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   assert.equal(t('fa', 'd_link'), 'اتصال حساب');
+  assert.ok(commandList('en').some((c) => c.command === 'unlink' && c.description === 'Unlink your account'));
+  assert.equal(t('en', 'unlinkOk'), 'Account unlinked.');
 });
