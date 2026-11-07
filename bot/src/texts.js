@@ -55,6 +55,7 @@ export const texts = {
     n_depPaid: 'Deposit received: ${usd}.',
     n_wdSent: 'Withdrawal sent: {amt}.',
     n_vipDrop: 'VIP {n} drops on {date}.',
+    n_wdCode: 'Withdrawal code: {code}. It works for 10 minutes. Never share it.',
   },
   fa: {
     start: 'به VERTEXHASH خوش آمدید.\nبرای باز کردن برنامه دکمه را بزنید.',
@@ -110,6 +111,7 @@ export const texts = {
     n_depPaid: 'واریز شد: ${usd}.',
     n_wdSent: 'برداشت ارسال شد: {amt}.',
     n_vipDrop: 'سطح VIP {n} در {date} کاهش می‌یابد.',
+    n_wdCode: 'کد برداشت: {code}. ۱۰ دقیقه اعتبار دارد. آن را با کسی در میان نگذارید.',
   },
 };
 
