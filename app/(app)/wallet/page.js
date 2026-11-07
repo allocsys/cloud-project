@@ -46,7 +46,7 @@ function useSeen() {
 }
 
 // Wallet motion: transform and opacity only. A light band crosses the balance card, activity rows fade in one by one, the fee quote fades in.
-const WALLET_CSS = '.whero{position:relative;overflow:hidden}.wshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:wShine 8s ease-in-out infinite}@keyframes wShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.wpause .wshine{animation-play-state:paused}.wrow{animation:wRow .35s ease-out both}@keyframes wRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.quote{animation:wQuote .25s ease-out}@keyframes wQuote{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}';
+const WALLET_CSS = '.whero{position:relative;overflow:hidden}.wshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:wShine 8s ease-in-out infinite}@keyframes wShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.wpause .wshine{animation-play-state:paused}.wrow{animation:wRow .35s ease-out both}@keyframes wRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.quote{animation:wQuote .25s ease-out}@keyframes wQuote{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}.tgring{position:absolute;top:0;left:0;right:0;bottom:0;border-radius:50%;border:2px solid #2AABEE;animation:tgPulse 1.8s ease-out infinite}@keyframes tgPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.7);opacity:0}}.tgdots i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#F5A623;margin:0 2px;animation:tgDot 1.2s infinite}.tgdots i:nth-child(2){animation-delay:.2s}.tgdots i:nth-child(3){animation-delay:.4s}@keyframes tgDot{0%,80%,100%{opacity:.25}40%{opacity:1}}';
 
 const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
 const ceilTo = (n, d) => Math.ceil(n * 10 ** d - 1e-9) / 10 ** d;
@@ -141,6 +141,7 @@ export default function Wallet() {
   const [code, setCode] = useState('');
   const [tgWait, setTgWait] = useState(false); // the code went to Telegram: waiting for the Accept tap (accounts with no two-factor and no verified email)
   const [showCode, setShowCode] = useState(false); // the typed-code box, shown only after 'Didn't get it?'
+  const [tgBot, setTgBot] = useState('vertexhashbot'); // the bot the Open Telegram button opens (the poll brings the real name)
   const wdRef = useRef(null); // the latest withdraw(), called by the poll below
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
@@ -174,7 +175,8 @@ export default function Wallet() {
       try {
         const r = await fetch('/api/wallet/wdcode', { headers: { accept: 'application/json' }, cache: 'no-store' });
         if (!live || !r.ok) return;
-        const { state } = await r.json();
+        const { state, bot } = await r.json();
+        if (bot && live) setTgBot(bot);
         if (!live) return;
         if (state === 'approved') {
           live = false;
@@ -573,24 +575,6 @@ export default function Wallet() {
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
 
-                {!tf && tgWait && (
-                  <div className="fine" role="status" style={{ margin: '6px 0 10px' }}>
-                    <div>{t('wal.tgWait')}</div>
-                    {!showCode && (
-                      <button
-                        type="button"
-                        onClick={() => {
-                          setShowCode(true);
-                          setTimeout(() => document.getElementById('wc')?.focus(), 50);
-                        }}
-                        style={{ background: 'none', border: 0, padding: '4px 0', margin: 0, font: 'inherit', color: '#e8b84a', textDecoration: 'underline', cursor: 'pointer' }}
-                      >
-                        {t('wal.tgNoCode')}
-                      </button>
-                    )}
-                  </div>
-                )}
-
                 {(tf || showCode) && (
                   <Field id="wc" label={tf ? t('wal.code') : t('wal.codeTg')} error={errors.code}>
                     <input
@@ -749,6 +733,35 @@ export default function Wallet() {
           </div>
         </div>
       </div>
+      {!tf && tgWait && !showCode && (
+        <div role="dialog" aria-modal="true" aria-labelledby="tgt" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="card" style={{ width: '100%', maxWidth: 320, textAlign: 'center' }}>
+            <div style={{ position: 'relative', width: 52, height: 52, margin: '4px auto 12px' }}>
+              <span className="tgring" aria-hidden="true" />
+              <div style={{ position: 'relative', width: 52, height: 52, borderRadius: '50%', background: '#2AABEE', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                  <path d="M15 10l-4 4l6 6l4 -16l-18 7l4 2l2 6l3 -4" />
+                </svg>
+              </div>
+            </div>
+            <b id="tgt" style={{ display: 'block', fontSize: 18, fontWeight: 500 }}>{t('wal.tgTitle')}</b>
+            <span className="mute" style={{ display: 'block', margin: '4px 0 14px' }}>{t('wal.tgSub')}</span>
+            <a className="btn" href={`https://t.me/${tgBot}`} target="_blank" rel="noopener noreferrer" style={{ background: '#2AABEE', borderColor: '#2AABEE', color: '#fff', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{t('wal.tgOpen')}</a>
+            <div className="tgdots" role="status" aria-label={t('wal.tgWait')} style={{ margin: '14px 0 4px' }}><i /><i /><i /></div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCode(true);
+                setTimeout(() => document.getElementById('wc')?.focus(), 50);
+              }}
+              style={{ background: 'none', border: 0, padding: '4px 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer' }}
+            >
+              {t('wal.tgNoCode')}
+            </button>
+            <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={() => { triggerHaptic('light'); setTgWait(false); }}>{t('common.cancel')}</button>
+          </div>
+        </div>
+      )}
       {toast}
     </>
   );
