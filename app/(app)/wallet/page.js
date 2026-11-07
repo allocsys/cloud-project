@@ -438,6 +438,8 @@ export default function Wallet() {
     }
   }
 
+  wdRef.current = withdraw;
+
   function copy() {
     triggerHaptic('success');
     if (typeof navigator !== 'undefined' && navigator.clipboard) {
