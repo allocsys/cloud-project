@@ -2,19 +2,18 @@
 #   docker build -t vertexhash .
 #   docker run -p 3000:3000 vertexhash
 # The build needs internet (next/font downloads Roboto once).
-# Cache mounts (npm downloads, Next build cache): the ids follow Railway's rule s/<service id>-<target path>; on other hosts they are just names.
 
 FROM node:22-alpine AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
-RUN --mount=type=cache,id=s/058e82a7-b025-4fb2-8d70-a599a9cf252c-/root/.npm,target=/root/.npm npm ci
+RUN npm ci
 
 FROM node:22-alpine AS build
 WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1 NEXT_OUTPUT=standalone
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
-RUN --mount=type=cache,id=s/058e82a7-b025-4fb2-8d70-a599a9cf252c-/app/.next/cache,target=/app/.next/cache npm run build
+RUN npm run build
 
 FROM node:22-alpine AS run
 WORKDIR /app
