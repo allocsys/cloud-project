@@ -55,6 +55,7 @@ export const texts = {
     n_depPaid: 'Deposit received: ${usd}.',
     n_wdSent: 'Withdrawal sent: {amt}.',
     n_vipDrop: 'VIP {n} drops on {date}.',
+    n_wdCode: 'Withdrawal code: {code}. It works for 10 minutes. Never share it.',
   },
   fa: {
     start: 'به VERTEXHASH خوش آمدید.\nبرای باز کردن برنامه دکمه را بزنید.',
