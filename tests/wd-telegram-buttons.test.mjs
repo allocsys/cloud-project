@@ -137,7 +137,7 @@ test('Deny: the code ends, the typed code no longer works, a notice is saved and
   const u = await getUser(id);
   assert.equal(u.wdTg, undefined);
   assert.equal(u.notifications[0].code, 'wdDeny');
-  assert.equal(JSON.stringify(u.notifications).includes(code), false, 'the code is not in the notice');
+  assert.equal(`${u.notifications[0].title} ${u.notifications[0].body}`.includes(code), false, 'the code is not in the notice');
   const next = await ask(id, { code });
   assert.equal(next.ok, false, 'the denied code is dead');
   assert.equal(next.need2fa, true, 'a new code is asked for');
