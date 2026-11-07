@@ -111,6 +111,7 @@ export const texts = {
     n_depPaid: 'واریز شد: ${usd}.',
     n_wdSent: 'برداشت ارسال شد: {amt}.',
     n_vipDrop: 'سطح VIP {n} در {date} کاهش می‌یابد.',
+    n_wdCode: 'کد برداشت: {code}. ۱۰ دقیقه اعتبار دارد. آن را با کسی در میان نگذارید.',
   },
 };
 
