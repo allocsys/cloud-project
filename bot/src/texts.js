@@ -56,6 +56,11 @@ export const texts = {
     n_wdSent: 'Withdrawal sent: {amt}.',
     n_vipDrop: 'VIP {n} drops on {date}.',
     n_wdCode: 'Withdrawal code: {code}. It works for 10 minutes. Never share it.',
+    b_wdOk: '✅ Accept',
+    b_wdNo: '🚫 Deny',
+    wdOk: 'Approved. Go back to the app and tap Withdraw again.',
+    wdNo: 'Withdrawal cancelled.',
+    wdGone: 'This code is no longer valid.',
   },
   fa: {
     start: 'به VERTEXHASH خوش آمدید.\nبرای باز کردن برنامه دکمه را بزنید.',
@@ -112,6 +117,9 @@ export const texts = {
     n_wdSent: 'برداشت ارسال شد: {amt}.',
     n_vipDrop: 'سطح VIP {n} در {date} کاهش می‌یابد.',
     n_wdCode: 'کد برداشت: {code}. ۱۰ دقیقه اعتبار دارد. آن را با کسی در میان نگذارید.',
+    b_wdOk: '✅ تأیید',
+    b_wdNo: '🚫 رد',
+    wdNo: 'برداشت لغو شد.',
   },
 };
 
