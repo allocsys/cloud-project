@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { withdraw } from '@/lib/server/wallet';
 import { userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
+import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,7 +19,7 @@ export async function POST(req) {
   const codeKey = `w:${id}`;
   const withCode = !!body?.code;
   if (withCode && (await reserve(codeKey))) return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: { 'Cache-Control': 'no-store' } });
-  const { status, ...rest } = await withdraw(body, { userId: id, key: req.headers.get('idempotency-key') || undefined });
+  const { status, ...rest } = await withdraw(body, { userId: id, key: req.headers.get('idempotency-key') || undefined, lang: pickLang(req.cookies?.get(LANG_COOKIE)?.value) });
   if (withCode) {
     if (rest.ok) await clearFails(codeKey);
     else if (!(rest.field === 'code' && !rest.need2fa)) await giveBack(codeKey);
