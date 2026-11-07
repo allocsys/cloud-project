@@ -139,6 +139,7 @@ export default function Wallet() {
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
   const [code, setCode] = useState('');
+  const [tgSent, setTgSent] = useState(false); // a code was sent to Telegram (accounts with no two-factor and no verified email)
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
@@ -378,18 +379,23 @@ export default function Wallet() {
     });
 
     try {
-      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(tf ? { code: code.trim() } : {}) }, uid());
+      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(tf || tgSent ? { code: code.trim() } : {}) }, uid());
       refresh().catch(() => {});
       triggerHaptic('success');
       setAmount('');
       setAddress('');
       setCode('');
+      setTgSent(false);
       show(t('wal.requested'));
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
       triggerHaptic('error');
       const msg = e.status ? e.message : t('common.noConnection');
+      if (e.field === 'code' && !tf) {
+        setTgSent(true);
+        setTimeout(() => document.getElementById('wc')?.focus(), 50);
+      }
       setErrors({ [e.field === 'address' ? 'address' : e.field === 'code' ? 'code' : 'amount']: msg });
     } finally {
       setBusy(false);
@@ -529,8 +535,8 @@ export default function Wallet() {
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
 
-                {tf && (
-                  <Field id="wc" label={t('wal.code')} error={errors.code}>
+                {(tf || tgSent) && (
+                  <Field id="wc" label={tf ? t('wal.code') : t('wal.codeTg')} error={errors.code}>
                     <input
                       id="wc"
                       className={errors.code ? 'bad' : undefined}
