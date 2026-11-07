@@ -85,7 +85,15 @@ export default function Referrals() {
       } catch {}
       return;
     }
-    copy(url, t('ref.linkCopied'));
+    copy(url, t('ref.copied'));
+  }
+
+  // Telegram share sheet with the bot link (the bot reads the code) and the code itself.
+  function shareTg(code) {
+    triggerHaptic('selection');
+    const bot = `https://t.me/${referral.botName || 'vertexhashbot'}?start=${encodeURIComponent(code)}`;
+    const url = `https://t.me/share/url?url=${encodeURIComponent(bot)}&text=${encodeURIComponent(code)}`;
+    if (typeof window !== 'undefined') window.open(url, '_blank', 'noopener');
   }
 
   function openSheet(name) {
@@ -247,12 +255,15 @@ export default function Referrals() {
                   </div>
                   <div className="codebox">
                     <b>{rd ? c.code : '········'}</b>
-                    <button className="btn" type="button" disabled={!rd} onClick={() => copy(c.code, t('ref.codeCopied'))}>{t('ref.copy')}</button>
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, margin: '10px 0' }}>
+                    <button className="btn" type="button" disabled={!rd} style={{ background: '#2AABEE', borderColor: '#2AABEE', color: '#fff' }} onClick={() => shareTg(c.code)}>{t('ref.btnTg')}</button>
+                    <button className="btn" type="button" disabled={!rd} onClick={() => share(c.code)}>{t('ref.btnLink')}</button>
+                    <button className="btn ghost" type="button" disabled={!rd} onClick={() => copy(c.code, t('ref.copied'))}>{t('ref.btnCode')}</button>
                   </div>
                   <div className="iact">
                     <small>{t(c.friends === 1 ? 'dash.friend' : 'dash.friends', { n: c.friends })}</small>
                     <span>
-                      <button className="linkbtn" type="button" disabled={!rd} onClick={() => share(c.code)}>{t('ref.share')}</button>
                       {!c.default && <button className="linkbtn" type="button" onClick={() => openEdit(c)}>{t('ref.edit')}</button>}
                     </span>
                   </div>
