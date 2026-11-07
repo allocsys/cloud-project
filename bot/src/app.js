@@ -20,6 +20,8 @@ const LINK_START = /^lnk_([A-Za-z0-9]{3,32})$/;
 // Button taps: m:<action>:<version>. The version is the menu's counter: a tap is used once, then the counter moves on.
 const MENU_DATA = /^m:([a-z_]{1,8}):(\d{1,9})$/;
 const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'faq', 'help', 'lang', 'l_en', 'l_fa', 'stop']);
+// Accept / Deny under a withdrawal code message: w:a:<ref> or w:d:<ref>. ref is the time of that code (sent by the app); the app checks it is the code waiting now.
+const WD_DATA = /^w:([ad]):(\d{10,15})$/;
 
 export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
@@ -167,6 +169,21 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     return r;
   }
 
+  // Accept or Deny under a withdrawal code message. The app decides (it checks the chat, the code and the time); the bot only shows the answer.
+  // The code text is replaced by the answer. 404 = an old, used, ended or expired code. Any other failure keeps the buttons so a tap can be tried again.
+  async function handleWdTap(cb, chatId, mid, act, ref) {
+    if (!Number.isSafeInteger(mid) || !Number.isSafeInteger(ref)) return;
+    const chat = (await q('SELECT lang FROM chats WHERE tg_id = $1', [chatId])).rows[0];
+    const lang = (chat && chat.lang) || 'en';
+    const r = await appApi('wdcode', { tg_id: cb.from.id, act, ref });
+    if (!r.ok && r.status !== 404) {
+      await reply(chatId, t(lang, 'busy'));
+      return;
+    }
+    const text = t(lang, r.ok ? (act === 'accept' ? 'wdOk' : 'wdNo') : 'wdGone');
+    await tg.editMessageText(chatId, mid, text, { reply_markup: { inline_keyboard: [openRow(lang)] } });
+  }
+
   async function handleCallback(cb) {
     const msg = cb.message;
     if (!msg || !msg.chat || msg.chat.type !== 'private' || !cb.from || cb.from.is_bot || typeof cb.data !== 'string') return;
@@ -174,6 +191,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     const mid = msg.message_id;
     await tg.answerCallbackQuery(cb.id); // stops the spinner on the button at once
     if (limited(id)) return;
+    const wd = WD_DATA.exec(cb.data);
+    if (wd) return handleWdTap(cb, id, mid, wd[1] === 'a' ? 'accept' : 'deny', Number(wd[2]));
     const d = MENU_DATA.exec(cb.data);
     if (!d || !MENU_ACTIONS.has(d[1]) || !Number.isSafeInteger(mid)) return;
     const act = d[1];

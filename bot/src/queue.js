@@ -14,6 +14,17 @@ export const backoffSeconds = (n) => Math.min(30 * 2 ** Math.max(0, n - 1), 3600
 const LEASE_SECONDS = 60;
 const defaultSleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
+// The withdrawal code message carries Accept and Deny buttons. vars.ref (sent by the app: the time of that code) says which code a tap answers;
+// callback_data w:a:<ref> / w:d:<ref> is handled in app.js. No ref (an older app) = no buttons.
+const WD_REF = /^\d{10,15}$/;
+export const wdRows = (lang, row) =>
+  row.kind === 'wdCode' && row.vars && WD_REF.test(String(row.vars.ref))
+    ? [
+        [{ text: t(lang, 'b_wdOk'), callback_data: `w:a:${row.vars.ref}`, style: 'success' }],
+        [{ text: t(lang, 'b_wdNo'), callback_data: `w:d:${row.vars.ref}`, style: 'danger' }],
+      ]
+    : [];
+
 // Adds a row. false = a row with this key already exists (a repeat from the app), nothing changed.
 export async function enqueue({ tg_id, kind, key, lang = null, vars = {} }) {
   const r = await q(
@@ -49,7 +60,6 @@ const finish = (id, status, error = null) =>
 export function makeQueue({ tg, config, sleep = defaultSleep, now = Date.now, log = console, batch = 50 }) {
   const gap = Math.ceil(1000 / (config.notifyPerSec || 25));
   const bgap = Math.ceil(1000 / (config.broadcastPerSec || 10));
-  const markup = config.appUrl ? { reply_markup: { inline_keyboard: [[{ text: '', web_app: { url: config.appUrl } }]] } } : {};
   let pausedUntil = 0;
   let running = null;
   let stopped = true;
@@ -94,7 +104,8 @@ export function makeQueue({ tg, config, sleep = defaultSleep, now = Date.now, lo
       }
       if (sentAny) await sleep(bc ? bgap : gap);
       sentAny = true;
-      const extra = markup.reply_markup ? { reply_markup: { inline_keyboard: [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] } } : {};
+      const btns = [...wdRows(lang, row), ...(config.appUrl ? [[{ text: t(lang, 'open'), web_app: { url: config.appUrl } }]] : [])];
+      const extra = btns.length ? { reply_markup: { inline_keyboard: btns } } : {};
       const r = await tg.sendMessage(row.tg_id, text, extra);
       if (r.ok) {
         await finish(row.id, 'sent');
