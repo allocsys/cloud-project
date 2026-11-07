@@ -141,6 +141,14 @@ export default function Wallet() {
   const [code, setCode] = useState('');
   const [tgWait, setTgWait] = useState(false); // the code went to Telegram: waiting for the Accept tap (accounts with no two-factor and no verified email)
   const [showCode, setShowCode] = useState(false); // the typed-code box, shown only after 'Didn't get it?'
+  const [mailPop, setMailPop] = useState(false); // the code went to the email: the pop-up asks for it
+  const [mailAt, setMailAt] = useState(0); // when it was sent (a new one can be asked for after a minute)
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!mailPop) return undefined;
+    const i = setInterval(() => setTick((n) => n + 1), 1000);
+    return () => clearInterval(i);
+  }, [mailPop]);
   const [tgBot, setTgBot] = useState('vertexhashbot'); // the bot the Open Telegram button opens (the poll brings the real name)
   const wdRef = useRef(null); // the latest withdraw(), called by the poll below
   const prices = pd?.prices;
@@ -370,8 +378,9 @@ export default function Wallet() {
 
   // Checks locally for instant feedback, shows the withdrawal at once, then lets the server decide.
   // If the server says no, the screen rolls back and shows its message.
-  async function withdraw() {
+  async function withdraw(opts) {
     if (busy || !wd) return;
+    const typed = opts?.resend ? '' : code.trim();
     const next = {};
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
     if (!wq) next.amount = t('wal.errAmount');
@@ -379,7 +388,7 @@ export default function Wallet() {
     else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
     if (!validAddress(net, address.trim())) next.address = t('wal.errAddr', { net: N.label });
-    if (tf && !code.trim()) next.code = t('wal.errCode');
+    if ((tf || (mailPop && !opts?.resend)) && !typed) next.code = t('wal.errCode');
 
     if (next.amount || next.address || next.code) {
       triggerHaptic('error');
@@ -412,7 +421,7 @@ export default function Wallet() {
     });
 
     try {
-      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(code.trim() ? { code: code.trim() } : {}) }, uid());
+      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(typed ? { code: typed } : {}) }, uid());
       refresh().catch(() => {});
       triggerHaptic('success');
       setAmount('');
@@ -420,12 +429,23 @@ export default function Wallet() {
       setCode('');
       setTgWait(false);
       setShowCode(false);
+      setMailPop(false);
       show(t('wal.requested'));
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
       triggerHaptic('error');
       const msg = e.status ? e.message : t('common.noConnection');
+      if (e.field === 'code' && !tf && (e.via === 'email' || mailPop)) {
+        if (e.via === 'email') {
+          setMailPop(true); // the code went to the email: the pop-up asks for it
+          setMailAt(Date.now());
+          setErrors({});
+        } else {
+          setErrors({ code: msg });
+        }
+        return;
+      }
       if (e.field === 'code' && !tf && !code.trim()) {
         setTgWait(true); // the code went to Telegram: wait for the Accept tap, no error text
         return;
@@ -759,6 +779,58 @@ export default function Wallet() {
               {t('wal.tgNoCode')}
             </button>
             <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={() => { triggerHaptic('light'); setTgWait(false); }}>{t('common.cancel')}</button>
+          </div>
+        </div>
+      )}
+      {!tf && mailPop && (
+        <div role="dialog" aria-modal="true" aria-labelledby="mlt" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>
+          <div className="card" style={{ width: '100%', maxWidth: 320, textAlign: 'center' }}>
+            <div style={{ width: 52, height: 52, margin: '4px auto 12px', borderRadius: '50%', background: '#F5A623', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="#0b0a08" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 7a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
+                <path d="M3 7l9 6l9 -6" />
+              </svg>
+            </div>
+            <b id="mlt" style={{ display: 'block', fontSize: 18, fontWeight: 500 }}>{t('wal.mailTitle')}</b>
+            <span className="mute" style={{ display: 'block', margin: '4px 0 14px' }}>{t('wal.mailSub')}</span>
+            <div style={{ textAlign: 'start' }}>
+              <Field id="wm" label={t('wal.mailCode')} error={errors.code}>
+                <input
+                  id="wm"
+                  className={errors.code ? 'bad' : undefined}
+                  aria-invalid={!!errors.code}
+                  aria-describedby={errors.code ? 'wm-err' : undefined}
+                  placeholder="123456"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  autoFocus
+                  value={code}
+                  onChange={(e) => {
+                    setCode(e.target.value);
+                    if (errors.code) setErrors({ ...errors, code: undefined });
+                  }}
+                />
+              </Field>
+            </div>
+            <button className="btn" type="button" disabled={busy || !code.trim()} onClick={() => withdraw()}>{busy ? t('wal.sending') : t('wal.mailConfirm')}</button>
+            {(() => {
+              const left = Math.max(0, Math.ceil((mailAt + 60000 - Date.now()) / 1000));
+              return (
+                <button
+                  type="button"
+                  disabled={busy || left > 0}
+                  onClick={() => {
+                    setCode('');
+                    setErrors({});
+                    withdraw({ resend: true });
+                  }}
+                  style={{ background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: left > 0 ? 'none' : 'underline', cursor: left > 0 ? 'default' : 'pointer' }}
+                >
+                  {left > 0 ? t('wal.mailResendIn', { n: left }) : t('wal.mailResend')}
+                </button>
+              );
+            })()}
+            <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={() => { triggerHaptic('light'); setMailPop(false); setCode(''); setErrors({}); }}>{t('common.cancel')}</button>
           </div>
         </div>
       )}
