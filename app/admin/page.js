@@ -611,6 +611,28 @@ function SmartHallForm({ draft, set, busy, asic, onSave, onCancel }) {
   );
 }
 
+// View-only accounts for /adtg. The username and password are typed here and told to the person by the admin; removing one ends its session at once.
+function ReviewersCard({ list, busy, run }) {
+  const [f, setF] = useState({ id: '', pass: '' });
+  const rows = list || [];
+  return (
+    <Fold title="Reviewers" sub={rows.length ? `${rows.length} with view-only access` : 'None'}>
+      {rows.map((r) => (
+        <div className="row adm-m" key={r.user}>
+          <div>{r.user}<small>Added {when(r.at)}</small></div>
+          <button className="btn ghost danger" style={SM} disabled={busy} onClick={() => ask(`Remove ${r.user}? They are signed out at once.`, { ok: 'Remove', danger: true }).then((yes) => yes && run({ action: 'reviewer-remove', id: r.user }, 'Reviewer removed'))}>Remove</button>
+        </div>
+      ))}
+      <Field id="rvn" label="Username (3 to 32)" autoComplete="off" autoCapitalize="none" spellCheck="false" maxLength={32} value={f.id} onChange={(v) => setF((x) => ({ ...x, id: v }))} />
+      <Field id="rvw" label="Password (10+ characters)" autoComplete="off" autoCapitalize="none" spellCheck="false" maxLength={200} value={f.pass} onChange={(v) => setF((x) => ({ ...x, pass: v }))} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy || f.id.trim().length < 3 || f.pass.length < 10} onClick={async () => (await run({ action: 'reviewer-add', id: f.id, pass: f.pass }, 'Reviewer added')) && setF({ id: '', pass: '' })}>Add reviewer</button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>They sign in at /adtg and can only look: users, orders, withdrawals and refunds. No changes, no settings, no private notes. Up to 10.</p>
+    </Fold>
+  );
+}
+
 function Login({ onDone, setup }) {
   const [token, setToken] = useState('');
   const [user, setUser] = useState('');
@@ -1598,6 +1620,7 @@ export default function Admin() {
             </div>
           </Fold>
           <ReviewsCard reviews={data.reviews} users={data.users} reviewUrl={data.reviewUrl} busy={busy} run={run} />
+          <ReviewersCard list={data.reviewers} busy={busy} run={run} />
           <Fold title="Admin password" sub="Change the sign-in password">
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
             <Field id="pwn" label="New password (10+ characters)" type="password" autoComplete="new-password" value={pw.next} onChange={(v) => setPw((p) => ({ ...p, next: v }))} />
