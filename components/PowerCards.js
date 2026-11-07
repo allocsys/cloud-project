@@ -298,6 +298,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
               max={SMART.max}
               step="1"
               value={budget}
+              style={{ width: `${Math.max(String(budget).length, 2) + 0.4}ch` }}
               aria-label={t('pc.budgetRange', { a: SMART.min, b: SMART.max.toLocaleString('en-US') })}
               onChange={(e) => onAmount(e.target.value)}
               onBlur={onAmountBlur}
