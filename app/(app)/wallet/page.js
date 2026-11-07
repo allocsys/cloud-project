@@ -139,7 +139,9 @@ export default function Wallet() {
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
   const [code, setCode] = useState('');
-  const [tgSent, setTgSent] = useState(false); // a code was sent to Telegram (accounts with no two-factor and no verified email)
+  const [tgWait, setTgWait] = useState(false); // the code went to Telegram: waiting for the Accept tap (accounts with no two-factor and no verified email)
+  const [showCode, setShowCode] = useState(false); // the typed-code box, shown only after 'Didn't get it?'
+  const wdRef = useRef(null); // the latest withdraw(), called by the poll below
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
@@ -163,6 +165,35 @@ export default function Wallet() {
   const [depErr, setDepErr] = useState('');
   const [payCoin, setPayCoin] = useState(DEFAULT_PAY); // the coin a top-up is paid in (our own checkout only)
   const depKey = useRef(null); // idempotency key of the top-up in progress: { usd, key }
+
+  // While the Accept tap is awaited, ask every 2.5 s. Accepted: withdraw by itself (the server lets it pass once). Denied, used or expired: say so.
+  useEffect(() => {
+    if (!tgWait) return undefined;
+    let live = true;
+    const tick = async () => {
+      try {
+        const r = await fetch('/api/wallet/wdcode', { headers: { accept: 'application/json' }, cache: 'no-store' });
+        if (!live || !r.ok) return;
+        const { state } = await r.json();
+        if (!live) return;
+        if (state === 'approved') {
+          live = false;
+          setTgWait(false);
+          if (wdRef.current) wdRef.current();
+        } else if (state === 'none') {
+          live = false;
+          setTgWait(false);
+          triggerHaptic('error');
+          show(t('wal.tgEnded'));
+        }
+      } catch {}
+    };
+    const i = setInterval(tick, 2500);
+    return () => {
+      live = false;
+      clearInterval(i);
+    };
+  }, [tgWait]);
 
   async function startDeposit() {
     if (busy) return;
@@ -379,21 +410,26 @@ export default function Wallet() {
     });
 
     try {
-      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(tf || tgSent ? { code: code.trim() } : {}) }, uid());
+      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(code.trim() ? { code: code.trim() } : {}) }, uid());
       refresh().catch(() => {});
       triggerHaptic('success');
       setAmount('');
       setAddress('');
       setCode('');
-      setTgSent(false);
+      setTgWait(false);
+      setShowCode(false);
       show(t('wal.requested'));
     } catch (e) {
       mutate(base);
       refresh().catch(() => {});
       triggerHaptic('error');
       const msg = e.status ? e.message : t('common.noConnection');
+      if (e.field === 'code' && !tf && !code.trim()) {
+        setTgWait(true); // the code went to Telegram: wait for the Accept tap, no error text
+        return;
+      }
       if (e.field === 'code' && !tf) {
-        setTgSent(true);
+        setShowCode(true);
         setTimeout(() => document.getElementById('wc')?.focus(), 50);
       }
       setErrors({ [e.field === 'address' ? 'address' : e.field === 'code' ? 'code' : 'amount']: msg });
@@ -535,7 +571,25 @@ export default function Wallet() {
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
 
-                {(tf || tgSent) && (
+                {!tf && tgWait && (
+                  <div className="fine" role="status" style={{ margin: '6px 0 10px' }}>
+                    <div>{t('wal.tgWait')}</div>
+                    {!showCode && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setShowCode(true);
+                          setTimeout(() => document.getElementById('wc')?.focus(), 50);
+                        }}
+                        style={{ background: 'none', border: 0, padding: '4px 0', margin: 0, font: 'inherit', color: '#e8b84a', textDecoration: 'underline', cursor: 'pointer' }}
+                      >
+                        {t('wal.tgNoCode')}
+                      </button>
+                    )}
+                  </div>
+                )}
+
+                {(tf || showCode) && (
                   <Field id="wc" label={tf ? t('wal.code') : t('wal.codeTg')} error={errors.code}>
                     <input
                       id="wc"
