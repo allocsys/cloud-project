@@ -334,7 +334,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
           onPick={(t) => onSlide(posFromBudget(t.from))}
         />
         <TermChips terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
-        {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd(band.mid / plan.days) })}</div>}
+        {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd((bNum + band.mid) / plan.days) })}</div>}
       </div>
       {within && <div className="tcan">{t('pc.within')}</div>}
       <button type="button" className="btn" onClick={onBuy}>{t('pc.buySmart')}</button>
