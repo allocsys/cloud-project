@@ -42,6 +42,7 @@ test('placeholders are filled and unknown ones stay', () => {
 
 test('pickLang only accepts known languages', () => {
   assert.equal(pickLang('fa'), 'fa');
+  assert.equal(pickLang('ar'), 'ar');
   assert.equal(pickLang('xx'), DEFAULT_LANG);
   assert.equal(pickLang(undefined), DEFAULT_LANG);
   assert.equal(pickLang('constructor'), DEFAULT_LANG);

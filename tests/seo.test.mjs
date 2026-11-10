@@ -21,6 +21,10 @@ test('pagePath and stripLang: English is the plain address, Persian is under /fa
   assert.equal(pagePath('/terms', 'en'), '/terms');
   assert.equal(pagePath('/terms', 'fa'), '/fa/terms');
   assert.equal(pagePath('/', 'fa'), '/fa');
+  assert.equal(pagePath('/terms', 'ar'), '/ar/terms');
+  assert.equal(pagePath('/', 'ar'), '/ar');
+  assert.equal(stripLang('/ar/terms'), '/terms');
+  assert.equal(stripLang('/ar'), '/');
   assert.equal(stripLang('/fa/terms'), '/terms');
   assert.equal(stripLang('/fa'), '/');
   assert.equal(stripLang('/fa/'), '/');
@@ -45,6 +49,17 @@ test('middleware: /fa addresses show the normal page in Persian and remember it'
     assert.equal(new URL(res.headers.get('x-middleware-rewrite')).pathname, to);
     assert.match(res.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
   }
+});
+
+test('middleware: /ar addresses show the normal page in Arabic and remember it', () => {
+  for (const [from, to] of [['/ar', '/'], ['/ar/terms', '/terms'], ['/ar/faq', '/faq']]) {
+    const res = call(from);
+    assert.equal(new URL(res.headers.get('x-middleware-rewrite')).pathname, to);
+    assert.match(res.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=ar`));
+  }
+  const fa = call('/terms?lang=ar');
+  assert.equal(fa.status, 308);
+  assert.equal(new URL(fa.headers.get('location')).pathname, '/ar/terms');
 });
 
 test('middleware: a visitor who already has the language cookie gets no new Set-Cookie', () => {
@@ -88,6 +103,8 @@ test('sitemap: every public page in every language, each with its alternates', (
   }
   assert.ok(list.some((e) => e.url === `${SITE_URL}/fa/terms`));
   assert.ok(list.some((e) => e.url === `${SITE_URL}/fa`));
+  assert.ok(list.some((e) => e.url === `${SITE_URL}/ar/terms`));
+  assert.ok(list.some((e) => e.url === `${SITE_URL}/ar`));
 });
 
 test('robots: the API and the admin are closed, the sitemap is named', () => {

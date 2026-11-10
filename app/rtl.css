@@ -1,7 +1,10 @@
-/* Right-to-left overrides (Persian, and any later RTL language). Everything here applies only when <html dir="rtl">. */
+/* Right-to-left overrides (Persian and Arabic, and any later RTL language). Everything here applies only when <html dir="rtl">. */
 
 /* Persian font; Roboto has no Persian letters */
 html[lang='fa'] { --sans: var(--sans-fa), Vazirmatn, Tahoma, system-ui, sans-serif; }
+
+/* Arabic font; Roboto has no Arabic letters */
+html[lang='ar'] { --sans: var(--sans-ar), Cairo, Tahoma, system-ui, sans-serif; }
 
 /* Spacing between letters and capitals break joined scripts */
 html[dir='rtl'] *, html[dir='rtl'] *::before, html[dir='rtl'] *::after { letter-spacing: 0 !important; text-transform: none !important; }

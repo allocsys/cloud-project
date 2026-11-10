@@ -62,7 +62,7 @@ export function parseNotify(b) {
   if (!Number.isSafeInteger(b.tg_id) || b.tg_id <= 0) return { ok: false, error: 'Bad tg_id.' };
   if (!kindKnown(b.kind)) return { ok: false, error: 'Unknown kind.' };
   if (typeof b.key !== 'string' || !/^[A-Za-z0-9:_.-]{8,128}$/.test(b.key)) return { ok: false, error: 'Bad key.' };
-  if (b.lang !== undefined && b.lang !== 'en' && b.lang !== 'fa') return { ok: false, error: 'Bad lang.' };
+  if (b.lang !== undefined && b.lang !== 'en' && b.lang !== 'fa' && b.lang !== 'ar') return { ok: false, error: 'Bad lang.' };
   const vars = {};
   if (b.vars !== undefined) {
     if (!b.vars || typeof b.vars !== 'object' || Array.isArray(b.vars)) return { ok: false, error: 'Bad vars.' };
