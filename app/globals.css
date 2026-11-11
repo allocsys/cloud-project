@@ -471,29 +471,22 @@ input::placeholder { color: var(--ph); }
 .lp-brand img { width: 28px; height: 28px; border-radius: 8px; }
 .lp-signin { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 20px; color: var(--gold); font-size: 14px; font-weight: 500; }
 .lp-signin:active { background: rgba(var(--gold-rgb), 0.12); }
-.lang-pill { gap: 6px; padding: 0 12px; letter-spacing: 0.3px; border: 1px solid var(--line); background: transparent; font-family: inherit; font-size: 14px; line-height: 1; cursor: pointer; -webkit-tap-highlight-color: transparent; }
-.lang-pill:lang(fa) { letter-spacing: 0; }
-.lang-pill svg { flex: none; }
-.lang-pill span { padding-top: 1px; }
-
-/* Settings language dropdown: same select as the top bar, compact for the row. */
+/* Settings language dropdown: same trigger as the top bar, compact for the row. */
 .set-lang {
   min-height: 36px;
   max-width: 190px;
-  padding: 0 32px 0 12px;
+  padding: 0 12px;
   border: 1px solid var(--outline);
   border-radius: 18px;
-  background: transparent url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' width='20' height='20' fill='none' stroke='%23aaa28f' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E") no-repeat right 10px center;
+  background: transparent;
   color: var(--text);
   font-family: inherit;
   font-size: 13px;
   font-weight: 500;
   cursor: pointer;
-  -webkit-appearance: none;
-  appearance: none;
+  -webkit-tap-highlight-color: transparent;
 }
 .set-lang:focus { border-color: var(--gold); outline: none; }
-.set-lang option { background: var(--s3); color: var(--text); }
 .lp-hero { max-width: 640px; padding: 20px 0 4px; }
 .lp-eyebrow { display: inline-block; margin-bottom: 10px; padding: 6px 12px; border-radius: 8px; background: var(--gold-c); color: var(--on-gold-c); font-size: 12px; line-height: 16px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase; }
 .lp h1 { font-size: clamp(24px, 6.4vw, 36px); line-height: 1.12; font-weight: 500; letter-spacing: -0.3px; margin: 0 0 12px; }
