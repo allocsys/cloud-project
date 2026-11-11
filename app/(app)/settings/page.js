@@ -840,7 +840,7 @@ export default function Settings() {
           </div>
           <div className="row">
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('settings.language')}</div>
-            <LangToggle className="set-lang" />
+            <LangToggle className="set-lang" short />
           </div>
           {[
             ['payouts', 'set.alPayouts'],
