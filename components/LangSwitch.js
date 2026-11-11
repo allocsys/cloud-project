@@ -3,30 +3,6 @@ import { triggerHaptic } from '@/lib/haptics';
 import { LANGS } from '@/lib/i18n/langs';
 import { useLang } from '@/components/I18nProvider';
 
-// Settings: one button per language.
-export default function LangSwitch() {
-  const { lang, setLang, t } = useLang();
-  return (
-    <div className="minitabs" role="group" aria-label={t('settings.language')}>
-      {Object.entries(LANGS).map(([code, l]) => (
-        <button
-          key={code}
-          type="button"
-          lang={code}
-          aria-pressed={lang === code}
-          onClick={() => {
-            if (code === lang) return;
-            triggerHaptic('selection');
-            setLang(code);
-          }}
-        >
-          {l.name}
-        </button>
-      ))}
-    </div>
-  );
-}
-
 // The short label on the top bar button (the full name stays in the button's aria-label).
 const SHORT = { en: 'EN', fa: 'فا', ar: 'عر', fi: 'FI', sv: 'SV', ru: 'RU' };
 
