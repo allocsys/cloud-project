@@ -108,7 +108,7 @@ export default async function Home() {
                 '@id': `${SITE_URL}/#site`,
                 name: 'Vertexhash',
                 url: SITE_URL,
-                inLanguage: ['en', 'fa', 'ar', 'fi'],
+                inLanguage: ['en', 'fa', 'ar', 'fi', 'sv'],
                 publisher: { '@id': `${SITE_URL}/#org` },
               },
             ],
