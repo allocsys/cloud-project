@@ -1,7 +1,7 @@
 // Webhook handler and command logic. No network of its own: Telegram calls go through `tg`, app calls through `appApi`, so tests can fake both.
 import { q } from './db.js';
 import { json, readJson, readRaw, ApiError } from './http.js';
-import { t, helpText, hasLang } from './texts.js';
+import { t, helpText, hasLang, texts, LANG_NAMES, hasOtherLang } from './texts.js';
 import { safeEqual } from './util.js';
 import { verifySig, parseNotify, parseBroadcast, MAX_PENDING } from './notify.js';
 import { enqueue, enqueueBroadcast, pendingCount } from './queue.js';
@@ -19,7 +19,7 @@ const RED = 'danger';
 const LINK_START = /^lnk_([A-Za-z0-9]{3,32})$/;
 // Button taps: m:<action>:<version>. The version is the menu's counter: a tap is used once, then the counter moves on.
 const MENU_DATA = /^m:([a-z_]{1,8}):(\d{1,9})$/;
-const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'faq', 'help', 'lang', 'l_en', 'l_fa', 'stop']);
+const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'faq', 'help', 'lang', 'stop', ...Object.keys(texts).map((l) => `l_${l}`)]);
 // Accept / Deny under a withdrawal code message: w:a:<ref> or w:d:<ref>. ref is the time of that code (sent by the app); the app checks it is the code waiting now.
 const WD_DATA = /^w:([ad]):(\d{10,15})$/;
 
@@ -49,7 +49,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   const openRow = (lang, url = config.appUrl) => [{ text: t(lang, 'open'), web_app: { url }, style: BLUE }];
   const keyboard = (rows) => (rows.length ? { reply_markup: { inline_keyboard: rows } } : undefined);
   const botName = config.botUsername || 'vertexhashbot';
-  const faqPath = (lang) => (lang === 'fa' && hasLang('fa') ? '/fa/faq' : '/faq');
+  const faqPath = (lang) => (lang !== 'en' && hasLang(lang) ? `/${lang}/faq` : '/faq');
 
   // A view is { text, rows }: the message text and the inline button rows under it.
   // Commands send a view as it is; the menu adds its own buttons.
@@ -137,16 +137,13 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   const moreRows = (lang, ver) => [
     [mbtn(lang, 'b_faq', 'faq', ver, BLUE)],
     [mbtn(lang, 'b_help', 'help', ver, BLUE)],
-    ...(hasLang('fa') ? [[mbtn(lang, 'b_lang', 'lang', ver, BLUE)]] : []),
+    ...(hasOtherLang() ? [[mbtn(lang, 'b_lang', 'lang', ver, BLUE)]] : []),
     [mbtn(lang, 'b_stop', 'stop', ver, RED)],
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
+  // One button per language, in that language's own script.
   const langRows = (lang, ver) => [
-    [
-      { text: 'English', callback_data: `m:l_en:${ver}`, style: BLUE }],
-    [
-      { text: '\u0641\u0627\u0631\u0633\u06cc', callback_data: `m:l_fa:${ver}`, style: BLUE },
-    ],
+    ...Object.keys(texts).map((l) => [{ text: LANG_NAMES[l] || l, callback_data: `m:l_${l}:${ver}`, style: BLUE }]),
     [mbtn(lang, 'b_back', 'menu', ver)],
   ];
 
@@ -225,15 +222,16 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       await q('UPDATE chats SET news = false WHERE tg_id = $1', [id]);
       view = { text: t(lang, 'stopOk'), rows: [] };
     } else if (act === 'lang') {
-      if (!hasLang('fa')) view = { text: t(lang, 'langSet'), rows: [] };
+      if (!hasOtherLang()) view = { text: t(lang, 'langSet'), rows: [] };
       else view = { text: t(lang, 'langSet'), rows: langRows(lang, ver) };
-    } else if (act === 'l_en' || act === 'l_fa') {
-      lang = act === 'l_fa' && hasLang('fa') ? 'fa' : 'en';
+    } else if (act.startsWith('l_')) {
+      const code = act.slice(2);
+      lang = hasLang(code) ? code : 'en';
       await q('UPDATE chats SET lang = $2 WHERE tg_id = $1', [id, lang]);
       view = { text: t(lang, 'start'), rows: mainRows(lang, ver) };
     }
     // Answers end with one Menu button; the menu pages carry their own buttons.
-    const own = act === 'menu' || act === 'l_en' || act === 'l_fa' || (act === 'lang' && hasLang('fa'));
+    const own = act === 'menu' || act.startsWith('l_') || (act === 'lang' && hasOtherLang());
     const rows = own ? view.rows : [...(view.rows || []), menuRow(lang, ver)];
     const done =
       act === 'more'
@@ -259,7 +257,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (typeof m.text !== 'string') return;
     const id = m.chat.id;
     if (limited(id)) return;
-    const guess = String(m.from.language_code || '').toLowerCase().startsWith('fa') ? 'fa' : 'en';
+    const code = String(m.from.language_code || '').toLowerCase();
+    const guess = hasLang(code.slice(0, 2)) ? code.slice(0, 2) : 'en';
     const row = (
       await q(
         `INSERT INTO chats (tg_id, lang) VALUES ($1, $2)
@@ -270,7 +269,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     const lang = row.lang;
     // The permanent Menu button under the chat sends its own label as text: open the menu.
     const said = m.text.trim();
-    if (said === t('en', 'b_menu') || said === t('fa', 'b_menu')) return sendMenu(id, lang, t(lang, 'start'));
+    if (Object.keys(texts).some((l) => said === t(l, 'b_menu'))) return sendMenu(id, lang, t(lang, 'start'));
     const c = CMD.exec(m.text.slice(0, 500).trim());
     const cmd = c ? c[1].toLowerCase() : '';
     const rawArg = c && c[2] ? c[2].trim() : '';
@@ -302,8 +301,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (cmd === 'referrals') return send(id, await referralsView(lang, m.from.id));
     if (cmd === 'faq') return send(id, faqView(lang));
     if (cmd === 'support') return send(id, supportView(lang));
-    if (cmd === 'lang' && hasLang('fa')) {
-      if (arg === 'en' || arg === 'fa') {
+    if (cmd === 'lang' && hasOtherLang()) {
+      if (hasLang(arg)) {
         await q('UPDATE chats SET lang = $2 WHERE tg_id = $1', [id, arg]);
         return reply(id, t(arg, 'langSet'));
       }

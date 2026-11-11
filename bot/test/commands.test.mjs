@@ -126,3 +126,11 @@ test('a Persian Telegram language is remembered but texts fall back to English u
   assert.equal((await q('SELECT lang FROM chats WHERE tg_id = 1001')).rows[0].lang, 'fa');
   assert.ok(tg.sent[0].text.includes('VERTEXHASH'));
 });
+
+test('an Arabic Telegram language is remembered and the menu is shown in Arabic', async () => {
+  const tg = fakeTg();
+  const bot = makeBot({ config: cfg, tg });
+  await bot.handleUpdate(msg('/start', { from: { language_code: 'ar' } }));
+  assert.equal((await q('SELECT lang FROM chats WHERE tg_id = 1001')).rows[0].lang, 'ar');
+  assert.ok(tg.sent[0].text.includes('VERTEXHASH'));
+});

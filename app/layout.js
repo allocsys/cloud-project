@@ -1,5 +1,5 @@
 import Script from 'next/script';
-import { Roboto, Vazirmatn } from 'next/font/google';
+import { Roboto, Vazirmatn, Cairo } from 'next/font/google';
 import './globals.css';
 import './rtl.css';
 import PWA from '@/components/PWA';
@@ -12,9 +12,11 @@ import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
 import { SITE_URL } from '@/lib/site';
 
-const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
+const sans = Roboto({ subsets: ['latin', 'cyrillic'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 // Persian font: not preloaded, and the browser only fetches it when Persian text is on the page.
 const sansFa = Vazirmatn({ subsets: ['arabic', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--sans-fa', preload: false });
+// Arabic font: same deal — only fetched when Arabic text is on the page.
+const sansAr = Cairo({ subsets: ['arabic', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--sans-ar', preload: false });
 
 export async function generateMetadata() {
   const t = await getT();
@@ -60,7 +62,7 @@ export const viewport = {
 export default async function RootLayout({ children }) {
   const lang = await getLang();
   return (
-    <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable}`} suppressHydrationWarning>
+    <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
         <script

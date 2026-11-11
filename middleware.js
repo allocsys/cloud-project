@@ -4,7 +4,7 @@ import { over, addressOf, isTool, LIMITS } from '@/lib/rate-mem';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
 
-// Persian lives under /fa (/fa, /fa/terms, /fa/privacy). Those addresses show the normal page in that language and
+// Persian lives under /fa (/fa, /fa/terms, /fa/privacy), Arabic under /ar. Those addresses show the normal page in that language and
 // remember it, the same as the language switch. An old ?lang=fa address is sent on to its /fa address.
 // Paths that machines call on purpose (the payment gateway, the hall monitoring, uptime checks): no limits, no tool blocking.
 const MACHINE = ['/api/payments/webhook', '/api/telemetry', '/api/health'];
@@ -57,4 +57,4 @@ export function middleware(req) {
 }
 
 // A literal list (Next reads it at build time). tests/seo.test.mjs checks it covers every public page in every language.
-export const config = { matcher: ['/api/:path*', '/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status'] };
+export const config = { matcher: ['/api/:path*', '/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status', '/ar', '/ar/terms', '/ar/privacy', '/ar/faq', '/ar/how-it-works', '/ar/glossary', '/ar/about', '/ar/refunds', '/ar/status', '/fi', '/fi/terms', '/fi/privacy', '/fi/faq', '/fi/how-it-works', '/fi/glossary', '/fi/about', '/fi/refunds', '/fi/status', '/sv', '/sv/terms', '/sv/privacy', '/sv/faq', '/sv/how-it-works', '/sv/glossary', '/sv/about', '/sv/refunds', '/sv/status', '/ru', '/ru/terms', '/ru/privacy', '/ru/faq', '/ru/how-it-works', '/ru/glossary', '/ru/about', '/ru/refunds', '/ru/status'] };

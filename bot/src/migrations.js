@@ -46,4 +46,22 @@ export const MIGRATIONS = [
     id: '004_chats_menu',
     sql: `ALTER TABLE chats ADD COLUMN menu_msg_id bigint, ADD COLUMN menu_ver int NOT NULL DEFAULT 0;`,
   },
+  {
+    id: '005_lang_ar',
+    sql: `
+      ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_lang_check;
+      ALTER TABLE chats ADD CONSTRAINT chats_lang_check CHECK (lang IN ('en', 'fa', 'ar'));
+      ALTER TABLE notify_outbox DROP CONSTRAINT IF EXISTS notify_outbox_lang_check;
+      ALTER TABLE notify_outbox ADD CONSTRAINT notify_outbox_lang_check CHECK (lang IN ('en', 'fa', 'ar'));
+    `,
+  },
+  {
+    id: '006_lang_fi_sv_ru',
+    sql: `
+      ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_lang_check;
+      ALTER TABLE chats ADD CONSTRAINT chats_lang_check CHECK (lang IN ('en', 'fa', 'ar', 'fi', 'sv', 'ru'));
+      ALTER TABLE notify_outbox DROP CONSTRAINT IF EXISTS notify_outbox_lang_check;
+      ALTER TABLE notify_outbox ADD CONSTRAINT notify_outbox_lang_check CHECK (lang IN ('en', 'fa', 'ar', 'fi', 'sv', 'ru'));
+    `,
+  },
 ];

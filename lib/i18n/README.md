@@ -4,7 +4,7 @@ Add a language in three steps:
 
 1. Copy `locales/en.js` to `locales/<code>.js` and translate the values. Keep the keys and the `{name}` placeholders. A missing key shows the English text.
 2. In `langs.js`, import it and add one line to `LANGS` (`name` in its own script, `dir` of `ltr` or `rtl`).
-3. For a right-to-left language the layout flips by itself (`<html dir>`); extra fixes go in `app/rtl.css`. For a new script, add its font in `app/layout.js` and a `html[lang='<code>']` rule setting `--sans`.
+3. For a right-to-left language the layout flips by itself (`<html dir>`); extra fixes go in `app/rtl.css`. For a new script, add its font in `app/layout.js` and a `html[lang='<code>']` rule setting `--sans` (Arabic uses Cairo, Persian uses Vazirmatn).
 
 Use in code:
 

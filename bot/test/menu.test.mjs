@@ -181,6 +181,19 @@ test('Language switches the chat to Persian and shows the menu in Persian', asyn
   assert.equal(buttons(rowsOf(e))[1].text, texts.fa.b_balance);
 });
 
+test('Language switches the chat to Arabic and shows the menu in Arabic', async () => {
+  const { tg, bot, mid, rows } = await started();
+  await bot.handleUpdate(tap(dataOf(rows, 'more'), mid));
+  await bot.handleUpdate(tap(dataOf(tg.of('markup')[0].markup.inline_keyboard, 'lang'), mid));
+  const page = rowsOf(tg.of('edit')[0]);
+  assert.deepEqual(buttons(page).map((b) => b.text).slice(0, 3), ['English', '\u0641\u0627\u0631\u0633\u06cc', '\u0627\u0644\u0639\u0631\u0628\u064a\u0629']);
+  await bot.handleUpdate(tap(dataOf(page, 'l_ar'), mid));
+  assert.equal((await chat()).lang, 'ar');
+  const e = tg.of('edit')[1];
+  assert.equal(e.text, texts.ar.start);
+  assert.equal(buttons(rowsOf(e))[1].text, texts.ar.b_balance);
+});
+
 test('an app error shows the try-again text with a Menu button', async () => {
   const { tg, bot, mid, rows } = await started();
   await bot.handleUpdate(tap(dataOf(rows, 'ear'), mid));
