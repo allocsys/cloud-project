@@ -124,7 +124,7 @@ export default async function Home() {
             Vertexhash
           </Link>
           <div className="topact">
-            <LangToggle className="lp-signin" />
+            <LangToggle className="lp-signin" short />
             {signedIn ? (
               <Link href="/dashboard" className="lp-signin">
                 {t('landing.dashboard')}

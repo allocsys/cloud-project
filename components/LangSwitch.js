@@ -6,7 +6,10 @@ import { triggerHaptic } from '@/lib/haptics';
 import { LANGS } from '@/lib/i18n/langs';
 import { useLang } from '@/components/I18nProvider';
 
-export function LangToggle({ className }) {
+// Short label for the top bar (the full name stays in the menu).
+const SHORT = { en: 'EN', fa: 'فا', ar: 'عر', fi: 'FI', sv: 'SV', ru: 'RU' };
+
+export function LangToggle({ className, short }) {
   const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
   const box = useRef(null);
@@ -49,7 +52,7 @@ export function LangToggle({ className }) {
           <path d="M3 12h18" />
           <path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" />
         </svg>
-        <span>{LANGS[lang].name}</span>
+        <span>{short ? SHORT[lang] : LANGS[lang].name}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
