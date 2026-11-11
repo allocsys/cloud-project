@@ -12,7 +12,7 @@ import { getLang, getT } from '@/lib/i18n/server';
 import { LANGS } from '@/lib/i18n/langs';
 import { SITE_URL } from '@/lib/site';
 
-const sans = Roboto({ subsets: ['latin'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
+const sans = Roboto({ subsets: ['latin', 'cyrillic'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
 // Persian font: not preloaded, and the browser only fetches it when Persian text is on the page.
 const sansFa = Vazirmatn({ subsets: ['arabic', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--sans-fa', preload: false });
 // Arabic font: same deal — only fetched when Arabic text is on the page.
