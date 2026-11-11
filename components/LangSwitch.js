@@ -34,7 +34,7 @@ export function LangToggle({ className }) {
         [dir=rtl] .lang-menu{right:auto;left:0}
         .lang-menu button{display:block;width:100%;padding:11px 14px;border:0;border-radius:10px;background:none;color:var(--text);font:inherit;font-size:14px;line-height:20px;text-align:start;white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent}
         .lang-menu button:active{background:rgba(var(--gold-rgb),.12)}
-        .lang-menu li[aria-selected=true] button{color:var(--gold2);font-weight:600}
+        .lang-menu li[aria-selected=true] button{background:var(--gold-c);color:var(--on-gold-c);font-weight:600}
       `}</style>
       <button
         type="button"
