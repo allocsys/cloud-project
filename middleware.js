@@ -57,4 +57,4 @@ export function middleware(req) {
 }
 
 // A literal list (Next reads it at build time). tests/seo.test.mjs checks it covers every public page in every language.
-export const config = { matcher: ['/api/:path*', '/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status', '/ar', '/ar/terms', '/ar/privacy', '/ar/faq', '/ar/how-it-works', '/ar/glossary', '/ar/about', '/ar/refunds', '/ar/status'] };
+export const config = { matcher: ['/api/:path*', '/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status', '/fa', '/fa/terms', '/fa/privacy', '/fa/faq', '/fa/how-it-works', '/fa/glossary', '/fa/about', '/fa/refunds', '/fa/status', '/ar', '/ar/terms', '/ar/privacy', '/ar/faq', '/ar/how-it-works', '/ar/glossary', '/ar/about', '/ar/refunds', '/ar/status', '/fi', '/fi/terms', '/fi/privacy', '/fi/faq', '/fi/how-it-works', '/fi/glossary', '/fi/about', '/fi/refunds', '/fi/status'] };

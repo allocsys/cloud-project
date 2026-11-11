@@ -8,7 +8,7 @@ export const texts = {
     faqBtn: '📖 Read FAQ',
     support: 'Need help? Write to {email}.',
     langSet: 'Language: English',
-    langUsage: 'Use /lang en, /lang fa or /lang ar.',
+    langUsage: 'Use /lang en, /lang fa, /lang ar or /lang fi.',
     bal: 'Balance: {btc} BTC',
     balUsd: '≈ ${usd}',
     balHold: 'On hold: {locked} BTC',
@@ -69,7 +69,7 @@ export const texts = {
     faqBtn: '📖 خواندن سؤال‌ها',
     support: 'به کمک نیاز دارید؟ به {email} بنویسید.',
     langSet: 'زبان: فارسی',
-    langUsage: 'از /lang en یا /lang fa یا /lang ar استفاده کنید.',
+    langUsage: 'از /lang en یا /lang fa یا /lang ar یا /lang fi استفاده کنید.',
     bal: 'موجودی: {btc} BTC',
     balUsd: '≈ ${usd}',
     balHold: 'مسدود: {locked} BTC',
@@ -130,7 +130,7 @@ export const texts = {
     faqBtn: '📖 قراءة الأسئلة الشائعة',
     support: 'تحتاج مساعدة؟ اكتب إلى {email}.',
     langSet: 'اللغة: العربية',
-    langUsage: 'استخدم /lang en أو /lang fa أو /lang ar.',
+    langUsage: 'استخدم /lang en أو /lang fa أو /lang ar أو /lang fi.',
     bal: 'الرصيد: {btc} BTC',
     balUsd: '≈ ${usd}',
     balHold: 'المحجوز: {locked} BTC',
@@ -184,9 +184,76 @@ export const texts = {
     wdNo: 'تم إلغاء السحب.',
     wdGone: 'هذا الرمز لم يعد صالحًا.',
   },
+  fi: {
+    start: 'Tervetuloa VERTEXHASHiin.\nNapauta painiketta avataksesi sovelluksen.',
+    open: '🚀 Avaa sovellus',
+    faq: 'Vastaukset yleisiin kysymyksiin löytyvät sivustoltamme.',
+    faqBtn: '📖 Lue UKK',
+    support: 'Tarvitsetko apua? Kirjoita osoitteeseen {email}.',
+    langSet: 'Kieli: Suomi',
+    langUsage: 'Käytä /lang en, /lang fa, /lang ar tai /lang fi.',
+    bal: 'Saldo: {btc} BTC',
+    balUsd: '≈ ${usd}',
+    balHold: 'Pidossa: {locked} BTC',
+    earnToday: 'Tänään: {btc} BTC',
+    earnTotal: 'Yhteensä: {btc} BTC',
+    earnAvg: 'Päivässä: ≈ ${usd}',
+    noMiners: 'Sinulla ei ole vielä louhijoita. Avaa sovellus aloittaaksesi.',
+    refCode: 'Koodisi: {code}',
+    refFriends: 'Ystävät: {n} ({active} aktiivista)',
+    refEarned: 'Ansaittu: {btc} BTC',
+    refVip: 'VIP: {n}',
+    noAcc: 'Tiliä ei löytynyt. Avaa ensin sovellus.',
+    busy: 'Yritä uudelleen minuutin kuluttua.',
+    linkOk: 'Tili yhdistetty.',
+    linkDone: 'Yhdistetty osoitteeseen {email}. Botti näyttää nyt tämän tilin.',
+    linkHas: 'Tällä Telegram-tilillä on jo tili. Avaa sovellus tästä ja napauta Lisää sähköposti Asetuksissa.',
+    linkBad: 'Koodi ei kelpaa.',
+    linkTaken: 'Yhdistetty jo toiseen tiliin.',
+    linkMany: 'Liian monta yritystä. Odota muutama minuutti.',
+    d_start: 'Avaa sovellus',
+    d_balance: 'Näytä saldo',
+    d_earnings: 'Näytä tuotot',
+    d_referrals: 'Kutsu ystäviä',
+    d_faq: 'Lue UKK',
+    d_support: 'Hae apua',
+    d_lang: 'Vaihda kieltä',
+    stopOk: 'Uutiset pois päältä. Lähetä /start ottaaksesi ne käyttöön.',
+    newsOn: 'Uutiset päällä.',
+    kbOn: 'Käytä alla olevaa Valikkoa milloin tahansa.',
+    d_stop: 'Lopeta uutiset',
+    b_balance: '💰 Saldo',
+    b_earnings: '📈 Tuotot',
+    b_friends: '👥 Ystävät',
+    b_more: '➕ Lisää',
+    b_back: '↩️ Takaisin',
+    b_menu: '🏠 Valikko',
+    b_faq: '❓ UKK',
+    b_help: '💬 Apua',
+    b_lang: '🌐 Kieli',
+    b_stop: '🔕 Lopeta uutiset',
+    b_copyCode: '📋 Kopioi koodi',
+    b_copyLink: '🔗 Kopioi linkki',
+    b_share: '📤 Jaa',
+    n_depPaid: 'Talletus vastaanotettu: ${usd}.',
+    n_wdSent: 'Nosto lähetetty: {amt}.',
+    n_vipDrop: 'VIP {n} laskee {date}.',
+    n_wdCode: 'Nostokoodi: {code}. Se on voimassa 10 minuuttia. Älä koskaan jaa sitä.',
+    b_wdOk: '✅ Hyväksy',
+    b_wdNo: '🚫 Hylkää',
+    wdOk: 'Hyväksytty. Palaa sovellukseen ja napauta Nosto uudelleen.',
+    wdNo: 'Nosto peruttu.',
+    wdGone: 'Tämä koodi ei ole enää voimassa.',
+  },
 };
 
 export const hasLang = (l) => l === 'en' || Object.keys(texts[l] || {}).length > 0;
+
+// Display names for the language menu, in each language's own script.
+export const LANG_NAMES = { en: 'English', fa: '\u0641\u0627\u0631\u0633\u06cc', ar: '\u0627\u0644\u0639\u0631\u0628\u064a\u0629', fi: 'Suomi', sv: 'Svenska', ru: '\u0420\u0443\u0441\u0441\u043a\u0438\u0439' };
+
+// True when any language besides English has texts.
+export const hasOtherLang = () => Object.keys(texts).some((l) => l !== 'en' && hasLang(l));
 
 export function t(lang, key, vars = {}) {
   const s = (texts[lang] && texts[lang][key]) ?? texts.en[key] ?? '';
@@ -195,7 +262,7 @@ export function t(lang, key, vars = {}) {
 
 export function commandList(lang) {
   const names = ['start', 'balance', 'earnings', 'referrals', 'faq', 'support', 'stop'];
-  if (hasLang('fa')) names.push('lang');
+  if (hasOtherLang()) names.push('lang');
   return names.map((command) => ({ command, description: t(lang, `d_${command}`) }));
 }
 

@@ -55,4 +55,13 @@ export const MIGRATIONS = [
       ALTER TABLE notify_outbox ADD CONSTRAINT notify_outbox_lang_check CHECK (lang IN ('en', 'fa', 'ar'));
     `,
   },
+  {
+    id: '006_lang_fi_sv_ru',
+    sql: `
+      ALTER TABLE chats DROP CONSTRAINT IF EXISTS chats_lang_check;
+      ALTER TABLE chats ADD CONSTRAINT chats_lang_check CHECK (lang IN ('en', 'fa', 'ar', 'fi', 'sv', 'ru'));
+      ALTER TABLE notify_outbox DROP CONSTRAINT IF EXISTS notify_outbox_lang_check;
+      ALTER TABLE notify_outbox ADD CONSTRAINT notify_outbox_lang_check CHECK (lang IN ('en', 'fa', 'ar', 'fi', 'sv', 'ru'));
+    `,
+  },
 ];
