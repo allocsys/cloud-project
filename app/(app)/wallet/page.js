@@ -7,7 +7,7 @@ import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
-import { serviceTier, serviceLine } from '@/lib/service-fee';
+import { serviceTier, serviceLine, serviceProgress } from '@/lib/service-fee';
 import { useApi, post } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
@@ -312,6 +312,7 @@ export default function Wallet() {
   const coinAmt = parsed > 0 ? floorCoin(asset, toCoin(parsed)) : 0; // rounded down to the coin's decimals, as the server does
   // The withdrawal service fee tier, counted from the last withdrawal (or the first purchase). The server decides the real one.
   const tier = ready && wd.svcSince ? serviceTier(wd.svcSince) : null;
+  const goal = tier ? serviceProgress(wd.svcSince) : null; // the bar toward the fee-free tier
   const svcPct = tier ? tier.pct : 0;
   const q = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
   const flatFee = A.nets[net];
@@ -594,6 +595,14 @@ export default function Wallet() {
                 </div>
 
                 {tier && <p className="fine" style={{ margin: '6px 0 10px' }}>{serviceLine(tier, t)}</p>}
+                {goal && goal.daysToFree > 0 && (
+                  <div style={{ margin: '-4px 0 12px' }}>
+                    <div role="progressbar" aria-valuemin={0} aria-valuemax={100} aria-valuenow={goal.pct} style={{ height: '6px', borderRadius: '3px', background: '#3d3519', overflow: 'hidden' }}>
+                      <div style={{ height: '100%', width: `${Math.max(2, goal.pct)}%`, background: '#e8b84a', borderRadius: '3px' }} />
+                    </div>
+                    <p className="fine" style={{ margin: '4px 0 0' }}>{t('svc.goal', { d: goal.daysToFree === 1 ? t('svc.day1') : t('svc.dayN', { n: goal.daysToFree }) })}</p>
+                  </div>
+                )}
 
                 {(tf || showCode) && (
                   <Field id="wc" label={tf ? t('wal.code') : t('wal.codeTg')} error={errors.code}>
