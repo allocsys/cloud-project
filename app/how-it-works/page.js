@@ -9,6 +9,8 @@ const link = { color: 'var(--gold2)' };
 
 // The wording was approved by the owner on 30 Oct 2026. It has no typed numbers: payout time and fees are shown in the app.
 const STEPS = ['s1', 's2', 's3', 's4', 's5'];
+// "What can go wrong": plain risks, no typed numbers. English only until the Persian text is approved.
+const WRONG = ['1', '2', '3', '4'];
 
 export async function generateMetadata() {
   const t = await getT();
@@ -32,7 +34,12 @@ export default async function HowItWorks() {
           </div>
         ))}
 
-        <h2 style={h2}>{t('how.risk.t')}</h2>
+        <h2 style={h2}>{t('how.wrong.t')}</h2>
+        <ul className="mute" style={{ paddingInlineStart: '20px', margin: '0 0 8px' }}>
+          {WRONG.map((k) => (
+            <li key={k} style={{ marginBottom: '6px' }}>{t(`how.wrong.${k}`)}</li>
+          ))}
+        </ul>
         <p className="mute">{t('how.risk.d')}</p>
 
         <p className="mute" style={{ marginTop: '18px' }}>
