@@ -31,8 +31,9 @@ export function LangToggle({ className, short }) {
     <div className="lang-drop" ref={box}>
       <style>{`
         .lang-drop{position:relative}
-        .lang-drop-b{gap:6px}
-        .lang-drop-b svg{flex:none;width:16px;height:16px}
+        .lang-drop-b{display:inline-flex;align-items:center;justify-content:center;gap:6px;line-height:1}
+        .lang-drop-b svg{flex:none;display:block;width:16px;height:16px}
+        .lang-drop-b span{display:block;line-height:1}
         .lang-menu{position:absolute;z-index:60;top:calc(100% + 4px);right:0;left:auto;min-width:180px;max-width:calc(100vw - 24px);margin:0;padding:6px;border:1px solid var(--line);border-radius:16px;background:var(--s2);box-shadow:0 8px 24px rgba(0,0,0,.35);list-style:none}
         [dir=rtl] .lang-menu{right:auto;left:0}
         .lang-menu button{display:block;width:100%;padding:11px 14px;border:0;border-radius:10px;background:none;color:var(--text);font:inherit;font-size:14px;line-height:20px;text-align:start;white-space:nowrap;cursor:pointer;-webkit-tap-highlight-color:transparent}
