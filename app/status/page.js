@@ -47,7 +47,7 @@ export default async function Status() {
   try {
     d = (await getLive())?.difficulty ?? null;
   } catch {}
-  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH };
+  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH, last: t('status.lastVal') };
   const proof = await payoutProof();
   const sent = proof && proof.count > 0 ? proof : null;
   return (
