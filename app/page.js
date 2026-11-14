@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import Calculator from '@/components/Calculator';
-import StartCards from '@/components/StartCards';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
 import LandingTail from '@/components/LandingTail';
@@ -177,7 +176,6 @@ export default async function Home() {
               <Decrypt when="view" text={t('calc.heading')} />
             </h2>
             <Calculator signedIn={signedIn} />
-            <StartCards />
             <Link href={pagePath('/refunds', lang)} style={refundBox}>{t('refund.badge', { hours: REFUND_HOURS })}</Link>
             <BoostPromo signedIn={signedIn} />
           </Reveal>
