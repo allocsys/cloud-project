@@ -1,7 +1,6 @@
 import Link from 'next/link';
 import { cookies } from 'next/headers';
 import Calculator from '@/components/Calculator';
-import StartCards from '@/components/StartCards';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
 import LandingTail from '@/components/LandingTail';
@@ -22,10 +21,6 @@ import Reviews from '@/components/Reviews';
 import { reviewList } from '@/lib/server/reviews';
 import { showDemo } from '@/lib/server/flags';
 import { SITE_URL } from '@/lib/site';
-import { REFUND_HOURS } from '@/lib/rules';
-
-// The refund line under the calculator: a plain box that links to the Refunds page.
-const refundBox = { display: 'block', margin: '12px 0 0', padding: '10px 12px', border: '1px solid rgba(232, 184, 74, 0.3)', borderRadius: '12px', color: 'inherit', textDecoration: 'none', fontSize: '14px' };
 
 export async function generateMetadata() {
   const t = await getT();
@@ -177,8 +172,6 @@ export default async function Home() {
               <Decrypt when="view" text={t('calc.heading')} />
             </h2>
             <Calculator signedIn={signedIn} />
-            <StartCards />
-            <Link href={pagePath('/refunds', lang)} style={refundBox}>{t('refund.badge', { hours: REFUND_HOURS })}</Link>
             <BoostPromo signedIn={signedIn} />
           </Reveal>
         </section>
