@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { serviceTier, serviceLine } from '../lib/service-fee.js';
+import { serviceTier, serviceLine, serviceProgress } from '../lib/service-fee.js';
 
 const DAY = 86_400_000;
 const NOW = 1_800_000_000_000;
@@ -36,4 +36,14 @@ test('countdown lines', () => {
   assert.equal(serviceLine(at(19)), 'Service fee 2.5%. Drops to 2% in 12 days.');
   assert.equal(serviceLine(at(40)), 'Service fee 2%. Free in 6 days.');
   assert.equal(serviceLine(at(60)), 'No service fee. Withdraw free.');
+});
+
+test('progress to the fee-free tier: percent and whole days left', () => {
+  const p = (d) => serviceProgress(NOW - d * DAY, NOW);
+  assert.deepEqual(p(0), { pct: 0, daysToFree: 46 });
+  assert.equal(p(23).pct, 50);
+  assert.equal(p(45.9).daysToFree, 1);
+  assert.deepEqual(p(46), { pct: 100, daysToFree: 0 });
+  assert.deepEqual(p(400), { pct: 100, daysToFree: 0 });
+  assert.deepEqual(serviceProgress(null, NOW), { pct: 0, daysToFree: 46 });
 });
