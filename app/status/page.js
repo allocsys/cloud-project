@@ -19,6 +19,14 @@ const num = { fontSize: '20px', fontWeight: 700, margin: '0 0 2px' };
 const line = { ...card, display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '8px' };
 const lineNum = { fontSize: '16px', fontWeight: 700, margin: 0, textAlign: 'end' };
 
+// Motion: cards rise in one by one, then a soft gold shine passes over each (transform and opacity only).
+const CSS = `
+.st-c{position:relative;overflow:hidden;opacity:0;animation:st-in .6s cubic-bezier(.2,.7,.2,1) forwards;animation-delay:calc(var(--i)*70ms)}
+.st-c::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(100deg,transparent 30%,rgba(232,184,74,.15) 50%,transparent 70%);transform:translateX(-120%);animation:st-shine 7s ease-in-out infinite;animation-delay:calc(var(--i)*600ms + 1s)}
+@keyframes st-in{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@keyframes st-shine{0%,60%{transform:translateX(-120%)}100%{transform:translateX(120%)}}
+`;
+
 // Network hash power in EH/s: difficulty x 2^32 hashes per block, one block every 600 s.
 const hashText = (d) => `${Math.round((d * 2 ** 32) / 600 / 1e18).toLocaleString('en-US')} EH/s`;
 const diffText = (d) => `${(d / 1e12).toFixed(2)} T`;
@@ -45,20 +53,21 @@ export default async function Status() {
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
+        <style>{CSS}</style>
         <h1>{t('status.title')}</h1>
         <p className="mute">{t('status.intro')}</p>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '16px' }}>
-          {TOP.map((k) => (
-            <div key={k} style={card}>
+          {TOP.map((k, i) => (
+            <div key={k} className="st-c" style={{ ...card, '--i': i }}>
               <p style={num}>{values[k]}</p>
               <p className="mute" style={{ margin: 0 }}>{t(`status.${k}`)}</p>
             </div>
           ))}
         </div>
         <div style={{ display: 'grid', gap: '10px', marginTop: '10px' }}>
-          {LINES.map((k) => (
-            <div key={k} style={line}>
+          {LINES.map((k, i) => (
+            <div key={k} className="st-c" style={{ ...line, '--i': TOP.length + i }}>
               <span className="mute">{t(`status.${k}`)}</span>
               <p style={lineNum}>{values[k]}</p>
             </div>
@@ -70,17 +79,17 @@ export default async function Status() {
         {sent ? (
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
-              <div style={card}>
+              <div className="st-c" style={{ ...card, '--i': 6 }}>
                 <p style={num}>{sent.btc.toFixed(4)} BTC</p>
                 <p className="mute" style={{ margin: 0 }}>{t('status.proofTotal')}</p>
               </div>
-              <div style={card}>
+              <div className="st-c" style={{ ...card, '--i': 7 }}>
                 <p style={num}>{sent.count.toLocaleString('en-US')}</p>
                 <p className="mute" style={{ margin: 0 }}>{t('status.proofCount')}</p>
               </div>
             </div>
             {sent.hours !== null && (
-              <div style={{ ...line, marginTop: '10px' }}>
+              <div className="st-c" style={{ ...line, marginTop: '10px', '--i': 8 }}>
                 <span className="mute">{t('status.proofTime')}</span>
                 <p style={lineNum}>{hoursText(t, sent.hours)}</p>
               </div>
@@ -88,7 +97,7 @@ export default async function Status() {
             <h3 style={{ fontSize: '14px', margin: '16px 0 6px' }}>{t('status.proofLast')}</h3>
             <div style={{ display: 'grid', gap: '6px' }}>
               {sent.last.map((w, i) => (
-                <div key={i} style={{ ...card, display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '8px 12px' }}>
+                <div key={i} className="st-c" style={{ ...card, display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '8px 12px', '--i': 9 + i }}>
                   <span>{w.amount} {w.asset}</span>
                   <span className="mute">{when(w.at)}</span>
                 </div>
