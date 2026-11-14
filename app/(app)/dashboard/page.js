@@ -15,6 +15,7 @@ import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
+import { payoutCard } from '@/lib/payout-card';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -239,6 +240,23 @@ export default function Dashboard() {
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * btc : 0;
   const rein = smartPick([], balUsd, cat ? cat.halls : undefined);
 
+  // "Payout received": yesterday's earnings, shown once after the 00:00 UTC payout until closed. The closing day is kept on this device.
+  const [paySeen, setPaySeen] = useState(null);
+  useEffect(() => {
+    try {
+      setPaySeen(Number(localStorage.getItem('vtx-payout-seen')) || 0);
+    } catch {
+      setPaySeen(0);
+    }
+  }, []);
+  const paid = dd && dash.hasMiners ? payoutCard(all, now, paySeen) : null;
+  const closePaid = () => {
+    try {
+      localStorage.setItem('vtx-payout-seen', String(paid.day));
+    } catch {}
+    setPaySeen(paid.day);
+  };
+
   useEffect(() => {
     setPulse(true);
     const t = setTimeout(() => setPulse(false), 300);
@@ -271,6 +289,15 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid rise">
+        {paid && (
+          <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
+            <div>
+              <b>{t('dash.paidYday', { usd: `$${formatUsd(paid.usd)}` })}</b>
+              <small className="mute" style={{ display: 'block', marginTop: '2px' }}>{t('dash.paidNext')}</small>
+            </div>
+            <button type="button" className="btn" onClick={() => { triggerHaptic('selection'); closePaid(); }}>{t('dash.paidOk')}</button>
+          </div>
+        )}
         <div className="crlwrap">
           <div className="crl" ref={railRef} onScroll={onRail}>
             <div className="card hero">
