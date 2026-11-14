@@ -3,6 +3,7 @@ import PageHead from '@/components/PageHead';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
+import { REFUND_HOURS } from '@/lib/rules';
 import { useApi, post, revalidate } from '@/lib/api';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
@@ -530,6 +531,7 @@ export default function Plans() {
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
               {fill(t('plans.fine', { n: MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
+              {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href="/refunds">{t('refund.more')}</Link>
             </p>
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 0' }}>
