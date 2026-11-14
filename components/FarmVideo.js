@@ -1,6 +1,7 @@
 'use client';
 // One farm video. It shows a picture box with a play button and loads the provider's player only after a tap,
-// so the landing page stays light and nothing from Google or Vimeo loads before the visitor asks for it.
+// so the landing page stays light and no player or script from Google or Vimeo loads before the visitor asks for it.
+// (A YouTube video shows its still picture, loaded lazily from YouTube's image server; Drive and Vimeo show a plain box.)
 import { useState } from 'react';
 
 export default function FarmVideo({ v, label }) {
