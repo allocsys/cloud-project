@@ -386,6 +386,53 @@ function ReviewsCard({ reviews, users, reviewUrl, busy, run }) {
   );
 }
 
+// "Our farm" videos on the landing page: the admin pastes a Google Drive, YouTube or Vimeo link. Rules in lib/farm.js, storage in lib/server/farm.js.
+const FARM_EMPTY = { id: '', title: '', url: '' };
+const FARM_KIND = { youtube: 'YouTube', vimeo: 'Vimeo', drive: 'Google Drive' };
+function FarmCard({ farm, busy, run }) {
+  const list = farm || [];
+  const [d, setD] = useState(FARM_EMPTY);
+  const put = (k, v) => setD((x) => ({ ...x, [k]: v }));
+  const save = async () => {
+    if (await run({ action: 'farm-save', ...d }, d.id ? 'Video saved' : 'Video added')) setD(FARM_EMPTY);
+  };
+  return (
+    <Fold title="Our farm videos" sub={list.length ? `${list.length} shown on the landing page` : 'None yet (note only)'}>
+      <p className="fine" style={{ margin: '0 0 4px' }}>Paste a link, nothing is uploaded here. The files stay in your own account.</p>
+      <Field id="fmt" label="Short title (up to 60)" value={d.title} onChange={(v) => put('title', v)} maxLength={60} />
+      <Field id="fmu" label="Link (Google Drive, YouTube or Vimeo)" inputMode="url" value={d.url} onChange={(v) => put('url', v)} maxLength={300} />
+      <div className="adm-actions">
+        {d.id && <button className="btn ghost" onClick={() => setD(FARM_EMPTY)}>Cancel</button>}
+        <button className="btn" disabled={busy} onClick={save}>{d.id ? 'Save' : 'Add video'}</button>
+      </div>
+      {list.map((v, i) => (
+        <div className="row adm-m" key={v.id}>
+          <div>
+            {i + 1}. {v.title}
+            <small>{FARM_KIND[v.kind] || v.kind} · {v.url}</small>
+          </div>
+          <div className="adm-btns">
+            <button className="btn ghost" disabled={busy || i === 0} onClick={() => run({ action: 'farm-move', id: v.id, dir: 'up' }, 'Moved up')}>Up</button>
+            <button className="btn ghost" disabled={busy || i === list.length - 1} onClick={() => run({ action: 'farm-move', id: v.id, dir: 'down' }, 'Moved down')}>Down</button>
+            <button className="btn ghost" disabled={busy} onClick={() => setD({ id: v.id, title: v.title, url: v.url })}>Edit</button>
+            <button
+              className="btn ghost"
+              disabled={busy}
+              onClick={async () => {
+                if (!(await ask('Remove this video from the page?', { ok: 'Remove', danger: true }))) return;
+                run({ action: 'farm-delete', id: v.id }, 'Video removed');
+              }}
+            >
+              Remove
+            </button>
+          </div>
+        </div>
+      ))}
+      <How><p className="fine">The Our farm note always shows on the landing page; the videos appear under it, in this order, and a visitor's player loads only after a tap. Google Drive: open the file, Share, set to Anyone with the link. YouTube: upload as Unlisted. Vimeo: any link works. Remove only takes the video off the page; the original stays in your account. If a Drive video stops playing (Google sometimes limits popular files for a day), move it to YouTube and paste the new link with Edit.</p></How>
+    </Fold>
+  );
+}
+
 // First-buy bonus: extra hashrate on a user's first purchase paid with crypto. Rules in lib/first-bonus.js, storage in lib/server/first-bonus.js.
 const fbDraft = (v) => ({ pct: String(v.pct), capTh: String(v.capTh), capUsd: String(v.capUsd), minUsd: String(v.minUsd), until: v.until ? new Date(v.until).toISOString().slice(0, 10) : '' });
 function FirstBonusCard({ fb, busy, run }) {
@@ -1620,6 +1667,7 @@ export default function Admin() {
             </div>
           </Fold>
           <ReviewsCard reviews={data.reviews} users={data.users} reviewUrl={data.reviewUrl} busy={busy} run={run} />
+          <FarmCard farm={data.farm} busy={busy} run={run} />
           <ReviewersCard list={data.reviewers} busy={busy} run={run} />
           <Fold title="Admin password" sub="Change the sign-in password">
             <Field id="pwc" label="Current password" type="password" autoComplete="current-password" value={pw.cur} onChange={(v) => setPw((p) => ({ ...p, cur: v }))} />
