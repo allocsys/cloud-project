@@ -47,7 +47,7 @@ export default async function Status() {
   try {
     d = (await getLive())?.difficulty ?? null;
   } catch {}
-  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH };
+  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH, last: t('status.lastVal') };
   const proof = await payoutProof();
   const sent = proof && proof.count > 0 ? proof : null;
   return (
@@ -60,7 +60,7 @@ export default async function Status() {
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', marginTop: '16px' }}>
           {TOP.map((k, i) => (
             <div key={k} className="st-c" style={{ ...card, '--i': i }}>
-              <p style={num}>{values[k]}</p>
+              <p style={num}><bdi dir="ltr">{values[k]}</bdi></p>
               <p className="mute" style={{ margin: 0 }}>{t(`status.${k}`)}</p>
             </div>
           ))}
@@ -69,7 +69,7 @@ export default async function Status() {
           {LINES.map((k, i) => (
             <div key={k} className="st-c" style={{ ...line, '--i': TOP.length + i }}>
               <span className="mute">{t(`status.${k}`)}</span>
-              <p style={lineNum}>{values[k]}</p>
+              <p style={lineNum}><bdi dir="ltr">{values[k]}</bdi></p>
             </div>
           ))}
         </div>
@@ -80,11 +80,11 @@ export default async function Status() {
           <>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div className="st-c" style={{ ...card, '--i': 6 }}>
-                <p style={num}>{sent.btc.toFixed(4)} BTC</p>
+                <p style={num}><bdi dir="ltr">{sent.btc.toFixed(4)} BTC</bdi></p>
                 <p className="mute" style={{ margin: 0 }}>{t('status.proofTotal')}</p>
               </div>
               <div className="st-c" style={{ ...card, '--i': 7 }}>
-                <p style={num}>{sent.count.toLocaleString('en-US')}</p>
+                <p style={num}><bdi dir="ltr">{sent.count.toLocaleString('en-US')}</bdi></p>
                 <p className="mute" style={{ margin: 0 }}>{t('status.proofCount')}</p>
               </div>
             </div>
@@ -98,8 +98,8 @@ export default async function Status() {
             <div style={{ display: 'grid', gap: '6px' }}>
               {sent.last.map((w, i) => (
                 <div key={i} className="st-c" style={{ ...card, display: 'flex', justifyContent: 'space-between', gap: '8px', padding: '8px 12px', '--i': 9 + i }}>
-                  <span>{w.amount} {w.asset}</span>
-                  <span className="mute">{when(w.at)}</span>
+                  <bdi dir="ltr">{w.amount} {w.asset}</bdi>
+                  <bdi className="mute" dir="ltr">{when(w.at)}</bdi>
                 </div>
               ))}
             </div>
