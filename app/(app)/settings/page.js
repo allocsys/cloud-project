@@ -81,7 +81,9 @@ export default function Settings() {
       return undefined;
     }
     const tick = () => refreshMe();
-    const poll = setInterval(tick, 4000);
+    const poll = setInterval(() => {
+      if (!document.hidden) tick();
+    }, 4000);
     const stop = setTimeout(() => setBl(null), 10 * 60_000);
     document.addEventListener('visibilitychange', tick);
     return () => {

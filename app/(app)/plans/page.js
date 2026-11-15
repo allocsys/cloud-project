@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { REFUND_HOURS } from '@/lib/rules';
 import { useApi, post, revalidate } from '@/lib/api';
+import { everyVisible } from '@/lib/visible';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
 import BoostCard from '@/components/BoostCard';
@@ -204,8 +205,7 @@ export default function Plans() {
   const seen = useRef(new Set());
   useEffect(() => {
     if (!pending.length) return undefined;
-    const t = setInterval(() => refreshOrders().catch(() => {}), 5000);
-    return () => clearInterval(t);
+    return everyVisible(() => refreshOrders().catch(() => {}), 5000);
   }, [pending.length]);
   useEffect(() => {
     if (!ord) return;

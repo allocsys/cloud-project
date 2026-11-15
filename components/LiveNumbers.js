@@ -6,7 +6,7 @@
 // timer and the pages only re-render when their data changes.
 import { useEffect, useState } from 'react';
 import { useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
-import { useCountUp } from '@/lib/useCountUp';
+import CountUp from '@/components/CountUp';
 import { MIN_WITHDRAW } from '@/lib/data';
 
 const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
@@ -51,7 +51,6 @@ export function PayoutCountdown({ t }) {
 // `week` is the optional "this week" span shown next to the USD line.
 export function HeroMined({ totalBtc, dailyUsd, asOf, week }) {
   const mined = totalBtc + useAccrued(dailyUsd, asOf);
-  const shown = useCountUp(mined);
   const [pulse, setPulse] = useState(false);
   useEffect(() => {
     setPulse(true);
@@ -61,11 +60,11 @@ export function HeroMined({ totalBtc, dailyUsd, asOf, week }) {
   return (
     <>
       <div className="big">
-        <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
+        <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}><CountUp value={mined} format={formatBtc} /></span>
         <small>BTC</small>
       </div>
       <div className="hsub">
-        <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
+        <span className="mute">≈ $<CountUp value={mined} format={(v) => formatUsd(v * BTC_USD)} /></span>
         {week}
       </div>
     </>

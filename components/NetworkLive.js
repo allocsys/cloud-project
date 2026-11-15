@@ -4,21 +4,16 @@
 // Motion: a pulsing live dot, the numbers count up once when the strip scrolls into view, and a new reading fades in.
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
-import { useCountUp } from '@/lib/useCountUp';
+import CountUp from '@/components/CountUp';
+import { everyVisible } from '@/lib/visible';
 import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
 
 const REFRESH = 60000;
 const EH = (d) => (d * 2 ** 32) / 600 / 1e18; // hashes per second: difficulty x 2^32 per block, one block every 600 s
 
 function Num({ value, dec = 0, pre = '', suf = '' }) {
-  const v = useCountUp(value, 1400);
-  return (
-    <>
-      {pre}
-      {v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })}
-      {suf}
-    </>
-  );
+  const text = (v) => `${pre}${v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })}${suf}`;
+  return <CountUp value={value} format={text} ms={1400} />;
 }
 
 export default function NetworkLive() {
@@ -35,10 +30,10 @@ export default function NetworkLive() {
         .then((j) => on && setD(j?.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null))
         .catch(() => {});
     load();
-    const id = setInterval(load, REFRESH);
+    const stop = everyVisible(load, REFRESH);
     return () => {
       on = false;
-      clearInterval(id);
+      stop();
     };
   }, []);
 
