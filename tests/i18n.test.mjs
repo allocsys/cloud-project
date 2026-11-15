@@ -24,6 +24,15 @@ test('no language has a key English lacks, and placeholders match', () => {
   }
 });
 
+test('every language has every English key (no silent fallback)', () => {
+  const en = LANGS[DEFAULT_LANG].messages;
+  for (const [code, l] of Object.entries(LANGS)) {
+    if (code === DEFAULT_LANG) continue;
+    const missing = Object.keys(en).filter((k) => !(k in l.messages));
+    assert.deepEqual(missing, [], `${code} is missing ${missing.length} keys: ${missing.join(', ')}`);
+  }
+});
+
 test('a missing key falls back to English, then to the key', () => {
   assert.equal(translate('fa', 'no.such.key'), 'no.such.key');
   assert.equal(translate('xx', 'settings.language'), translate('en', 'settings.language'));
