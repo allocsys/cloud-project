@@ -9,6 +9,7 @@ import { useT } from '@/components/I18nProvider';
 import { PayInfo } from '@/components/PayCoin';
 import { triggerHaptic } from '@/lib/haptics';
 import { fmtUsd } from '@/lib/data';
+import { everyVisible } from '@/lib/visible';
 
 // Open plan invoices (kind plan is the default of /api/orders). Checks again every 5 seconds while one is open and `poll` is on.
 function useOpenOrders(poll) {
@@ -17,8 +18,7 @@ function useOpenOrders(poll) {
   const n = open.length;
   useEffect(() => {
     if (!n || !poll) return undefined;
-    const id = setInterval(() => refresh().catch(() => {}), 5000);
-    return () => clearInterval(id);
+    return everyVisible(() => refresh().catch(() => {}), 5000);
   }, [n, poll]);
   return { open, refresh };
 }
@@ -62,10 +62,7 @@ export function PendingStrip() {
   const n = open.length;
   useEffect(() => {
     if (!n || hidden) return undefined;
-    const id = setInterval(() => {
-      if (!document.hidden) setNow(Date.now());
-    }, 1000);
-    return () => clearInterval(id);
+    return everyVisible(() => setNow(Date.now()), 1000);
   }, [n, hidden]);
   if (!n || hidden) return null;
   const end = Date.parse(open[0].expiresAt);
