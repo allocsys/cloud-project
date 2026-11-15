@@ -3,7 +3,6 @@ import { cookies } from 'next/headers';
 import Calculator from '@/components/Calculator';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
-import LandingTail from '@/components/LandingTail';
 import { LangToggle } from '@/components/LangSwitch';
 import Reveal from '@/components/Reveal';
 import Splash from '@/components/Splash';
@@ -176,7 +175,7 @@ export default async function Home() {
           </Reveal>
         </section>
 
-        <LandingTail>
+
         <WinnersBar />
 
         <NetworkLive />
@@ -236,7 +235,7 @@ export default async function Home() {
           <Link href={pagePath('/status', lang)} style={foot}>{t('status.link')}</Link>
         </p>
         <SocialLinks />
-        </LandingTail>
+
       </div>
       {!signedIn && <StickyCta />}
       </main>

@@ -58,13 +58,6 @@ export default function Referrals() {
   const canAdd = codes.length < (referral.limits?.maxCodes ?? 5);
   const presets = [0, 5, 10, 20].filter((p) => p <= maxPct);
   const locked = !!rd && rd.unlocked === false;
-  // The cards keep their place but stay hidden until the referral data is in (or 1.5 seconds), so the free-invites and rebate cards never pop in and sample numbers never flash.
-  const [calmWait, setCalmWait] = useState(true);
-  useEffect(() => {
-    const tm = setTimeout(() => setCalmWait(false), 1500);
-    return () => clearTimeout(tm);
-  }, []);
-  const hideCalm = rd ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
   useSheetBack(!!sheet, () => setSheet(null));
 
   // Links use the public address the server reports (APP_URL); the current origin is only a fallback.
@@ -185,7 +178,7 @@ export default function Referrals() {
       <style>{'.rhero{position:relative;overflow:hidden}.rshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:rShine 8s ease-in-out infinite}@keyframes rShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.steps3 .sico{position:relative}.steps3 .sico::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;border-radius:inherit;border:1.5px solid var(--gold2);opacity:0;animation:rPing 4.5s ease-out infinite}.steps3 .st:nth-child(2) .sico::after{animation-delay:1.5s}.steps3 .st:nth-child(3) .sico::after{animation-delay:3s}@keyframes rPing{0%{transform:scale(.9);opacity:.7}30%,100%{transform:scale(1.6);opacity:0}}.rpause .rshine,.rpause .sico::after{animation-play-state:paused}'}</style>
       <PageHead title={t('nav.invite')} icon="invite" />
       <div className="grid rise">
-        <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`} style={hideCalm}>
+        <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`}>
           <i className="rshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('ref.earnings')}</span>
           <div className="big">
@@ -199,7 +192,7 @@ export default function Referrals() {
           </div>
         </div>
 
-        <div className="grid wal" style={hideCalm}>
+        <div className="grid wal">
           {vip && (
             <div className="card">
               <div className="itop">
@@ -296,7 +289,7 @@ export default function Referrals() {
           </div>
         </div>
 
-        <div className="linkrow" style={hideCalm}>
+        <div className="linkrow">
           <button type="button" className="linktile" onClick={() => openSheet('rules')}>
             <span className="sico"><Icon d={ICONS.rules} /></span>
             <b>{t('ref.rules')}</b>

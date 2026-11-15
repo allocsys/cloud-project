@@ -168,7 +168,7 @@ export default function Wallet() {
   // Deposit through the crypto provider (a hosted payment page), when it is switched on. The open top-up orders come with the same answer.
   const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000 });
   const cryptoOn = !!dod?.crypto;
-  const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer (hideCalm)
+  const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer
   const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
   const [depUsd, setDepUsd] = useState('');
   const [depErr, setDepErr] = useState('');
@@ -286,14 +286,6 @@ export default function Wallet() {
     window.addEventListener('pageshow', back);
     return () => window.removeEventListener('pageshow', back);
   }, []);
-  // The Reinvest card and the action card keep their place but stay hidden until the wallet and catalogue have answered (or 1.5 seconds), so Reinvest never pushes the action card down.
-  const [calmWait, setCalmWait] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setCalmWait(false), 1500);
-    return () => clearTimeout(t);
-  }, []);
-  const hideCalm = wd && cat && dod ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
-
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
   const history = wd ? wd.history : [];
@@ -489,7 +481,7 @@ export default function Wallet() {
         <PendingCards show={show} />
 
         {rein && (
-          <Link href={reinvestHref(rein)} className="card rein" style={hideCalm}>
+          <Link href={reinvestHref(rein)} className="card rein">
             <div>
               <b>{reinvestTitle(rein, t)}</b>
               <small>
@@ -501,7 +493,7 @@ export default function Wallet() {
           </Link>
         )}
 
-        <div className="grid wal" style={hideCalm}>
+        <div className="grid wal">
           <div className="card wcard">
             <div className="tabs" role="group" aria-label={t('wal.aria')}>
               <button type="button" aria-pressed={tab === 'withdraw'} onClick={() => handleTabChange('withdraw')}>
