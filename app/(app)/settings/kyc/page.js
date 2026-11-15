@@ -65,13 +65,6 @@ export default function Kyc() {
   const { data: kd, mutate } = useApi('/api/kyc', { ttl: 30000 });
   // Already submitted (or verified) from an earlier visit: show the result instead of the form.
   const status = done ? 'pending' : kd ? kd.status : 'none';
-  // The card keeps its place but stays hidden until the saved status is in (or 1.5 seconds), so the form never flashes before the submitted or verified card.
-  const [wait, setWait] = useState(true);
-  useEffect(() => {
-    const tm = setTimeout(() => setWait(false), 1500);
-    return () => clearTimeout(tm);
-  }, []);
-  const hide = kd || done || !wait ? undefined : { visibility: 'hidden' };
 
   // Each step after the first owns a history entry, so the system back button steps back.
   const pushed = useRef(0);
@@ -190,7 +183,7 @@ export default function Kyc() {
       </div>
 
       {status !== 'none' ? (
-        <div className="card" style={hide}>
+        <div className="card">
           <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
           <p className="mute" style={{ margin: '8px 0 16px' }}>
             {status === 'verified'
@@ -200,7 +193,7 @@ export default function Kyc() {
           <button className="btn" type="button" onClick={() => drillBack(router, '/settings')}>{t('kyc.backSettings')}</button>
         </div>
       ) : (
-        <div className="card" style={hide}>
+        <div className="card">
           {kd?.rejectedAt && <div className="ferr" role="status" style={{ marginBottom: 12 }}>{t('kyc.rejected')}</div>}
           <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-label={t('kyc.progress')}>
             {STEPS.map((s, i) => (

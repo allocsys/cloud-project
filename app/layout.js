@@ -8,8 +8,8 @@ import ThemeSync from '@/components/ThemeSync';
 import TelegramInit from '@/components/TelegramInit';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
-import { getLang, getT } from '@/lib/i18n/server';
-import { LANGS } from '@/lib/i18n/langs';
+import { getLang, getT, getMessages } from '@/lib/i18n/server';
+import { LANG_META } from '@/lib/i18n/meta';
 import { SITE_URL } from '@/lib/site';
 
 const sans = Roboto({ subsets: ['latin', 'cyrillic'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
@@ -61,8 +61,9 @@ export const viewport = {
 
 export default async function RootLayout({ children }) {
   const lang = await getLang();
+  const messages = await getMessages(lang);
   return (
-    <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
+    <html lang={lang} dir={LANG_META[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
         <script
@@ -70,13 +71,15 @@ export default async function RootLayout({ children }) {
             __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
           }}
         />
+        {/* afterInteractive: the page hydrates first; TelegramInit polls for
+            window.Telegram.WebApp (up to 10s) and all other uses are guarded. */}
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
       <body>
-        <I18nProvider lang={lang}>
+        <I18nProvider lang={lang} messages={messages}>
           {children}
           <PWA />
           <Ripple />

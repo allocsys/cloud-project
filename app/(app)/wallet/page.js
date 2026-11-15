@@ -3,7 +3,8 @@ import PageHead from '@/components/PageHead';
 import { PendingCards } from '@/components/PendingOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
+import { formatBtc, formatUsd } from '@/lib/useMined';
+import { WalletBalance } from '@/components/LiveNumbers';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
@@ -127,14 +128,18 @@ export default function Wallet() {
   const { t, lang } = useLang();
   // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
+  // It ticks inside WalletBalance (components/LiveNumbers.js) and mirrors the live figure into liveAvailable.
+  const liveAvailable = useRef(0);
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
-  const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
-  // What the online miners added since the server worked out the wallet (asOf): same maths as the dashboard.
-  const mined = useAccrued(dailyUsd, wd ? wd.asOf : null);
+  // The history is paged on the server (?limit=&kind=): 20 rows at a time, filtered there, so the
+  // screen never downloads the whole 500-row history to show a few rows.
+  const [filter, setFilter] = useState('all');
+  const [limit, setLimit] = useState(20);
+  const { data: wd, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000 });
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
@@ -161,14 +166,13 @@ export default function Wallet() {
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState('all');
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
   // Deposit through the crypto provider (a hosted payment page), when it is switched on. The open top-up orders come with the same answer.
   const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000 });
   const cryptoOn = !!dod?.crypto;
-  const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer (hideCalm)
+  const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer
   const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
   const [depUsd, setDepUsd] = useState('');
   const [depErr, setDepErr] = useState('');
@@ -286,20 +290,13 @@ export default function Wallet() {
     window.addEventListener('pageshow', back);
     return () => window.removeEventListener('pageshow', back);
   }, []);
-  // The Reinvest card and the action card keep their place but stay hidden until the wallet and catalogue have answered (or 1.5 seconds), so Reinvest never pushes the action card down.
-  const [calmWait, setCalmWait] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setCalmWait(false), 1500);
-    return () => clearTimeout(t);
-  }, []);
-  const hideCalm = wd && cat && dod ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
-
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
   const history = wd ? wd.history : [];
-  // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
-  const earned = (wd ? wd.earned : 0) + mined;
-  const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
+  // Server balance at the last fetch. The live accrual since then (what the online miners added
+  // since the server worked out the wallet) ticks inside WalletBalance; the tap handlers below
+  // read it from liveAvailable so Max and the withdraw check see the same number on screen.
+  const available = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) : 0;
   // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
   const rein = ready ? smartPick([], balUsd, cat ? cat.halls : undefined) : null;
@@ -319,8 +316,8 @@ export default function Wallet() {
   const dp = parseFloat(dep);
   const depCoin = dp > 0 ? toCoin(dp) : 0;
   const dq = depCoin > 0 ? depositQuote(asset, depCoin, prices) : null;
-  // Invite income counts as a payout.
-  const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter || (filter === 'payout' && h.kind === 'referral'));
+  // Invite income counts as a payout; the kind filter already ran on the server.
+  const shown = history;
 
   // The minimum is $15 worth of coin, shown in whatever unit the person is typing in.
   const minUsd = MIN_WITHDRAW_USD;
@@ -329,7 +326,7 @@ export default function Wallet() {
 
   function setFraction(pct) {
     triggerHaptic('selection');
-    const usd = available * pct * btcUsd;
+    const usd = (liveAvailable.current || available) * pct * btcUsd;
     setAmount(floorTo(usdMode ? usd : usd / price, dec).toFixed(dec));
     setErrors({ ...errors, amount: undefined });
   }
@@ -386,7 +383,7 @@ export default function Wallet() {
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
     if (!wq) next.amount = t('wal.errAmount');
     else if (wq.btc < MIN_WITHDRAW) next.amount = t('wal.errMin', { min: minText });
-    else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
+    else if (wq.btc > (liveAvailable.current || available) * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
     if (!validAddress(net, address.trim())) next.address = t('wal.errAddr', { net: N.label });
     if ((tf || (mailPop && !opts?.resend)) && !typed) next.code = t('wal.errCode');
@@ -479,18 +476,13 @@ export default function Wallet() {
         <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
           <i className="wshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('wal.avail')}</span>
-          <div className="big">
-            {ready ? formatBtc(available) : '—'}
-            <small>BTC</small>
-          </div>
-          <span className="mute" style={{ display: 'block', fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
-          <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{ready && wd.mined != null ? t('wal.totalMined', { n: formatBtc(wd.mined + mined) }) : '\u00a0'}</span>
+          <WalletBalance wd={wd} dailyUsd={dailyUsd} btcUsd={btcUsd} liveRef={liveAvailable} t={t} />
         </div>
 
         <PendingCards show={show} />
 
         {rein && (
-          <Link href={reinvestHref(rein)} className="card rein" style={hideCalm}>
+          <Link href={reinvestHref(rein)} className="card rein">
             <div>
               <b>{reinvestTitle(rein, t)}</b>
               <small>
@@ -502,7 +494,7 @@ export default function Wallet() {
           </Link>
         )}
 
-        <div className="grid wal" style={hideCalm}>
+        <div className="grid wal">
           <div className="card wcard">
             <div className="tabs" role="group" aria-label={t('wal.aria')}>
               <button type="button" aria-pressed={tab === 'withdraw'} onClick={() => handleTabChange('withdraw')}>
@@ -726,18 +718,18 @@ export default function Wallet() {
                 }}
               >
                 <h3>{t('wal.activity')}</h3>
-                <span className="mute">{ready ? history.length : ''}</span>
+                <span className="mute">{ready ? (wd.historyTotal ?? history.length) : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
             {open && (
               <div className="minitabs fill" role="group" aria-label={t('wal.filterAria')}>
                 {FILTERS.map(([id, label]) => (
-                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>
+                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => { setFilter(id); setLimit(20); }}>{t(label)}</button>
                 ))}
               </div>
             )}
-            {open && shown.slice(0, 8).map((h, i) => {
+            {open && shown.map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               const hu = usdOf(h, prices);
               return (
@@ -759,6 +751,9 @@ export default function Wallet() {
               );
             })}
             {open && shown.length === 0 && <p className="empty">{ready ? t('wal.nothing') : t('wal.loading')}</p>}
+            {open && wd && history.length < (wd.historyTotal ?? 0) && (
+              <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
+            )}
           </div>
         </div>
       </div>

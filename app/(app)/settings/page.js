@@ -61,13 +61,6 @@ export default function Settings() {
   const [tfBusy, setTfBusy] = useState(false);
   const [tfCodes, setTfCodes] = useState([]);
   const tfOn = !!me?.twofa;
-  // Both cards keep their place but stay hidden until the account, verification and alert answers are in (or 1.5 seconds), so rows never pop in and sample values never flash.
-  const [calmWait, setCalmWait] = useState(true);
-  useEffect(() => {
-    const tm = setTimeout(() => setCalmWait(false), 1500);
-    return () => clearTimeout(tm);
-  }, []);
-  const hideCalm = me && kd && sd ? undefined : calmWait ? { visibility: 'hidden' } : undefined;
   // Close-account panel: null (closed), or what the server says closing would do.
   const [cl, setCl] = useState(null);
   const [clPw, setClPw] = useState('');
@@ -463,7 +456,7 @@ export default function Settings() {
     <>
       <PageHead title={t('nav.settings')} icon="settings" />
       <div className="grid wal" style={{ alignItems: 'start' }}>
-        <div className="card" style={hideCalm}>
+        <div className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div>
               <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{me && !me.email ? t('set.account') : t('auth.email')}</div>
@@ -825,7 +818,7 @@ export default function Settings() {
           )}
         </div>
 
-        <div className="card" style={hideCalm}>
+        <div className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.theme')}</div>
             <div className="minitabs" role="group" aria-label={t('set.theme')}>

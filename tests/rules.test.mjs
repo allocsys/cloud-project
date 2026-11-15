@@ -11,6 +11,12 @@ import { SMART, smartEstimate, smartPlan, smartBand } from '../lib/smart.js';
 import { faqAnswer, faqVars } from '../lib/faq.js';
 import { BOOST } from '../lib/boost.js';
 import { translateError } from '../lib/i18n/errors.js';
+import { setClientMessages } from '../lib/i18n/client.js';
+import { LANGS } from '../lib/i18n/langs.js';
+
+// translateError reads the active language's messages from the client store (registered by
+// I18nProvider in the browser); the test registers the Persian book the same way.
+setClientMessages('fa', LANGS.fa.messages);
 
 const read = (p) => readFileSync(new URL(`../${p}`, import.meta.url), 'utf8');
 const near = (a, b, eps = 1e-9) => assert.ok(Math.abs(a - b) < eps, `${a} is not ${b}`);

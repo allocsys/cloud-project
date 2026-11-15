@@ -1,6 +1,6 @@
 import Nav from '@/components/Nav';
 import BackGuard from '@/components/BackGuard';
-import Assistant from '@/components/Assistant';
+import AssistantLazy from '@/components/AssistantLazy';
 import WalletProvider from '@/components/WalletProvider';
 import { PendingStrip } from '@/components/PendingOrders';
 
@@ -14,7 +14,7 @@ export default function AppLayout({ children }) {
           {children}
         </main>
         <BackGuard />
-        <Assistant />
+        <AssistantLazy />
       </WalletProvider>
     </div>
   );

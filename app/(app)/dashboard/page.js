@@ -5,9 +5,9 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { markDrill } from '@/lib/nav';
 import Spark from '@/components/Spark';
-import { useMinedFeed, useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
-import { useCountUp } from '@/lib/useCountUp';
-import { notifications, halls, MIN_WITHDRAW } from '@/lib/data';
+import { useMinedFeed, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { Ago, PayoutCountdown, HeroMined, GoalProgress } from '@/components/LiveNumbers';
+import { notifications, halls } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
@@ -20,25 +20,6 @@ import { payoutCard } from '@/lib/payout-card';
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
 
-function ago(t, now, at) {
-  if (!now) return t('dash.now');
-  const s = Math.max(0, Math.floor((now - at) / 1000));
-  return s < 60 ? t('dash.sec', { n: s }) : t('dash.min', { n: Math.floor(s / 60) });
-}
-
-// Time left until the next daily payout (00:00 UTC) and how much of the day has passed.
-function payoutIn(now) {
-  if (!now) return { text: '--:--:--', pct: 0 };
-  const d = new Date(now);
-  const next = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() + 1);
-  const left = Math.max(0, Math.floor((next - now) / 1000));
-  const p = (n) => String(n).padStart(2, '0');
-  return {
-    text: `${p(Math.floor(left / 3600))}:${p(Math.floor((left % 3600) / 60))}:${p(left % 60)}`,
-    pct: 100 - (left / 86400) * 100,
-  };
-}
-
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
   deposit: { glyph: '+', cls: 'in' },
@@ -48,7 +29,6 @@ const KIND = {
   adjustment: { glyph: '±', cls: 'in' },
 };
 const SPLIT = ['var(--gold2)', 'var(--green)', 'var(--gold)', 'var(--mute)'];
-const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
 
 // Where the daily earnings come from. Tap a legend row to look at one slice.
 function Split({ rows }) {
@@ -135,23 +115,23 @@ function HeroChart({ rows }) {
 
 export default function Dashboard() {
   const { t, lang } = useLang();
-  // The user's miners drive the live strip, the projection, the miner row and the live feed.
-  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  // One call for the per-user data (miners, dashboard, wallet, referrals, notifications):
+  // five requests that each loaded the same account document are now one (lib/server/bundle.js).
+  // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
+  const { data: bundle } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
+  const md = bundle?.miners;
   const miners = md ? md.contracts : [];
   const online = miners.filter((c) => c.online);
   const pausedN = online.filter((c) => c.paused).length; // switched off today by the profit guard
   const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
 
-  const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
+  const dd = bundle?.dashboard;
   const dash = dd || EMPTY;
 
-  // Shares are a simulated feed. The big number is the server figure plus the online rate since the server's asOf,
-  // the same maths the Wallet uses, so the two screens agree.
+  // Shares are a simulated feed. The numbers that tick every second (the big mined total,
+  // the payout countdown, the goal bar) live in components/LiveNumbers.js, so the 1s timer
+  // re-renders only the number itself — not this whole page.
   const { shares } = useMinedFeed(dailyUsd);
-  const mined = dash.totalBtc + useAccrued(dailyUsd, dd ? dd.asOf : null);
-  const shown = useCountUp(mined);
-  const now = useNow(1000);
-  const [pulse, setPulse] = useState(false);
   const [by, setBy] = useState('hall');
   const [armed, setArmed] = useState(false);
   const [actOpen, setActOpen] = useState(false);
@@ -171,16 +151,8 @@ export default function Dashboard() {
   };
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
-  const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
-  const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
-  const gain = useAccrued(dailyUsd, wd ? wd.asOf : null);
-  // The cards under the miner strip keep their place but stay hidden until the data they depend on has answered (or 1.5 seconds), so none pops in above the others.
-  const [tailWait, setTailWait] = useState(true);
-  useEffect(() => {
-    const t = setTimeout(() => setTailWait(false), 1500);
-    return () => clearTimeout(t);
-  }, []);
-  const hideTail = md && dd && wd && cat ? undefined : tailWait ? { visibility: 'hidden' } : undefined;
+  const rd = bundle?.referrals;
+  const wd = bundle?.wallet;
 
   // Lets the goal bar grow from empty once the page is on screen.
   useEffect(() => {
@@ -189,18 +161,19 @@ export default function Dashboard() {
   }, []);
 
   // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
-  const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
+  const nd = bundle?.notifications;
   const unread = nd ? nd.unread : notifications.length;
 
   const biggest = [...online].sort((a, b) => b.th - a.th)[0];
   const rig = rigFor(biggest || 'starter');
 
-  const d = now ? new Date(now) : null;
-  const dim = d ? new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate() : 30;
-  const dom = d ? d.getDate() : 1;
+  // The day ring only changes at midnight; the page re-renders on its 60s data poll,
+  // so a plain date at render time stays fresh without a ticking clock.
+  const d = new Date();
+  const dim = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  const dom = d.getDate();
   const monthUsd = dailyUsd * dim;
   const yearUsd = dailyUsd * 365;
-  const pay = payoutIn(now);
   const week = dash.earnings.week;
   const hasWeek = dash.hasMiners && week.length > 1;
   const weekUsd = week.reduce((t, w) => t + w.usd, 0);
@@ -216,21 +189,12 @@ export default function Dashboard() {
     }, {})
   ).sort((a, b) => b.usd - a.usd);
 
-  // Days in a row with earnings, counting back from today, and the next BTC goal.
+  // Days in a row with earnings, counting back from today.
   const all = dash.earnings.all;
   let streak = 0;
   for (let i = all.length - 1; i >= 0 && all[i].usd > 0; i--) streak += 1;
-  // The goal follows the balance you can actually withdraw (mined + deposits + invite rewards - withdrawn - spent),
-  // the same number as the Wallet screen, plus what the live feed added since this page opened.
-  const avail = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) + gain : 0;
-  const goal = GOALS.find((g) => g > avail) || GOALS[GOALS.length - 1];
-  const goalPct = Math.min(100, (avail / goal) * 100);
-  const toGo = Math.max(0, goal - avail);
 
   const btc = pd?.prices?.btc ?? BTC_USD;
-  // Days to the goal at today's daily earnings (online miners), rounded up. Null when nothing is earning or the goal is reached.
-  const etaDays = dailyUsd > 0 && toGo > 0 ? Math.ceil((toGo * btc) / dailyUsd) : null;
-  const etaText = etaDays === null ? '' : etaDays > 365 ? t('dash.etaYear') : etaDays <= 1 ? t('dash.etaDay') : t('dash.etaDays', { n: etaDays });
   const tr = pd?.trend;
   const friends = rd?.friends?.length ?? 0;
   // Newest first. Rows without a timestamp (the demo's samples) keep their order, after the dated ones.
@@ -249,6 +213,8 @@ export default function Dashboard() {
       setPaySeen(0);
     }
   }, []);
+  // payoutCard only needs the current UTC day, so a plain timestamp at render time is enough — no ticking clock (the 60s data poll keeps it fresh).
+  const now = Date.now();
   const paid = dd && dash.hasMiners ? payoutCard(all, now, paySeen) : null;
   const closePaid = () => {
     try {
@@ -257,11 +223,6 @@ export default function Dashboard() {
     setPaySeen(paid.day);
   };
 
-  useEffect(() => {
-    setPulse(true);
-    const t = setTimeout(() => setPulse(false), 300);
-    return () => clearTimeout(t);
-  }, [mined]);
 
   return (
     <>
@@ -303,16 +264,9 @@ export default function Dashboard() {
             <div className="card hero">
               <div className="hhead">
                 <span className="mute eyebrow">{t('dash.total')}</span>
-                {shares[0] && <span className="hchip">+{shares[0].sats} {t('unit.sat')} · {ago(t, now, shares[0].at)}</span>}
+                {shares[0] && <span className="hchip">+{shares[0].sats} {t('unit.sat')} · <Ago t={t} at={shares[0].at} /></span>}
               </div>
-              <div className="big">
-                <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}>{formatBtc(shown)}</span>
-                <small>BTC</small>
-              </div>
-              <div className="hsub">
-                <span className="mute">≈ ${formatUsd(shown * BTC_USD)}</span>
-                {hasWeek && weekUsd > 0 && <span className="hwk">${formatUsd(weekUsd)} {t('dash.thisWeek')}</span>}
-              </div>
+              <HeroMined totalBtc={dash.totalBtc} dailyUsd={dailyUsd} asOf={dd ? dd.asOf : null} week={hasWeek && weekUsd > 0 ? <span className="hwk">${formatUsd(weekUsd)} {t('dash.thisWeek')}</span> : null} />
               {hasWeek && <HeroChart rows={week} />}
               <div className="hrow">
                 <div className="hk">{dash.totalTh > 0 || !(dash.smartBudget > 0) ? <><b>{dash.totalTh}</b><span>TH/s</span></> : <><b>${Math.round(dash.smartBudget).toLocaleString('en-US')}</b><span>{t('dash.smartBudget')}</span></>}</div>
@@ -320,12 +274,7 @@ export default function Dashboard() {
                 <div className="hk"><b>+{Math.round(dash.todayBtc * 1e8)}</b><span>{t('dash.satToday')}</span></div>
                 <div className="hk"><b>${formatUsd(weekAvg)}</b><span>{t('dash.avgDay')}</span></div>
               </div>
-              <div className="payout">
-                <div><span>{t('dash.nextPayout')}</span><b>{pay.text}</b></div>
-                <div className="bar" role="progressbar" aria-label={t('dash.payoutAria')} aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
-                  <i style={{ width: `${pay.pct}%` }} />
-                </div>
-              </div>
+              <PayoutCountdown t={t} />
             </div>
             <div className="card">
               <div className="cardhead">
@@ -399,7 +348,7 @@ export default function Dashboard() {
                 </div>
                 <div className="ticker">
                   {shares.slice(0, 3).map((s) => (
-                    <div key={s.id}><b>+{s.sats} {t('unit.sat')}</b><span>{ago(t, now, s.at)}</span></div>
+                    <div key={s.id}><b>+{s.sats} {t('unit.sat')}</b><span><Ago t={t} at={s.at} /></span></div>
                   ))}
                 </div>
               </div>
@@ -430,7 +379,7 @@ export default function Dashboard() {
         </div>
 
         {split.length > 0 && (
-          <div className="card" style={hideTail}>
+          <div className="card">
             <div className="cardhead">
               <h3>{t('dash.split')}</h3>
               <div className="minitabs" role="group" aria-label={t('dash.splitBy')}>
@@ -443,27 +392,17 @@ export default function Dashboard() {
         )}
 
         {dash.hasMiners && (
-          <div className="card" style={hideTail}>
+          <div className="card">
             <div className="cardhead">
               <h3>{t('dash.goal')}</h3>
               {streak > 1 && <span className="streak">{t('dash.streak', { n: streak })}</span>}
             </div>
-            <div className="goal">
-              <b>{formatBtc(goal, 4)}<small>BTC</small></b>
-              <span>{goal === MIN_WITHDRAW ? t('dash.minWd') : t('dash.milestone')}</span>
-            </div>
-            <div className="bar goalbar" role="progressbar" aria-label={t('dash.goalAria')} aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
-              <i style={{ width: `${armed ? goalPct : 0}%` }} />
-            </div>
-            <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
-              {t('dash.goalLine', { a: formatBtc(avail, 5), g: formatBtc(goal, 5), usd: formatUsd(toGo * btc) })}
-            </small>
-            {etaText && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>{t('dash.eta', { when: etaText })}</small>}
+            <GoalProgress wd={wd} dailyUsd={dailyUsd} btc={btc} armed={armed} t={t} />
           </div>
         )}
 
         {rein && (
-          <Link href={reinvestHref(rein)} className="card rein" style={hideTail}>
+          <Link href={reinvestHref(rein)} className="card rein">
             <div>
               <b>{reinvestTitle(rein, t)}</b>
               <small>
@@ -475,7 +414,7 @@ export default function Dashboard() {
           </Link>
         )}
 
-        <div className="pair" style={hideTail}>
+        <div className="pair">
           <div className="stat">
             <span>{t('dash.bitcoin')}</span>
             <b>
@@ -502,7 +441,7 @@ export default function Dashboard() {
         </div>
 
         {history.length > 0 && (
-          <div className="card act" style={hideTail}>
+          <div className="card act">
             <div className="cardhead" style={{ marginBottom: actOpen ? 8 : 0 }}>
               <button
                 type="button"
@@ -549,7 +488,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <RateUs style={hideTail} />
+        <RateUs />
       </div>
     </>
   );
