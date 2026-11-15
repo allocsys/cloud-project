@@ -397,7 +397,7 @@ export default function Dashboard() {
               <h3>{t('dash.goal')}</h3>
               {streak > 1 && <span className="streak">{t('dash.streak', { n: streak })}</span>}
             </div>
-            <GoalProgress wd={wd} dailyUsd={dailyUsd} btc={btc} armed={armed} t={t} />
+            <GoalProgress wd={wd} dailyUsd={dailyUsd} btc={btc} minUsd={cat?.minWithdraw} armed={armed} t={t} />
           </div>
         )}
 
