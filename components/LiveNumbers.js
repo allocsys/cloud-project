@@ -7,9 +7,10 @@
 import { useEffect, useState } from 'react';
 import { useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import CountUp from '@/components/CountUp';
-import { MIN_WITHDRAW } from '@/lib/data';
+import { MIN_WITHDRAW_USD } from '@/lib/data';
 
-const GOALS = [MIN_WITHDRAW, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
+// The first goal is the minimum withdrawal (set by the admin, in dollars); the milestones after it are fixed and only those above it are used.
+const GOALS = [0, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
 
 // "4s ago" / "2m ago", ticking once a second. Only this span re-renders.
 export function Ago({ t, at }) {
@@ -74,10 +75,12 @@ export function HeroMined({ totalBtc, dailyUsd, asOf, week }) {
 // The next-BTC-goal card: its bar, line and ETA follow the balance you can actually
 // withdraw (mined + deposits + invite rewards - withdrawn - spent), plus what the live
 // feed added since this page opened.
-export function GoalProgress({ wd, dailyUsd, btc, armed, t }) {
+export function GoalProgress({ wd, dailyUsd, btc, minUsd = MIN_WITHDRAW_USD, armed, t }) {
   const gain = useAccrued(dailyUsd, wd ? wd.asOf : null);
   const avail = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) + gain : 0;
-  const goal = GOALS.find((g) => g > avail) || GOALS[GOALS.length - 1];
+  const minBtc = minUsd / (btc > 0 ? btc : BTC_USD);
+  const goals = [minBtc, ...GOALS.slice(1).filter((g) => g > minBtc)];
+  const goal = goals.find((g) => g > avail) || goals[goals.length - 1];
   const goalPct = Math.min(100, (avail / goal) * 100);
   const toGo = Math.max(0, goal - avail);
   // Days to the goal at today's daily earnings (online miners), rounded up. Null when
@@ -88,7 +91,7 @@ export function GoalProgress({ wd, dailyUsd, btc, armed, t }) {
     <>
       <div className="goal">
         <b>{formatBtc(goal, 4)}<small>BTC</small></b>
-        <span>{goal === MIN_WITHDRAW ? t('dash.minWd') : t('dash.milestone')}</span>
+        <span>{goal === minBtc ? t('dash.minWd') : t('dash.milestone')}</span>
       </div>
       <div className="bar goalbar" role="progressbar" aria-label={t('dash.goalAria')} aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
         <i style={{ width: `${armed ? goalPct : 0}%` }} />
