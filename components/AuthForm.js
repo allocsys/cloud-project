@@ -5,7 +5,7 @@ import Field from '@/components/Field';
 import Captcha from '@/components/Captcha';
 import { fill, useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
-import { post, clearApiCache, clearOut, signOut } from '@/lib/api';
+import { post, clearApiCache, clearOut, signOut, useApi } from '@/lib/api';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
 
 // The sign-in form that lives inside the sheet (components/AuthSheet.js): sign in, sign up, forgot and reset password,
@@ -14,6 +14,7 @@ import { MIN_WITHDRAW_USD } from '@/lib/data';
 // to another page is followed, so the sheet does not undo its history entry on the way out.
 export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
   const t = useT();
+  const { data: cat } = useApi('/api/plans', { ttl: 60000 }); // public; carries the admin's minimum withdrawal
   const [signup, setSignup] = useState(!!init?.signup);
   const [view, setView] = useState(init?.reset ? 'reset' : null); // null: sign in or sign up. 'forgot': ask for a reset link. 'reset': choose a new password.
   const [rtoken] = useState(init?.reset?.token || ''); // the token from the emailed link
@@ -208,7 +209,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
       : view === 'reset'
         ? t('auth.resetSub', { email })
         : signup
-          ? t('auth.signupSub', { n: MIN_WITHDRAW_USD })
+          ? t('auth.signupSub', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD })
           : t('auth.welcomeBack');
 
   return (
