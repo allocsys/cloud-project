@@ -15,6 +15,7 @@ const REPEAT = 250;
 const CAP = 2500;
 const AUTO = 1700; // a little longer while the account check runs
 const CHECK = 4000; // the check gives up after this
+const WAIT = 1500; // how long to wait for the Telegram script (it loads after the page)
 
 const ready = (p) => p.then(() => {}, () => {});
 
@@ -37,6 +38,20 @@ function idle() {
   return new Promise((r) => (window.requestIdleCallback ? window.requestIdleCallback(r, { timeout: 600 }) : setTimeout(r, 120)));
 }
 
+// The Telegram script is loaded after the page, so it may arrive a moment after this component starts.
+function telegram() {
+  return new Promise((resolve) => {
+    const t0 = Date.now();
+    const poll = () => {
+      const w = window.Telegram && window.Telegram.WebApp;
+      if (w && w.initData) return resolve(w);
+      if (Date.now() - t0 > WAIT) return resolve(null);
+      setTimeout(poll, 50);
+    };
+    poll();
+  });
+}
+
 export default function Splash() {
   const ref = useRef(null);
   const bar = useRef(null);
@@ -56,7 +71,9 @@ export default function Splash() {
       out = localStorage.getItem('vtx-out') === '1';
     } catch {}
     const tg = window.Telegram && window.Telegram.WebApp;
-    const auto = !seen && !out && !!(tg && tg.initData);
+    // Telegram puts its launch data in the URL hash, so that shows we are inside Telegram even before the script is here.
+    const inTg = /tgWebApp(Data|Platform)/.test(window.location.hash);
+    const auto = !seen && !out && !!((tg && tg.initData) || inTg);
     let dead = false;
     let check = null;
     if (auto) {
@@ -65,13 +82,17 @@ export default function Splash() {
       } catch {}
       const ctl = new AbortController();
       const stop = setTimeout(() => ctl.abort(), CHECK);
-      check = fetch('/api/auth/telegram', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ initData: tg.initData, existing: true }),
-        signal: ctl.signal,
-      })
-        .then((r) => r.ok)
+      check = telegram()
+        .then((w) =>
+          w
+            ? fetch('/api/auth/telegram', {
+                method: 'POST',
+                headers: { 'content-type': 'application/json' },
+                body: JSON.stringify({ initData: w.initData, existing: true }),
+                signal: ctl.signal,
+              }).then((r) => r.ok)
+            : false,
+        )
         .catch(() => false)
         .finally(() => clearTimeout(stop));
     }
