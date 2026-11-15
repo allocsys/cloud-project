@@ -496,22 +496,22 @@ function MinWithdrawCard({ value, busy, run }) {
   );
 }
 
-// Anti account farming: new accounts one network may open in 24 hours. Stored in lib/server/signup-guard.js.
+// Anti account farming: accounts one network may have in total. Stored in lib/server/signup-guard.js.
 function SignupLimitCard({ value, busy, run }) {
-  const s = value || { on: true, perDay: 3 };
-  const [d, setD] = useState(String(s.perDay));
-  useEffect(() => setD(String(s.perDay)), [s.perDay]);
+  const s = value || { on: true, max: 3 };
+  const [d, setD] = useState(String(s.max));
+  useEffect(() => setD(String(s.max)), [s.max]);
   return (
-    <Fold title="Sign-up limit" sub={s.on ? `On · ${s.perDay} per day` : 'Off'}>
+    <Fold title="Sign-up limit" sub={s.on ? `On · ${s.max} per network` : 'Off'}>
       <div className="row"><span className="mute">Limit</span><b>{s.on ? 'On' : 'Off'}</b></div>
-      <Field id="sul" label="New accounts per network per day" inputMode="numeric" value={d} onChange={setD} />
+      <Field id="sul" label="Accounts per network" inputMode="numeric" value={d} onChange={setD} />
       <div className="adm-actions">
-        <button className="btn" disabled={busy} onClick={() => run({ action: 'signup-guard', perDay: d }, 'Sign-up limit saved')}>Save</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'signup-guard', max: d }, 'Sign-up limit saved')}>Save</button>
         <button className="btn" disabled={busy} onClick={() => run({ action: 'signup-guard', enabled: !s.on }, s.on ? 'Sign-up limit is off' : 'Sign-up limit is on')}>
           {s.on ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>One network (the same IPv4 /24 or IPv6 /64) can open this many new accounts in 24 hours, by email or Telegram. From 1 to 50. Signing in to an existing account is never limited. Shared networks such as mobile carriers can hit it: raise the number or turn it off.</p>
+      <p className="fine" style={{ margin: '8px 0 0' }}>One network (the same IPv4 /24 or IPv6 /64) can have this many accounts in total, by email or Telegram. Closed accounts count. From 1 to 50. Signing in to an existing account is never limited. Shared networks such as mobile carriers can hit it: raise the number or turn it off.</p>
     </Fold>
   );
 }

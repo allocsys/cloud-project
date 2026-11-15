@@ -1,4 +1,4 @@
-// Anti account farming: one network may open only a few new accounts a day, by email or Telegram; the admin can change or switch it off.
+// Anti account farming: one network may have only a set number of accounts in total, by email or Telegram; the admin can change or switch it off.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
@@ -23,27 +23,27 @@ const initData = (tgId) => {
 
 before(async () => {
   await migrate();
-  await guard.saveSignupGuard({ enabled: true, perDay: 3 });
+  await guard.saveSignupGuard({ enabled: true, max: 3 });
 });
 
 after(async () => {
-  await guard.saveSignupGuard({ enabled: true, perDay: 3 });
+  await guard.saveSignupGuard({ enabled: true, max: 3 });
   await pool().end();
 });
 
 test('the settings are checked and saved', async () => {
-  assert.deepEqual(await guard.signupGuard(), { on: true, perDay: 3 });
-  assert.equal((await guard.saveSignupGuard({ perDay: 0 })).status, 422);
-  assert.equal((await guard.saveSignupGuard({ perDay: 51 })).status, 422);
-  assert.equal((await guard.saveSignupGuard({ perDay: 'x' })).status, 422);
+  assert.deepEqual(await guard.signupGuard(), { on: true, max: 3 });
+  assert.equal((await guard.saveSignupGuard({ max: 0 })).status, 422);
+  assert.equal((await guard.saveSignupGuard({ max: 51 })).status, 422);
+  assert.equal((await guard.saveSignupGuard({ max: 'x' })).status, 422);
   assert.equal((await guard.saveSignupGuard({ enabled: 'yes' })).status, 400);
-  const r = await guard.saveSignupGuard({ perDay: '5' });
-  assert.equal(r.perDay, 5);
+  const r = await guard.saveSignupGuard({ max: '5' });
+  assert.equal(r.max, 5);
   assert.equal(r.on, true);
-  assert.equal((await guard.saveSignupGuard({ perDay: 3 })).perDay, 3);
+  assert.equal((await guard.saveSignupGuard({ max: 3 })).max, 3);
 });
 
-test('the fourth new account from one network in a day is refused, another network is not', async () => {
+test('the fourth account from one network is refused, another network is not', async () => {
   const ip = ipOf();
   for (let i = 1; i <= 3; i += 1) assert.ok((await auth.signup({ email: `farm${i}.${run}@mail.com`, password: PW }, ip)).ok);
   const r = await auth.signup({ email: `farm4.${run}@mail.com`, password: PW }, ip);
@@ -57,6 +57,13 @@ test('the fourth new account from one network in a day is refused, another netwo
   // another network is fine, and so is an unknown address
   assert.ok((await auth.signup({ email: `other.${run}@mail.com`, password: PW }, ipOf())).ok);
   assert.ok((await auth.signup({ email: `noip.${run}@mail.com`, password: PW })).ok);
+});
+
+test('the limit has no time window: accounts older than a day still count', async () => {
+  const ip = ipOf();
+  for (let i = 1; i <= 3; i += 1) assert.ok((await auth.signup({ email: `old${i}.${run}@mail.com`, password: PW }, ip)).ok);
+  await q("UPDATE users SET data = jsonb_set(data, '{createdAt}', to_jsonb($1::numeric)) WHERE id LIKE $2", [Date.now() - 5 * 86400000, `old%.${run}@mail.com`]);
+  assert.equal((await auth.signup({ email: `old4.${run}@mail.com`, password: PW }, ip)).status, 429);
 });
 
 test('Telegram sign-ups count too, and a known Telegram account is never limited', async () => {
@@ -80,12 +87,12 @@ test('a raised number lets more in, and switching it off lets everyone in', asyn
   const ip = ipOf();
   for (let i = 1; i <= 3; i += 1) assert.ok((await auth.signup({ email: `raise${i}.${run}@mail.com`, password: PW }, ip)).ok);
   assert.equal((await auth.signup({ email: `raise4.${run}@mail.com`, password: PW }, ip)).status, 429);
-  await guard.saveSignupGuard({ perDay: 4 });
+  await guard.saveSignupGuard({ max: 4 });
   assert.ok((await auth.signup({ email: `raise4.${run}@mail.com`, password: PW }, ip)).ok);
   assert.equal((await auth.signup({ email: `raise5.${run}@mail.com`, password: PW }, ip)).status, 429);
   await guard.saveSignupGuard({ enabled: false });
   assert.ok((await auth.signup({ email: `raise5.${run}@mail.com`, password: PW }, ip)).ok);
-  await guard.saveSignupGuard({ enabled: true, perDay: 3 });
+  await guard.saveSignupGuard({ enabled: true, max: 3 });
 });
 
 test('several sign-ups at the same moment cannot get past the limit', async () => {

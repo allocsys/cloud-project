@@ -84,10 +84,10 @@ test('/start shows the app button and four buttons plus More, and remembers the 
   assert.ok(buttons(rows).every((b) => !b.callback_data || b.callback_data.endsWith(`:${c.menu_ver}`)));
 });
 
-test('/start also puts one permanent Menu button under the chat; tapping its label opens the menu', async () => {
+test('/start also puts one collapsible Menu button under the chat; tapping its label opens the menu', async () => {
   const { tg, bot } = await started();
   const kb = tg.of('send')[1];
-  assert.deepEqual(kb.extra.reply_markup, { keyboard: [[{ text: texts.en.b_menu }]], resize_keyboard: true, is_persistent: true });
+  assert.deepEqual(kb.extra.reply_markup, { keyboard: [[{ text: texts.en.b_menu }]], resize_keyboard: true });
   await bot.handleUpdate(msg(texts.en.b_menu));
   const last = tg.of('send').at(-1);
   assert.equal(last.text, texts.en.start);
