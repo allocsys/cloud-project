@@ -1,6 +1,6 @@
 // Vertexhash service worker: makes the app installable and shows a friendly page when offline.
 // Pages are network-first (always fresh when online); build assets and icons are cached.
-const VERSION = 'vertexhash-v1';
+const VERSION = 'vertexhash-v2';
 const STATIC = `${VERSION}-static`;
 const PAGES = `${VERSION}-pages`;
 
@@ -53,6 +53,16 @@ async function networkFirst(req) {
   }
 }
 
+// Build files have a hash in their name, so a name never changes its content: once saved, use the saved copy.
+async function cacheFirst(req) {
+  const cache = await caches.open(STATIC);
+  const hit = await cache.match(req);
+  if (hit) return hit;
+  const res = await fetch(req);
+  if (res.ok) cache.put(req, res.clone());
+  return res;
+}
+
 async function staleWhileRevalidate(req) {
   const cache = await caches.open(STATIC);
   const hit = await cache.match(req);
@@ -73,8 +83,9 @@ self.addEventListener('fetch', (event) => {
 
   if (req.mode === 'navigate') {
     event.respondWith(networkFirst(req));
+  } else if (url.pathname.startsWith('/_next/static/')) {
+    event.respondWith(cacheFirst(req));
   } else if (
-    url.pathname.startsWith('/_next/static/') ||
     url.pathname.startsWith('/icons/') ||
     url.pathname === '/logo.svg' ||
     url.pathname === '/manifest.webmanifest'
