@@ -479,6 +479,26 @@ function MinDepositCard({ value, busy, run }) {
   );
 }
 
+// Anti account farming: new accounts one network may open in 24 hours. Stored in lib/server/signup-guard.js.
+function SignupLimitCard({ value, busy, run }) {
+  const s = value || { on: true, perDay: 3 };
+  const [d, setD] = useState(String(s.perDay));
+  useEffect(() => setD(String(s.perDay)), [s.perDay]);
+  return (
+    <Fold title="Sign-up limit" sub={s.on ? `On · ${s.perDay} per day` : 'Off'}>
+      <div className="row"><span className="mute">Limit</span><b>{s.on ? 'On' : 'Off'}</b></div>
+      <Field id="sul" label="New accounts per network per day" inputMode="numeric" value={d} onChange={setD} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'signup-guard', perDay: d }, 'Sign-up limit saved')}>Save</button>
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'signup-guard', enabled: !s.on }, s.on ? 'Sign-up limit is off' : 'Sign-up limit is on')}>
+          {s.on ? 'Turn off' : 'Turn on'}
+        </button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>One network (the same IPv4 /24 or IPv6 /64) can open this many new accounts in 24 hours, by email or Telegram. From 1 to 50. Signing in to an existing account is never limited. Shared networks such as mobile carriers can hit it: raise the number or turn it off.</p>
+    </Fold>
+  );
+}
+
 // Boost tickets: a 2 hour hashrate boost with a prize draw. Rules in lib/boost.js, storage in lib/server/boost.js. The chance is typed per
 // ticket in percent; the margin is only shown (1 - (boost pay + chance x prize) / price). A negative margin turns red and asks twice before saving.
 const bcDraft = (v) => ({
@@ -1637,6 +1657,7 @@ export default function Admin() {
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
           <MinDepositCard value={data.minDeposit} busy={busy} run={run} />
+          <SignupLimitCard value={data.signupLimit} busy={busy} run={run} />
           <Fold title="Demo account" sub={data.demo?.show === false ? 'Button hidden' : 'Button shown'}>
             <div className="row"><span className="mute">Demo button on sign-in</span><b>{data.demo?.show === false ? 'Hidden' : 'Shown'}</b></div>
             <div className="adm-actions">
