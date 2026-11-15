@@ -1,27 +1,24 @@
 'use client';
 import { useEffect } from 'react';
+import { telegramReady } from '@/lib/telegram';
 
 // Tells Telegram the Mini App is ready (until then Telegram keeps its loading screen up), expands it and matches its colours.
-// Telegram's script may arrive a moment after the page, so look a few times.
+// Telegram's script arrives a moment after the page: wait for its ready event (up to 10s), no polling.
 export default function TelegramInit() {
   useEffect(() => {
-    let n = 0;
-    let t;
-    const start = () => {
-      const w = window.Telegram && window.Telegram.WebApp;
-      if (!w) {
-        if (++n < 40) t = setTimeout(start, 250);
-        return;
-      }
+    let dead = false;
+    telegramReady(10000).then((w) => {
+      if (dead || !w) return;
       try {
         w.ready();
         w.expand();
         if (w.setHeaderColor) w.setHeaderColor('#0B0F1A');
         if (w.setBackgroundColor) w.setBackgroundColor('#0B0F1A');
       } catch {}
+    });
+    return () => {
+      dead = true;
     };
-    start();
-    return () => clearTimeout(t);
   }, []);
   return null;
 }
