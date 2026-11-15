@@ -3,7 +3,8 @@ import PageHead from '@/components/PageHead';
 import { PendingCards } from '@/components/PendingOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useAccrued, formatBtc, formatUsd } from '@/lib/useMined';
+import { formatBtc, formatUsd } from '@/lib/useMined';
+import { WalletBalance } from '@/components/LiveNumbers';
 import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
@@ -127,14 +128,14 @@ export default function Wallet() {
   const { t, lang } = useLang();
   // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
+  // It ticks inside WalletBalance (components/LiveNumbers.js) and mirrors the live figure into liveAvailable.
+  const liveAvailable = useRef(0);
   const { data: md } = useApi('/api/miners', { ttl: 10000 });
   const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
   const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
-  // What the online miners added since the server worked out the wallet (asOf): same maths as the dashboard.
-  const mined = useAccrued(dailyUsd, wd ? wd.asOf : null);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
@@ -289,9 +290,10 @@ export default function Wallet() {
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
   const history = wd ? wd.history : [];
-  // Server balance at the last fetch, plus the sats the live feed has added since this page opened.
-  const earned = (wd ? wd.earned : 0) + mined;
-  const available = wd ? Math.max(0, earned - wd.withdrawn - (wd.spent || 0)) : 0;
+  // Server balance at the last fetch. The live accrual since then (what the online miners added
+  // since the server worked out the wallet) ticks inside WalletBalance; the tap handlers below
+  // read it from liveAvailable so Max and the withdraw check see the same number on screen.
+  const available = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) : 0;
   // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
   const rein = ready ? smartPick([], balUsd, cat ? cat.halls : undefined) : null;
@@ -320,7 +322,7 @@ export default function Wallet() {
 
   function setFraction(pct) {
     triggerHaptic('selection');
-    const usd = available * pct * btcUsd;
+    const usd = (liveAvailable.current || available) * pct * btcUsd;
     setAmount(floorTo(usdMode ? usd : usd / price, dec).toFixed(dec));
     setErrors({ ...errors, amount: undefined });
   }
@@ -377,7 +379,7 @@ export default function Wallet() {
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
     if (!wq) next.amount = t('wal.errAmount');
     else if (wq.btc < MIN_WITHDRAW) next.amount = t('wal.errMin', { min: minText });
-    else if (wq.btc > available * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
+    else if (wq.btc > (liveAvailable.current || available) * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
     if (!validAddress(net, address.trim())) next.address = t('wal.errAddr', { net: N.label });
     if ((tf || (mailPop && !opts?.resend)) && !typed) next.code = t('wal.errCode');
@@ -470,12 +472,7 @@ export default function Wallet() {
         <div ref={heroRef} className={`card hero slim whero${heroSeen ? '' : ' wpause'}`}>
           <i className="wshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('wal.avail')}</span>
-          <div className="big">
-            {ready ? formatBtc(available) : '—'}
-            <small>BTC</small>
-          </div>
-          <span className="mute" style={{ display: 'block', fontSize: '14px' }}>{ready ? `≈ $${formatUsd(available * btcUsd)}` : '\u00a0'}</span>
-          <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{ready && wd.mined != null ? t('wal.totalMined', { n: formatBtc(wd.mined + mined) }) : '\u00a0'}</span>
+          <WalletBalance wd={wd} dailyUsd={dailyUsd} btcUsd={btcUsd} liveRef={liveAvailable} t={t} />
         </div>
 
         <PendingCards show={show} />
