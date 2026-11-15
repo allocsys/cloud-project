@@ -54,6 +54,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   // A view is { text, rows }: the message text and the inline button rows under it.
   // Commands send a view as it is; the menu adds its own buttons.
   const send = (chatId, v) => reply(chatId, v.text, keyboard(v.rows));
+  // The Menu button under the chat: a normal collapsible keyboard (Telegram shows the grid icon to open or hide it).
+  const kbExtra = (lang) => ({ reply_markup: { keyboard: [[{ text: t(lang, 'b_menu') }]], resize_keyboard: true } });
 
   // Asks the app for one set of numbers for the Telegram account (tg:<id>); the bot keeps no copy of any number.
   // Returns { data } when the answer is good (valid(answer)), else { view } with the 'no account' or 'try again' message.
@@ -288,8 +290,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
         text += '\n' + t(lang, 'newsOn');
       }
       const sentMenu = await sendMenu(id, lang, text, url);
-      // Puts the permanent Menu button under the chat (it stays until removed).
-      await reply(id, t(lang, 'kbOn'), { reply_markup: { keyboard: [[{ text: t(lang, 'b_menu') }]], resize_keyboard: true, is_persistent: true } });
+      // Puts the Menu button under the chat (it stays until removed).
+      await reply(id, t(lang, 'kbOn'), kbExtra(lang));
       return sentMenu;
     }
     if (cmd === 'stop') {
@@ -308,7 +310,10 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       }
       return reply(id, t(lang, 'langUsage'));
     }
-    return sendMenu(id, lang, helpText(lang));
+    // Any typed text that is not a command: show the menu and put the Menu button back (it may have been lost).
+    const shown = await sendMenu(id, lang, helpText(lang));
+    if (!c) await reply(id, t(lang, 'kbOn'), kbExtra(lang));
+    return shown;
   }
 
   async function handler(req, res) {
