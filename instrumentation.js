@@ -7,6 +7,7 @@ export async function register() {
       (await import('./lib/server/market')).startMarketTicker();
       (await import('./lib/server/smart-market')).startSmartTicker();
       (await import('./lib/server/renew')).startRenewTicker();
+      (await import('./lib/server/referrals')).startReferralLockTicker();
       // Warm the external feeds before serving, so the first visitor does not pay the cold-start
       // cascade (CoinGecko, mempool, WhatToMine, Eurostat). Bounded: a slow feed must not hold up startup.
       try {

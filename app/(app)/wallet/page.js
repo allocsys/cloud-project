@@ -135,7 +135,11 @@ export default function Wallet() {
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
-  const { data: wd, mutate, refresh } = useApi('/api/wallet', { ttl: 10000 });
+  // The history is paged on the server (?limit=&kind=): 20 rows at a time, filtered there, so the
+  // screen never downloads the whole 500-row history to show a few rows.
+  const [filter, setFilter] = useState('all');
+  const [limit, setLimit] = useState(20);
+  const { data: wd, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000 });
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
@@ -162,7 +166,6 @@ export default function Wallet() {
   const [errors, setErrors] = useState({});
   const [busy, setBusy] = useState(false);
   const [open, setOpen] = useState(false);
-  const [filter, setFilter] = useState('all');
   const [dep, setDep] = useState('');
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
@@ -313,8 +316,8 @@ export default function Wallet() {
   const dp = parseFloat(dep);
   const depCoin = dp > 0 ? toCoin(dp) : 0;
   const dq = depCoin > 0 ? depositQuote(asset, depCoin, prices) : null;
-  // Invite income counts as a payout.
-  const shown = filter === 'all' ? history : history.filter((h) => h.kind === filter || (filter === 'payout' && h.kind === 'referral'));
+  // Invite income counts as a payout; the kind filter already ran on the server.
+  const shown = history;
 
   // The minimum is $15 worth of coin, shown in whatever unit the person is typing in.
   const minUsd = MIN_WITHDRAW_USD;
@@ -715,18 +718,18 @@ export default function Wallet() {
                 }}
               >
                 <h3>{t('wal.activity')}</h3>
-                <span className="mute">{ready ? history.length : ''}</span>
+                <span className="mute">{ready ? (wd.historyTotal ?? history.length) : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
             {open && (
               <div className="minitabs fill" role="group" aria-label={t('wal.filterAria')}>
                 {FILTERS.map(([id, label]) => (
-                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => setFilter(id)}>{t(label)}</button>
+                  <button key={id} type="button" aria-pressed={filter === id} onClick={() => { setFilter(id); setLimit(20); }}>{t(label)}</button>
                 ))}
               </div>
             )}
-            {open && shown.slice(0, 8).map((h, i) => {
+            {open && shown.map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               const hu = usdOf(h, prices);
               return (
@@ -748,6 +751,9 @@ export default function Wallet() {
               );
             })}
             {open && shown.length === 0 && <p className="empty">{ready ? t('wal.nothing') : t('wal.loading')}</p>}
+            {open && wd && history.length < (wd.historyTotal ?? 0) && (
+              <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
+            )}
           </div>
         </div>
       </div>
