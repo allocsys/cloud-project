@@ -8,8 +8,8 @@ import ThemeSync from '@/components/ThemeSync';
 import TelegramInit from '@/components/TelegramInit';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
-import { getLang, getT } from '@/lib/i18n/server';
-import { LANGS } from '@/lib/i18n/langs';
+import { getLang, getT, getMessages } from '@/lib/i18n/server';
+import { LANG_META } from '@/lib/i18n/meta';
 import { SITE_URL } from '@/lib/site';
 
 const sans = Roboto({ subsets: ['latin', 'cyrillic'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
@@ -61,8 +61,9 @@ export const viewport = {
 
 export default async function RootLayout({ children }) {
   const lang = await getLang();
+  const messages = await getMessages(lang);
   return (
-    <html lang={lang} dir={LANGS[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
+    <html lang={lang} dir={LANG_META[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
         <script
@@ -76,7 +77,7 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
-        <I18nProvider lang={lang}>
+        <I18nProvider lang={lang} messages={messages}>
           {children}
           <PWA />
           <Ripple />

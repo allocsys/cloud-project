@@ -3,7 +3,7 @@
 // A native <select> opens the OS picker on phones, so the menu is built from plain buttons.
 import { useEffect, useRef, useState } from 'react';
 import { triggerHaptic } from '@/lib/haptics';
-import { LANGS } from '@/lib/i18n/langs';
+import { LANG_META } from '@/lib/i18n/meta';
 import { useLang } from '@/components/I18nProvider';
 
 // Short label for the top bar (the full name stays in the menu).
@@ -13,7 +13,7 @@ export function LangToggle({ className, short }) {
   const { lang, setLang, t } = useLang();
   const [open, setOpen] = useState(false);
   const box = useRef(null);
-  const codes = Object.keys(LANGS);
+  const codes = Object.keys(LANG_META);
 
   useEffect(() => {
     if (!open) return undefined;
@@ -52,7 +52,7 @@ export function LangToggle({ className, short }) {
           <path d="M3 12h18" />
           <path d="M12 3c2.6 2.7 3.9 5.7 3.9 9s-1.3 6.3-3.9 9c-2.6-2.7-3.9-5.7-3.9-9S9.4 5.7 12 3z" />
         </svg>
-        <span>{short ? SHORT[lang] : LANGS[lang].name}</span>
+        <span>{short ? SHORT[lang] : LANG_META[lang].name}</span>
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
           <path d="M6 9l6 6 6-6" />
         </svg>
@@ -72,7 +72,7 @@ export function LangToggle({ className, short }) {
                   setOpen(false);
                 }}
               >
-                {LANGS[c].name}
+                {LANG_META[c].name}
               </button>
             </li>
           ))}
