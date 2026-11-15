@@ -6,6 +6,7 @@ import { smartSettings } from '@/lib/server/smart-admin';
 import { guardSettings } from '@/lib/server/guard';
 import { refreshPricing, pricingGross } from '@/lib/server/pricing';
 import { boostSettings } from '@/lib/server/boost';
+import { minWithdraw } from '@/lib/server/flags';
 import { BOOST, TICKETS, boostOn, shownOf } from '@/lib/boost';
 
 export const dynamic = 'force-dynamic';
@@ -18,9 +19,10 @@ export const dynamic = 'force-dynamic';
 // `smartTable` is the pay table for new Smart Mining purchases ({ rates, bonus }, lib/smart.js smartPayout).
 // `pauseRule` is what a day the profit guard pauses does to a miner bought now: 'extend' (the term moves back a day) or 'zero'
 // (the day counts and pays nothing). It is fixed on the miner at purchase.
+// `minWithdraw` is the admin's smallest withdrawal in dollars (lib/server/flags.js); the wallet, dashboard, sign-up, Plans and Terms screens read it from here.
 // `boost` is the ticket table for the landing page ({ hours, tickets: [{ id, price, th, pay, prize, chance }] }), or null while boost tickets are off.
 export async function GET() {
-  const [{ live, smart }, st, guard, bcfg] = await Promise.all([getMarket(), smartSettings(), guardSettings(), boostSettings(), refreshPricing()]);
+  const [{ live, smart }, st, guard, bcfg, minWd] = await Promise.all([getMarket(), smartSettings(), guardSettings(), boostSettings(), minWithdraw(), refreshPricing()]);
   const best = liveBest(smart);
   return NextResponse.json(
     {
@@ -31,6 +33,7 @@ export async function GET() {
       smartOn: st.enabled,
       smartTable: st.table,
       pauseRule: guard.mode,
+      minWithdraw: minWd,
       boost: boostOn(bcfg)
         ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: shownOf(bcfg, t.id) })) }
         : null,

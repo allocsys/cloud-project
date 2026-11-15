@@ -1,7 +1,7 @@
 'use client';
 import BackLink from '@/components/BackLink';
 import { useT } from '@/components/I18nProvider';
-import { halls as defaultHalls, MIN_WITHDRAW, MIN_WITHDRAW_USD } from '@/lib/data';
+import { halls as defaultHalls, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT } from '@/lib/assets';
 import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
 import { SMART } from '@/lib/smart';
@@ -17,6 +17,8 @@ export default function Terms() {
   const t = useT();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   const halls = cat?.halls || defaultHalls;
+  const minUsd = cat?.minWithdraw ?? MIN_WITHDRAW_USD; // the admin's minimum withdrawal
+  const minBtc = minUsd / BTC_USD; // the closing-account rule counts it in BTC at the static price (lib/server/auth.js)
   const hallList = Object.values(halls).map((h) => ({ h, r: hallRates(h) })).filter((x) => x.r);
   const coinRows = Object.entries(ASSETS).flatMap(([, a]) => Object.entries(a.nets).map(([net, fee]) => ({ k: `${a.sym}-${net}`, label: t('terms.coinOn', { sym: a.sym, net: NETWORKS[net].short }), fee: `${fee} ${a.sym}` })));
   const pct = SERVICE_TIERS.map((x) => `${x.pct}%`);
@@ -56,7 +58,7 @@ export default function Terms() {
         <p className="mute">{t('terms.p3e', { hours: BOOST.hours })}</p>
 
         <h2 style={h2}>{t('terms.h4')}</h2>
-        <p className="mute">{t('terms.p4a', { swap: SWAP_FEE_PCT, minUsd: MIN_WITHDRAW_USD })}</p>
+        <p className="mute">{t('terms.p4a', { swap: SWAP_FEE_PCT, minUsd })}</p>
         <div>
           {coinRows.map((c) => (
             <div key={c.k} style={row}>
@@ -83,7 +85,7 @@ export default function Terms() {
 
         <h2 style={h2}>{t('terms.h7')}</h2>
         <p className="mute">{t('terms.p7a')}</p>
-        <p className="mute">{t('terms.p7b', { minBtc: MIN_WITHDRAW })}</p>
+        <p className="mute">{t('terms.p7b', { minBtc: minBtc })}</p>
 
         <h2 style={h2}>{t('terms.h9')}</h2>
         <p className="mute">{t('terms.p9a')}</p>

@@ -479,6 +479,23 @@ function MinDepositCard({ value, busy, run }) {
   );
 }
 
+// Smallest withdrawal in dollars of the coin withdrawn. Empty puts back the default. Stored in lib/server/flags.js.
+function MinWithdrawCard({ value, busy, run }) {
+  const v = value ?? 15;
+  const [d, setD] = useState(String(v));
+  useEffect(() => setD(String(v)), [v]);
+  return (
+    <Fold title="Minimum withdrawal" sub={`$${v}`}>
+      <div className="row"><span className="mute">Now</span><b>${v}</b></div>
+      <Field id="mwd" label="Minimum $ (empty = $15)" inputMode="decimal" value={d} onChange={setD} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'min-withdraw', usd: d }, 'Minimum withdrawal saved')}>Save</button>
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>From $1 to $10000. Applies to every withdrawal at once. Users see the new number in the Wallet, FAQ, Terms, sign-up and dashboard.</p>
+    </Fold>
+  );
+}
+
 // Anti account farming: new accounts one network may open in 24 hours. Stored in lib/server/signup-guard.js.
 function SignupLimitCard({ value, busy, run }) {
   const s = value || { on: true, perDay: 3 };
@@ -1657,6 +1674,7 @@ export default function Admin() {
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
           <MinDepositCard value={data.minDeposit} busy={busy} run={run} />
+          <MinWithdrawCard value={data.minWithdraw} busy={busy} run={run} />
           <SignupLimitCard value={data.signupLimit} busy={busy} run={run} />
           <Fold title="Demo account" sub={data.demo?.show === false ? 'Button hidden' : 'Button shown'}>
             <div className="row"><span className="mute">Demo button on sign-in</span><b>{data.demo?.show === false ? 'Hidden' : 'Shown'}</b></div>

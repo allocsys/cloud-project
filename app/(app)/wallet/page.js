@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
 import { formatBtc, formatUsd } from '@/lib/useMined';
 import { WalletBalance } from '@/components/LiveNumbers';
-import { MIN_WITHDRAW, MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
+import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
 import { serviceTier, serviceLine, serviceProgress } from '@/lib/service-fee';
@@ -319,8 +319,8 @@ export default function Wallet() {
   // Invite income counts as a payout; the kind filter already ran on the server.
   const shown = history;
 
-  // The minimum is $15 worth of coin, shown in whatever unit the person is typing in.
-  const minUsd = MIN_WITHDRAW_USD;
+  // The minimum is the admin's dollar amount (from /api/plans) worth of coin, shown in whatever unit the person is typing in.
+  const minUsd = cat?.minWithdraw ?? MIN_WITHDRAW_USD;
   const minText = usdMode ? `$${formatUsd(ceilTo(minUsd, 2))}` : `${ceilTo(minUsd / price, A.dec).toFixed(A.dec)} ${A.sym}`;
   const dec = usdMode ? 2 : A.dec;
 
@@ -382,7 +382,7 @@ export default function Wallet() {
     const next = {};
     const wq = coinAmt > 0 ? quote(asset, net, coinAmt, prices, svcPct) : null;
     if (!wq) next.amount = t('wal.errAmount');
-    else if (wq.btc < MIN_WITHDRAW) next.amount = t('wal.errMin', { min: minText });
+    else if (wq.usd < minUsd - 0.01) next.amount = t('wal.errMin', { min: minText }); // dollars at live prices, the same check the server makes
     else if (wq.btc > (liveAvailable.current || available) * (1 + 1e-9) + 1e-12) next.amount = t('wal.errMore');
     else if (wq.receive <= 0) next.amount = t('wal.errSmall');
     if (!validAddress(net, address.trim())) next.address = t('wal.errAddr', { net: N.label });
