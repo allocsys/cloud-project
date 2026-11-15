@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { REFUND_HOURS } from '@/lib/rules';
 import { useApi, post, revalidate } from '@/lib/api';
+import { everyVisible } from '@/lib/visible';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
 import BoostCard from '@/components/BoostCard';
