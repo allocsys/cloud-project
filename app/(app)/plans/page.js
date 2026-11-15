@@ -204,8 +204,7 @@ export default function Plans() {
   const seen = useRef(new Set());
   useEffect(() => {
     if (!pending.length) return undefined;
-    const t = setInterval(() => refreshOrders().catch(() => {}), 5000);
-    return () => clearInterval(t);
+    return everyVisible(() => refreshOrders().catch(() => {}), 5000);
   }, [pending.length]);
   useEffect(() => {
     if (!ord) return;
