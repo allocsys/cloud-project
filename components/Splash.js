@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearApiCache } from '@/lib/api';
+import { telegramReady } from '@/lib/telegram';
 
 // Welcome screen for the landing page. The server renders it visible, so it covers the very first paint (no flash of
 // plain text). While it shows, the page does real work: fonts, the logo and the window load event are awaited, and
@@ -38,20 +39,6 @@ function idle() {
   return new Promise((r) => (window.requestIdleCallback ? window.requestIdleCallback(r, { timeout: 600 }) : setTimeout(r, 120)));
 }
 
-// The Telegram script is loaded after the page, so it may arrive a moment after this component starts.
-function telegram() {
-  return new Promise((resolve) => {
-    const t0 = Date.now();
-    const poll = () => {
-      const w = window.Telegram && window.Telegram.WebApp;
-      if (w && w.initData) return resolve(w);
-      if (Date.now() - t0 > WAIT) return resolve(null);
-      setTimeout(poll, 50);
-    };
-    poll();
-  });
-}
-
 export default function Splash() {
   const ref = useRef(null);
   const bar = useRef(null);
@@ -82,9 +69,9 @@ export default function Splash() {
       } catch {}
       const ctl = new AbortController();
       const stop = setTimeout(() => ctl.abort(), CHECK);
-      check = telegram()
+      check = telegramReady(WAIT)
         .then((w) =>
-          w
+          w && w.initData
             ? fetch('/api/auth/telegram', {
                 method: 'POST',
                 headers: { 'content-type': 'application/json' },
