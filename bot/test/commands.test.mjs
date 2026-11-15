@@ -67,13 +67,16 @@ test('/start CODE opens the app on sign-up with the code, case kept; a bad code 
   assert.equal(tg.sent[2].extra.reply_markup.inline_keyboard[0][0].web_app.url, 'https://vertexhash.com');
 });
 
-test('unknown text and /help show the command list', async () => {
+test('unknown text and /help show the command list; typed text also brings the Menu button back', async () => {
   const tg = fakeTg();
   const bot = makeBot({ config: cfg, tg });
   await bot.handleUpdate(msg('hello there'));
   await bot.handleUpdate(msg('/help'));
-  assert.equal(tg.sent.length, 2);
-  for (const s of tg.sent) assert.ok(s.text.includes('/start') && s.text.includes('/faq') && s.text.includes('/support'));
+  assert.equal(tg.sent.length, 3);
+  for (const i of [0, 2]) assert.ok(tg.sent[i].text.includes('/start') && tg.sent[i].text.includes('/faq') && tg.sent[i].text.includes('/support'));
+  assert.ok(tg.sent[1].extra.reply_markup.keyboard, 'the Menu button is sent again after typed text');
+  assert.equal(tg.sent[1].extra.reply_markup.is_persistent, undefined);
+  assert.ok(!tg.sent[2].extra.reply_markup.keyboard, 'a command does not resend it');
 });
 
 test('/faq links to the FAQ page and /support shows the email', async () => {
