@@ -6,10 +6,13 @@
 // Links that used to point at /login now open the sheet: /login redirects to /?auth=1 and keeps its query
 // (ref, mode=signup, reset and email), which is read here once and then removed from the address bar.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
-import AuthForm from '@/components/AuthForm';
 import { useT } from '@/components/I18nProvider';
 import { triggerHaptic } from '@/lib/haptics';
+
+// The form only renders when the sheet opens, so it stays out of first load until then.
+const AuthForm = dynamic(() => import('@/components/AuthForm'), { loading: () => null });
 
 const Ctx = createContext(null);
 

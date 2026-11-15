@@ -57,13 +57,9 @@ export function PendingStrip() {
   const path = usePathname() || '';
   // Plans and Wallet already show the full invoice.
   const hidden = path.includes('/plans') || path.includes('/wallet');
-  const { open, refresh } = useOpenOrders(!hidden);
+  const { open } = useOpenOrders(!hidden);
   const [now, setNow] = useState(() => Date.now());
   const n = open.length;
-  // A new invoice made on Plans shows up as soon as the person moves to another page.
-  useEffect(() => {
-    refresh().catch(() => {});
-  }, [path]);
   useEffect(() => {
     if (!n || hidden) return undefined;
     const id = setInterval(() => {

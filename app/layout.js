@@ -71,9 +71,11 @@ export default async function RootLayout({ children }) {
             __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
           }}
         />
+        {/* afterInteractive: the page hydrates first; TelegramInit polls for
+            window.Telegram.WebApp (up to 10s) and all other uses are guarded. */}
         <Script
           src="https://telegram.org/js/telegram-web-app.js"
-          strategy="beforeInteractive"
+          strategy="afterInteractive"
         />
       </head>
       <body>
