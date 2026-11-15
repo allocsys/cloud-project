@@ -134,14 +134,17 @@ function HeroChart({ rows }) {
 
 export default function Dashboard() {
   const { t, lang } = useLang();
-  // The user's miners drive the live strip, the projection, the miner row and the live feed.
-  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  // One call for the per-user data (miners, dashboard, wallet, referrals, notifications):
+  // five requests that each loaded the same account document are now one (lib/server/bundle.js).
+  // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
+  const { data: bundle } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
+  const md = bundle?.miners;
   const miners = md ? md.contracts : [];
   const online = miners.filter((c) => c.online);
   const pausedN = online.filter((c) => c.paused).length; // switched off today by the profit guard
   const dailyUsd = online.reduce((s, c) => s + c.dailyUsd, 0);
 
-  const { data: dd } = useApi('/api/dashboard', { ttl: 30000, poll: 60000 });
+  const dd = bundle?.dashboard;
   const dash = dd || EMPTY;
 
   // Shares are a simulated feed. The big number is the server figure plus the online rate since the server's asOf,
@@ -170,8 +173,8 @@ export default function Dashboard() {
   };
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000, poll: 30000 });
-  const { data: rd } = useApi('/api/referrals', { ttl: 30000 });
-  const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
+  const rd = bundle?.referrals;
+  const wd = bundle?.wallet;
   const gain = useAccrued(dailyUsd, wd ? wd.asOf : null);
 
   // Lets the goal bar grow from empty once the page is on screen.
@@ -181,7 +184,7 @@ export default function Dashboard() {
   }, []);
 
   // Totals and the unread count come from the cached API: instant from cache, refreshed quietly.
-  const { data: nd } = useApi('/api/notifications', { ttl: 10000 });
+  const nd = bundle?.notifications;
   const unread = nd ? nd.unread : notifications.length;
 
   const biggest = [...online].sort((a, b) => b.th - a.th)[0];
