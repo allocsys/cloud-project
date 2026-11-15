@@ -524,7 +524,7 @@ export default function Plans() {
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              {fill(t('plans.fine', { n: MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
+              {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
               {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href="/refunds">{t('refund.more')}</Link>
             </p>
             {ready && !canBal && (
