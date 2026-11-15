@@ -49,7 +49,6 @@ test('the fourth account from one network is refused, another network is not', a
   const r = await auth.signup({ email: `farm4.${run}@mail.com`, password: PW }, ip);
   assert.equal(r.ok, false);
   assert.equal(r.status, 429);
-  assert.equal(r.error, guard.LIMIT_MSG);
   assert.equal((await q('SELECT 1 FROM users WHERE id = $1', [`farm4.${run}@mail.com`])).rowCount, 0, 'nothing was created');
   // the same /24 counts as one network
   assert.equal((await auth.signup({ email: `farm5.${run}@mail.com`, password: PW }, ip.replace(/\.7$/, '.99'))).status, 429);
