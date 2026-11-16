@@ -23,7 +23,11 @@ export async function POST(req) {
   // the guessing. A code is only tried against a valid link, so a wrong link never counts against the account.
   const codeKey = `t:${String(body?.email ?? '').trim().toLowerCase().slice(0, 120)}`;
   const withCode = !!body?.code;
-  if (withCode && (await reserve(codeKey))) return tooMany();
+  // The code limit answers first: the address attempt reserved above was not a failure, so give it back.
+  if (withCode && (await reserve(codeKey))) {
+    await giveBack(key);
+    return tooMany();
+  }
   const { status, ...rest } = await confirmReset(body);
   if (withCode) {
     if (rest.ok) await clearFails(codeKey);
