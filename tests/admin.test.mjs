@@ -55,6 +55,54 @@ test('a core hall cannot be removed, an unknown one is not found, and an added o
   assert.equal(Object.hasOwn((await catalog()).halls, id), false);
 });
 
+test('a hall with a miner running in it cannot be removed', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('busy') })).ok);
+  const halls = (await catalog()).halls;
+  const hallId = Object.keys(halls).find((k) => halls[k].name === `T${run}busy`);
+  assert.ok(hallId);
+  const id = `hlm${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, { contracts: [{ serial: `VTX-H${run}`, name: 'Hall test', th: 5, hall: hallId, days: 30, dailyUsd: 0.1 }] })));
+  assert.equal((await act({ action: 'hall-delete', id: hallId })).status, 409);
+  assert.ok(Object.hasOwn((await catalog()).halls, hallId), 'the hall stays');
+  await withUser(id, (u) => { u.contracts.length = 0; return true; });
+  assert.ok((await act({ action: 'hall-delete', id: hallId })).ok);
+  assert.equal(Object.hasOwn((await catalog()).halls, hallId), false);
+});
+
+test('two deletes of one hall at once remove it once', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('twice') })).ok);
+  const halls = (await catalog()).halls;
+  const hallId = Object.keys(halls).find((k) => halls[k].name === `T${run}twice`);
+  assert.ok(hallId);
+  const rs = await Promise.all([act({ action: 'hall-delete', id: hallId }), act({ action: 'hall-delete', id: hallId })]);
+  assert.equal(rs.filter((r) => r.ok).length, 1, JSON.stringify(rs));
+  assert.equal(rs.filter((r) => r.status === 404).length, 1, JSON.stringify(rs));
+  assert.equal(Object.hasOwn((await catalog()).halls, hallId), false);
+});
+
+test('catalog-reset drops the halls that were added, even beside a hall save', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('gone') })).ok);
+  const before = (await catalog()).halls;
+  const goneId = Object.keys(before).find((k) => before[k].name === `T${run}gone`);
+  assert.ok(goneId);
+  const r = await act({ action: 'catalog-reset' });
+  assert.ok(r.ok, JSON.stringify(r));
+  const after = (await catalog()).halls;
+  assert.equal(Object.hasOwn(after, goneId), false, 'the added hall is gone');
+  assert.ok(Object.hasOwn(after, 'tx-1') && Object.hasOwn(after, 'is-2') && Object.hasOwn(after, 'no-1'), 'the core halls stay');
+
+  // A hall save racing the reset cannot resurrect the halls the reset dropped: whichever takes the
+  // catalogue lock first, the reset only ever drops what was there when it ran.
+  assert.ok((await act({ action: 'hall-save', hall: hall('gone2') })).ok);
+  const halls2 = (await catalog()).halls;
+  const gone2Id = Object.keys(halls2).find((k) => halls2[k].name === `T${run}gone2`);
+  assert.ok(gone2Id);
+  const [reset, saved] = await Promise.all([act({ action: 'catalog-reset' }), act({ action: 'hall-save', hall: hall('kept') })]);
+  assert.ok(reset.ok, JSON.stringify(reset));
+  assert.ok(saved.ok, JSON.stringify(saved));
+  assert.equal(Object.hasOwn((await catalog()).halls, gone2Id), false, 'the reset dropped the hall that was there when it ran');
+});
+
 test('actions on an unknown user are refused', async () => {
   assert.equal((await act({ action: 'miners-clear', userId: `nobody-${run}@test.dev` })).status, 404);
   assert.equal((await act({ action: 'notify', userId: `nobody-${run}@test.dev`, title: 'Hi' })).status, 404);
@@ -533,6 +581,22 @@ test('bulk actions: bad input is refused, and each user goes through the single-
   // The audit log names the action and how many users it touched.
   const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
   assert.ok(log.some((e) => e.action === 'bulk' && e.at >= t0 && e.detail.includes('3 users')));
+  // And each user's own change is logged too, naming that user — not just the one aggregate entry.
+  for (const id of ids) assert.ok(log.some((e) => e.action === 'user' && e.at >= t0 && String(e.detail).includes(id)), `a log entry names ${id}`);
+});
+
+test('min-deposit changes are written to the audit log', async () => {
+  const t0 = Date.now();
+  try {
+    assert.equal((await act({ action: 'min-deposit', usd: '0' })).status, 422);
+    const r = await act({ action: 'min-deposit', usd: '5' });
+    assert.ok(r.ok, JSON.stringify(r));
+    assert.equal(r.usd, 5);
+    const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+    assert.ok(log.some((e) => e.action === 'min-deposit' && e.at >= t0 && String(e.detail).includes('5')), 'min-deposit is logged');
+  } finally {
+    assert.ok((await act({ action: 'min-deposit', usd: '' })).ok, 'the default is put back');
+  }
 });
 
 test('admin can close an account: refused with a balance, then erased, hidden and its friends kept', async () => {
