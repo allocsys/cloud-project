@@ -81,6 +81,21 @@ test('a right code works once; the next withdrawal needs the next code', async (
   assert.equal(await rows(id), 2);
 });
 
+test('a replay with two-factor on returns the original request, even after its idempotency row is gone', async () => {
+  const { id, secret } = await account('tf-replay', true);
+  const key = 'tf-replay';
+  const first = await withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: ADDR, code: code(secret) }, { userId: id, key });
+  assert.ok(first.ok, JSON.stringify(first));
+  await q('DELETE FROM idem WHERE key = $1', [`withdraw:${id}:${key}`]); // the row the cleanup used to drop after 3 days
+  // The same code is used up, and the first withdrawal already reserved the balance — the replay must still
+  // answer from the permanent withdrawals row instead of failing on either.
+  const again = await withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: ADDR, code: code(secret) }, { userId: id, key });
+  assert.ok(again.ok, JSON.stringify(again));
+  assert.equal(again.id, first.id);
+  assert.equal(again.receive, first.receive);
+  assert.equal(await rows(id), 1, 'withdrawn once');
+});
+
 test('a recovery code works once', async () => {
   const { id, codes } = await account('tf3', true);
   assert.ok((await ask(id, { code: codes[0] })).ok);

@@ -369,3 +369,37 @@ test('a coin we do not take is refused before any invoice, and NOWPayments leave
     assert.equal((await miners.getOrders(id)).multi, false);
   });
 });
+
+test('an order cancelled while the invoice is made is not handed out as a link', async () => {
+  const id = await account('cancelrace');
+  await withEnv(NOW_ENV, async () => {
+    reply = async () => {
+      // The customer cancels while the provider is answering.
+      await q(`UPDATE orders SET status = 'cancelled', data = jsonb_set(data, '{status}', '"cancelled"') WHERE user_id = $1 AND status = 'pending'`, [id]);
+      return nowInvoice();
+    };
+    const r = await pay(id, 'k-cancel-race');
+    assert.equal(r.ok, false);
+    assert.equal(r.status, 409);
+    const [row] = await orderRows(id);
+    assert.equal(row.status, 'cancelled');
+    assert.equal(row.data.invoiceId, undefined, 'the invoice is not attached to a cancelled order');
+    assert.equal((await getUser(id)).contracts.length, 0);
+  });
+});
+
+test('an order paid while the invoice is made is answered as paid, not as a link', async () => {
+  const id = await account('paidrace');
+  await withEnv(NOW_ENV, async () => {
+    reply = async () => {
+      // A webhook settles the order while the provider is answering.
+      await q(`UPDATE orders SET status = 'paid', data = jsonb_set(data, '{status}', '"paid"') WHERE user_id = $1 AND status = 'pending'`, [id]);
+      return nowInvoice();
+    };
+    const r = await pay(id, 'k-paid-race');
+    assert.ok(r.ok);
+    assert.equal(r.pending, false);
+    assert.equal(r.order.status, 'paid');
+    assert.equal((await getUser(id)).contracts.length, 0, 'no miner starts from the invoice step');
+  });
+});

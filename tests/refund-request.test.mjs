@@ -7,7 +7,7 @@ const { pool, q, getUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
-const { refundMiner, act } = await import('@/lib/server/admin');
+const { act } = await import('@/lib/server/admin');
 const { createRequest, myRefunds, adminRefunds, decideRefund } = await import('@/lib/server/refund-requests');
 const { REFUND_MS } = await import('@/lib/refund-rules');
 
@@ -100,13 +100,59 @@ test('refunding a request pays the price back, removes the miner and closes the 
   const r = await ask(id, serial, { reason: 'money' });
   assert.ok(r.ok, r.error);
 
-  const d = await decideRefund(id, r.id, 'approve', '', refundMiner);
+  const d = await decideRefund(id, r.id, 'approve', '');
   assert.ok(d.ok, d.error);
   assert.ok(d.usd > 0);
   assert.equal((await getUser(id)).contracts.length, 0);
   assert.equal((await myRefunds(id)).requests[0].status, 'approved');
-  assert.ok((await decideRefund(id, r.id, 'approve', '', refundMiner)).ok, 'the same decision twice is harmless');
-  assert.equal((await decideRefund(id, r.id, 'reject', 'x', refundMiner)).status, 409, 'cannot flip a decision');
+  assert.ok((await decideRefund(id, r.id, 'approve', '')).ok, 'the same decision twice is harmless');
+  assert.equal((await decideRefund(id, r.id, 'reject', 'x')).status, 409, 'cannot flip a decision');
+});
+
+test('two approves at once refund only once', async () => {
+  const id = await account('race');
+  await credit(id, 0.01);
+  const serial = await buy(id);
+  const r = await ask(id, serial, { reason: 'money' });
+  assert.ok(r.ok, r.error);
+
+  const [a, b] = await Promise.all([decideRefund(id, r.id, 'approve', ''), decideRefund(id, r.id, 'approve', '')]);
+  assert.ok(a.ok, JSON.stringify(a));
+  assert.ok(b.ok, JSON.stringify(b));
+  assert.equal((await getUser(id)).contracts.length, 0, 'the miner is gone once');
+  const refunds = (await getUser(id)).history.filter((h) => h.kind === 'adjustment' && String(h.label || '').startsWith('Refund'));
+  assert.equal(refunds.length, 1, 'credited once');
+  assert.equal((await myRefunds(id)).requests[0].status, 'approved');
+});
+
+test('an approve and a reject at once never both take effect', async () => {
+  const id = await account('racer');
+  await credit(id, 0.01);
+  const serial = await buy(id);
+  const r = await ask(id, serial, { reason: 'money' });
+  assert.ok(r.ok, r.error);
+
+  // The two decisions lock the same rows in the same order (account first, request second), so one waits for the
+  // other and the loser comes back with a 409 instead of taking effect. Either way only one decision may
+  // take effect, and the miner must match the decision that won.
+  const settled = await Promise.allSettled([
+    decideRefund(id, r.id, 'approve', ''),
+    decideRefund(id, r.id, 'reject', 'Too late.'),
+  ]);
+  const out = settled.map((s) => (s.status === 'fulfilled' ? s.value : { ok: false, status: 500 }));
+  const status = (await myRefunds(id)).requests[0].status;
+  const u = await getUser(id);
+  if (status === 'approved') {
+    assert.ok(out[0].ok, JSON.stringify(out[0]));
+    assert.equal(out[1].ok, false, 'the reject did not take effect');
+    assert.equal(u.contracts.length, 0, 'the miner is refunded');
+    assert.equal(u.history.filter((h) => h.kind === 'adjustment' && String(h.label || '').startsWith('Refund')).length, 1, 'credited once');
+  } else {
+    assert.equal(status, 'rejected');
+    assert.ok(out[1].ok, JSON.stringify(out[1]));
+    assert.equal(out[0].ok, false, 'the approve did not take effect');
+    assert.equal(u.contracts.length, 1, 'the miner stays');
+  }
 });
 
 test('declining keeps the miner, tells the person and keeps the note', async () => {
@@ -115,7 +161,7 @@ test('declining keeps the miner, tells the person and keeps the note', async () 
   const serial = await buy(id);
   const r = await ask(id, serial, { reason: 'better' });
 
-  const d = await decideRefund(id, r.id, 'reject', 'This miner already started.', refundMiner);
+  const d = await decideRefund(id, r.id, 'reject', 'This miner already started.');
   assert.ok(d.ok, d.error);
   const u = await getUser(id);
   assert.equal(u.contracts.length, 1, 'the miner stays');
@@ -134,9 +180,13 @@ test('the admin action refunds through the same rules', async () => {
   await credit(id, 0.01);
   const serial = await buy(id);
   const r = await ask(id, serial);
+  const t0 = Date.now();
   assert.equal((await act({ action: 'refund-request', userId: id, id: r.id, decision: 'maybe' })).status, 400);
   const d = await act({ action: 'refund-request', userId: id, id: r.id, decision: 'approve' });
   assert.ok(d.ok, d.error);
   const rows = (await q("SELECT status FROM refund_requests WHERE id = $1", [r.id])).rows;
   assert.equal(rows[0].status, 'approved');
+  // The decision is in the audit log, naming this user.
+  const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+  assert.ok(log.some((e) => e.action === 'refund-request' && e.at >= t0 && String(e.detail).includes(id)), 'refund-request is logged');
 });

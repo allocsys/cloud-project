@@ -306,3 +306,42 @@ test('tickets: a drop or a level up in the same month never gives more than the 
   assert.equal(await referrals.claimVipTickets(id), 1, 'a level up gives only the difference (6 - 5)');
   assert.equal(await held(), 6);
 });
+
+test('two servers locking the same inviter at once stamp the same rates and notify once', async () => {
+  // A full table, so no level any account holds can block the save; only VIP 1 is reachable (one active friend).
+  const table = [ROW, ...Array(14).fill({ ...ROW, minSpendUsd: 1000000, minFriends: 100000 })];
+  assert.equal((await referrals.saveSettings({ vip: table })).ok, true);
+  assert.ok((await auth.signup({ email: email('lockinv'), password: PW })).ok);
+  assert.ok((await miners.grantPlan(email('lockinv'), SMALL)).ok);
+  const invId = email('lockinv');
+  const code = (await getUser(invId)).refCode;
+  await friend('lockf1', code);
+  await friend('lockf2', code);
+  // Both friends look unlocked again: one with a start note waiting, one held for a later month.
+  await pool().query("UPDATE users SET data = (data - 'refRates') || '{\"refStartNote\": true}'::jsonb WHERE id = $1", [email('lockf1')]);
+  await pool().query("UPDATE users SET data = (data - 'refRates') || '{\"refRatesPending\": true}'::jsonb WHERE id = $1", [email('lockf2')]);
+  const notes = async () => ((await getUser(invId)).notifications || []).filter((n) => n.title === 'Reward started').length;
+  assert.equal(await notes(), 0);
+  const rs = await Promise.all([referrals.lockFriendRates(invId), referrals.lockFriendRates(invId)]);
+  assert.deepEqual([...rs].sort(), [0, 2], 'one run does the work, the other finds nothing left');
+  assert.equal(await notes(), 1, 'the delayed reward is announced once');
+  const f1 = await getUser(email('lockf1'));
+  const f2 = await getUser(email('lockf2'));
+  assert.equal(f1.refRates.vip, 0, 'an older friend gets the plain numbers');
+  assert.equal(f1.refStartNote, undefined);
+  assert.equal(f2.refRates.vip, 1, 'a later-month friend gets the level held when the reward starts');
+  assert.equal(f2.refRatesPending, undefined);
+});
+
+test('a user can have maxCodes codes in total, Default included', async () => {
+  await referrals.resetSettings(); // the defaults: maxCodes 5
+  assert.ok((await auth.signup({ email: email('codes'), password: PW })).ok);
+  const id = email('codes');
+  // maxCodes counts every code the user sees, Default included — so only 4 named ones fit beside it.
+  const rs = await Promise.all(['one', 'two', 'three', 'four', 'five'].map((name) => referrals.createCode(id, { name, rebate: 0 })));
+  assert.equal(rs.filter((r) => r.ok).length, 4, JSON.stringify(rs));
+  assert.equal(rs.filter((r) => !r.ok).length, 1, JSON.stringify(rs));
+  assert.equal((await getUser(id)).refCodes.length, 4);
+  assert.equal((await referrals.createCode(id, { name: 'six', rebate: 0 })).ok, false, 'a fifth named code is refused');
+  assert.equal((await getUser(id)).refCodes.length, 4);
+});

@@ -4,7 +4,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, getUser, withUser } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, pruneIdem } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const boost = await import('@/lib/server/boost');
@@ -263,4 +263,19 @@ test('the admin settings: a chance that loses money needs a second confirm, bad 
   assert.equal(off.settings.enabled, false);
   assert.equal(off.settings.chance.t1, 20, 'the rest stays as it was');
   assert.equal((await act({ action: 'boost-settings', chance: { t1: 5 } })).ok, true);
+});
+
+test('a ticket key replayed after the cleanup still buys once', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('prune');
+  await credit(id, 1);
+  const first = await boost.buyBoost({ ticket: 't1' }, { userId: id, key: 'k1' });
+  assert.equal(first.ok, true);
+  await q("UPDATE idem SET at = now() - interval '4 days' WHERE key = $1", [`boost:${id}:k1`]);
+  await pruneIdem(); // the periodic cleanup: money keys are kept, so the replay still finds the first result
+  const again = await boost.buyBoost({ ticket: 't1' }, { userId: id, key: 'k1' });
+  assert.equal(again.ok, true);
+  assert.equal(again.boost.id, first.boost.id);
+  assert.equal((await getUser(id)).boosts.length, 1);
+  assert.equal((await ledgerRows(id, 'spend')).length, 1);
 });

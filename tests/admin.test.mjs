@@ -2,6 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
+import { halls as defaultHalls } from '@/lib/data';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
@@ -13,7 +14,9 @@ const auth = await import('@/lib/server/auth');
 const run = `a${Date.now().toString(36)}`;
 const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 const many = (n, fn) => Promise.all(each(n, fn));
-const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data;
+// Reads the catalogue the way the app does (lib/server/db.js): after a reset there is no row, and the defaults
+// in lib/data.js apply — the raw row alone would come back undefined.
+const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data || { halls: defaultHalls };
 const logLen = async () => ((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || []).length;
 // Other test files write to the same audit log at the same time, so the balance tests count only the entries that name their own user.
 const logOf = async (id) => (((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data) || []).filter((e) => String(e.detail).includes(id)).length;
@@ -53,6 +56,57 @@ test('a core hall cannot be removed, an unknown one is not found, and an added o
   assert.ok(id);
   assert.ok((await act({ action: 'hall-delete', id })).ok);
   assert.equal(Object.hasOwn((await catalog()).halls, id), false);
+});
+
+test('a hall with a miner running in it cannot be removed', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('busy') })).ok);
+  const halls = (await catalog()).halls;
+  const hallId = Object.keys(halls).find((k) => halls[k].name === `T${run}busy`);
+  assert.ok(hallId);
+  const id = `hlm${run}@test.dev`;
+  assert.ok(await tx((c) => createUser(c, id, { contracts: [{ serial: `VTX-H${run}`, name: 'Hall test', th: 5, hall: hallId, days: 30, dailyUsd: 0.1 }] })));
+  assert.equal((await act({ action: 'hall-delete', id: hallId })).status, 409);
+  assert.ok(Object.hasOwn((await catalog()).halls, hallId), 'the hall stays');
+  await withUser(id, (u) => { u.contracts.length = 0; return true; });
+  assert.ok((await act({ action: 'hall-delete', id: hallId })).ok);
+  assert.equal(Object.hasOwn((await catalog()).halls, hallId), false);
+});
+
+test('two deletes of one hall at once remove it once', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('twice') })).ok);
+  const halls = (await catalog()).halls;
+  const hallId = Object.keys(halls).find((k) => halls[k].name === `T${run}twice`);
+  assert.ok(hallId);
+  const rs = await Promise.all([act({ action: 'hall-delete', id: hallId }), act({ action: 'hall-delete', id: hallId })]);
+  assert.equal(rs.filter((r) => r.ok).length, 1, JSON.stringify(rs));
+  assert.equal(rs.filter((r) => r.status === 404).length, 1, JSON.stringify(rs));
+  assert.equal(Object.hasOwn((await catalog()).halls, hallId), false);
+});
+
+test('catalog-reset drops the halls that were added, even beside a hall save', async () => {
+  assert.ok((await act({ action: 'hall-save', hall: hall('gone') })).ok);
+  const before = (await catalog()).halls;
+  const goneId = Object.keys(before).find((k) => before[k].name === `T${run}gone`);
+  assert.ok(goneId);
+  const r = await act({ action: 'catalog-reset' });
+  assert.ok(r.ok, JSON.stringify(r));
+  const after = (await catalog()).halls;
+  assert.equal(Object.hasOwn(after, goneId), false, 'the added hall is gone');
+  assert.ok(Object.hasOwn(after, 'tx-1') && Object.hasOwn(after, 'is-2') && Object.hasOwn(after, 'no-1'), 'the core halls stay');
+
+  // A hall save racing the reset cannot resurrect the halls the reset dropped: whichever takes the
+  // catalogue lock first, the reset only ever drops what was there when it ran. The racing hall needs a
+  // name whose id cannot collide with the dropped one: uniqueHallId keeps only the first 10 slug
+  // characters, and every T${run}… name here shares them — so this one starts with K instead, or it would
+  // reuse the dropped hall's id and look resurrected.
+  assert.ok((await act({ action: 'hall-save', hall: hall('gone2') })).ok);
+  const halls2 = (await catalog()).halls;
+  const gone2Id = Object.keys(halls2).find((k) => halls2[k].name === `T${run}gone2`);
+  assert.ok(gone2Id);
+  const [reset, saved] = await Promise.all([act({ action: 'catalog-reset' }), act({ action: 'hall-save', hall: { ...hall('kept'), name: `K${run}kept` } })]);
+  assert.ok(reset.ok, JSON.stringify(reset));
+  assert.ok(saved.ok, JSON.stringify(saved));
+  assert.equal(Object.hasOwn((await catalog()).halls, gone2Id), false, 'the reset dropped the hall that was there when it ran');
 });
 
 test('actions on an unknown user are refused', async () => {
@@ -533,6 +587,44 @@ test('bulk actions: bad input is refused, and each user goes through the single-
   // The audit log names the action and how many users it touched.
   const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
   assert.ok(log.some((e) => e.action === 'bulk' && e.at >= t0 && e.detail.includes('3 users')));
+  // And each user's own change is logged too, naming that user — not just the one aggregate entry.
+  for (const id of ids) assert.ok(log.some((e) => e.action === 'user' && e.at >= t0 && String(e.detail).includes(id)), `a log entry names ${id}`);
+});
+
+test('a big bulk action leaves the older audit history in the log', async () => {
+  const ids = each(5, (i) => `lg${i}${run}@test.dev`);
+  for (const id of ids) assert.ok(await tx((c) => createUser(c, id, {})));
+  const t0 = Date.now();
+  const mark = `mark${run}`;
+  assert.ok((await act({ action: 'user', userId: ids[0], op: 'note', note: mark })).ok);
+  // More entries than the old 100-entry log could hold beside the marker.
+  for (let i = 0; i < 110; i += 1) assert.ok((await act({ action: 'user', userId: ids[1], op: 'note', note: `n${i}` })).ok);
+  const r = await act({ action: 'bulk', op: 'block', ids });
+  assert.equal(r.done, 5, JSON.stringify(r));
+  const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+  assert.ok(log.some((e) => String(e.detail).includes(mark)), 'the older entry is still in the log');
+  assert.ok(log.length <= 500, 'the log stays bounded');
+  // One entry per user, written together and newer-first, with the bulk entry on top of them.
+  const iBulk = log.findIndex((e) => e.action === 'bulk' && e.at >= t0 && e.detail.includes('5 users'));
+  assert.ok(iBulk >= 0, 'the bulk entry is logged');
+  for (const id of ids) {
+    const i = log.findIndex((e) => e.action === 'user' && e.at >= t0 && String(e.detail).includes(id) && String(e.detail).includes('block'));
+    assert.ok(i > iBulk, `a log entry names ${id}, below the bulk entry`);
+  }
+});
+
+test('min-deposit changes are written to the audit log', async () => {
+  const t0 = Date.now();
+  try {
+    assert.equal((await act({ action: 'min-deposit', usd: '0' })).status, 422);
+    const r = await act({ action: 'min-deposit', usd: '5' });
+    assert.ok(r.ok, JSON.stringify(r));
+    assert.equal(r.usd, 5);
+    const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+    assert.ok(log.some((e) => e.action === 'min-deposit' && e.at >= t0 && String(e.detail).includes('5')), 'min-deposit is logged');
+  } finally {
+    assert.ok((await act({ action: 'min-deposit', usd: '' })).ok, 'the default is put back');
+  }
 });
 
 test('admin can close an account: refused with a balance, then erased, hidden and its friends kept', async () => {
