@@ -18,14 +18,15 @@ import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
-import { fill, useT } from '@/components/I18nProvider';
+import { fill, useLang } from '@/components/I18nProvider';
+import { pagePath } from '@/lib/i18n/codes';
 import { CoinSelect, PayInfo } from '@/components/PayCoin';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 export default function Plans() {
-  const t = useT();
+  const { t, lang } = useLang();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: md, refresh } = useApi('/api/miners', { ttl: 10000 });
@@ -524,8 +525,8 @@ export default function Plans() {
               )}
             </div>
             <p className="fine" style={{ margin: '-8px 0 12px' }}>
-              {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
-              {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href="/refunds">{t('refund.more')}</Link>
+              {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href={pagePath('/terms', lang)}>{t('auth.terms')}</Link> })}
+              {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href={pagePath('/refunds', lang)}>{t('refund.more')}</Link>
             </p>
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 0' }}>

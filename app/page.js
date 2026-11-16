@@ -12,7 +12,9 @@ import NetworkLive from '@/components/NetworkLive';
 import LandingMenu from '@/components/LandingMenu';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
 import { COOKIE } from '@/lib/server/auth';
-import { getLang, getT } from '@/lib/i18n/server';
+import { getLang, getT, getMessages } from '@/lib/i18n/server';
+import I18nProvider from '@/components/I18nProvider';
+import CookieNotice from '@/components/CookieNotice';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 import SocialLinks from '@/components/SocialLinks';
@@ -74,9 +76,10 @@ export default async function Home() {
   const signedIn = jar.has(COOKIE);
   const t = await getT();
   const lang = await getLang();
-  const demoOn = await showDemo(); // the admin's switch (Settings > Demo account)
-  const reviews = await reviewList(); // real reviews the admin added (Settings > Reviews); none = no section
-  const farm = await farmVideos(); // videos the admin added (Settings > Our farm videos); none = the note only
+  const messages = await getMessages(lang);
+  const demoOn = await showDemo().catch(() => false); // the admin's switch (Settings > Demo account); without a database the demo is off
+  const reviews = await reviewList().catch(() => []); // real reviews the admin added (Settings > Reviews); none = no section
+  const farm = await farmVideos().catch(() => []); // videos the admin added (Settings > Our farm videos); none = the note only
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
@@ -89,6 +92,7 @@ export default async function Home() {
   ];
 
   return (
+    <I18nProvider lang={lang} messages={messages}>
     <AuthSheetProvider signedIn={signedIn} showDemo={demoOn}>
       <script
         type="application/ld+json"
@@ -245,5 +249,7 @@ export default async function Home() {
       {!signedIn && <StickyCta />}
       </main>
     </AuthSheetProvider>
+      <CookieNotice />
+    </I18nProvider>
   );
 }

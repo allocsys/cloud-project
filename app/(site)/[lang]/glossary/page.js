@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 
@@ -10,15 +10,19 @@ const link = { color: 'var(--gold2)' };
 // The wording was approved by the owner on 30 Oct 2026. No typed income, payout or fee figures.
 const TERMS = ['hash', 'rate', 'diff', 'risk'];
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('glo.title'), description: t('glo.desc'), alternates: langAlternates('/glossary', lang) };
 }
 
-export default async function Glossary() {
-  const t = await getT();
-  const lang = await getLang();
+export default async function Glossary({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>

@@ -6,10 +6,7 @@ import Ripple from '@/components/Ripple';
 import ThemeSync from '@/components/ThemeSync';
 import TelegramInit from '@/components/TelegramInit';
 import TelegramScript from '@/components/TelegramScript';
-import I18nProvider from '@/components/I18nProvider';
-import CookieNotice from '@/components/CookieNotice';
-import { getLang, getT, getMessages } from '@/lib/i18n/server';
-import { LANG_META } from '@/lib/i18n/meta';
+import en from '@/lib/i18n/locales/en';
 import { SITE_URL } from '@/lib/site';
 
 const sans = Roboto({ subsets: ['latin', 'cyrillic'], weight: ['400', '500'], display: 'swap', variable: '--sans' });
@@ -18,17 +15,22 @@ const sansFa = Vazirmatn({ subsets: ['arabic', 'latin'], weight: ['400', '500'],
 // Arabic font: same deal — only fetched when Arabic text is on the page.
 const sansAr = Cairo({ subsets: ['arabic', 'latin'], weight: ['400', '500'], display: 'swap', variable: '--sans-ar', preload: false });
 
-export async function generateMetadata() {
-  const t = await getT();
+// The language and direction are set here, before the first paint, from the address (a /fa page is Persian
+// whatever the cookie says) or the language cookie (the app pages have no language in the address). The
+// server renders lang="en" dir="ltr" and this corrects it; suppressHydrationWarning on <html> keeps React
+// from complaining about the change. The pages themselves render in the same language, so nothing flashes.
+const LANG_SCRIPT = `try{var m=location.pathname.match(/^\\/(fa|ar|fi|sv|ru)(\\/|$)/),c=document.cookie.match(/(?:^|; )vtx-lang=([^;]*)/),l=(m&&m[1])||(c&&decodeURIComponent(c[1]))||'en';if(!/^(en|fa|ar|fi|sv|ru)$/.test(l))l='en';var d=document.documentElement;d.lang=l;d.dir=(l==='fa'||l==='ar')?'rtl':'ltr'}catch(e){}`;
+
+export function generateMetadata() {
   return {
     metadataBase: new URL(SITE_URL),
     title: { default: 'Vertexhash', template: '%s · Vertexhash' },
-    description: t('meta.description'),
+    description: en['meta.description'],
     applicationName: 'Vertexhash',
     verification: { google: 'VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q' },
     openGraph: {
-      title: t('meta.og.title'),
-      description: t('meta.description'),
+      title: en['meta.og.title'],
+      description: en['meta.description'],
       siteName: 'Vertexhash',
       type: 'website',
     },
@@ -59,13 +61,15 @@ export const viewport = {
   colorScheme: 'dark',
 };
 
-export default async function RootLayout({ children }) {
-  const lang = await getLang();
-  const messages = await getMessages(lang);
+// Static shell: no cookies, no language lookup, so the pages below it can be static. The language
+// provider lives in the group layouts ((site) reads it from the address, (app) and (plain) from the
+// cookie) and in the landing and status pages, which stay dynamic.
+export default function RootLayout({ children }) {
   return (
-    <html lang={lang} dir={LANG_META[lang].dir} className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
+    <html lang="en" dir="ltr" className={`${sans.variable} ${sansFa.variable} ${sansAr.variable}`} suppressHydrationWarning>
       <head>
         <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
+        <script dangerouslySetInnerHTML={{ __html: LANG_SCRIPT }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
@@ -73,15 +77,12 @@ export default async function RootLayout({ children }) {
         />
       </head>
       <body>
-        <I18nProvider lang={lang} messages={messages}>
-          {children}
-          <PWA />
-          <Ripple />
-          <ThemeSync />
-          <TelegramScript />
-          <TelegramInit />
-          <CookieNotice />
-        </I18nProvider>
+        {children}
+        <PWA />
+        <Ripple />
+        <ThemeSync />
+        <TelegramScript />
+        <TelegramInit />
       </body>
     </html>
   );

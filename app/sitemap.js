@@ -3,9 +3,7 @@ import { LANG_CODES } from '@/lib/i18n/codes';
 import { DEFAULT_LANG } from '@/lib/i18n/langs';
 import { pageUrl } from '@/lib/seo';
 
-export const dynamic = 'force-dynamic';
-
-// The pages anyone can open without signing in.
+// The pages anyone can open without signing in. Static: the addresses come from the language list alone.
 const PAGES = ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status'];
 
 // One entry per page and language; each lists the address in every language (hreflang).

@@ -1,20 +1,25 @@
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { REFUND_HOURS } from '@/lib/rules';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('refunds.title'), description: t('refunds.desc'), alternates: langAlternates('/refunds', lang) };
 }
 
 // The hours come from lib/rules, the same number the Terms and the FAQ use. Refunds are done by the team (admin), so the
 // page sends people to support with their Miner ID.
-export default async function Refunds() {
-  const t = await getT();
+export default async function Refunds({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   const v = { hours: REFUND_HOURS };
   return (
     <section id="auth">

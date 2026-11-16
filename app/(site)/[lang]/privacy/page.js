@@ -1,19 +1,24 @@
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('privacy.title'), alternates: langAlternates('/privacy', lang) };
 }
 
 // Written from what the app really does today. If the app starts keeping ID photos, adds analytics or another
 // provider, change this page in the same commit.
-export default async function Privacy() {
-  const t = await getT();
+export default async function Privacy({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>

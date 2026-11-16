@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import Field from '@/components/Field';
 import Captcha from '@/components/Captcha';
-import { fill, useT } from '@/components/I18nProvider';
+import { fill, useLang } from '@/components/I18nProvider';
+import { pagePath } from '@/lib/i18n/codes';
 import { triggerHaptic } from '@/lib/haptics';
 import { post, clearApiCache, clearOut, signOut, useApi } from '@/lib/api';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
@@ -13,7 +14,7 @@ import { MIN_WITHDRAW_USD } from '@/lib/data';
 // `onDone(path)` is called when the person is signed in (or chose the demo). `onLeave()` is called before a link
 // to another page is followed, so the sheet does not undo its history entry on the way out.
 export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
-  const t = useT();
+  const { t, lang } = useLang();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 }); // public; carries the admin's minimum withdrawal
   const [signup, setSignup] = useState(!!init?.signup);
   const [view, setView] = useState(init?.reset ? 'reset' : null); // null: sign in or sign up. 'forgot': ask for a reset link. 'reset': choose a new password.
@@ -370,10 +371,10 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         <p className="fine" style={{ margin: '14px 0 4px', textAlign: 'center' }}>
           {fill(t('auth.agree'), {
             terms: (
-              <Link href="/terms" onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.terms')}</Link>
+              <Link href={pagePath('/terms', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.terms')}</Link>
             ),
             privacy: (
-              <Link href="/privacy" onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.privacy')}</Link>
+              <Link href={pagePath('/privacy', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.privacy')}</Link>
             ),
           })}
         </p>

@@ -1,5 +1,7 @@
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { getLang, getT, getMessages } from '@/lib/i18n/server';
+import I18nProvider from '@/components/I18nProvider';
+import CookieNotice from '@/components/CookieNotice';
 import { langAlternates } from '@/lib/seo';
 import { getLive } from '@/lib/server/market';
 import { NETWORK_MOCK as MOCK, minersText } from '@/lib/status-mock';
@@ -43,6 +45,8 @@ export async function generateMetadata() {
 
 export default async function Status() {
   const t = await getT();
+  const lang = await getLang();
+  const messages = await getMessages(lang);
   let d = null;
   try {
     d = (await getLive())?.difficulty ?? null;
@@ -51,6 +55,7 @@ export default async function Status() {
   const proof = await payoutProof();
   const sent = proof && proof.count > 0 ? proof : null;
   return (
+    <I18nProvider lang={lang} messages={messages}>
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
         <style>{CSS}</style>
@@ -112,5 +117,7 @@ export default async function Status() {
         <BackLink />
       </div>
     </section>
+      <CookieNotice />
+    </I18nProvider>
   );
 }

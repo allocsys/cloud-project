@@ -20,5 +20,36 @@ export async function register() {
         console.error('[market] boot warm-up failed:', e.message);
       }
     }
+    // Warm the key routes before serving, so the first visitor does not pay the cold-start cost
+    // of loading them (the page module and its imports - about 1.5s on the first request). The
+    // pages have no import-time side effects: they only fetch when rendered. Bounded, and it
+    // does not need the database, so it runs even when the database is down.
+    try {
+      await Promise.race([
+        Promise.all([
+          import('./app/layout'),
+          import('./app/(site)/layout'),
+          import('./app/(app)/layout'),
+          import('./app/(plain)/layout'),
+          import('./app/page'),
+          import('./app/(site)/[lang]/about/page'),
+          import('./app/(site)/[lang]/faq/page'),
+          import('./app/(site)/[lang]/glossary/page'),
+          import('./app/(site)/[lang]/how-it-works/page'),
+          import('./app/(site)/[lang]/privacy/page'),
+          import('./app/(site)/[lang]/refunds/page'),
+          import('./app/(site)/[lang]/terms/page'),
+          import('./app/status/page'),
+          import('./app/(app)/dashboard/page'),
+          import('./app/(app)/wallet/page'),
+          import('./app/(app)/plans/page'),
+          import('./app/(app)/settings/page'),
+        ]),
+        new Promise((r) => setTimeout(() => r(false), 10_000)),
+      ]);
+      console.log('[warm] key routes warmed at boot');
+    } catch (e) {
+      console.error('[warm] boot route warm-up failed:', e.message);
+    }
   }
 }

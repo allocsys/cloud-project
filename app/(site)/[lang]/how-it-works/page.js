@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 
@@ -12,15 +12,19 @@ const STEPS = ['s1', 's2', 's3', 's4', 's5'];
 // "What can go wrong": plain risks, no typed numbers. English only until the Persian text is approved.
 const WRONG = ['1', '2', '3', '4'];
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('how.title'), description: t('how.desc'), alternates: langAlternates('/how-it-works', lang) };
 }
 
-export default async function HowItWorks() {
-  const t = await getT();
-  const lang = await getLang();
+export default async function HowItWorks({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
