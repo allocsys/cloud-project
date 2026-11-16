@@ -128,13 +128,13 @@ test('a refund approved after the window closed says so and the request stays op
   const { fr, serial } = await pair('late');
   const made = await createRequest(fr, serial, { reason: REASONS[0], note: 'testing refund' });
   assert.ok(made.ok, made.error);
-  const later = (userId, s) => refundMiner(userId, s, Date.now() + 3 * 86400000);
-  const r = await decideRefund(fr, made.id, 'approve', '', later);
+  const later = Date.now() + 3 * 86400000;
+  const r = await at(later, () => decideRefund(fr, made.id, 'approve', ''));
   assert.equal(r.ok, false);
   assert.equal(r.status, 409);
   assert.match(r.error, /window closed/);
   assert.ok((await getUser(fr)).contracts.some((m) => m.serial === serial), 'the miner is still there');
-  const no = await decideRefund(fr, made.id, 'reject', 'Window closed.', later);
+  const no = await at(later, () => decideRefund(fr, made.id, 'reject', 'Window closed.'));
   assert.ok(no.ok, no.error);
 });
 
