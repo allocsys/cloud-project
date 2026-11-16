@@ -591,6 +591,28 @@ test('bulk actions: bad input is refused, and each user goes through the single-
   for (const id of ids) assert.ok(log.some((e) => e.action === 'user' && e.at >= t0 && String(e.detail).includes(id)), `a log entry names ${id}`);
 });
 
+test('a big bulk action leaves the older audit history in the log', async () => {
+  const ids = each(5, (i) => `lg${i}${run}@test.dev`);
+  for (const id of ids) assert.ok(await tx((c) => createUser(c, id, {})));
+  const t0 = Date.now();
+  const mark = `mark${run}`;
+  assert.ok((await act({ action: 'user', userId: ids[0], op: 'note', note: mark })).ok);
+  // More entries than the old 100-entry log could hold beside the marker.
+  for (let i = 0; i < 110; i += 1) assert.ok((await act({ action: 'user', userId: ids[1], op: 'note', note: `n${i}` })).ok);
+  const r = await act({ action: 'bulk', op: 'block', ids });
+  assert.equal(r.done, 5, JSON.stringify(r));
+  const log = (await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || [];
+  assert.ok(log.some((e) => String(e.detail).includes(mark)), 'the older entry is still in the log');
+  assert.ok(log.length <= 500, 'the log stays bounded');
+  // One entry per user, written together and newer-first, with the bulk entry on top of them.
+  const iBulk = log.findIndex((e) => e.action === 'bulk' && e.at >= t0 && e.detail.includes('5 users'));
+  assert.ok(iBulk >= 0, 'the bulk entry is logged');
+  for (const id of ids) {
+    const i = log.findIndex((e) => e.action === 'user' && e.at >= t0 && String(e.detail).includes(id) && String(e.detail).includes('block'));
+    assert.ok(i > iBulk, `a log entry names ${id}, below the bulk entry`);
+  }
+});
+
 test('min-deposit changes are written to the audit log', async () => {
   const t0 = Date.now();
   try {
