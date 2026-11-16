@@ -77,9 +77,9 @@ export default async function Home() {
   const t = await getT();
   const lang = await getLang();
   const messages = await getMessages(lang);
-  const demoOn = await showDemo(); // the admin's switch (Settings > Demo account)
-  const reviews = await reviewList(); // real reviews the admin added (Settings > Reviews); none = no section
-  const farm = await farmVideos(); // videos the admin added (Settings > Our farm videos); none = the note only
+  const demoOn = await showDemo().catch(() => false); // the admin's switch (Settings > Demo account); without a database the demo is off
+  const reviews = await reviewList().catch(() => []); // real reviews the admin added (Settings > Reviews); none = no section
+  const farm = await farmVideos().catch(() => []); // videos the admin added (Settings > Our farm videos); none = the note only
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
