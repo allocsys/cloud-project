@@ -2,8 +2,9 @@
 // the try limit, and that the bot calls then answer for the linked email account.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { createHmac } from 'node:crypto';
 
-const { pool, getUser, withUser, tx, createUser } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const { botLinkStart, botLinkClaim, botDisconnect, maskEmail } = await import('@/lib/server/botlink');
@@ -18,6 +19,26 @@ const account = async (name) => {
 };
 // Random Telegram ids (never 123456, which tests/botlink.test.mjs uses): the index on botTg is unique.
 const tgId = () => 9_000_000_000 + Math.floor(Math.random() * 900_000_000);
+
+// A signed initData for a Telegram sign-in, as tests/telegram-existing.test.mjs builds it.
+const TOKEN = 'test-bot-token';
+const initData = (tg) => {
+  const p = new URLSearchParams({ auth_date: String(Math.floor(Date.now() / 1000)), user: JSON.stringify({ id: tg, first_name: 'Race' }) });
+  const check = [...p.entries()].sort(([a], [b]) => (a < b ? -1 : 1)).map(([k, v]) => `${k}=${v}`).join('\n');
+  const key = createHmac('sha256', 'WebAppData').update(TOKEN).digest();
+  p.set('hash', createHmac('sha256', key).update(check).digest('hex'));
+  return p.toString();
+};
+const withToken = async (fn) => {
+  const was = process.env.TELEGRAM_BOT_TOKEN;
+  process.env.TELEGRAM_BOT_TOKEN = TOKEN;
+  try {
+    await fn();
+  } finally {
+    if (was === undefined) delete process.env.TELEGRAM_BOT_TOKEN;
+    else process.env.TELEGRAM_BOT_TOKEN = was;
+  }
+};
 
 before(async () => {
   await migrate();
@@ -118,6 +139,44 @@ test('already linked stays 409 even when the Telegram id also has its own accoun
   assert.equal((await botLinkClaim(tg, (await botLinkStart(a)).code)).ok, true);
   await tx((c) => createUser(c, `tg:${tg}`));
   assert.equal((await botLinkClaim(tg, (await botLinkStart(b)).code)).status, 409);
+});
+
+test('Telegram sign-in opens the email account it was linked to, and creates no second account', async () => {
+  await withToken(async () => {
+    const id = await account('linked');
+    const tg = tgId();
+    assert.equal((await botLinkClaim(tg, (await botLinkStart(id)).code)).ok, true);
+    const r = await auth.telegramLogin(initData(tg), '');
+    assert.equal(r.ok, true, JSON.stringify(r));
+    assert.equal(r.id, id, 'the linked email account signs in');
+    assert.equal((await q('SELECT 1 FROM users WHERE id = $1', [`tg:${tg}`])).rowCount, 0, 'no standalone Telegram account was created');
+    // The home screen's automatic sign-in finds the linked account too.
+    const auto = await auth.telegramLogin(initData(tg), '', '', true);
+    assert.equal(auto.ok, true, JSON.stringify(auto));
+    assert.equal(auto.id, id);
+  });
+});
+
+test('a Telegram sign-in racing a link claim leaves one account, not two', async () => {
+  await withToken(async () => {
+    const id = await account('race');
+    const tg = tgId();
+    const { code } = await botLinkStart(id);
+    const [claim, signin] = await Promise.all([botLinkClaim(tg, code), auth.telegramLogin(initData(tg), '')]);
+    const linked = (await getUser(id)).botTg === tg;
+    const standalone = (await q('SELECT 1 FROM users WHERE id = $1', [`tg:${tg}`])).rowCount > 0;
+    assert.equal(linked && standalone, false, 'one Telegram user must not end up with two accounts');
+    assert.equal(linked || standalone, true, 'one of the two wins the Telegram id');
+    if (linked) {
+      assert.equal(claim.ok, true);
+      assert.equal(signin.ok, true);
+      assert.equal(signin.id, id, 'the sign-in opens the linked account, not a new one');
+    } else {
+      assert.equal(claim.status, 403, 'the claim loses to the account that was just created');
+      assert.equal(signin.ok, true);
+      assert.equal(signin.id, `tg:${tg}`);
+    }
+  });
 });
 
 test('disconnect removes the link, the bot calls stop answering, and the Telegram id can link again', async () => {

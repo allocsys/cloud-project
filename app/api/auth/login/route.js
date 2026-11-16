@@ -32,7 +32,12 @@ export async function POST(req) {
     return tooManyAcct();
   }
   const withCode = !!body?.code;
-  if (withCode && (await reserve(codeKey))) return tooMany();
+  // The code limit answers first: the address and account attempts reserved above were not failures, so give them back.
+  if (withCode && (await reserve(codeKey))) {
+    await giveBack(key);
+    await giveBack(acctKey);
+    return tooMany();
+  }
   const { status, ...rest } = await login(body);
   if (!rest.ok) {
     // Asking for the code (need2fa) means the password was right: it is not a failed attempt.
