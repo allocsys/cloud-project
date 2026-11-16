@@ -44,6 +44,7 @@ test('over the monthly limit: never by default, from the first month with room w
   const f2 = await friend('f2', code);
   assert.ok(f2.refBonusAt, 'the gift is still given');
   assert.equal(f2.refRewardAt, undefined, 'never: no reward, now or later');
+  assert.equal(f2.refRates, undefined, 'never: no rates stamped without a reward');
 
   assert.equal((await referrals.saveSettings({ monthlyLimit: 1, overLimit: 'later' })).ok, true);
   const f3 = await friend('f3', code);
@@ -70,4 +71,23 @@ test('the setting is checked', async () => {
   assert.equal(referrals.settings().overLimit, 'later');
   assert.equal((await referrals.saveSettings({ monthlyLimit: 1 })).ok, true);
   assert.equal(referrals.settings().overLimit, 'later', 'a save that leaves it out keeps it');
+});
+
+test('two friends buying at once over the limit: only one is rewarded, the other keeps no rates', async () => {
+  assert.equal((await referrals.saveSettings({ monthlyLimit: 1, overLimit: 'never' })).ok, true);
+  assert.ok((await auth.signup({ email: email('invc'), password: PW })).ok);
+  assert.ok((await miners.grantPlan(email('invc'), SMALL)).ok); // a plan lifts the invite limit
+  const code = (await getUser(email('invc'))).refCode;
+  assert.equal((await auth.signup({ email: email('c1'), password: PW, ref: code })).ref, 'applied');
+  assert.equal((await auth.signup({ email: email('c2'), password: PW, ref: code })).ref, 'applied');
+  const [g1, g2] = await Promise.all([miners.grantPlan(email('c1'), SMALL), miners.grantPlan(email('c2'), SMALL)]);
+  assert.ok(g1.ok && g2.ok);
+  const [u1, u2] = await Promise.all([getUser(email('c1')), getUser(email('c2'))]);
+  const rewarded = [u1, u2].filter((u) => u.refRewardAt);
+  const unrewarded = [u1, u2].filter((u) => !u.refRewardAt);
+  assert.equal(rewarded.length, 1, 'one friend takes the month');
+  assert.equal(unrewarded.length, 1);
+  assert.ok(rewarded[0].refRates, 'the rewarded friend has rates');
+  assert.equal(unrewarded[0].refRates, undefined, 'no rates without a reward');
+  assert.ok(unrewarded[0].refBonusAt, 'the gift is still given');
 });
