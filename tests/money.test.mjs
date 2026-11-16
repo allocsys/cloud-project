@@ -2,14 +2,14 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, getUser, withUser } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, pruneIdem } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
-const { withdraw } = await import('@/lib/server/wallet');
+const { withdraw, availableIn } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 const { customPlan } = await import('@/lib/data');
-const { publicCode, FREE_INVITES } = await import('@/lib/server/referrals');
+const { publicCode, FREE_INVITES, applyLink } = await import('@/lib/server/referrals');
 
 const run = `m${Date.now().toString(36)}`;
 const email = (n) => `${n}-${run}@test.dev`;
@@ -38,6 +38,26 @@ before(async () => {
 
 after(async () => {
   await pool().end();
+});
+
+test('a balance read inside the lock never waits on the live market', async () => {
+  // This test runs first, while the market feeds have never been read: with every feed unreachable, a locked
+  // read that went back to the live market would wait out the feed timeouts; it must use cached values only.
+  const id = await account('nolive');
+  const realFetch = globalThis.fetch;
+  const wasFeed = process.env.PRICE_FEED;
+  globalThis.fetch = () => new Promise((_, reject) => setTimeout(() => reject(new Error('feed down')), 3000));
+  delete process.env.PRICE_FEED;
+  try {
+    const t0 = Date.now();
+    const bal = await withUser(id, (u, c) => availableIn(c, u));
+    assert.ok(Date.now() - t0 < 2000, `locked read took ${Date.now() - t0}ms`);
+    assert.equal(typeof bal, 'number');
+  } finally {
+    globalThis.fetch = realFetch;
+    if (wasFeed === undefined) delete process.env.PRICE_FEED;
+    else process.env.PRICE_FEED = wasFeed;
+  }
 });
 
 test('concurrent buys never spend more than the balance', async () => {
@@ -126,4 +146,54 @@ test('an account with no plan can bring in 3 friends; buying a plan lifts the li
   for (let i = 0; i < 3; i += 1) assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
   assert.equal((await publicCode(code)).valid, true);
   assert.equal((await sign('lf5')).ref, 'applied');
+});
+
+test('a buy key replayed after the cleanup still buys once', async () => {
+  const id = await account('buyprune');
+  const cost = await costOf(starter());
+  await credit(id, cost * 10);
+  const first = await miners.buyPlan({ ...SMALL, pay: 'balance' }, { userId: id, key: 'same' });
+  assert.ok(first.ok, first.error);
+  await q("UPDATE idem SET at = now() - interval '4 days' WHERE key = $1", [`buy:${id}:same`]);
+  await pruneIdem(); // the periodic cleanup: money keys are kept, so the replay still finds the first result
+  const again = await miners.buyPlan({ ...SMALL, pay: 'balance' }, { userId: id, key: 'same' });
+  assert.ok(again.ok, again.error);
+  assert.equal(again.contract.serial, first.contract.serial);
+  assert.equal((await getUser(id)).contracts.length, 1);
+  assert.equal((await q("SELECT count(*)::int AS n FROM ledger WHERE user_id = $1 AND kind = 'spend'", [id])).rows[0].n, 1);
+});
+
+test('a link made while a purchase waits on the lock still gives the gift', async () => {
+  const inviter = await account('lk-inv');
+  assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
+  const code = (await getUser(inviter)).refCode;
+  assert.ok(code);
+  const friend = email('lk-fr');
+  assert.ok((await auth.signup({ email: friend, password: PW })).ok); // no code yet
+  // Hold the friend's row locked, link them inside that lock, and start the purchase while it waits: the purchase
+  // reads the inviter from the locked document, so it must see the link even though it was not there when it started.
+  let release;
+  const gate = new Promise((r) => {
+    release = r;
+  });
+  let linked;
+  const linkedP = new Promise((r) => {
+    linked = r;
+  });
+  const holder = withUser(friend, async (u, c) => {
+    assert.ok((await applyLink(c, u, code)).ok);
+    linked();
+    await gate; // hold the lock until the purchase is waiting on it
+    return true;
+  });
+  await linkedP; // the link is applied and the row is locked, but not yet committed
+  const buying = miners.grantPlan(friend, SMALL);
+  await new Promise((r) => setTimeout(r, 500)); // let the purchase reach the lock and block
+  release();
+  const [bought] = await Promise.all([buying, holder]);
+  assert.ok(bought.ok, bought.error);
+  const f = await getUser(friend);
+  assert.equal(f.refBy, inviter);
+  assert.equal(f.contracts.length, 2, 'bought miner plus the welcome gift');
+  assert.ok(f.refBonusAt && f.refRewardAt, 'the reward started');
 });

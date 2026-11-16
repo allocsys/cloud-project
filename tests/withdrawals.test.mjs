@@ -105,3 +105,22 @@ test('unknown decision, wrong owner and unknown id are refused', async () => {
   assert.equal((await reviewWithdrawal(id, 'wd_nope', 'reject')).status, 404);
   assert.equal(await statusOf(wid), 'pending');
 });
+
+test('a withdrawal replayed after its idempotency row is gone returns the original request', async () => {
+  const id = await account('replay');
+  await credit(id, 0.005);
+  const first = await withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: ADDR }, { userId: id, key: 'same' });
+  assert.ok(first.ok, first.error);
+  await q('DELETE FROM idem WHERE key = $1', [`withdraw:${id}:same`]); // the row the cleanup used to drop after 3 days
+  const again = await withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: ADDR }, { userId: id, key: 'same' });
+  assert.ok(again.ok, again.error);
+  assert.equal(again.id, first.id);
+  assert.equal(again.receive, first.receive);
+  assert.equal(again.receiveUsd, first.receiveUsd);
+  assert.equal((await q('SELECT count(*)::int AS n FROM withdrawals WHERE user_id = $1', [id])).rows[0].n, 1);
+  assert.ok(Math.abs((await getUser(id)).withdrawn - first.withdrawn) < 1e-9, 'the balance was reserved once');
+  assert.equal(await ledgerCount(id, 'withdrawal'), 1);
+  // The replay is cached again, so a third call answers from it.
+  const third = await withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: ADDR }, { userId: id, key: 'same' });
+  assert.equal(third.id, first.id);
+});
