@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, PUBLIC_PAGES } from '@/lib/i18n/codes';
+import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, STATIC_PAGES } from '@/lib/i18n/codes';
 import { over, addressOf, isTool, LIMITS } from '@/lib/rate-mem';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
@@ -35,12 +35,23 @@ export function middleware(req) {
   if (pathname.startsWith('/api/')) return NextResponse.next();
   // A language address (/fa/terms) is a real route: the page renders in that language from the
   // address. The cookie is still remembered, so the app pages (which have no language in the
-  // address) open in the same language afterwards.
+  // address) open in the same language afterwards. A language address over a page that is not
+  // static (/fa/status) renders from its bare address with the cookie set, as before: the page
+  // itself is dynamic and reads the cookie.
   const prefixed = LANG_CODES.find((l) => l !== DEFAULT_LANG && pathname.startsWith(`/${l}/`));
   if (prefixed) {
+    const rest = pathname.slice(prefixed.length + 1); // '/fa/terms' -> '/terms', '/fa/status' -> '/status'
     const had = req.cookies.get(LANG_COOKIE)?.value;
-    const res = NextResponse.next();
-    if (had !== prefixed) res.cookies.set(LANG_COOKIE, prefixed, KEEP); // a visitor who already has it gets no Set-Cookie, so the page can be cached
+    if (STATIC_PAGES.includes(rest)) {
+      const res = NextResponse.next();
+      if (had !== prefixed) res.cookies.set(LANG_COOKIE, prefixed, KEEP); // a visitor who already has it gets no Set-Cookie, so the page can be cached
+      return res;
+    }
+    const url = req.nextUrl.clone();
+    url.pathname = rest;
+    req.cookies.set(LANG_COOKIE, prefixed); // this request already renders in it
+    const res = NextResponse.rewrite(url, { request: req });
+    if (had !== prefixed) res.cookies.set(LANG_COOKIE, prefixed, KEEP);
     return res;
   }
   const q = req.nextUrl.searchParams.get('lang');
@@ -65,8 +76,9 @@ export function middleware(req) {
     return res;
   }
   // A bare public page (/terms) is served from its English route (/en/terms): the page is static,
-  // and the address the visitor sees does not change.
-  if (PUBLIC_PAGES.includes(pathname) && pathname !== '/') {
+  // and the address the visitor sees does not change. The landing and the status page stay
+  // dynamic, so they are not rewritten.
+  if (STATIC_PAGES.includes(pathname)) {
     const url = req.nextUrl.clone();
     url.pathname = `/en${pathname}`;
     return NextResponse.rewrite(url);

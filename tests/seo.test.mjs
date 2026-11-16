@@ -91,9 +91,17 @@ test('middleware: an old ?lang address is sent on to its language address', () =
 
 test('middleware: a bare public page is served from its English route', () => {
   assert.equal(call('/').headers.get('x-middleware-next'), '1');
+  assert.equal(call('/status').headers.get('x-middleware-next'), '1');
   assert.equal(new URL(call('/terms').headers.get('x-middleware-rewrite')).pathname, '/en/terms');
   assert.equal(new URL(call('/privacy?lang=xx').headers.get('x-middleware-rewrite')).pathname, '/en/privacy');
   assert.equal(new URL(call('/privacy?ref=abc').headers.get('x-middleware-rewrite')).pathname, '/en/privacy');
+});
+
+test('middleware: a language address over the status page renders from its bare address', () => {
+  const res = call('/fa/status');
+  assert.equal(new URL(res.headers.get('x-middleware-rewrite')).pathname, '/status');
+  assert.match(res.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
+  assert.equal(new URL(call('/ar/status').headers.get('x-middleware-rewrite')).pathname, '/status');
 });
 
 test('middleware: unknown languages are left alone', () => {
