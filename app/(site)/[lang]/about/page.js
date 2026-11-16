@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
 import { TEAM } from '@/lib/site';
@@ -11,15 +11,19 @@ const link = { color: 'var(--gold2)' };
 // No real names, photos or personal links here: the team works under pseudonyms (see TEAM in lib/site.js).
 const SECTIONS = ['what', 'who', 'trust'];
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('about.title'), description: t('about.desc'), alternates: langAlternates('/about', lang) };
 }
 
-export default async function About() {
-  const t = await getT();
-  const lang = await getLang();
+export default async function About({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return (
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>

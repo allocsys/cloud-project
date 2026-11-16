@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, stripLang } from '@/lib/i18n/codes';
+import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, PUBLIC_PAGES } from '@/lib/i18n/codes';
 import { over, addressOf, isTool, LIMITS } from '@/lib/rate-mem';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
@@ -33,15 +33,14 @@ export function middleware(req) {
   const blocked = gate(req, pathname);
   if (blocked) return blocked;
   if (pathname.startsWith('/api/')) return NextResponse.next();
-  const base = stripLang(pathname);
-  const lang = LANG_CODES.find((l) => l !== DEFAULT_LANG && base !== pathname && (pathname === `/${l}` || pathname.startsWith(`/${l}/`)));
-  if (lang) {
-    const url = req.nextUrl.clone();
-    url.pathname = base;
+  // A language address (/fa/terms) is a real route: the page renders in that language from the
+  // address. The cookie is still remembered, so the app pages (which have no language in the
+  // address) open in the same language afterwards.
+  const prefixed = LANG_CODES.find((l) => l !== DEFAULT_LANG && pathname.startsWith(`/${l}/`));
+  if (prefixed) {
     const had = req.cookies.get(LANG_COOKIE)?.value;
-    req.cookies.set(LANG_COOKIE, lang); // this request already renders in it
-    const res = NextResponse.rewrite(url, { request: req });
-    if (had !== lang) res.cookies.set(LANG_COOKIE, lang, KEEP); // a visitor who already has it gets no Set-Cookie, so the page can be cached
+    const res = NextResponse.next();
+    if (had !== prefixed) res.cookies.set(LANG_COOKIE, prefixed, KEEP); // a visitor who already has it gets no Set-Cookie, so the page can be cached
     return res;
   }
   const q = req.nextUrl.searchParams.get('lang');
@@ -52,6 +51,25 @@ export function middleware(req) {
     const res = NextResponse.redirect(url, 308);
     res.cookies.set(LANG_COOKIE, q, KEEP);
     return res;
+  }
+  // A bare language root (/fa) is the landing page in that language. The landing stays dynamic,
+  // so it renders from / with the cookie set, as before.
+  const rootLang = LANG_CODES.find((l) => l !== DEFAULT_LANG && pathname === `/${l}`);
+  if (rootLang) {
+    const url = req.nextUrl.clone();
+    url.pathname = '/';
+    const had = req.cookies.get(LANG_COOKIE)?.value;
+    req.cookies.set(LANG_COOKIE, rootLang); // this request already renders in it
+    const res = NextResponse.rewrite(url, { request: req });
+    if (had !== rootLang) res.cookies.set(LANG_COOKIE, rootLang, KEEP);
+    return res;
+  }
+  // A bare public page (/terms) is served from its English route (/en/terms): the page is static,
+  // and the address the visitor sees does not change.
+  if (PUBLIC_PAGES.includes(pathname) && pathname !== '/') {
+    const url = req.nextUrl.clone();
+    url.pathname = `/en${pathname}`;
+    return NextResponse.rewrite(url);
   }
   return NextResponse.next();
 }

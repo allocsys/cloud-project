@@ -43,18 +43,26 @@ test('langAlternates: canonical follows the language shown, every language is li
   assert.equal(langAlternates('/', 'fa').canonical, `${SITE_URL}/fa`);
 });
 
-test('middleware: /fa addresses show the normal page in Persian and remember it', () => {
-  for (const [from, to] of [['/fa', '/'], ['/fa/terms', '/terms'], ['/fa/privacy', '/privacy']]) {
+test('middleware: /fa addresses are real routes in Persian and remember it', () => {
+  const root = call('/fa');
+  assert.equal(new URL(root.headers.get('x-middleware-rewrite')).pathname, '/');
+  assert.match(root.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
+  for (const from of ['/fa/terms', '/fa/privacy']) {
     const res = call(from);
-    assert.equal(new URL(res.headers.get('x-middleware-rewrite')).pathname, to);
+    assert.equal(res.headers.get('x-middleware-next'), '1', from);
+    assert.equal(res.headers.get('x-middleware-rewrite'), null, from);
     assert.match(res.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
   }
 });
 
-test('middleware: /ar addresses show the normal page in Arabic and remember it', () => {
-  for (const [from, to] of [['/ar', '/'], ['/ar/terms', '/terms'], ['/ar/faq', '/faq']]) {
+test('middleware: /ar addresses are real routes in Arabic and remember it', () => {
+  const root = call('/ar');
+  assert.equal(new URL(root.headers.get('x-middleware-rewrite')).pathname, '/');
+  assert.match(root.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=ar`));
+  for (const from of ['/ar/terms', '/ar/faq']) {
     const res = call(from);
-    assert.equal(new URL(res.headers.get('x-middleware-rewrite')).pathname, to);
+    assert.equal(res.headers.get('x-middleware-next'), '1', from);
+    assert.equal(res.headers.get('x-middleware-rewrite'), null, from);
     assert.match(res.headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=ar`));
   }
   const fa = call('/terms?lang=ar');
@@ -65,7 +73,7 @@ test('middleware: /ar addresses show the normal page in Arabic and remember it',
 test('middleware: a visitor who already has the language cookie gets no new Set-Cookie', () => {
   const withCookie = (url, lang) => middleware(new NextRequest(`https://x.test${url}`, { headers: { cookie: `${LANG_COOKIE}=${lang}` } }));
   const same = withCookie('/fa/terms', 'fa');
-  assert.equal(new URL(same.headers.get('x-middleware-rewrite')).pathname, '/terms');
+  assert.equal(same.headers.get('x-middleware-next'), '1');
   assert.equal(same.headers.get('set-cookie'), null);
   assert.match(withCookie('/fa/terms', 'en').headers.get('set-cookie'), new RegExp(`${LANG_COOKIE}=fa`));
 });
@@ -81,10 +89,16 @@ test('middleware: an old ?lang address is sent on to its language address', () =
   assert.equal(new URL(call('/privacy?lang=en').headers.get('location')).pathname, '/privacy');
 });
 
-test('middleware: other addresses and unknown languages are left alone', () => {
-  for (const url of ['/', '/terms', '/privacy?lang=xx', '/privacy?ref=abc']) {
-    assert.equal(call(url).headers.get('x-middleware-next'), '1', url);
-  }
+test('middleware: a bare public page is served from its English route', () => {
+  assert.equal(call('/').headers.get('x-middleware-next'), '1');
+  assert.equal(new URL(call('/terms').headers.get('x-middleware-rewrite')).pathname, '/en/terms');
+  assert.equal(new URL(call('/privacy?lang=xx').headers.get('x-middleware-rewrite')).pathname, '/en/privacy');
+  assert.equal(new URL(call('/privacy?ref=abc').headers.get('x-middleware-rewrite')).pathname, '/en/privacy');
+});
+
+test('middleware: unknown languages are left alone', () => {
+  assert.equal(call('/xx/terms').headers.get('x-middleware-next'), '1');
+  assert.equal(call('/xx').headers.get('x-middleware-next'), '1');
 });
 
 test('middleware matcher covers every public page in every language', () => {

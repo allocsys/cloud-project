@@ -52,7 +52,7 @@ test('the FAQ answers carry the numbers from rules and smart', () => {
 });
 
 test('the Terms page reads its numbers instead of typing them', () => {
-  const s = read('app/terms/page.js');
+  const s = read('app/(site)/[lang]/terms/page.js');
   const en = read('lib/i18n/locales/en.js');
   assert.ok(s.includes('SERVICE_TIERS'));
   assert.ok(s.includes('hours: REFUND_HOURS'));
@@ -114,7 +114,7 @@ test('no typed copy of the deposit hold, the payout hours or the boost hours is 
   const en = read('lib/i18n/locales/en.js');
   const fa = read('lib/i18n/locales/fa.js');
   const faFaq = read('lib/i18n/faq-fa.js');
-  const terms = read('app/terms/page.js');
+  const terms = read('app/(site)/[lang]/terms/page.js');
   assert.ok(!/14 days|24 hours|for 2 hours|the 2 hours/.test(faq));
   assert.ok(!wallet.includes('after 14 days'));
   assert.ok(en.includes('runs for {hours} hours'));

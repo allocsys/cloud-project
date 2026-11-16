@@ -1,5 +1,5 @@
 import BackLink from '@/components/BackLink';
-import { getLang, getT } from '@/lib/i18n/server';
+import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { faqAnswer, faqList, faqVars } from '@/lib/faq';
 import { faqTr } from '@/lib/i18n/faq';
@@ -17,15 +17,19 @@ const GROUPS = [
   { h: 'faq.g3', ids: ['register', 'demo', 'telegram', 'security', 'twofa', 'password', 'verify_email', 'support'] },
 ];
 
-export async function generateMetadata() {
-  const t = await getT();
-  const lang = await getLang();
+export function generateStaticParams() {
+  return staticLangParams();
+}
+
+export async function generateMetadata({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   return { title: t('faq.title'), description: t('faq.desc'), alternates: langAlternates('/faq', lang) };
 }
 
-export default async function Faq() {
-  const t = await getT();
-  const lang = await getLang();
+export default async function Faq({ params }) {
+  const lang = langFromSegment((await params)?.lang);
+  const t = tForLang(lang);
   const en = new Map(faqList().map((e) => [e.id, e.q]));
   // The live minimum deposit and withdrawal; if they cannot be read the answers fall back to the built-in numbers.
   const ctx = await Promise.all([minDeposit(), minWithdraw()]).then(([d, w]) => ({ minDeposit: d, minWithdraw: w }), () => ({}));

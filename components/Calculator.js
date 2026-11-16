@@ -12,7 +12,8 @@ import { SMART, smartEstimate } from '@/lib/smart';
 import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { triggerHaptic } from '@/lib/haptics';
 import HoldButton from '@/components/HoldButton';
-import { fill, useT } from '@/components/I18nProvider';
+import { fill, useLang } from '@/components/I18nProvider';
+import { pagePath } from '@/lib/i18n/codes';
 
 const TICKS = [100, 1000, 5000, 10000];
 const usd2 = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -44,7 +45,7 @@ function useGlide(target, ms = 420) {
 }
 
 export default function Calculator({ signedIn = false }) {
-  const t = useT();
+  const { t, lang } = useLang();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   const live = cat?.live || null;
   const best = cat?.smart || null;
@@ -180,7 +181,7 @@ export default function Calculator({ signedIn = false }) {
         </button>
         {note && (
           <p className="calc-fine">
-            {fill(t('calc.fine'), { terms: <Link href="/terms">{t('auth.terms')}</Link> })}
+            {fill(t('calc.fine'), { terms: <Link href={pagePath('/terms', lang)}>{t('auth.terms')}</Link> })}
           </p>
         )}
       </div>
