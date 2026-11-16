@@ -188,6 +188,37 @@ test('a short balance or Smart Mining switched off skips the renewal, turns the 
   assert.equal(v.notifications[0].body, 'Smart Mining is not available right now.');
 });
 
+test('a skipped renewal is not cached: turning the switch back on renews', async () => {
+  const id = await account('reskip');
+  await credit(id, 1);
+  const r = await buy(id);
+  assert.ok(r.ok);
+  const s = r.contract.serial;
+  await age(id, s, true);
+  await withUser(id, (u) => {
+    u.withdrawn = 1e6; // balance short: the renewal is skipped and the switch goes off
+  });
+  const skipped = await miners.renewSmart(id, s);
+  assert.equal(skipped.ok, true);
+  assert.equal(skipped.renewed, false);
+  assert.equal((await getUser(id)).contracts[0].renew, undefined);
+
+  // The term is over, so the switch cannot be turned back on from the screen (setRenew refuses once the term has
+  // ended): that is why a cached skip would strand the renewal. Turn it back on the way a later re-enable would,
+  // top the balance up, and the renewal must run instead of answering from the skip.
+  assert.equal((await miners.setRenew(id, s, true)).status, 409);
+  await credit(id, 1e6 + 1);
+  await withUser(id, (u) => {
+    u.contracts.find((x) => x.serial === s).renew = true;
+  });
+  const again = await miners.renewSmart(id, s);
+  assert.equal(again.ok, true);
+  assert.equal(again.renewed, true);
+  const u = await getUser(id);
+  assert.equal(u.contracts.length, 2);
+  assert.equal(u.contracts[0].renewedTo, u.contracts[1].serial);
+});
+
 test('the route flips the switch for its owner only, and refuses a bad body', async () => {
   const id = await account('rt');
   const other = await account('rt-x');

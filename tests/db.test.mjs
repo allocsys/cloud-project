@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, tx, getUser, withUser, withIdem, metaUpdate } = await import('@/lib/server/db');
+const { pool, q, tx, getUser, withUser, withIdem, pruneIdem, saveUser, metaUpdate } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 
@@ -90,4 +90,27 @@ test('sign-in lockout counts concurrent attempts exactly, gives one back, and cl
   await auth.clearFails(k);
   assert.equal(await auth.reserve(k), false);
   await auth.clearFails(k);
+});
+
+test('pruneIdem keeps money keys for good and drops the rest', async () => {
+  const keys = ['buy', 'boost', 'withdraw', 'renew', 'deposit', 'kyc', 'test'].map((p) => `${p}:${run}:old`);
+  for (const k of keys) {
+    await q("INSERT INTO idem (key, result, at) VALUES ($1, $2::jsonb, now() - interval '4 days') ON CONFLICT (key) DO UPDATE SET at = now() - interval '4 days'", [k, JSON.stringify({ ok: true, status: 200 })]);
+  }
+  await pruneIdem();
+  const left = new Set((await q('SELECT key FROM idem WHERE key LIKE $1', [`%:${run}:old`])).rows.map((r) => r.key));
+  for (const k of keys.slice(0, 5)) assert.ok(left.has(k), `${k} is kept`);
+  for (const k of keys.slice(5)) assert.ok(!left.has(k), `${k} is pruned`);
+});
+
+test('saveUser writes a row it just created and refuses one that does not exist', async () => {
+  const e = email('save');
+  assert.ok((await auth.signup({ email: e, password: PW })).ok);
+  await tx(async (c) => {
+    const u = await getUser(e, c);
+    u.lastIn = 123;
+    await saveUser(c, u);
+  });
+  assert.equal((await getUser(e)).lastIn, 123);
+  await assert.rejects(tx(async (c) => saveUser(c, { id: 'nobody@test.dev' })), /does not exist/);
 });
