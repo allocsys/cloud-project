@@ -8,6 +8,7 @@ const { pool, getUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const referrals = await import('@/lib/server/referrals');
+const guard = await import('@/lib/server/signup-guard');
 const { act } = await import('@/lib/server/admin');
 
 const run = `r${Date.now().toString(36)}`;
@@ -98,4 +99,26 @@ test('no tickets while Boost tickets are off or the cap is 0', async () => {
   const b = await account('fr5b', net(), await codeOf(inv));
   assert.equal(gifts(await getUser(b)).length, 0);
   await referrals.resetSettings();
+});
+
+test('two sign-ups from the same network under different inviters, at once, get one pair of tickets between them', async () => {
+  assert.equal((await on()).ok, true);
+  // The sign-up guard also serializes a network; switch it off so only the ticket check's own lock is in play.
+  await guard.saveSignupGuard({ enabled: false });
+  try {
+    const invA = await account('inv6a', net());
+    const invB = await account('inv6b', net());
+    const shared = net();
+    const [fa, fb] = await Promise.all([
+      account('fr6a', shared, await codeOf(invA)),
+      account('fr6b', shared, await codeOf(invB)),
+    ]);
+    const [ua, ub] = await Promise.all([getUser(fa), getUser(fb)]);
+    assert.equal(gifts(ua).length + gifts(ub).length, 1, 'only the first sign-up from the network gets a ticket');
+    assert.equal([ua, ub].filter((u) => u.ticketGot).length, 1);
+    const [ia, ib] = await Promise.all([getUser(invA), getUser(invB)]);
+    assert.equal((ia.refTickets || 0) + (ib.refTickets || 0), 1, 'only one inviter is paid');
+  } finally {
+    await guard.saveSignupGuard({ enabled: true, max: 3 });
+  }
 });
