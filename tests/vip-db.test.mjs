@@ -333,13 +333,15 @@ test('two servers locking the same inviter at once stamp the same rates and noti
   assert.equal(f2.refRatesPending, undefined);
 });
 
-test('a user can have maxCodes codes, no fewer', async () => {
+test('a user can have maxCodes codes in total, Default included', async () => {
   await referrals.resetSettings(); // the defaults: maxCodes 5
   assert.ok((await auth.signup({ email: email('codes'), password: PW })).ok);
   const id = email('codes');
+  // maxCodes counts every code the user sees, Default included — so only 4 named ones fit beside it.
   const rs = await Promise.all(['one', 'two', 'three', 'four', 'five'].map((name) => referrals.createCode(id, { name, rebate: 0 })));
-  assert.deepEqual(rs.map((r) => r.ok), [true, true, true, true, true], 'five codes at once');
-  assert.equal((await getUser(id)).refCodes.length, 5);
-  assert.equal((await referrals.createCode(id, { name: 'six', rebate: 0 })).ok, false, 'the sixth is refused');
-  assert.equal((await getUser(id)).refCodes.length, 5);
+  assert.equal(rs.filter((r) => r.ok).length, 4, JSON.stringify(rs));
+  assert.equal(rs.filter((r) => !r.ok).length, 1, JSON.stringify(rs));
+  assert.equal((await getUser(id)).refCodes.length, 4);
+  assert.equal((await referrals.createCode(id, { name: 'six', rebate: 0 })).ok, false, 'a fifth named code is refused');
+  assert.equal((await getUser(id)).refCodes.length, 4);
 });

@@ -20,7 +20,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 20 # the suite outgrew 10 minutes: the run was killed mid-suite before the new tests ever ran
     services:
       postgres:
         image: postgres:16

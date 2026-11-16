@@ -2,6 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
+import { halls as defaultHalls } from '@/lib/data';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
@@ -13,7 +14,9 @@ const auth = await import('@/lib/server/auth');
 const run = `a${Date.now().toString(36)}`;
 const each = (n, fn) => Array.from({ length: n }, (_, i) => fn(i));
 const many = (n, fn) => Promise.all(each(n, fn));
-const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data;
+// Reads the catalogue the way the app does (lib/server/db.js): after a reset there is no row, and the defaults
+// in lib/data.js apply — the raw row alone would come back undefined.
+const catalog = async () => (await q("SELECT data FROM meta WHERE key = 'catalog'")).rows[0]?.data || { halls: defaultHalls };
 const logLen = async () => ((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data || []).length;
 // Other test files write to the same audit log at the same time, so the balance tests count only the entries that name their own user.
 const logOf = async (id) => (((await q("SELECT data FROM meta WHERE key = 'adminlog'")).rows[0]?.data) || []).filter((e) => String(e.detail).includes(id)).length;
@@ -92,12 +95,15 @@ test('catalog-reset drops the halls that were added, even beside a hall save', a
   assert.ok(Object.hasOwn(after, 'tx-1') && Object.hasOwn(after, 'is-2') && Object.hasOwn(after, 'no-1'), 'the core halls stay');
 
   // A hall save racing the reset cannot resurrect the halls the reset dropped: whichever takes the
-  // catalogue lock first, the reset only ever drops what was there when it ran.
+  // catalogue lock first, the reset only ever drops what was there when it ran. The racing hall needs a
+  // name whose id cannot collide with the dropped one: uniqueHallId keeps only the first 10 slug
+  // characters, and every T${run}… name here shares them — so this one starts with K instead, or it would
+  // reuse the dropped hall's id and look resurrected.
   assert.ok((await act({ action: 'hall-save', hall: hall('gone2') })).ok);
   const halls2 = (await catalog()).halls;
   const gone2Id = Object.keys(halls2).find((k) => halls2[k].name === `T${run}gone2`);
   assert.ok(gone2Id);
-  const [reset, saved] = await Promise.all([act({ action: 'catalog-reset' }), act({ action: 'hall-save', hall: hall('kept') })]);
+  const [reset, saved] = await Promise.all([act({ action: 'catalog-reset' }), act({ action: 'hall-save', hall: { ...hall('kept'), name: `K${run}kept` } })]);
   assert.ok(reset.ok, JSON.stringify(reset));
   assert.ok(saved.ok, JSON.stringify(saved));
   assert.equal(Object.hasOwn((await catalog()).halls, gone2Id), false, 'the reset dropped the hall that was there when it ran');
