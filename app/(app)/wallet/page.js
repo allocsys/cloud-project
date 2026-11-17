@@ -178,6 +178,7 @@ export default function Wallet() {
   const [depErr, setDepErr] = useState('');
   const [payCoin, setPayCoin] = useState(DEFAULT_PAY); // the coin a top-up is paid in (our own checkout only)
   const depKey = useRef(null); // idempotency key of the top-up in progress: { usd, key }
+  const wdKey = useRef(null); // idempotency key of the withdrawal in progress: { sig, key }
 
   // While the Accept tap is awaited, ask every 2.5 s. Accepted: withdraw by itself (the server lets it pass once). Denied, used or expired: say so.
   useEffect(() => {
@@ -419,7 +420,12 @@ export default function Wallet() {
     });
 
     try {
-      await post('/api/wallet/withdraw', { asset, net, amount: coinAmt, address: address.trim(), ...(typed ? { code: typed } : {}) }, uid());
+      const body = { asset, net, amount: coinAmt, address: address.trim(), ...(typed ? { code: typed } : {}) };
+      // One key per request that stays the same until it goes through: a retry after a lost answer repeats that withdrawal instead of making a second one.
+      const sig = JSON.stringify(body);
+      if (wdKey.current?.sig !== sig) wdKey.current = { sig, key: uid() };
+      await post('/api/wallet/withdraw', body, wdKey.current.key);
+      wdKey.current = null;
       refresh().catch(() => {});
       triggerHaptic('success');
       setAmount('');
