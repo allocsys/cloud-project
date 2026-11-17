@@ -350,3 +350,18 @@ test('an unpaid link older than three days is closed, and cancelling is for the 
   assert.equal(await statusOf(old.id), 'paid');
   assert.equal((await getUser(id)).contracts.length, 1);
 });
+
+test('a payment that arrives after the account was closed is held for a person, not given to the closed account', async () => {
+  const id = await account('closedpay');
+  const o = await order(id, starter());
+  assert.ok((await miners.cancelOrder(id, o.id)).ok); // a cancelled order does not block closing, but a payment can still arrive for it
+  const closed = await auth.closeAccount(id, { password: PW, confirm: 'DELETE', forfeit: true });
+  assert.ok(closed.ok, closed.error);
+  const gone = (await q('SELECT user_id FROM orders WHERE id = $1', [o.id])).rows[0].user_id;
+  assert.match(gone, /^closed:/);
+
+  assert.ok((await miners.settleOrder(hook(o))).ok);
+  assert.equal(await statusOf(o.id), 'review');
+  assert.equal((await getUser(gone)).contracts.length, 0, 'no miner started on the closed account');
+  assert.equal((await ledgerRows(gone, 'payment')).length, 0);
+});
