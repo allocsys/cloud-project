@@ -30,6 +30,9 @@ export default function WalletProvider({ children }) {
   const { data: cfg } = useApi('/api/wc', { ttl: 3600000 });
   const pid = cfg?.id || '';
   const live = useRef(null); // the connected provider
+  const restoring = useRef(null); // the reload pick-up of a saved session, while it runs: connect() waits for it
+  const connecting = useRef(null); // the connect in progress: a second call joins it
+  const pending = useRef(null); // the transfer request the wallet has not answered yet: { sig, req, late }
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -61,7 +64,7 @@ export default function WalletProvider({ children }) {
     } catch {}
     if (!flag) return undefined;
     let off = false;
-    (async () => {
+    const run = (async () => {
       try {
         const p = await initProvider(pid);
         if (off || live.current) return;
@@ -69,14 +72,20 @@ export default function WalletProvider({ children }) {
         else remember(false);
       } catch {}
     })();
+    restoring.current = run;
+    run.then(() => {
+      if (restoring.current === run) restoring.current = null;
+    });
     return () => {
       off = true;
     };
   }, [pid, attach]);
 
   // Step 1: connect (no payment request). `projectId` is the order's own id, used when the config has not arrived yet.
-  const connect = useCallback(
+  const connectNow = useCallback(
     async ({ chainId: want, projectId, mark = () => {} } = {}) => {
+      // A saved session being picked up right now is the same wallet library: let it finish first, so it is not started twice.
+      if (restoring.current) await restoring.current;
       if (live.current?.accounts?.[0]) return live.current.accounts[0];
       const id = pid || projectId;
       if (!id) throw new Error('no project id');
@@ -104,10 +113,24 @@ export default function WalletProvider({ children }) {
     },
     [pid, attach]
   );
+  const connect = useCallback(
+    (opts = {}) => {
+      if (connecting.current) return connecting.current;
+      const run = connectNow(opts);
+      connecting.current = run;
+      const done = () => {
+        if (connecting.current === run) connecting.current = null;
+      };
+      run.then(done, done);
+      return run;
+    },
+    [connectNow]
+  );
 
   const disconnect = useCallback(async () => {
     const p = live.current;
     live.current = null;
+    pending.current = null;
     setAcct('');
     setChainId(0);
     remember(false);
@@ -115,13 +138,17 @@ export default function WalletProvider({ children }) {
   }, []);
 
   // Step 2: ask the connected wallet for the transfer. The wallet app is behind the browser, so it is opened to bring the request forward.
-  const send = useCallback(async (tx, mark = () => {}, open = () => {}) => {
+  // `late(hash)` is called if the wallet answers only after "no answer" was thrown: the person may still approve it a few minutes later,
+  // and then the money does go out. A tap on Send again while that request is still open asks nothing new: it waits for the same one.
+  const send = useCallback(async (tx, mark = () => {}, open = () => {}, late = null) => {
     const p = live.current;
     const from = p?.accounts?.[0];
     if (!p || !from) throw new Error('not connected');
+    const sig = [from, tx.chainId, tx.to, tx.value, tx.data].join('|');
+    const again = pending.current?.sig === sig ? pending.current : null;
     setBusy(true);
     try {
-      if (Number(p.chainId) !== tx.chainId) {
+      if (!again && Number(p.chainId) !== tx.chainId) {
         mark('switching');
         try {
           // A wallet that never answers the switch must not block the payment request.
@@ -133,12 +160,37 @@ export default function WalletProvider({ children }) {
         if (Number(p.chainId) !== tx.chainId) throw new Error('wrong network');
       }
       mark('sending');
-      const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
-      req.catch(() => {});
+      let entry = again;
+      if (!entry) {
+        const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
+        entry = { sig, req, late: false };
+        pending.current = entry;
+        const clear = () => {
+          if (pending.current === entry) pending.current = null;
+        };
+        req.then(clear, clear);
+      }
+      const { req } = entry;
       const link = p.session?.peer?.metadata?.redirect?.native;
       if (link) setTimeout(() => open(link), 700);
       // Do not wait forever if the wallet never answers.
-      return await Promise.race([req, new Promise((_, rej) => setTimeout(() => rej(new Error('no answer')), 120000))]);
+      let timer;
+      try {
+        return await Promise.race([
+          req,
+          new Promise((_, rej) => {
+            timer = setTimeout(() => rej(new Error('no answer')), 120000);
+          }),
+        ]);
+      } catch (e) {
+        if (/no answer/.test(String(e?.message)) && late && !entry.late) {
+          entry.late = true;
+          req.then(late, () => {});
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
     } finally {
       setBusy(false);
     }

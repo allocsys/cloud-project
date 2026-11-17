@@ -1,6 +1,6 @@
 'use client';
 import PageHead from '@/components/PageHead';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
@@ -33,7 +33,7 @@ export default function Settings() {
   const t = useT();
   const { lang } = useLang();
   const [toast, show] = useToast();
-  const { data: sd, mutate: mutateSettings } = useApi('/api/settings', { ttl: 0 });
+  const { data: sd, mutate: mutateSettings, refresh: refreshSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
   const { data: me, refresh: refreshMe } = useApi('/api/auth/me', { ttl: 60000 });
@@ -134,17 +134,32 @@ export default function Settings() {
   }
 
   // The switch moves at once; if saving fails it goes back and says so.
-  async function flipAlert(key) {
+  // Taps can come faster than the answers: each one builds on the latest switch state (not the screen's last render), and the saves go
+  // one after another, so a slow answer can never undo a newer tap. A failed save puts the screen back to what the server has.
+  const alertWant = useRef(null); // the switch state after the latest tap, until its save is done
+  const alertQ = useRef(Promise.resolve());
+  const alertBad = useRef(false); // a save in this run of taps failed
+  function flipAlert(key) {
     triggerHaptic('selection');
-    const before = alerts;
-    mutateSettings({ ...(sd || {}), alerts: { ...before, [key]: !before[key] } });
-    try {
-      mutateSettings(await post('/api/settings', { alerts: { [key]: !before[key] } }));
-    } catch (err) {
-      triggerHaptic('error');
-      mutateSettings({ ...(sd || {}), alerts: before });
-      show(err.status ? err.message : t('common.noConnection'));
-    }
+    const base = alertWant.current || alerts;
+    const want = { ...base, [key]: !base[key] };
+    alertWant.current = want;
+    mutateSettings({ ...(sd || {}), alerts: want });
+    alertQ.current = alertQ.current.then(async () => {
+      let res = null;
+      try {
+        res = await post('/api/settings', { alerts: { [key]: want[key] } });
+      } catch (err) {
+        triggerHaptic('error');
+        alertBad.current = true;
+        show(err.status ? err.message : t('common.noConnection'));
+      }
+      if (alertWant.current !== want) return; // a newer tap is still waiting: its own save ends this
+      alertWant.current = null;
+      if (res && !alertBad.current) mutateSettings(res);
+      else refreshSettings().catch(() => {});
+      alertBad.current = false;
+    });
   }
 
   function togglePw() {
