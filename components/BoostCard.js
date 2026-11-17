@@ -42,6 +42,7 @@ export default function BoostCard({ show }) {
   const slotMap = useRef(new Map()); // boost id -> slot, so a wedge never moves when another boost ends
   const skew = useRef(0); // server clock minus this device's clock
   const key = useRef(null);
+  const freeKey = useRef(null); // key of the free ticket tap in progress: kept until it goes through, so a retry after a lost answer is not a second ticket
   const armTimer = useRef(null);
   const dialRef = useRef(null);
   const btnRef = useRef(null);
@@ -99,7 +100,9 @@ export default function BoostCard({ show }) {
     setArm(null);
     setBusy(true);
     try {
-      await post('/api/boost', free ? { free: true } : { ticket: tk.id }, free ? uid() : key.current);
+      if (free && !freeKey.current) freeKey.current = uid();
+      await post('/api/boost', free ? { free: true } : { ticket: tk.id }, free ? freeKey.current : key.current);
+      if (free) freeKey.current = null;
       await refresh().catch(() => {});
       triggerHaptic('success');
       show(t('bst.started'));
