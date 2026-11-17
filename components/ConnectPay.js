@@ -5,7 +5,7 @@
 // The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
 // Solana has no wallet picker in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
 // The Solana provider (@walletconnect/universal-provider) is already installed as part of the EVM one, which is built on it.
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
 import { post } from '@/lib/api';
@@ -106,6 +106,7 @@ export function ConnectBtn({ order, show, onFail }) {
   const w = useWallet();
   const [busy, setBusy] = useState(false);
   const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for (also kept in localStorage)
+  const silent = useRef(0); // taps in a row that the wallet never answered
   const key = String(order.id || order.uri || '');
   const evm = w && order.wc ? evmTx(order.uri) : null;
   const sol = !!order.wc && order.network === 'sol' && !!order.id;
@@ -125,7 +126,13 @@ export function ConnectBtn({ order, show, onFail }) {
         return;
       }
       if (evm) {
-        await w.send(evm, mark, tryOpen);
+        // The wallet may answer after "no answer" (a person who approves a few minutes later): then the payment is sent after all.
+        await w.send(evm, mark, tryOpen, () => {
+          setSentFor(key);
+          markSent(key);
+          show(t('pay.sent'));
+        });
+        silent.current = 0;
       } else {
         await sendSol(order);
       }
@@ -134,8 +141,13 @@ export function ConnectBtn({ order, show, onFail }) {
       why = String(e?.message || e?.code || e || '').slice(0, 80);
     }
     setBusy(false);
-    // A wallet that never answered is likely a dead session: drop it so the next try starts clean.
-    if (evm && !ok && /no answer/.test(why)) w.disconnect();
+    // A wallet that never answered may still be asked: the request stays open (and a tap on Send again waits for that same one, it does not
+    // send a second payment), and the session is kept so a late approval still counts. Only a wallet that stays silent twice in a row is
+    // treated as a dead session and dropped, so the next try starts clean.
+    if (evm && !ok && /no answer/.test(why) && ++silent.current >= 2) {
+      silent.current = 0;
+      w.disconnect();
+    }
     if (ok) {
       setSentFor(key);
       markSent(key);
