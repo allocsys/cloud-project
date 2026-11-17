@@ -139,7 +139,9 @@ export default function Wallet() {
   // screen never downloads the whole 500-row history to show a few rows.
   const [filter, setFilter] = useState('all');
   const [limit, setLimit] = useState(20);
-  const { data: wd, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000 });
+  // keepStale: a bigger page size keeps the rows on screen while the longer list loads; a new filter does not (sameFilter below).
+  const { data: wd, dataUrl: wdUrl, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000, keepStale: true });
+  const sameFilter = wdUrl.endsWith(`&kind=${filter}`); // the data on hand is for the filter that is selected
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
@@ -293,7 +295,7 @@ export default function Wallet() {
   }, []);
   const btcUsd = priceOf('btc', prices);
   const ready = !!wd;
-  const history = wd ? wd.history : [];
+  const history = wd && sameFilter ? wd.history : [];
   // Server balance at the last fetch. The live accrual since then (what the online miners added
   // since the server worked out the wallet) ticks inside WalletBalance; the tap handlers below
   // read it from liveAvailable so Max and the withdraw check see the same number on screen.
@@ -724,7 +726,7 @@ export default function Wallet() {
                 }}
               >
                 <h3>{t('wal.activity')}</h3>
-                <span className="mute">{ready ? (wd.historyTotal ?? history.length) : ''}</span>
+                <span className="mute">{ready && sameFilter ? (wd.historyTotal ?? history.length) : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
@@ -756,8 +758,8 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && <p className="empty">{ready ? t('wal.nothing') : t('wal.loading')}</p>}
-            {open && wd && history.length < (wd.historyTotal ?? 0) && (
+            {open && shown.length === 0 && <p className="empty">{ready && sameFilter ? t('wal.nothing') : t('wal.loading')}</p>}
+            {open && wd && sameFilter && history.length < (wd.historyTotal ?? 0) && (
               <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
             )}
           </div>
