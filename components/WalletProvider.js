@@ -28,9 +28,6 @@ const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
 // Telegram's in-app browser blocks a page that navigates to a wc: link (net::ERR_UNKNOWN_URL_SCHEME), so there WalletConnect's wallet picker (https links) is used instead.
 const inTelegram = () => /Telegram/i.test(navigator.userAgent || '') || !!window.TelegramWebviewProxy;
 
-// SafePal in Telegram: its app link (safepalwallet://) opens the app home without the request, so the picker gets SafePal with its https link only.
-const SAFEPAL = { id: '0b415a746fb9ee99cce155c2ceca0c6f6061b1dbca2d722b3ba16381d0562150', name: 'SafePal', links: { native: '', universal: 'https://link.safepal.io' } };
-
 async function initClient(projectId) {
   const { SignClient } = await import('@walletconnect/sign-client');
   return SignClient.init({ projectId, metadata: meta() });
@@ -136,12 +133,7 @@ export default function WalletProvider({ children }) {
           if (tg) {
             // Telegram: WalletConnect's wallet picker opens the wallet with https links, which Telegram allows.
             const { WalletConnectModal } = await import('@walletconnect/modal');
-            modal = new WalletConnectModal({
-              projectId: id,
-              chains: WC_CHAINS.map((c) => `eip155:${c}`),
-              mobileWallets: [SAFEPAL],
-              explorerExcludedWalletIds: [SAFEPAL.id],
-            });
+            modal = new WalletConnectModal({ projectId: id, chains: WC_CHAINS.map((c) => `eip155:${c}`) });
             modal.openModal({ uri }).catch(() => {});
           } else window.location.href = uri;
         }
