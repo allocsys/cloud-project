@@ -10,13 +10,6 @@ import { WC_CHAINS } from '@/lib/wc-tx';
 const FLAG = 'vtx-wc';
 const Ctx = createContext(null);
 
-// Debug: send one stage line to the server log (see /api/debug/client-error).
-const dbg = (text) => {
-  try {
-    fetch('/api/debug/client-error', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: `stage: ${text}` }), keepalive: true }).catch(() => {});
-  } catch {}
-};
-
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
 const remember = (on) => {
   try {
@@ -68,7 +61,6 @@ export default function WalletProvider({ children }) {
             setAcct('');
             setChainId(0);
             remember(false);
-            dbg('session deleted by wallet');
           };
           client.on('session_delete', gone);
           client.on('session_expire', gone);
@@ -124,7 +116,6 @@ export default function WalletProvider({ children }) {
         mark('loading');
         const client = await getClient(id);
         mark('init');
-        dbg('init ok');
         // A session left from before is closed first, so the new request starts clean.
         for (const s of client.session.getAll()) await client.disconnect({ topic: s.topic, reason: USER_OUT }).catch(() => {});
         mark('connecting');
@@ -132,7 +123,6 @@ export default function WalletProvider({ children }) {
           requiredNamespaces: { eip155: { methods: METHODS, chains: [MAIN], events: EVENTS } },
           optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
         });
-        dbg('uri shown');
         // Open the wallet app with the request. The approval below waits for the wallet's answer.
         if (uri) window.location.href = uri;
         let timer;
@@ -142,13 +132,11 @@ export default function WalletProvider({ children }) {
             timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
           }),
         ]).finally(() => clearTimeout(timer));
-        dbg('connect resolved');
         const a = adopt(client, session);
         if (!a) throw new Error('no account');
         remember(true);
         return a;
       } catch (e) {
-        dbg(`connect failed: ${e?.message || e}`);
         throw e;
       } finally {
         setBusy(false);
