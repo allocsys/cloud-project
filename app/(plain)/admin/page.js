@@ -1481,6 +1481,28 @@ export default function Admin() {
     return () => clearTimeout(t);
   }, [isReady, loadGw]);
 
+  // Telegram notices card (Send tab): what still waits, and the batch job. Counts load when the tab opens and when a job ends; a running job is polled every 4 s.
+  const [tn, setTn] = useState({ users: null, friend: 0, gift: 0, job: null, id: '' });
+  const tnLoad = useCallback(async (op = 'status') => {
+    try {
+      const r = await call('POST', '/api/admin', { action: 'tg-notices', op });
+      if (r.ok) setTn((t) => ({ ...t, ...(op === 'count' ? { users: r.users, friend: r.friend, gift: r.gift } : {}), job: r.job }));
+    } catch {}
+  }, []);
+  const tnRunning = tn.job?.state === 'running';
+  useEffect(() => {
+    if (!isReady || tab !== 'send') return undefined;
+    if (!tnRunning) {
+      tnLoad('count');
+      return undefined;
+    }
+    const t = setInterval(() => tnLoad(), 4000);
+    return () => clearInterval(t);
+  }, [isReady, tab, tnRunning, tnLoad]);
+  async function tnAct(op, okText, extra) {
+    if (await run({ action: 'tg-notices', op, ...extra }, okText)) tnLoad(op === 'send-one' ? 'count' : 'status');
+  }
+
   // Runs one admin action, tells the result, then refreshes. Returns true when it worked.
   // `okText` is a string, or a function of the server's answer.
   async function run(body, okText) {
@@ -2409,7 +2431,8 @@ export default function Admin() {
             disabled={sendDisabled}
             onClick={async () => {
               if (to === 'all' && !(await ask(`Send this to all ${users.length} users? It cannot be undone.`, { ok: 'Send to all', danger: true }))) return;
-              if (await run({ action: 'notify', userId: to, title, body: msg }, 'Sent')) {
+              if (await run({ action: 'notify', userId: to, title, body: msg }, (x) => (x.queued ? `Queued for ${x.queued} users` : 'Sent'))) {
+                tnLoad();
                 setTitle('');
                 setMsg('');
               }
@@ -2446,6 +2469,54 @@ export default function Admin() {
           >
             Send to all
           </button>
+        </div>
+        <div className="card adm-stack">
+          <h3>Telegram notices</h3>
+          <p style={{ margin: 0 }}>{tn.users === null ? '…' : `${tn.users} users · ${tn.friend} friend · ${tn.gift} gift`}</p>
+          {tn.job && (
+            <p style={{ margin: 0 }}>
+              {tn.job.type === 'news' ? 'News' : 'Notices'} · {tn.job.state} · {tn.job.done}/{tn.job.total}
+              {tn.job.type === 'notices' ? ` · ${tn.job.msgs} sent` : ''}
+              {tn.job.failed ? ` · ${tn.job.failed} failed` : ''}
+            </p>
+          )}
+          {tn.job && ['running', 'paused'].includes(tn.job.state) ? (
+            <>
+              {tn.job.state === 'running' ? (
+                <button className="btn" disabled={busy} onClick={() => tnAct('pause', 'Paused')}>Pause</button>
+              ) : (
+                <button className="btn" disabled={busy} onClick={() => tnAct('resume', 'Resumed')}>Resume</button>
+              )}
+              <button
+                className="btn"
+                disabled={busy}
+                onClick={async () => {
+                  if (await ask('Cancel this send? What was sent stays sent.', { ok: 'Cancel send', danger: true })) tnAct('cancel', 'Cancelled');
+                }}
+              >
+                Cancel
+              </button>
+            </>
+          ) : (
+            <>
+              <div className="field" style={{ marginTop: 4 }}>
+                <input id="tnid" autoComplete="off" placeholder=" " value={tn.id} onChange={(e) => setTn({ ...tn, id: e.target.value })} />
+                <label htmlFor="tnid">Telegram ID or user</label>
+              </div>
+              <button className="btn" disabled={busy || !tn.id.trim()} onClick={() => tnAct('send-one', (x) => (x.sent ? `Sent ${x.sent}` : 'Nothing waiting'), { userId: tn.id.trim() })}>
+                Send to one
+              </button>
+              <button
+                className="btn"
+                disabled={busy || !tn.users}
+                onClick={async () => {
+                  if (await ask(`Send old notices to ${tn.users} users? Batches of 50.`, { ok: 'Send to all' })) tnAct('send-all', 'Started');
+                }}
+              >
+                Send to all
+              </button>
+            </>
+          )}
         </div>
         </>
       )}
