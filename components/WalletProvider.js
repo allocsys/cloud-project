@@ -5,6 +5,7 @@
 // A connection is remembered (flag vtx-wc) so a reload picks the session up again; people who never connected do not load the wallet code.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
+import { useT } from '@/components/I18nProvider';
 import { WC_CHAINS } from '@/lib/wc-tx';
 
 const FLAG = 'vtx-wc';
@@ -24,6 +25,29 @@ const OPTIONAL = WC_CHAINS.filter((c) => c !== 1).map((c) => `eip155:${c}`);
 const METHODS = ['eth_sendTransaction', 'eth_accounts', 'personal_sign'];
 const EVENTS = ['chainChanged', 'accountsChanged'];
 const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
+
+// Telegram's in-app browser blocks a page that navigates to a wc: link (net::ERR_UNKNOWN_URL_SCHEME), so there the link is shown to copy instead.
+const inTelegram = () => /Telegram/i.test(navigator.userAgent || '') || !!window.TelegramWebviewProxy;
+
+async function copyText(s) {
+  try {
+    await navigator.clipboard.writeText(s);
+    return true;
+  } catch {}
+  try {
+    const el = document.createElement('textarea');
+    el.value = s;
+    el.style.position = 'fixed';
+    el.style.opacity = '0';
+    document.body.appendChild(el);
+    el.select();
+    const ok = document.execCommand('copy');
+    el.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
 
 async function initClient(projectId) {
   const { SignClient } = await import('@walletconnect/sign-client');
@@ -50,6 +74,9 @@ export default function WalletProvider({ children }) {
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [link, setLink] = useState(''); // the wc: link, only while connecting inside Telegram
+  const [copied, setCopied] = useState(false);
+  const t = useT();
 
   const getClient = useCallback((id) => {
     if (!clientP.current) {
@@ -124,12 +151,18 @@ export default function WalletProvider({ children }) {
           optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
         });
         // Open the wallet app with the request. The approval below waits for the wallet's answer.
-        if (uri) window.location.href = uri;
+        const tg = inTelegram();
+        if (uri) {
+          if (tg) {
+            setCopied(false);
+            setLink(uri);
+          } else window.location.href = uri;
+        }
         let timer;
         const session = await Promise.race([
           approval(),
           new Promise((_, rej) => {
-            timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
+            timer = setTimeout(() => rej(new Error('Wallet did not answer')), tg ? 180000 : 60000);
           }),
         ]).finally(() => clearTimeout(timer));
         const a = adopt(client, session);
@@ -139,6 +172,7 @@ export default function WalletProvider({ children }) {
       } catch (e) {
         throw e;
       } finally {
+        setLink('');
         setBusy(false);
       }
     },
@@ -208,5 +242,20 @@ export default function WalletProvider({ children }) {
   }, []);
 
   const value = useMemo(() => ({ enabled: !!pid, acct, chainId, busy, connect, disconnect, send }), [pid, acct, chainId, busy, connect, disconnect, send]);
-  return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
+  const copy = async () => {
+    if (await copyText(link)) setCopied(true);
+  };
+  return (
+    <Ctx.Provider value={value}>
+      {children}
+      {link && (
+        <div style={{ position: 'fixed', left: 12, right: 12, bottom: 16, zIndex: 60, display: 'flex' }}>
+          <button type="button" className="pct-btn" style={{ flex: 1 }} onClick={copy}>
+            {copied ? '\u2713 ' : ''}
+            {t('pay.copyLink')}
+          </button>
+        </div>
+      )}
+    </Ctx.Provider>
+  );
 }
