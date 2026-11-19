@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@walletconnect/ethereum-provider": "2.26.0",
+    "@walletconnect/sign-client": "2.26.0",
     "next": "^15.0.0",
     "pg": "^8.23.1",
     "react": "^19.0.0",

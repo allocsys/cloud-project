@@ -1,12 +1,14 @@
 'use client';
 // The wallet connection (WalletConnect, EVM) kept for the whole signed-in app: the header pill and the pay screen share it.
-// connect() asks the wallet for the account only; send() asks the connected wallet for one transfer (switching its chain first when needed).
+// Uses the standalone WalletConnect client (same path as the working WalletConnect demo). connect() opens the wallet with the
+// connection request and waits for its approval; send() asks the connected wallet for one transfer.
 // A connection is remembered (flag vtx-wc) so a reload picks the session up again; people who never connected do not load the wallet code.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
 import { WC_CHAINS } from '@/lib/wc-tx';
 
 const FLAG = 'vtx-wc';
+const Ctx = createContext(null);
 
 // Debug: send one stage line to the server log (see /api/debug/client-error).
 const dbg = (text) => {
@@ -14,7 +16,6 @@ const dbg = (text) => {
     fetch('/api/debug/client-error', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: `stage: ${text}` }), keepalive: true }).catch(() => {});
   } catch {}
 };
-const Ctx = createContext(null);
 
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
 const remember = (on) => {
@@ -24,9 +25,23 @@ const remember = (on) => {
   } catch {}
 };
 
-async function initProvider(projectId) {
-  const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
-  return EthereumProvider.init({ projectId, chains: [1], optionalChains: WC_CHAINS, showQrModal: true, metadata: meta() });
+// Chains are CAIP-2 ids ('eip155:1'). The first is required, the rest are optional.
+const MAIN = 'eip155:1';
+const OPTIONAL = WC_CHAINS.filter((c) => c !== 1).map((c) => `eip155:${c}`);
+const METHODS = ['eth_sendTransaction', 'eth_accounts', 'personal_sign'];
+const EVENTS = ['chainChanged', 'accountsChanged'];
+const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
+
+async function initClient(projectId) {
+  const { SignClient } = await import('@walletconnect/sign-client');
+  return SignClient.init({ projectId, metadata: meta() });
+}
+
+// The account and chain of a session, from 'eip155:<chain>:<address>'.
+function fromSession(session) {
+  const first = session?.namespaces?.eip155?.accounts?.[0] || '';
+  const [, chain, acct] = first.split(':');
+  return { acct: acct || '', chain: Number(chain) || 0 };
 }
 
 export function useWallet() {
@@ -36,28 +51,43 @@ export function useWallet() {
 export default function WalletProvider({ children }) {
   const { data: cfg } = useApi('/api/wc', { ttl: 3600000 });
   const pid = cfg?.id || '';
-  const live = useRef(null); // the connected provider
+  const live = useRef(null); // { client, topic, session, acct, chain } while connected
+  const clientP = useRef(null); // one client for the page: the reload pick-up and connect share it
   const pending = useRef(null); // the transfer request the wallet has not answered yet: { sig, req, late }
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
 
-  const attach = useCallback((p) => {
-    live.current = p;
-    const sync = () => {
-      setAcct(p.accounts?.[0] || '');
-      setChainId(Number(p.chainId) || 0);
-    };
-    p.on('accountsChanged', sync);
-    p.on('chainChanged', sync);
-    p.on('disconnect', () => {
-      if (live.current !== p) return;
-      live.current = null;
-      setAcct('');
-      setChainId(0);
-      remember(false);
-    });
-    sync();
+  const getClient = useCallback((id) => {
+    if (!clientP.current) {
+      clientP.current = initClient(id)
+        .then((client) => {
+          const gone = ({ topic }) => {
+            if (live.current?.topic !== topic) return;
+            live.current = null;
+            setAcct('');
+            setChainId(0);
+            remember(false);
+            dbg('session deleted by wallet');
+          };
+          client.on('session_delete', gone);
+          client.on('session_expire', gone);
+          return client;
+        })
+        .catch((e) => {
+          clientP.current = null;
+          throw e;
+        });
+    }
+    return clientP.current;
+  }, []);
+
+  const adopt = useCallback((client, session) => {
+    const { acct: a, chain } = fromSession(session);
+    live.current = { client, topic: session.topic, session, acct: a, chain };
+    setAcct(a);
+    setChainId(chain);
+    return a;
   }, []);
 
   // A reload: pick up the saved session, only for someone who connected before.
@@ -71,97 +101,91 @@ export default function WalletProvider({ children }) {
     let off = false;
     (async () => {
       try {
-        const p = await initProvider(pid);
+        const client = await getClient(pid);
+        const s = client.session.getAll()[0];
         if (off || live.current) return;
-        if (p.session && p.accounts?.[0]) attach(p);
+        if (s && fromSession(s).acct) adopt(client, s);
         else remember(false);
       } catch {}
     })();
     return () => {
       off = true;
     };
-  }, [pid, attach]);
+  }, [pid, getClient, adopt]);
 
   // Step 1: connect (no payment request). `projectId` is the order's own id, used when the config has not arrived yet.
   const connect = useCallback(
-    async ({ chainId: want, projectId, mark = () => {} } = {}) => {
-      if (live.current?.accounts?.[0]) return live.current.accounts[0];
+    async ({ projectId, mark = () => {} } = {}) => {
+      if (live.current?.acct) return live.current.acct;
       const id = pid || projectId;
       if (!id) throw new Error('no project id');
       setBusy(true);
       try {
         mark('loading');
-        const p = await initProvider(id);
+        const client = await getClient(id);
         mark('init');
         dbg('init ok');
-        p.on('display_uri', () => dbg('uri shown'));
-        p.on('connect', () => dbg('connect event'));
-        p.on('session_delete', () => dbg('session deleted by wallet'));
-        p.on('disconnect', () => dbg('disconnect event'));
-        // A session left from before could be on another chain or account: always start clean.
-        if (p.session) await p.disconnect().catch(() => {});
-        try {
-          mark('connecting');
-          let timer;
-          await Promise.race([
-            p.connect(),
-            new Promise((_, rej) => {
-              timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
-            }),
-          ]).finally(() => clearTimeout(timer));
-          dbg('connect resolved');
-          if (!p.accounts?.[0]) throw new Error('no account');
-        } catch (e) {
-          dbg(`connect failed: ${e?.message || e}`);
-          p.disconnect().catch(() => {});
-          throw e;
-        }
-        attach(p);
+        // A session left from before is closed first, so the new request starts clean.
+        for (const s of client.session.getAll()) await client.disconnect({ topic: s.topic, reason: USER_OUT }).catch(() => {});
+        mark('connecting');
+        const { uri, approval } = await client.connect({
+          requiredNamespaces: { eip155: { methods: METHODS, chains: [MAIN], events: EVENTS } },
+          optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
+        });
+        dbg('uri shown');
+        // Open the wallet app with the request. The approval below waits for the wallet's answer.
+        if (uri) window.location.href = uri;
+        let timer;
+        const session = await Promise.race([
+          approval(),
+          new Promise((_, rej) => {
+            timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
+          }),
+        ]).finally(() => clearTimeout(timer));
+        dbg('connect resolved');
+        const a = adopt(client, session);
+        if (!a) throw new Error('no account');
         remember(true);
-        return p.accounts[0];
+        return a;
+      } catch (e) {
+        dbg(`connect failed: ${e?.message || e}`);
+        throw e;
       } finally {
         setBusy(false);
       }
     },
-    [pid, attach]
+    [pid, getClient, adopt]
   );
 
   const disconnect = useCallback(async () => {
-    const p = live.current;
+    const cur = live.current;
     live.current = null;
     pending.current = null;
     setAcct('');
     setChainId(0);
     remember(false);
-    if (p) await p.disconnect().catch(() => {});
+    if (cur) await cur.client.disconnect({ topic: cur.topic, reason: USER_OUT }).catch(() => {});
   }, []);
 
   // Step 2: ask the connected wallet for the transfer. The wallet app is behind the browser, so it is opened to bring the request forward.
   // `late(hash)` is called if the wallet answers only after "no answer" was thrown: the person may still approve it a few minutes later,
   // and then the money does go out. A tap on Send again while that request is still open asks nothing new: it waits for the same one.
   const send = useCallback(async (tx, mark = () => {}, open = () => {}, late = null) => {
-    const p = live.current;
-    const from = p?.accounts?.[0];
-    if (!p || !from) throw new Error('not connected');
+    const cur = live.current;
+    if (!cur?.acct) throw new Error('not connected');
+    const from = cur.acct;
     const sig = [from, tx.chainId, tx.to, tx.value, tx.data].join('|');
     const again = pending.current?.sig === sig ? pending.current : null;
     setBusy(true);
     try {
-      if (!again && Number(p.chainId) !== tx.chainId) {
-        mark('switching');
-        try {
-          // A wallet that never answers the switch must not block the payment request.
-          await Promise.race([
-            p.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: `0x${tx.chainId.toString(16)}` }] }),
-            new Promise((r) => setTimeout(r, 4000)),
-          ]);
-        } catch {}
-        if (Number(p.chainId) !== tx.chainId) throw new Error('wrong network');
-      }
       mark('sending');
       let entry = again;
       if (!entry) {
-        const req = p.request({ method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] });
+        const req = cur.client.request({
+          topic: cur.topic,
+          chainId: `eip155:${tx.chainId}`,
+          request: { method: 'eth_sendTransaction', params: [{ from, to: tx.to, value: tx.value, data: tx.data }] },
+        });
         entry = { sig, req, late: false };
         pending.current = entry;
         const clear = () => {
@@ -170,7 +194,7 @@ export default function WalletProvider({ children }) {
         req.then(clear, clear);
       }
       const { req } = entry;
-      const link = p.session?.peer?.metadata?.redirect?.native;
+      const link = cur.session?.peer?.metadata?.redirect?.native;
       if (link) setTimeout(() => open(link), 700);
       // Do not wait forever if the wallet never answers.
       let timer;
