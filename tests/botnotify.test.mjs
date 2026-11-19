@@ -57,6 +57,14 @@ test('jobFor: Telegram accounts and the three events only, with every value the 
   assert.equal(bn.jobFor(tg, { code: 'depPaid', vars: { usd: '1.00' } }), null, 'no id, no dedupe key');
 });
 
+test('jobFor: admin gifts carry their numbers, and an account with no Telegram gets nothing', () => {
+  const tg = { id: 'tg:123456' };
+  assert.deepEqual(bn.jobFor(tg, { id: 'gfabcdefgh', code: 'giftTickets', vars: { n: 3 } }), { tg_id: 123456, kind: 'giftTickets', key: 'gfabcdefgh', vars: { n: 3 } });
+  assert.deepEqual(bn.jobFor(tg, { id: 'gfabcdefgh', code: 'giftMiner', vars: { th: 10, days: 30 } }).vars, { th: 10, days: 30 });
+  assert.equal(bn.jobFor(tg, { id: 'gfabcdefgh', code: 'giftMiner', vars: { th: 10 } }), null, 'a message with a hole is not sent');
+  assert.equal(bn.jobFor({ id: 'a@b.com' }, { id: 'gfabcdefgh', code: 'giftTickets', vars: { n: 1 } }), null);
+});
+
 test('botConfig is off without a URL or with a short secret, and drops the trailing slash', () => {
   assert.equal(bn.botConfig({}), null);
   assert.equal(bn.botConfig({ BOT_URL: 'https://b.x', APP_BOT_SECRET: 'short' }), null);
