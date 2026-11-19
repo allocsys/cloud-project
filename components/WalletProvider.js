@@ -267,7 +267,7 @@ export default function WalletProvider({ children }) {
           }}
         >
           <a className="btn" href={link}>
-            {t('wp.open')}
+            {t('pay.connect')}
           </a>
           <button type="button" className="btn ghost" onClick={copy}>
             {copied ? '\u2713 ' : ''}
