@@ -1,13 +1,16 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { closePreview, closeAccount, clearSession, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // GET: what closing the account would do (running miners, anything that blocks it, whether a password or code is needed).
-export async function GET(req) {
+async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const { status, ...rest } = await closePreview(id);
@@ -16,7 +19,7 @@ export async function GET(req) {
 
 // POST { password, code, confirm: 'DELETE', forfeit }: closes the signed-in account and signs it out.
 // Wrong passwords and codes count toward the same lockout as sign-in. Counted first in one statement.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const key = `c:${id}`;

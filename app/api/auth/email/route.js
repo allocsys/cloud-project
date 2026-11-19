@@ -2,15 +2,17 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { addEmailStart, addEmailConfirm, setSession, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // A Telegram account adds an email and password. { action: 'start', email, password } mails a 6-digit code,
 // { action: 'confirm', code } saves the email on the account and signs this device in again (other devices are signed out).
 // Every request counts toward the sign-in lockout, so codes and mails cannot be hammered. Counted first in one statement.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id || id === 'demo') return unauthorized();
   const key = `e:${id}`;

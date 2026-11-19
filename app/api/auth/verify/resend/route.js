@@ -1,8 +1,10 @@
 import { NextResponse } from 'next/server';
 import { sendVerification, userId, unauthorized, clientIp, reserve } from '@/lib/server/auth';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -10,7 +12,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 const BASE_URL = (process.env.APP_URL || 'https://vertexhash.com').replace(/\/+$/, '');
 
 // Signed-in user asks for a fresh verification email (Settings). Every request counts, counted first in one statement.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id || id === 'demo') return unauthorized();
   if (await reserve(`m:${clientIp(req)}`)) {

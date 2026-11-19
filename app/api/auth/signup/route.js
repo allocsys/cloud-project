@@ -3,15 +3,17 @@ import { readJson } from '@/lib/server/body';
 import { signup, sendVerification, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 import { captchaOk } from '@/lib/server/captcha';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Links in emails use a fixed address, never the request's Host header. Set APP_URL once the app has its own domain.
 const BASE_URL = (process.env.APP_URL || 'https://vertexhash.com').replace(/\/+$/, '');
 
-export async function POST(req) {
+async function POST_(req) {
   const key = `s:${clientIp(req)}`;
   // Counts every sign-up from this address, so one address cannot mass-create accounts. Counted first, in one statement.
   if (await reserve(key)) {

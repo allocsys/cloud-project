@@ -2,10 +2,12 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { buyPlan } from '@/lib/server/miners';
 import { userId, unauthorized, reserveAction } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   if (id !== 'demo' && (await reserveAction(`buy:${id}`))) {

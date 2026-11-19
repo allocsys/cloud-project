@@ -2,11 +2,13 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { startDeposit } from '@/lib/server/miners';
 import { userId, unauthorized, reserveAction } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 // Starts a wallet top-up through the crypto provider: { usd }. Answers with the pending order and its payment link.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   // A person starts a few top-ups at most; a script that floods the provider with pending orders is stopped here.

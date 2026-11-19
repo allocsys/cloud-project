@@ -1,13 +1,15 @@
 import { NextResponse } from 'next/server';
 import { botDisconnect } from '@/lib/server/botlink';
 import { userId, unauthorized, reserveAction } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Settings > Disconnect: removes the Telegram bot link from the signed-in email account.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   if (await reserveAction(`k:${id}`)) {

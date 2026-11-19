@@ -2,14 +2,16 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { login, setSession, clientIp, reserve, reserveAcct, giveBack, clearFails } from '@/lib/server/auth';
 import { captchaOk } from '@/lib/server/captcha';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const tooMany = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
 const tooManyAcct = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 5 minutes.' }, { status: 429, headers: NO_STORE });
 
-export async function POST(req) {
+async function POST_(req) {
   let body;
   try {
     body = await readJson(req);

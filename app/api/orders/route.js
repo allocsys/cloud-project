@@ -1,10 +1,12 @@
 import { NextResponse } from 'next/server';
 import { getOrders } from '@/lib/server/miners';
 import { userId, unauthorized } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
 
-export async function GET(req) {
+async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const kind = new URL(req.url).searchParams.get('kind') === 'deposit' ? 'deposit' : 'plan';
