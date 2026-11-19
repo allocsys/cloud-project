@@ -148,8 +148,6 @@ export default function WalletProvider({ children }) {
         if (!a) throw new Error('no account');
         remember(true);
         return a;
-      } catch (e) {
-        throw e;
       } finally {
         try {
           modal?.closeModal();

@@ -4,7 +4,7 @@
 // EVM works in two taps: Connect wallet only connects (no payment request), then the same button becomes Send payment and asks the connected wallet for the transfer.
 // The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
 // Solana has no wallet picker in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
-// The Solana provider (@walletconnect/universal-provider) is already installed as part of the EVM one, which is built on it.
+// The Solana provider (@walletconnect/universal-provider) comes with @walletconnect/ethereum-provider, which stays in package.json only for that (the EVM connect uses the standalone client).
 import { useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
@@ -121,7 +121,7 @@ export function ConnectBtn({ order, show, onFail }) {
     const mark = () => {};
     try {
       if (evm && !w.acct) {
-        await w.connect({ chainId: evm.chainId, projectId: order.wc, mark });
+        await w.connect({ projectId: order.wc, mark });
         setBusy(false);
         return;
       }
