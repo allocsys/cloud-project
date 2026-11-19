@@ -38,6 +38,7 @@ jobs:
       DATABASE_URL: postgres://postgres:postgres@localhost:5432/vtx_test
       PRICE_FEED: static
       SESSION_SECRET: ci-session-secret-not-used-in-production
+      REQUIRE_AUTH: '0' # sign-in is required by default; many tests call routes with no session and expect the demo user
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4

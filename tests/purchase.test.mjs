@@ -82,16 +82,21 @@ after(async () => {
   await pool().end();
 });
 
-test('a session is its own account; a missing or forged one is demo, or signed out when sign-in is required', async () => {
+test('a session is its own account; a missing or forged one is signed out, or demo only with REQUIRE_AUTH=0', async () => {
   const id = await account('sess');
   const good = await auth.newSession(id);
   const bad = tamper(good);
   const req = (t) => ({ cookies: { get: (name) => (name === auth.COOKIE && t ? { value: t } : undefined) } });
 
-  await withAuthMode(undefined, async () => {
+  await withAuthMode('0', async () => {
     assert.equal(await auth.userId(req(good)), id);
     assert.equal(await auth.userId(req(null)), 'demo');
     assert.equal(await auth.userId(req(bad)), 'demo');
+  });
+  await withAuthMode(undefined, async () => {
+    assert.equal(await auth.userId(req(good)), id);
+    assert.equal(await auth.userId(req(null)), null);
+    assert.equal(await auth.userId(req(bad)), null);
   });
   await withAuthMode('1', async () => {
     assert.equal(await auth.userId(req(good)), id);

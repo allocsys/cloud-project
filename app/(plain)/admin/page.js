@@ -1712,7 +1712,7 @@ export default function Admin() {
                 {data.demo?.show === false ? 'Show the demo button' : 'Hide the demo button'}
               </button>
             </div>
-            <p className="fine" style={{ margin: '8px 0 12px' }}>Only hides the "Explore the demo first" button on the sign-in sheet, for everyone at once. A visitor with no session can still be served the demo account until REQUIRE_AUTH=1 is set on the server.</p>
+            <p className="fine" style={{ margin: '8px 0 12px' }}>Only hides the "Explore the demo first" button on the sign-in sheet, for everyone at once. A visitor with no session is served the demo account only when REQUIRE_AUTH=0 is set on the server.</p>
             <p className="fine" style={{ margin: '0 0 8px' }}>Wipes the demo account back to a clean slate: miners, activity, balance changes, withdrawals, payment orders and the invite test friends made under it. Real accounts are not touched.</p>
             <div className="adm-actions">
               <button

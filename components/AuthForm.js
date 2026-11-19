@@ -355,7 +355,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
                   : t('auth.signIn')}
       </button>
 
-      {/* Demo access. Hidden by the admin switch (Settings > Demo account). To close the demo completely also set REQUIRE_AUTH=1. */}
+      {/* Demo access. Hidden by the admin switch (Settings > Demo account). To serve the demo with no login set REQUIRE_AUTH=0. */}
       {!view && showDemo && (
         <button className="btn ghost" type="button" style={{ marginTop: '12px' }} onClick={handleSkip}>
           {t('auth.demo')}
