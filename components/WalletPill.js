@@ -62,6 +62,7 @@ export default function WalletPill({ compact = false }) {
     );
   }
   return (
+    <>
     <button type="button" className="eh-wal" disabled={w.busy} onClick={tap}>
       {icon}
       {w.acct && !ask && <i aria-hidden="true" />}
