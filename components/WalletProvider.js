@@ -249,8 +249,27 @@ export default function WalletProvider({ children }) {
     <Ctx.Provider value={value}>
       {children}
       {link && (
-        <div style={{ position: 'fixed', left: 12, right: 12, bottom: 16, zIndex: 60, display: 'flex' }}>
-          <button type="button" className="pct-btn" style={{ flex: 1 }} onClick={copy}>
+        <div
+          style={{
+            position: 'fixed',
+            left: 12,
+            right: 12,
+            bottom: 16,
+            zIndex: 60,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 10,
+            padding: 14,
+            borderRadius: 24,
+            background: 'var(--s3)',
+            border: '1px solid var(--line)',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.5)',
+          }}
+        >
+          <a className="btn" href={link}>
+            {t('wp.open')}
+          </a>
+          <button type="button" className="btn ghost" onClick={copy}>
             {copied ? '\u2713 ' : ''}
             {t('pay.copyLink')}
           </button>
