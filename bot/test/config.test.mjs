@@ -51,6 +51,9 @@ test('notification texts exist in en and fa and fill their values', () => {
   assert.equal(t('en', 'n_wdSent', { amt: '0.5 BTC' }), 'Withdrawal sent: 0.5 BTC.');
   assert.equal(t('en', 'n_vipDrop', { n: 2, date: '30 Nov' }), 'VIP 2 drops on 30 Nov.');
   assert.ok(t('fa', 'n_vipDrop', { n: 2, date: 'x' }).includes('VIP 2'));
+  assert.equal(t('en', 'n_giftTickets', { n: 3 }), '🎟 You got 3 free boost ticket(s). Start them on the Boost page.');
+  assert.equal(t('en', 'n_giftMiner', { th: 10, days: 30 }), '🎁 You got a free miner: 10 TH/s for 30 days.');
+  assert.ok(t('fa', 'n_giftTickets', { n: 3 }).includes('3') && t('fa', 'n_giftMiner', { th: 10, days: 30 }).includes('10'));
 });
 
 test('texts fall back to English and fill placeholders', () => {
