@@ -3,8 +3,10 @@ import { readJson } from '@/lib/server/body';
 import { requestReset, clientIp, reserve, giveBack } from '@/lib/server/auth';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
 import { captchaOk } from '@/lib/server/captcha';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
@@ -12,7 +14,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 // Set APP_URL (for example https://vertexhash.com) once the app has its own domain.
 const BASE_URL = (process.env.APP_URL || 'https://vertexhash.com').replace(/\/+$/, '');
 
-export async function POST(req) {
+async function POST_(req) {
   const key = `r:${clientIp(req)}`;
   // Counts every request from this address, counted first in one statement.
   if (await reserve(key)) {

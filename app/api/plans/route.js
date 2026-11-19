@@ -8,8 +8,10 @@ import { refreshPricing, pricingGross } from '@/lib/server/pricing';
 import { boostSettings } from '@/lib/server/boost';
 import { minWithdraw } from '@/lib/server/flags';
 import { BOOST, TICKETS, boostOn, shownOf } from '@/lib/boost';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
 
 // The catalogue is the same for everyone and admins can edit it, so the edge holds it only briefly.
 // `live` is the market the daily estimates are worked out from ({ gross, btc }), or null when there is none.
@@ -21,7 +23,7 @@ export const dynamic = 'force-dynamic';
 // (the day counts and pays nothing). It is fixed on the miner at purchase.
 // `minWithdraw` is the admin's smallest withdrawal in dollars (lib/server/flags.js); the wallet, dashboard, sign-up, Plans and Terms screens read it from here.
 // `boost` is the ticket table for the landing page ({ hours, tickets: [{ id, price, th, pay, prize, chance }] }), or null while boost tickets are off.
-export async function GET() {
+async function GET_() {
   const [{ live, smart }, st, guard, bcfg, minWd] = await Promise.all([getMarket(), smartSettings(), guardSettings(), boostSettings(), minWithdraw(), refreshPricing()]);
   const best = liveBest(smart);
   return NextResponse.json(

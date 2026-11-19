@@ -2,10 +2,13 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { getMiner, setRenew } from '@/lib/server/miners';
 import { userId, unauthorized } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
+export const POST = guarded(POST_);
 
-export async function GET(req, { params }) {
+async function GET_(req, { params }) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const { serial } = await params;
@@ -15,7 +18,7 @@ export async function GET(req, { params }) {
 }
 
 // { renew: true | false } turns "Renew at term end" on or off for a Smart Mining miner.
-export async function POST(req, { params }) {
+async function POST_(req, { params }) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const { serial } = await params;

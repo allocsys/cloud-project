@@ -1,14 +1,16 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { changePassword, setSession, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Change the password of the signed-in account. A wrong current password counts toward the same lockout as sign-in.
 // Counted first in one statement.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const key = `p:${id}`;

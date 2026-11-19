@@ -1,15 +1,17 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { twofaStart, twofaEnable, twofaDisable, userId, unauthorized, reserve, giveBack, clearFails } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
 // Two-factor for the signed-in account. { action: 'start' } returns a new key to add to an authenticator app,
 // { action: 'enable', code } turns it on and returns the recovery codes, { action: 'disable', password, code } turns it off.
 // Wrong codes and passwords count toward the same lockout as sign-in. Counted first in one statement.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const key = `f:${id}`;

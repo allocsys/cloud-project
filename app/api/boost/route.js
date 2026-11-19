@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { getBoosts, buyBoost } from '@/lib/server/boost';
 import { userId, unauthorized } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
+export const POST = guarded(POST_);
 
 // Per-user data: never cached by the network, the browser keeps its own stale-while-revalidate copy.
-export async function GET(req) {
+async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   return NextResponse.json(await getBoosts(id), { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
 // Body: { ticket: 't1' | 't10' | 't100' }. Same Idempotency-Key twice returns the first result instead of buying twice.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   let body;

@@ -5,8 +5,11 @@ import { llmEnabled } from '@/lib/server/assistant-llm';
 import { userId, unauthorized } from '@/lib/server/auth';
 import { answersLeft } from '@/lib/assistant-limits';
 import { LANG_COOKIE, pickLang } from '@/lib/i18n/langs';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
+export const POST = guarded(POST_);
 
 const HEADERS = { 'Cache-Control': 'private, no-store' };
 const MAX_BODY = 4000; // characters; the question itself is cut to 500 later
@@ -14,14 +17,14 @@ const MAX_BODY = 4000; // characters; the question itself is cut to 500 later
 const fail = (error, status) => NextResponse.json({ error }, { status, headers: HEADERS });
 
 // Tells the app whether to show the Ask Vertexhash button, and how many AI answers are left today.
-export async function GET(req) {
+async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   return NextResponse.json({ enabled: true, llm: llmEnabled(), left: answersLeft(id) }, { headers: HEADERS });
 }
 
 // Ask Vertexhash. Read-only: answers from the signed-in user's own data. The question is never logged or stored.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
 

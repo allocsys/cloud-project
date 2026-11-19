@@ -2,18 +2,21 @@ import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { getSettings, saveSettings } from '@/lib/server/account';
 import { userId, unauthorized } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const GET = guarded(GET_);
+export const POST = guarded(POST_);
 const NO_STORE = { 'Cache-Control': 'private, no-store' };
 
-export async function GET(req) {
+async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   return NextResponse.json(await getSettings(id), { headers: NO_STORE });
 }
 
 // Body: { alerts: { payouts?, withdrawals?, news? } } with true/false values. Answers with the saved settings.
-export async function POST(req) {
+async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   let body = null;

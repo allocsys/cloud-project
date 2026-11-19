@@ -1,12 +1,14 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { telegramLogin, setSession, clientIp, reserve, giveBack } from '@/lib/server/auth';
+import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
+export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 
-export async function POST(req) {
+async function POST_(req) {
   const key = `t:${clientIp(req)}`;
   // Counted first, in one statement; only a failed verification (401) keeps its count.
   if (await reserve(key)) {
