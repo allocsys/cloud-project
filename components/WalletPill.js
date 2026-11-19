@@ -38,7 +38,9 @@ export default function WalletPill({ compact = false }) {
     try {
       await w.connect();
     } catch (e) {
-      setErr(String(e?.message || e || 'unknown error'));
+      const message = String(e?.message || e || 'unknown error');
+      setErr(message);
+      fetch('/api/debug/client-error', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message }), keepalive: true }).catch(() => {});
     }
   };
   const icon = w.busy ? (
