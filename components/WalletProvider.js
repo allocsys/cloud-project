@@ -28,6 +28,23 @@ const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
 // Telegram's in-app browser blocks a page that navigates to a wc: link (net::ERR_UNKNOWN_URL_SCHEME), so there WalletConnect's wallet picker (https links) is used instead.
 const inTelegram = () => /Telegram/i.test(navigator.userAgent || '') || !!window.TelegramWebviewProxy;
 
+// In a Telegram Mini App a window.open to SafePal opens the app home without the request, so only SafePal links go through Telegram's own openLink (app link mapped to its https link). Every other wallet keeps window.open.
+const SAFEPAL = /^(safepalwallet:\/\/|https:\/\/link\.safepal\.io\/)/i;
+function routeSafepal() {
+  const real = window.open;
+  const wa = window.Telegram && window.Telegram.WebApp;
+  if (!wa || typeof wa.openLink !== 'function') return () => {};
+  window.open = (href, ...rest) => {
+    const url = String(href || '');
+    if (!SAFEPAL.test(url)) return real.call(window, href, ...rest);
+    wa.openLink(url.replace(/^safepalwallet:\/\//i, 'https://link.safepal.io/'));
+    return null;
+  };
+  return () => {
+    window.open = real;
+  };
+}
+
 async function initClient(projectId) {
   const { SignClient } = await import('@walletconnect/sign-client');
   return SignClient.init({ projectId, metadata: meta() });
@@ -116,6 +133,7 @@ export default function WalletProvider({ children }) {
       if (!id) throw new Error('no project id');
       setBusy(true);
       let modal = null;
+      let undo = () => {};
       try {
         mark('loading');
         const client = await getClient(id);
@@ -133,6 +151,7 @@ export default function WalletProvider({ children }) {
           if (tg) {
             // Telegram: WalletConnect's wallet picker opens the wallet with https links, which Telegram allows.
             const { WalletConnectModal } = await import('@walletconnect/modal');
+            undo = routeSafepal();
             modal = new WalletConnectModal({ projectId: id, chains: WC_CHAINS.map((c) => `eip155:${c}`) });
             modal.openModal({ uri }).catch(() => {});
           } else window.location.href = uri;
@@ -149,6 +168,7 @@ export default function WalletProvider({ children }) {
         remember(true);
         return a;
       } finally {
+        undo();
         try {
           modal?.closeModal();
         } catch {}
