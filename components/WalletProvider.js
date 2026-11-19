@@ -37,8 +37,6 @@ export default function WalletProvider({ children }) {
   const { data: cfg } = useApi('/api/wc', { ttl: 3600000 });
   const pid = cfg?.id || '';
   const live = useRef(null); // the connected provider
-  const restoring = useRef(null); // the reload pick-up of a saved session, while it runs: connect() waits for it
-  const connecting = useRef(null); // the connect in progress: a second call joins it
   const pending = useRef(null); // the transfer request the wallet has not answered yet: { sig, req, late }
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
@@ -71,7 +69,7 @@ export default function WalletProvider({ children }) {
     } catch {}
     if (!flag) return undefined;
     let off = false;
-    const run = (async () => {
+    (async () => {
       try {
         const p = await initProvider(pid);
         if (off || live.current) return;
@@ -79,20 +77,14 @@ export default function WalletProvider({ children }) {
         else remember(false);
       } catch {}
     })();
-    restoring.current = run;
-    run.then(() => {
-      if (restoring.current === run) restoring.current = null;
-    });
     return () => {
       off = true;
     };
   }, [pid, attach]);
 
   // Step 1: connect (no payment request). `projectId` is the order's own id, used when the config has not arrived yet.
-  const connectNow = useCallback(
+  const connect = useCallback(
     async ({ chainId: want, projectId, mark = () => {} } = {}) => {
-      // A saved session being picked up right now is the same wallet library: let it finish first, so it is not started twice.
-      if (restoring.current) await restoring.current;
       if (live.current?.accounts?.[0]) return live.current.accounts[0];
       const id = pid || projectId;
       if (!id) throw new Error('no project id');
@@ -132,19 +124,6 @@ export default function WalletProvider({ children }) {
       }
     },
     [pid, attach]
-  );
-  const connect = useCallback(
-    (opts = {}) => {
-      if (connecting.current) return connecting.current;
-      const run = connectNow(opts);
-      connecting.current = run;
-      const done = () => {
-        if (connecting.current === run) connecting.current = null;
-      };
-      run.then(done, done);
-      return run;
-    },
-    [connectNow]
   );
 
   const disconnect = useCallback(async () => {
