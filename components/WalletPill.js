@@ -13,6 +13,7 @@ export default function WalletPill({ compact = false }) {
   const t = useT();
   const w = useWallet();
   const [ask, setAsk] = useState(false);
+  const [err, setErr] = useState('');
   useEffect(() => {
     if (!ask) return undefined;
     const id = setTimeout(() => setAsk(false), 3000);
@@ -33,9 +34,12 @@ export default function WalletPill({ compact = false }) {
       w.disconnect();
       return;
     }
+    setErr('');
     try {
       await w.connect();
-    } catch {}
+    } catch (e) {
+      setErr(String(e?.message || e || 'unknown error'));
+    }
   };
   const icon = w.busy ? (
     <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -63,5 +67,7 @@ export default function WalletPill({ compact = false }) {
       {w.acct && !ask && <i aria-hidden="true" />}
       <span>{label}</span>
     </button>
+    {err && <div style={{ fontSize: 12, color: '#e5484d', marginTop: 4 }}>{err}</div>}
+    </>
   );
 }
