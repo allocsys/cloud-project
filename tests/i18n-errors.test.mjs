@@ -24,3 +24,7 @@ test('an unknown message, or one without a translation yet, stays English', () =
   assert.equal(translateError('fa', 'Something nobody wrote down.'), 'Something nobody wrote down.');
   assert.equal(translateError('fa', 'Unknown ticket.'), LANGS.fa.messages['err.ticketUnknown'] || 'Unknown ticket.');
 });
+
+test('the busy-server message is translated', () => {
+  assert.equal(translateError('fa', 'Busy right now. Try again in a few seconds.'), LANGS.fa.messages['err.busy']);
+});
