@@ -7,6 +7,13 @@ import { useApi } from '@/lib/api';
 import { WC_CHAINS } from '@/lib/wc-tx';
 
 const FLAG = 'vtx-wc';
+
+// Debug: send one stage line to the server log (see /api/debug/client-error).
+const dbg = (text) => {
+  try {
+    fetch('/api/debug/client-error', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ message: `stage: ${text}` }), keepalive: true }).catch(() => {});
+  } catch {}
+};
 const Ctx = createContext(null);
 
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
@@ -94,13 +101,26 @@ export default function WalletProvider({ children }) {
         mark('loading');
         const p = await initProvider(id);
         mark('init');
+        dbg('init ok');
+        p.on('display_uri', () => dbg('uri shown'));
+        p.on('connect', () => dbg('connect event'));
+        p.on('session_delete', () => dbg('session deleted by wallet'));
+        p.on('disconnect', () => dbg('disconnect event'));
         // A session left from before could be on another chain or account: always start clean.
         if (p.session) await p.disconnect().catch(() => {});
         try {
           mark('connecting');
-          await p.connect();
+          let timer;
+          await Promise.race([
+            p.connect(),
+            new Promise((_, rej) => {
+              timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
+            }),
+          ]).finally(() => clearTimeout(timer));
+          dbg('connect resolved');
           if (!p.accounts?.[0]) throw new Error('no account');
         } catch (e) {
+          dbg(`connect failed: ${e?.message || e}`);
           p.disconnect().catch(() => {});
           throw e;
         }
