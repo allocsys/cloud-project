@@ -43,6 +43,9 @@ test('notification texts exist in en and fa and fill their values', () => {
   for (const k of ['n_depPaid', 'n_wdSent', 'n_vipDrop']) {
     assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   }
+  // Persian for these two waits for the owner's approval: English only for now (fa falls back to en)
+  assert.equal(t('en', 'n_friendJoined'), '🎉 Your invited friend has joined!');
+  assert.equal(t('en', 'n_gift'), '🎁 You have a gift waiting in the bot.');
   assert.equal(t('en', 'n_depPaid', { usd: '50.00' }), 'Deposit received: $50.00.');
   assert.equal(t('fa', 'n_depPaid', { usd: '50.00' }), 'واریز شد: $50.00.');
   assert.equal(t('en', 'n_wdSent', { amt: '0.5 BTC' }), 'Withdrawal sent: 0.5 BTC.');
