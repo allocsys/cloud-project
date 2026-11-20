@@ -594,6 +594,7 @@ export default function Wallet() {
                     </button>
                   ))}
                 </div>
+                <p className="fine winfo">{t('wal.hint', { min: minText, fee: asset === 'btc' ? t('wal.feeFlat', { flat: flatFee, sym: A.sym }) : t('wal.feeSwap', { n: SWAP_FEE_PCT, flat: flatFee, sym: A.sym }) })}</p>
 
                 <button className="btn" type="button" onClick={wNext} disabled={!ready}>{t('dep.pickCoin')}</button>
                 </div>
