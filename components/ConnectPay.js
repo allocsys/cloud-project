@@ -72,7 +72,8 @@ export function connectKind(order, w) {
 }
 
 // `onFail(auto)`: auto is always false now (the wallet connection is shared with the header pill, so the person decides what to do next).
-export function ConnectBtn({ order, show, onFail }) {
+// `big` draws the full-width button of the deposit flow; `payLabel` and `connectLabel` replace the texts of its two taps.
+export function ConnectBtn({ order, show, onFail, big = false, payLabel = '', connectLabel = '' }) {
   const t = useT();
   const w = useWallet();
   const [busy, setBusy] = useState(false);
@@ -139,16 +140,16 @@ export function ConnectBtn({ order, show, onFail }) {
   const working = busy || (own && w.busy);
   if (key && (sentFor === key || wasSent(key))) {
     return (
-      <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled>
+      <button type="button" className={big ? 'btn' : 'pct-btn'} style={big ? undefined : { padding: '0 12px' }} disabled>
         <Spin />
         {t('pay.sentBtn')}
       </button>
     );
   }
   return (
-    <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={working} onClick={go}>
+    <button type="button" className={big ? 'btn' : 'pct-btn'} style={big ? undefined : { padding: '0 12px' }} disabled={working} onClick={go}>
       {working && <Spin />}
-      {acct ? `${t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
+      {acct ? `${payLabel || t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : connectLabel || t('pay.connect')}
     </button>
   );
 }
