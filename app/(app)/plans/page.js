@@ -47,7 +47,7 @@ export default function Plans() {
   const { data: md, refresh } = useApi('/api/miners', { ttl: 10000 });
   const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
   const { data: pd } = useApi('/api/prices', { ttl: 30000 });
-  const { data: ord, refresh: refreshOrders } = useApi('/api/orders', { ttl: 10000 });
+  const { data: ord, refresh: refreshOrders, quiet: quietOrders } = useApi('/api/orders', { ttl: 10000 });
   const hallMap = cat ? cat.halls : halls;
   // What a plan is expected to pay per day at today's market (the catalogue's static label until the server answers).
   const dailyOf = (p) => {
@@ -232,7 +232,7 @@ export default function Plans() {
   const seen = useRef(new Set());
   useEffect(() => {
     if (!pending.length) return undefined;
-    return everyVisible(() => refreshOrders().catch(() => {}), 5000);
+    return everyVisible(() => quietOrders().catch(() => {}), 5000);
   }, [pending.length]);
   useEffect(() => {
     if (!ord) return;
