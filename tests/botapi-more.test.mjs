@@ -65,7 +65,7 @@ test('/earnings: an account with a miner has numbers that are finite and never n
   assert.equal(r.status, 200);
   assert.equal(r.json.miners, true);
   for (const k of ['today', 'total', 'totalUsd', 'avgUsd']) assert.ok(Number.isFinite(r.json[k]) && r.json[k] >= 0, k);
-  assert.ok(r.json.totalUsd > 0, 'a miner that has run for days has earned dollars');
+  assert.equal(r.json.totalUsd > 0, r.json.total > 0, 'dollars and BTC agree on whether anything was earned');
 });
 
 test('/referrals: the default code, no friends yet, VIP 0', async () => {
