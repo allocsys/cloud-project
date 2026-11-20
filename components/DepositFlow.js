@@ -226,6 +226,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               <p className="fine" role="status" style={{ margin: '0 0 6px' }}>{dt('dep.checking')}</p>
             ) : (
               <div className="dfcol">
+                {!connected && <CoinPicker only={env === 'tg' ? TG_COINS : EVM_COINS} skipNets={env === 'tg' ? TG_SKIP : EVM_SKIP} value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />}
                 {connected && <p className="fine" style={{ margin: 0 }}>{`${dt('dep.connected')} \u00b7 ${short}`}</p>}
                 {connected || env !== 'pwa' ? (
                   <ConnectBtn big order={order} show={show} onFail={() => {}} payLabel={dt('dep.pay', { n: `$${formatUsd(order.usd)}` })} />
