@@ -20,7 +20,7 @@ import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 import { fill, useLang } from '@/components/I18nProvider';
 import { pagePath } from '@/lib/i18n/codes';
-import { CoinSelect, PayInfo } from '@/components/PayCoin';
+import { CoinChips, PayInfo } from '@/components/PayCoin';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -517,6 +517,13 @@ export default function Plans() {
                 <b className="v" style={canBal ? undefined : { color: 'var(--red, #ff8a80)' }}>${fmtUsd(sheetBal)}</b>
               </div>
             </div>
+            {ready && !canBal && (
+              <p className="fine" style={{ margin: '-4px 0 0' }}>
+                {!crypto
+                  ? t('plans.noBalance')
+                  : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
+              </p>
+            )}
             <FineFold plain label={t('pay.more')}>
             <div className="sheetbody">
               <div className="row">
@@ -541,17 +548,10 @@ export default function Plans() {
               {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href={pagePath('/refunds', lang)}>{t('refund.more')}</Link>
             </p>
             </FineFold>
-            {ready && !canBal && (
-              <p className="fine" style={{ margin: '-4px 0 0' }}>
-                {!crypto
-                  ? t('plans.noBalance')
-                  : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
-              </p>
-            )}
             </div>
             <div className="sheetfoot">
             {ready && ord?.multi && methods.includes('crypto') && (coinOpen || !canBal) && (
-              <CoinSelect value={coin} onChange={setCoin} disabled={busy} />
+              <CoinChips value={coin} onChange={setCoin} disabled={busy} />
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>

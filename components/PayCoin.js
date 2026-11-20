@@ -71,6 +71,35 @@ export function CoinSelect({ value, onChange, disabled = false }) {
   );
 }
 
+// Compact coin chips for the plan sheet: each chip is only as wide as its text. A coin on more than one network shows a second row of network chips.
+export function CoinChips({ value, onChange, disabled = false }) {
+  const t = useT();
+  const a = PAY_ASSETS[value.asset];
+  const pick = (next) => {
+    triggerHaptic('selection');
+    onChange(next);
+  };
+  const chip = { height: 32, minWidth: 0, padding: '0 12px' };
+  return (
+    <div role="group" aria-label={t('wal.coin')} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center' }}>
+      {Object.entries(PAY_ASSETS).map(([id, c]) => (
+        <button key={id} type="button" className="pct-btn" style={chip} aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: c.nets[0] })}>
+          {c.sym}
+        </button>
+      ))}
+      {a.nets.length > 1 && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, justifyContent: 'center', width: '100%' }}>
+          {a.nets.map((n) => (
+            <button key={n} type="button" className="pct-btn" style={chip} aria-pressed={value.net === n} disabled={disabled} onClick={() => n !== value.net && pick({ asset: value.asset, net: n })}>
+              {PAY_NETS[n]}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 function copyText(text) {
   triggerHaptic('success');
   try {
