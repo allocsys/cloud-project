@@ -9,6 +9,13 @@ test('TON link becomes a transfer', () => {
   assert.deepEqual(tonTx(`ton://transfer/${TO}?amount=1500000000`), { to: TO, amount: '1500000000' });
 });
 
+test('a token (USDT) link is never read as TON', () => {
+  const master = 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs';
+  assert.equal(tonTx(`ton://transfer/${TO}?jetton=${master}&amount=2500000`), null);
+  assert.equal(tonTx(`ton://transfer/${TO}?amount=2500000&jetton=${master}`), null);
+  assert.equal(tonTx(`ton://transfer/${TO}?amount=2500000&jetton=`), null);
+});
+
 test('anything else gives null', () => {
   assert.equal(tonTx(TO), null);
   assert.equal(tonTx(''), null);
