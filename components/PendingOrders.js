@@ -14,12 +14,12 @@ const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.r
 
 // Open plan invoices (kind plan is the default of /api/orders). Checks again every 5 seconds while one is open and `poll` is on.
 function useOpenOrders(poll) {
-  const { data, refresh } = useApi('/api/orders', { ttl: 10000 });
+  const { data, refresh, quiet } = useApi('/api/orders', { ttl: 10000 });
   const open = (data?.orders || []).filter((o) => o.status === 'pending' && o.address);
   const n = open.length;
   useEffect(() => {
     if (!n || !poll) return undefined;
-    return everyVisible(() => refresh().catch(() => {}), 5000);
+    return everyVisible(() => quiet().catch(() => {}), 5000);
   }, [n, poll]);
   return { open, refresh, multi: !!data?.multi };
 }
