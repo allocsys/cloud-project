@@ -237,9 +237,10 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
         {screen === 'manual' && order && (
           <div>
             <CoinPicker value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />
-            <PayInfo order={order} show={show} />
+            <PayInfo order={order} show={show} slim />
             <div className="dfcol" style={{ marginTop: 10 }}>
               <button type="button" className="btn ghost" onClick={() => { copyText(order.address); show(dt('wal.copied')); }}>{dt('wal.copy')}</button>
+              <button type="button" className="btn ghost" onClick={() => { copyText(String(order.amount)); show(dt('wal.copied')); }}>{dt('pay.copyAmt')}</button>
               <button type="button" className="btn ghost" onClick={() => leave(order.id)}>{dt('wal.depCancel')}</button>
             </div>
           </div>
