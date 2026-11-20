@@ -28,6 +28,8 @@ function Switch({ on, onChange, label }) {
   );
 }
 
+import { SkCard, useWaiting } from '@/components/Skeleton';
+
 export default function Settings() {
   const router = useRouter();
   const t = useT();
@@ -37,6 +39,7 @@ export default function Settings() {
   const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
   const { data: me, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
+  const waitMe = useWaiting(!me);
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
   const [pwOpen, setPwOpen] = useState(false);
@@ -477,6 +480,19 @@ export default function Settings() {
     triggerHaptic('medium');
     await signOut();
     window.location.assign('/'); // a fresh load, so the home page shows the signed-out version
+  }
+
+  if (waitMe) {
+    return (
+      <>
+        <PageHead title={t('nav.settings')} icon="settings" />
+        <div className="grid wal" style={{ alignItems: 'start' }}>
+          <SkCard lines={4} heading={false} />
+          <SkCard lines={3} />
+          <SkCard lines={2} />
+        </div>
+      </>
+    );
   }
 
   return (
