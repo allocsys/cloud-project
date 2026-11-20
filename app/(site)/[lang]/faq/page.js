@@ -3,7 +3,7 @@ import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { faqAnswer, faqList, faqVars } from '@/lib/faq';
 import { faqTr } from '@/lib/i18n/faq';
-import { minDeposit, minWithdraw } from '@/lib/server/flags';
+import { siteData } from '@/lib/site-api';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 const h3 = { fontSize: '14.5px', margin: '14px 0 4px' };
@@ -32,7 +32,7 @@ export default async function Faq({ params }) {
   const t = tForLang(lang);
   const en = new Map(faqList().map((e) => [e.id, e.q]));
   // The live minimum deposit and withdrawal; if they cannot be read the answers fall back to the built-in numbers.
-  const ctx = await Promise.all([minDeposit(), minWithdraw()]).then(([d, w]) => ({ minDeposit: d, minWithdraw: w }), () => ({}));
+  const ctx = await siteData('/api/site/flags', {}, { revalidate: 60 });
 
   const groups = GROUPS.map((g) => ({
     h: t(g.h),
