@@ -224,7 +224,6 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
                 ) : null}
                 {!connected && env !== 'site' && openBtn}
                 {!connected && env !== 'tg' && scanBtn}
-                {connected && null}
                 <button type="button" style={linkBtn} onClick={() => setManual(true)}>{dt('dep.manual')}</button>
               </div>
             )}
