@@ -177,9 +177,16 @@ function Actions({ order, show, onCancel }) {
     copyText(order.address);
     show(t('pay.noWallet'));
   }
-  const copy = (text) => {
+  // The tapped button says Copied for a moment, instead of a toast.
+  const [copied, setCopied] = useState(null); // 'addr', 'amt' or null
+  const timer = useRef(null);
+  useEffect(() => () => clearTimeout(timer.current), []);
+  const copy = (which, text) => {
     copyText(text);
-    show(t('wal.copied'));
+    triggerHaptic('success');
+    setCopied(which);
+    clearTimeout(timer.current);
+    timer.current = setTimeout(() => setCopied(null), 1600);
   };
   return (
     <>
@@ -191,8 +198,8 @@ function Actions({ order, show, onCancel }) {
         </button>
       )}
       <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" className="btn ghost" style={{ flex: 1 }} onClick={() => copy(order.address)}>{t('pay.copyAddr')}</button>
-        <button type="button" className="btn ghost" style={{ flex: 1 }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
+        <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('addr', order.address)}>{copied === 'addr' ? t('ref.copied') : t('pay.copyAddr')}</button>
+        <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('amt', String(order.amount))}>{copied === 'amt' ? t('ref.copied') : t('pay.copyAmt')}</button>
       </div>
       <button type="button" className="linkbtn" style={{ alignSelf: 'center', color: 'var(--red)' }} onClick={onCancel}>{t('pay.cancelOrder')}</button>
     </>
