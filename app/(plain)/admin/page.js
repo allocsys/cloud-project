@@ -1684,7 +1684,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['deposits', 'Deposits', stats.depositsReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['refunds', 'Refunds', stats.refundsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users', stats.kycPending], ['orders', 'Orders', counts.orders?.open], ['deposits', 'Deposits', counts.deposits?.open], ['withdrawals', 'Withdrawals', counts.withdrawals?.open], ['refunds', 'Refunds', counts.refunds?.open], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
