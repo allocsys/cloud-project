@@ -727,15 +727,12 @@ export default function Settings() {
                 </div>
                 {me.botLinked ? (
                   <button className="btn ghost" type="button" disabled={blBusy} onClick={disconnectBot}>{t('set.botOff')}</button>
+                ) : bl ? (
+                  <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>{t('set.botOpen')}</a>
                 ) : (
                   <button className="btn ghost" type="button" disabled={blBusy} onClick={connectBot}>{t('set.botConnect')}</button>
                 )}
               </div>
-              {bl && !me.botLinked && (
-                <div style={{ paddingBottom: '8px' }}>
-                  <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>{t('set.botOpen')}</a>
-                </div>
-              )}
             </>
           )}
           {me && !me.demo && (
