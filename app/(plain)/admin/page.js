@@ -1435,7 +1435,7 @@ export default function Admin() {
   const [bmsg, setBmsg] = useState(null); // bulk message form: null or { title, body }
   const [btk, setBtk] = useState(null); // bulk tickets form: null or the count as text
   // Downloads the users now shown (search and filter apply) as a CSV file. Text cells that start with = + - @ get a leading quote so a spreadsheet never runs them.
-  const exportUsers = () => {
+  const exportUsers = async () => {
     const cell = (v) => {
       let s = v == null ? '' : String(v);
       if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`;
@@ -1443,7 +1443,20 @@ export default function Admin() {
     };
     const iso = (t) => (t ? new Date(t).toISOString() : '');
     const head = ['id', 'telegram', 'joined', 'last sign-in', 'available BTC', 'deposited BTC', 'earned BTC', 'withdrawn BTC', 'miners', 'KYC', 'blocked', 'withdrawals paused', 'invited by', 'friends invited', 'flags'];
-    const rows = shownUsers.map((u) => [u.id, u.tg || '', iso(u.joined), iso(u.lastIn), u.available.toFixed(8), u.deposited.toFixed(8), u.earned.toFixed(8), u.withdrawn.toFixed(8), u.miners.length, u.kyc.status, u.blocked ? iso(u.blocked) : '', u.frozen ? iso(u.frozen) : '', u.refBy || '', u.invited, u.flags.join('; ')]);
+    // Every user that matches, read in pages of 200 (not only the ones on screen).
+    const all = [];
+    try {
+      for (let offset = 0; ; offset += 200) {
+        const r = await call('GET', `/api/admin?list=users&filter=${ufil}&sort=${usort}&q=${encodeURIComponent(uqd)}&offset=${offset}&limit=200`);
+        if (!r.ok) throw new Error(r.error || 'Cannot load the users.');
+        all.push(...r.rows);
+        if (all.length >= r.shown || !r.rows.length) break;
+      }
+    } catch (e) {
+      show(e.message || 'Cannot load the users.');
+      return;
+    }
+    const rows = all.map((u) => [u.id, u.tg || '', iso(u.joined), iso(u.lastIn), u.available.toFixed(8), u.deposited.toFixed(8), u.earned.toFixed(8), u.withdrawn.toFixed(8), u.miners.length, u.kyc.status, u.blocked ? iso(u.blocked) : '', u.frozen ? iso(u.frozen) : '', u.refBy || '', u.invited, u.flags.join('; ')]);
     const blob = new Blob([[head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')], { type: 'text/csv' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
@@ -1454,11 +1467,16 @@ export default function Admin() {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const [openU, setOpenU] = useState(null); // the user card that is open
+  const [uqd, setUqd] = useState(''); // the search text, after a short pause in typing
+  const [hist, setHist] = useState({ id: null, rows: null }); // activity rows of the user whose history is open
+  const [toRows, setToRows] = useState([]); // recipients found on the Send tab
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders, Withdrawals and Refunds
   const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
   const lo = useAdminList('/api/admin', 'orders', flt, tab === 'orders', lv);
   const lw = useAdminList('/api/admin', 'withdrawals', flt, tab === 'withdrawals', lv);
   const lr = useAdminList('/api/admin', 'refunds', flt, tab === 'refunds', lv);
+  const lu = useAdminList('/api/admin', 'users', ufil, tab === 'users', lv, `sort=${usort}&q=${encodeURIComponent(uqd)}`);
+  const shownUsers = lu.rows;
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -1482,6 +1500,39 @@ export default function Admin() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // The search waits for a short pause in typing before it asks the server.
+  useEffect(() => {
+    const t = setTimeout(() => setUqd(uq.trim()), 300);
+    return () => clearTimeout(t);
+  }, [uq]);
+
+  // The activity rows of the open user are read when History is opened, and again after every reload.
+  useEffect(() => {
+    if (!uhist || state !== 'ready') return undefined;
+    let dead = false;
+    call('GET', `/api/admin?history=${encodeURIComponent(uhist)}`)
+      .then((r) => !dead && setHist({ id: uhist, rows: r.ok ? r.history : [] }))
+      .catch(() => {});
+    return () => {
+      dead = true;
+    };
+  }, [uhist, state, lv]);
+
+  // The recipient list on the Send tab: the first 50 users that match the text.
+  useEffect(() => {
+    if (tab !== 'send' || state !== 'ready') return undefined;
+    let dead = false;
+    const t = setTimeout(() => {
+      call('GET', `/api/admin?list=users&filter=all&sort=new&limit=50&q=${encodeURIComponent(toq.trim())}`)
+        .then((r) => !dead && r.ok && setToRows(r.rows))
+        .catch(() => {});
+    }, 300);
+    return () => {
+      dead = true;
+      clearTimeout(t);
+    };
+  }, [tab, state, toq, lv]);
 
   // The payment gateway, read once the screen is ready: the Gateway tab badge and the Overview alert come from it.
   // Overview stays hidden for up to 1.5 s while the first answer is on its way, so nothing shifts when it arrives.
@@ -1584,30 +1635,17 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, counts = {}, log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
+  const { stats, counts = {}, log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
-  const toNeedle = toq.trim().toLowerCase();
-  const toList = users.filter((u) => !toNeedle || u.id === to || `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(toNeedle)).slice(0, 50);
+  const toList = to === 'all' || toRows.some((u) => u.id === to) ? toRows : [{ id: to }, ...toRows]; // the chosen user stays in the list
   // Gateway items that need a person: unmatched payments to return and callbacks that keep failing.
   const gwUn = gw?.ok ? gw.unmatched.total : 0;
   const gwFail = gw?.ok ? gw.callbacks.failing : 0;
   const gwN = gwUn + gwFail;
   const gwText = [gwUn > 0 && `${gwUn} unmatched payment${gwUn === 1 ? '' : 's'}`, gwFail > 0 && `${gwFail} failing callback${gwFail === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
   // Miners per ASIC hall (Smart Mining miners have no hall of their own).
-  const hallStat = {};
-  users.forEach((u) => u.miners.forEach((m) => {
-    if (!m.hall) return;
-    const s = (hallStat[m.hall] = hallStat[m.hall] || { n: 0, on: 0 });
-    s.n += 1;
-    if (m.online) s.on += 1;
-  }));
+  const hallStat = data.hallStat || {};
   const hallLine = (id) => (hallStat[id] ? `${hallStat[id].on}/${hallStat[id].n} miners online` : 'No miners');
-  const needle = uq.trim().toLowerCase();
-  const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
-  const kycRank = (u) => (u.kyc.status === 'pending' ? 2 : u.kyc.status === 'verified' ? 1 : 0);
-  const USORT = { new: (a, b) => (b.joined || 0) - (a.joined || 0), bal: (a, b) => b.available - a.available, miners: (a, b) => b.miners.length - a.miners.length, seen: (a, b) => (b.lastIn || 0) - (a.lastIn || 0), kyc: (a, b) => kycRank(b) - kycRank(a) };
-  const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0, flag: (u) => u.flags.length > 0 };
-  const shownUsers = [...found].filter(UFIL[ufil] || UFIL.all).sort(USORT[usort] || USORT.new);
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
   const rrOpen = (r) => r.status === 'pending';
   const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
@@ -1744,7 +1782,7 @@ export default function Admin() {
               </button>
             </div>
           </Fold>
-          <ReviewsCard reviews={data.reviews} users={data.users} reviewUrl={data.reviewUrl} busy={busy} run={run} />
+          <ReviewsCard reviews={data.reviews} users={data.rated} reviewUrl={data.reviewUrl} busy={busy} run={run} />
           <FarmCard farm={data.farm} busy={busy} run={run} />
           <ReviewersCard list={data.reviewers} busy={busy} run={run} />
           <Fold title="Admin password" sub="Change the sign-in password">
@@ -1825,7 +1863,7 @@ export default function Admin() {
           </div>
           {shownUsers.length > 0 && (
             <div className="adm-tool">
-              <span className="mute">{shownUsers.length} user{shownUsers.length === 1 ? '' : 's'}</span>
+              <span className="mute">{lu.shown} user{lu.shown === 1 ? '' : 's'}</span>
               <div className="adm-btns">
                 <button className="swap" style={SM} onClick={exportUsers}>Export CSV</button>
                 <button className="swap" style={SM} onClick={() => { setUsm((v) => !v); setUsel([]); setBmsg(null); setBtk(null); }}>{usm ? 'Done' : 'Select'}</button>
@@ -1834,9 +1872,9 @@ export default function Admin() {
           )}
           {usm && (
             <div className="card adm-form">
-              <div className="row"><span className="mute">Picked</span><b>{usel.length} of {shownUsers.length}</b></div>
+              <div className="row"><span className="mute">Picked</span><b>{usel.length} of {lu.shown}</b></div>
               <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
-                <button className="swap" style={SM} onClick={() => setUsel(shownUsers.map((x) => x.id))}>All shown</button>
+                <button className="swap" style={SM} onClick={() => setUsel(shownUsers.map((x) => x.id))}>All loaded</button>
                 <button className="swap" style={SM} onClick={() => setUsel([])}>None</button>
               </div>
               <div className="adm-actions" style={{ flexWrap: 'wrap' }}>
@@ -1867,7 +1905,8 @@ export default function Admin() {
               )}
             </div>
           )}
-          {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
+          {!lu.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lu.ready && !lu.err && shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
           {shownUsers.map((u) => (
             <div className="card adm-fold" data-open={openU === u.id && !usm} key={u.id} style={usm && usel.includes(u.id) ? { outline: '2px solid var(--gold)' } : undefined}>
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => (usm ? setUsel((s) => (s.includes(u.id) ? s.filter((x) => x !== u.id) : [...s, u.id])) : setOpenU(openU === u.id ? null : u.id))}>
@@ -1939,14 +1978,15 @@ export default function Admin() {
               ) : (
                 <div className="adm-grid two">
                   <button className="swap" style={SM} disabled={busy} onClick={() => setAdj({ ...ADJ0, id: u.id })}>Change balance</button>
-                  {u.id !== 'demo' && <button className="swap" style={SM} onClick={() => setUhist(uhist === u.id ? null : u.id)}>{uhist === u.id ? 'Hide history' : `Show history · ${u.history.length}`}</button>}
+                  {u.id !== 'demo' && <button className="swap" style={SM} onClick={() => setUhist(uhist === u.id ? null : u.id)}>{uhist === u.id ? 'Hide history' : `Show history · ${u.historyN}`}</button>}
                 </div>
               )}
 
               {u.id !== 'demo' && (
                 <>
-                  {uhist === u.id && u.history.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
-                  {uhist === u.id && u.history.map((h, i) => (
+                  {uhist === u.id && hist.id !== u.id && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
+                  {uhist === u.id && hist.id === u.id && hist.rows?.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
+                  {uhist === u.id && hist.id === u.id && (hist.rows || []).map((h, i) => (
                     <div className="row adm-m" key={`${h.at}-${i}`}>
                       <div>{h.label || h.kind}<small>{when(h.at) || h.date}{h.status ? ` · ${h.status}` : ''}</small></div>
                       <b>{h.amount ? `${h.amount} ${h.coin}` : ''}</b>
@@ -2134,6 +2174,7 @@ export default function Admin() {
               )}
             </div>
           ))}
+          <ListMore l={lu} />
         </div>
       )}
 
@@ -2453,7 +2494,7 @@ export default function Admin() {
             className="btn"
             disabled={sendDisabled}
             onClick={async () => {
-              if (to === 'all' && !(await ask(`Send this to all ${users.length} users? It cannot be undone.`, { ok: 'Send to all', danger: true }))) return;
+              if (to === 'all' && !(await ask(`Send this to all ${stats.users} users? It cannot be undone.`, { ok: 'Send to all', danger: true }))) return;
               if (await run({ action: 'notify', userId: to, title, body: msg }, (x) => (x.queued ? `Queued for ${x.queued} users` : 'Sent'))) {
                 tnLoad();
                 setTitle('');
