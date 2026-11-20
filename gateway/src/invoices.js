@@ -143,14 +143,14 @@ export async function createInvoice(input) {
     const address = p.chain.address(index);
     let amount = expected;
     if (shared) {
-      // One address for everyone: pick an amount no other open or recent invoice on this address and asset expects.
+      // One address for everyone: pick an amount no other open invoice, or one that ended less than ADDRESS_REUSE_HOURS ago, expects.
       await c.query('SELECT pg_advisory_xact_lock(hashtext($1))', [`alloc:${p.network}:${p.asset}:${address}`]);
       const rows = (
         await c.query(
           `SELECT expected_atomic::text AS a FROM invoices
            WHERE network = $1 AND asset = $2 AND address = $3 AND expected_atomic IS NOT NULL
-             AND (status IN ('pending', 'confirming', 'partial') OR created_at > now() - interval '14 days')`,
-          [p.network, p.asset, address],
+             AND (status IN ('pending', 'confirming', 'partial') OR expires_at > now() - ($4::int * interval '1 hour'))`,
+          [p.network, p.asset, address, ADDRESS_REUSE_HOURS],
         )
       ).rows;
       const rule = quantumRule(p.asset);
