@@ -128,6 +128,8 @@ function UnitSwitch({ sym, unit, onUnit }) {
   );
 }
 
+import { SkRows } from '@/components/Skeleton';
+
 export default function Wallet() {
   const { t, lang } = useLang();
   // The live ticker runs at the rate of the user's own online miners (none online means no ticks), the same as the
@@ -833,7 +835,7 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && <p className="empty">{ready && sameFilter ? t('wal.nothing') : t('wal.loading')}</p>}
+            {open && shown.length === 0 && (ready && sameFilter ? <p className="empty">{t('wal.nothing')}</p> : <SkRows n={3} />)}
             {open && wd && sameFilter && history.length < (wd.historyTotal ?? 0) && (
               <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
             )}
