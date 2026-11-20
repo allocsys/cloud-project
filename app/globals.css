@@ -436,6 +436,7 @@ input::placeholder { color: var(--ph); }
 .skc { display: grid; gap: 12px; align-content: start; }
 .skrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 6px; }
 .skcol { display: grid; gap: 8px; }
+.sktab { flex: 1; min-width: 0; height: 22px; margin: 11px 18px; border-radius: 8px; }
 
 /* Top bar actions and notifications */
 .topact { display: flex; align-items: center; gap: 8px; }
