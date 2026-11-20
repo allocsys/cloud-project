@@ -5,6 +5,7 @@
 // A connection is remembered (flag vtx-wc) so a reload picks the session up again; people who never connected do not load the wallet code.
 // Inside Telegram the wc: links are blocked, so there the wallet is Tonkeeper over TON Connect (TON only, flag vtx-tc): connect() opens
 // Tonkeeper with the request, sendTon() asks it for one transfer. The site and the PWA keep WalletConnect.
+// EVM invoices in Telegram (TEST): connectTrust() opens Trust Wallet through its https link (link.trustwallet.com/wc), and send() brings it forward the same way.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
 import { telegramReady } from '@/lib/telegram';
@@ -63,6 +64,8 @@ export default function WalletProvider({ children }) {
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [tg, setTg] = useState(false); // opened inside Telegram: the wallet is Tonkeeper (TON Connect)
+  const [kind, setKind] = useState(''); // which wallet the account belongs to: 'evm' (WalletConnect) or 'ton' (Tonkeeper, Telegram only)
+  const kindRef = useRef('');
 
   useEffect(() => {
     let off = false;
@@ -84,6 +87,8 @@ export default function WalletProvider({ children }) {
             if (a && String(a.chain) === MAINNET) {
               const friendly = toUserFriendlyAddress(a.address);
               tonLive.current = { acct: friendly };
+              kindRef.current = 'ton';
+              setKind('ton');
               setAcct(friendly);
               setChainId(0);
               remember(true, TON_FLAG);
@@ -91,7 +96,11 @@ export default function WalletProvider({ children }) {
             }
             if (a) c.disconnect().catch(() => {}); // a test network wallet is not accepted
             tonLive.current = null;
-            setAcct('');
+            if (kindRef.current === 'ton') {
+              kindRef.current = '';
+              setKind('');
+              setAcct('');
+            }
             remember(false, TON_FLAG);
           });
           return c;
@@ -111,8 +120,12 @@ export default function WalletProvider({ children }) {
           const gone = ({ topic }) => {
             if (live.current?.topic !== topic) return;
             live.current = null;
-            setAcct('');
-            setChainId(0);
+            if (kindRef.current === 'evm') {
+              kindRef.current = '';
+              setKind('');
+              setAcct('');
+              setChainId(0);
+            }
             remember(false);
           };
           client.on('session_delete', gone);
@@ -130,6 +143,8 @@ export default function WalletProvider({ children }) {
   const adopt = useCallback((client, session) => {
     const { acct: a, chain } = fromSession(session);
     live.current = { client, topic: session.topic, session, acct: a, chain };
+    kindRef.current = 'evm';
+    setKind('evm');
     setAcct(a);
     setChainId(chain);
     return a;
@@ -137,7 +152,11 @@ export default function WalletProvider({ children }) {
 
   // A reload: pick up the saved session, only for someone who connected before.
   useEffect(() => {
-    if (!pid || live.current || tg) return undefined;
+    if (!pid || live.current) return undefined;
+    // Inside Telegram a saved TON session has the say; the WalletConnect one is picked up only when there is none.
+    try {
+      if (inTg() && localStorage.getItem(TON_FLAG)) return undefined;
+    } catch {}
     let flag = '';
     try {
       flag = localStorage.getItem(FLAG) || '';
@@ -180,8 +199,14 @@ export default function WalletProvider({ children }) {
 
   // Step 1: connect (no payment request). `projectId` is the order's own id, used when the config has not arrived yet.
   const connectEvm = useCallback(
-    async ({ projectId, mark = () => {} } = {}) => {
-      if (live.current?.acct) return live.current.acct;
+    async ({ projectId, mark = () => {}, trust = false } = {}) => {
+      if (live.current?.acct) {
+        kindRef.current = 'evm';
+        setKind('evm');
+        setAcct(live.current.acct);
+        setChainId(live.current.chain);
+        return live.current.acct;
+      }
       const id = pid || projectId;
       if (!id) throw new Error('no project id');
       setBusy(true);
@@ -197,7 +222,11 @@ export default function WalletProvider({ children }) {
           optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
         });
         // Open the wallet app with the request. The approval below waits for the wallet's answer.
-        if (uri) window.location.href = uri;
+        if (uri) {
+          const tgw = trust ? window.Telegram?.WebApp : null;
+          if (tgw?.openLink) tgw.openLink(`https://link.trustwallet.com/wc?uri=${encodeURIComponent(uri)}`);
+          else window.location.href = uri;
+        }
         let timer;
         const session = await Promise.race([
           approval(),
@@ -219,7 +248,13 @@ export default function WalletProvider({ children }) {
   // Telegram: open Tonkeeper with the connect request and wait for its answer (the Mini App stays open behind it).
   const runTon = useCallback(
     async ({ mark = () => {} } = {}) => {
-      if (tonLive.current?.acct) return tonLive.current.acct;
+      if (tonLive.current?.acct) {
+        kindRef.current = 'ton';
+        setKind('ton');
+        setAcct(tonLive.current.acct);
+        setChainId(0);
+        return tonLive.current.acct;
+      }
       setBusy(true);
       let off = () => {};
       let timer;
@@ -274,6 +309,8 @@ export default function WalletProvider({ children }) {
     pending.current = null;
     tonLive.current = null;
     tonPending.current = null;
+    kindRef.current = '';
+    setKind('');
     setAcct('');
     setChainId(0);
     remember(false);
@@ -313,7 +350,7 @@ export default function WalletProvider({ children }) {
       }
       const { req } = entry;
       const link = cur.session?.peer?.metadata?.redirect?.native;
-      if (link) setTimeout(() => open(link), 700);
+      if (link || inTg()) setTimeout(() => open(link), 700);
       // Do not wait forever if the wallet never answers.
       let timer;
       try {
@@ -388,9 +425,12 @@ export default function WalletProvider({ children }) {
     }
   }, [getTon]);
 
+  // Telegram (TEST): connect an EVM wallet by opening Trust Wallet's https link instead of the blocked wc: link.
+  const connectTrust = useCallback((opts) => connectEvm({ ...opts, trust: true }), [connectEvm]);
+
   const value = useMemo(
-    () => ({ enabled: tg || !!pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon }),
-    [pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon]
+    () => ({ enabled: tg || !!pid, tg, kind, acct, chainId, busy, connect, connectTrust, disconnect, send, sendTon }),
+    [pid, tg, kind, acct, chainId, busy, connect, connectTrust, disconnect, send, sendTon]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

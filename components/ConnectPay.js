@@ -3,7 +3,8 @@
 // EVM coins and tokens, and Solana (SOL, USDT, USDC). The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 // EVM works in two taps: Connect wallet only connects (no payment request), then the same button becomes Send payment and asks the connected wallet for the transfer.
 // The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
-// Inside Telegram (wc: links are blocked there) the same two taps work for TON invoices with Tonkeeper over TON Connect; EVM invoices have no Connect wallet there.
+// Inside Telegram (wc: links are blocked there) the same two taps work for TON invoices with Tonkeeper over TON Connect.
+// EVM invoices there (TEST): Connect Trust Wallet opens Trust through its https link (link.trustwallet.com/wc), then Send payment works the same.
 // Solana has no wallet picker in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
 // The Solana provider (@walletconnect/universal-provider) comes with @walletconnect/ethereum-provider, which stays in package.json only for that (the EVM connect uses the standalone client).
 import { useRef, useState } from 'react';
@@ -15,6 +16,12 @@ import { tonTx } from '@/lib/ton-tx';
 import { evmTx } from '@/lib/wc-tx';
 
 const SOL_CHAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
+// Telegram: brings Trust Wallet forward so it shows the payment request (the wc: link of the connected wallet is blocked there).
+const TRUST_APP = 'https://link.trustwallet.com/open_coin?asset=c20000714';
+const openTrust = () => {
+  const w = typeof window !== 'undefined' ? window.Telegram?.WebApp : null;
+  if (w?.openLink) w.openLink(TRUST_APP);
+};
 
 // Invoices this browser already sent a payment for (last 30), so 'Payment sent' survives a page reload.
 const PAID_KEY = 'vtx-paid';
@@ -103,10 +110,11 @@ async function sendSol(order) {
 }
 
 // Which Connect wallet flow an invoice gets: 'evm', 'sol', 'ton' (Telegram only) or null (no button, Open wallet and Copy address stay up front).
+// In Telegram an EVM invoice gets 'evm' too (Trust Wallet, test).
 export function connectKind(order, w) {
   if (order.wc && order.network === 'sol' && order.id) return 'sol';
   if (!w) return null;
-  if (w.tg) return order.network === 'ton' && tonTx(order.uri) ? 'ton' : null;
+  if (w.tg && order.network === 'ton') return tonTx(order.uri) ? 'ton' : null;
   return order.wc && evmTx(order.uri) ? 'evm' : null;
 }
 
@@ -123,7 +131,7 @@ export function ConnectBtn({ order, show, onFail }) {
   const ton = kind === 'ton' ? tonTx(order.uri) : null;
   if (!kind) return null;
   const own = !!(evm || ton); // the wallet connection is shared with the header pill
-  const acct = own ? w.acct : '';
+  const acct = own && w.kind === kind ? w.acct : '';
   const go = async () => {
     if (busy || (own && w.busy)) return;
     triggerHaptic('selection');
@@ -132,8 +140,8 @@ export function ConnectBtn({ order, show, onFail }) {
     let why = '';
     const mark = () => {};
     try {
-      if (own && !w.acct) {
-        await w.connect({ projectId: order.wc, mark });
+      if (own && !acct) {
+        await (evm && w.tg ? w.connectTrust : w.connect)({ projectId: order.wc, mark });
         setBusy(false);
         return;
       }
@@ -146,7 +154,7 @@ export function ConnectBtn({ order, show, onFail }) {
         silent.current = 0;
       } else if (evm) {
         // The wallet may answer after "no answer" (a person who approves a few minutes later): then the payment is sent after all.
-        await w.send(evm, mark, tryOpen, () => {
+        await w.send(evm, mark, w.tg ? openTrust : tryOpen, () => {
           setSentFor(key);
           markSent(key);
           show(t('pay.sent'));
@@ -189,7 +197,7 @@ export function ConnectBtn({ order, show, onFail }) {
   return (
     <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled={working} onClick={go}>
       {working && <Spin />}
-      {acct ? `${t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : t('pay.connect')}
+      {acct ? `${t('pay.sendNow')}${working ? '' : ` \u00b7 ${short}`}` : evm && w.tg ? t('pay.connectTrust') : t('pay.connect')}
     </button>
   );
 }
