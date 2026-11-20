@@ -4,10 +4,10 @@ import { useEffect, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
 import { triggerHaptic } from '@/lib/haptics';
 import { fill, useT } from '@/components/I18nProvider';
-import { ConnectBtn, Spin, tryOpen } from '@/components/ConnectPay';
+import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
+import { useWallet } from '@/components/WalletProvider';
 import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
-import { evmTx } from '@/lib/wc-tx';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
 // value and onChange use { asset, net }.
@@ -112,8 +112,9 @@ export function PayInfo({ order, show }) {
   const [more, setMore] = useState(false);
   const [opening, setOpening] = useState(false);
   const [failed, setFailed] = useState(false);
-  // On EVM coins Connect wallet does the job: Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
-  const hideEvm = !!order.wc && (!!evmTx(order.uri) || (order.network === 'sol' && !!order.id)) && !failed;
+  // Where Connect wallet does the job (EVM, Solana, TON in Telegram): Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
+  const w = useWallet();
+  const hideEvm = !!connectKind(order, w) && !failed;
   const a = PAY_ASSETS[order.asset || 'btc'];
   const sym = a ? a.sym : 'BTC';
   const net = PAY_NETS[order.network || 'btc'] || '';

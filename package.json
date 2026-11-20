@@ -9,6 +9,7 @@
     "test": "node --test --test-concurrency=1 --import ./tests/register.mjs \"tests/**/*.test.mjs\""
   },
   "dependencies": {
+    "@tonconnect/sdk": "5.0.0",
     "@walletconnect/ethereum-provider": "2.26.0",
     "@walletconnect/modal": "2.7.0",
     "@walletconnect/sign-client": "2.26.0",

@@ -3,18 +3,26 @@
 // Uses the standalone WalletConnect client (same path as the working WalletConnect demo). connect() opens the wallet with the
 // connection request and waits for its approval; send() asks the connected wallet for one transfer.
 // A connection is remembered (flag vtx-wc) so a reload picks the session up again; people who never connected do not load the wallet code.
+// Inside Telegram the wc: links are blocked, so there the wallet is Tonkeeper over TON Connect (TON only, flag vtx-tc): connect() opens
+// Tonkeeper with the request, sendTon() asks it for one transfer. The site and the PWA keep WalletConnect.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
+import { telegramReady } from '@/lib/telegram';
 import { WC_CHAINS } from '@/lib/wc-tx';
 
 const FLAG = 'vtx-wc';
+const TON_FLAG = 'vtx-tc';
+// Tonkeeper's TON Connect link and bridge (fixed values from the wallets list, so no list is fetched). Main network only.
+const TK = { universalLink: 'https://app.tonkeeper.com/ton-connect', bridgeUrl: 'https://bridge.tonapi.io/bridge' };
+const MAINNET = '-239';
+const inTg = () => typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData;
 const Ctx = createContext(null);
 
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
-const remember = (on) => {
+const remember = (on, flag = FLAG) => {
   try {
-    if (on) localStorage.setItem(FLAG, '1');
-    else localStorage.removeItem(FLAG);
+    if (on) localStorage.setItem(flag, '1');
+    else localStorage.removeItem(flag);
   } catch {}
 };
 
@@ -47,9 +55,53 @@ export default function WalletProvider({ children }) {
   const live = useRef(null); // { client, topic, session, acct, chain } while connected
   const clientP = useRef(null); // one client for the page: the reload pick-up and connect share it
   const pending = useRef(null); // the transfer request the wallet has not answered yet: { sig, req, late }
+  const tonP = useRef(null); // the TON Connect client (Telegram only), loaded on first use
+  const tonLive = useRef(null); // { acct } while Tonkeeper is connected
+  const tonPending = useRef(null); // the TON transfer the wallet has not answered yet: { sig, req, late }
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [tg, setTg] = useState(false); // opened inside Telegram: the wallet is Tonkeeper (TON Connect)
+
+  useEffect(() => {
+    let off = false;
+    telegramReady(10000).then((w) => {
+      if (!off && w?.initData) setTg(true);
+    });
+    return () => {
+      off = true;
+    };
+  }, []);
+
+  const getTon = useCallback(() => {
+    if (!tonP.current) {
+      tonP.current = import('@tonconnect/sdk')
+        .then(({ TonConnect, toUserFriendlyAddress }) => {
+          const c = new TonConnect({ manifestUrl: `${window.location.origin}/tonconnect-manifest.json` });
+          c.onStatusChange((w) => {
+            const a = w?.account;
+            if (a && String(a.chain) === MAINNET) {
+              const friendly = toUserFriendlyAddress(a.address);
+              tonLive.current = { acct: friendly };
+              setAcct(friendly);
+              setChainId(0);
+              remember(true, TON_FLAG);
+              return;
+            }
+            if (a) c.disconnect().catch(() => {}); // a test network wallet is not accepted
+            tonLive.current = null;
+            setAcct('');
+            remember(false, TON_FLAG);
+          });
+          return c;
+        })
+        .catch((e) => {
+          tonP.current = null;
+          throw e;
+        });
+    }
+    return tonP.current;
+  }, []);
 
   const getClient = useCallback((id) => {
     if (!clientP.current) {
@@ -84,7 +136,7 @@ export default function WalletProvider({ children }) {
 
   // A reload: pick up the saved session, only for someone who connected before.
   useEffect(() => {
-    if (!pid || live.current) return undefined;
+    if (!pid || live.current || tg) return undefined;
     let flag = '';
     try {
       flag = localStorage.getItem(FLAG) || '';
@@ -103,10 +155,30 @@ export default function WalletProvider({ children }) {
     return () => {
       off = true;
     };
-  }, [pid, getClient, adopt]);
+  }, [pid, tg, getClient, adopt]);
+
+  // A reload inside Telegram: pick up the Tonkeeper session (also a connect that was still waiting when the app was put away).
+  useEffect(() => {
+    if (!tg || tonLive.current) return undefined;
+    let known = '';
+    try {
+      known = localStorage.getItem(TON_FLAG) || localStorage.getItem('ton-connect-storage_bridge-connection') || '';
+    } catch {}
+    if (!known) return undefined;
+    let off = false;
+    (async () => {
+      try {
+        const c = await getTon();
+        if (!off) await c.restoreConnection();
+      } catch {}
+    })();
+    return () => {
+      off = true;
+    };
+  }, [tg, getTon]);
 
   // Step 1: connect (no payment request). `projectId` is the order's own id, used when the config has not arrived yet.
-  const connect = useCallback(
+  const connectEvm = useCallback(
     async ({ projectId, mark = () => {} } = {}) => {
       if (live.current?.acct) return live.current.acct;
       const id = pid || projectId;
@@ -143,14 +215,61 @@ export default function WalletProvider({ children }) {
     [pid, getClient, adopt]
   );
 
+  // Telegram: open Tonkeeper with the connect request and wait for its answer (the Mini App stays open behind it).
+  const connectTon = useCallback(
+    async ({ mark = () => {} } = {}) => {
+      if (tonLive.current?.acct) return tonLive.current.acct;
+      setBusy(true);
+      let off = () => {};
+      let timer;
+      try {
+        mark('loading');
+        const c = await getTon();
+        if (c.connected) await c.disconnect().catch(() => {});
+        mark('connecting');
+        const answered = new Promise((res, rej) => {
+          off = c.onStatusChange((w) => w?.account && res(), rej);
+        });
+        const link = c.connect(TK);
+        const w = window.Telegram?.WebApp;
+        if (w?.openLink) w.openLink(link);
+        else window.location.href = link;
+        await Promise.race([
+          answered,
+          new Promise((_, rej) => {
+            timer = setTimeout(() => rej(new Error('Wallet did not answer')), 120000);
+          }),
+        ]);
+        const a = tonLive.current?.acct;
+        if (!a) throw new Error('no account');
+        return a;
+      } finally {
+        off();
+        clearTimeout(timer);
+        setBusy(false);
+      }
+    },
+    [getTon]
+  );
+
+  const connect = useCallback((opts) => (inTg() ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
+
   const disconnect = useCallback(async () => {
     const cur = live.current;
+    const ton = tonLive.current;
     live.current = null;
     pending.current = null;
+    tonLive.current = null;
+    tonPending.current = null;
     setAcct('');
     setChainId(0);
     remember(false);
+    remember(false, TON_FLAG);
     if (cur) await cur.client.disconnect({ topic: cur.topic, reason: USER_OUT }).catch(() => {});
+    if (ton) {
+      const c = await tonP.current?.catch(() => null);
+      if (c?.connected) await c.disconnect().catch(() => {});
+    }
   }, []);
 
   // Step 2: ask the connected wallet for the transfer. The wallet app is behind the browser, so it is opened to bring the request forward.
@@ -205,6 +324,60 @@ export default function WalletProvider({ children }) {
     }
   }, []);
 
-  const value = useMemo(() => ({ enabled: !!pid, acct, chainId, busy, connect, disconnect, send }), [pid, acct, chainId, busy, connect, disconnect, send]);
+  // Telegram: ask Tonkeeper for one TON transfer, { to, amount (nanoton) } from lib/ton-tx.js. Same rules as send(): a tap on Send again while
+  // the request is open waits for the same one, and `late(boc)` is called if the wallet answers only after "no answer" was thrown.
+  const sendTon = useCallback(async (tx, mark = () => {}, late = null) => {
+    if (!tonLive.current?.acct) throw new Error('not connected');
+    const sig = `${tx.to}|${tx.amount}`;
+    const again = tonPending.current?.sig === sig ? tonPending.current : null;
+    // The wallet app is behind the Mini App: open it to bring the request forward.
+    const bring = () => {
+      const w = window.Telegram?.WebApp;
+      if (w?.openLink) setTimeout(() => w.openLink(TK.universalLink), 500);
+    };
+    setBusy(true);
+    try {
+      mark('sending');
+      const c = await getTon();
+      let entry = again;
+      if (!entry) {
+        const req = c.sendTransaction(
+          { validUntil: Math.floor(Date.now() / 1000) + 600, network: MAINNET, messages: [{ address: tx.to, amount: tx.amount }] },
+          { onRequestSent: bring }
+        );
+        entry = { sig, req, late: false };
+        tonPending.current = entry;
+        const clear = () => {
+          if (tonPending.current === entry) tonPending.current = null;
+        };
+        req.then(clear, clear);
+      } else bring();
+      const { req } = entry;
+      let timer;
+      try {
+        return await Promise.race([
+          req,
+          new Promise((_, rej) => {
+            timer = setTimeout(() => rej(new Error('no answer')), 120000);
+          }),
+        ]);
+      } catch (e) {
+        if (/no answer/.test(String(e?.message)) && late && !entry.late) {
+          entry.late = true;
+          req.then(late, () => {});
+        }
+        throw e;
+      } finally {
+        clearTimeout(timer);
+      }
+    } finally {
+      setBusy(false);
+    }
+  }, [getTon]);
+
+  const value = useMemo(
+    () => ({ enabled: tg || !!pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon }),
+    [pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon]
+  );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
