@@ -10,8 +10,8 @@ import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
-// value and onChange use { asset, net }.
-export function CoinPicker({ value, onChange, disabled = false }) {
+// value and onChange use { asset, net }. `only` (optional) is a list of asset ids to show; without it every coin shows.
+export function CoinPicker({ value, onChange, disabled = false, only }) {
   const t = useT();
   const nets = PAY_ASSETS[value.asset].nets;
   const pick = (next) => {
@@ -21,7 +21,7 @@ export function CoinPicker({ value, onChange, disabled = false }) {
   return (
     <>
       <div className="assets" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }} role="group" aria-label={t('wal.coin')}>
-        {Object.entries(PAY_ASSETS).map(([id, a]) => (
+        {Object.entries(PAY_ASSETS).filter(([id]) => !only || only.includes(id)).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: a.nets[0] })}>
             {a.sym}
           </button>
