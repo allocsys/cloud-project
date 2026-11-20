@@ -1,15 +1,16 @@
 'use client';
 // An open plan payment (the invoice made on Plans) can be reached from every main page:
-// PendingCards shows the full invoice (Wallet), PendingStrip is a thin line that opens Plans.
-import { useEffect, useState } from 'react';
+// PendingCards shows a collapsed bar that opens the pay sheet (Wallet and Plans), PendingStrip is a thin line that opens Plans.
+import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useApi, post } from '@/lib/api';
 import { useT } from '@/components/I18nProvider';
-import { PayInfo } from '@/components/PayCoin';
+import { PayBar, PaySheet } from '@/components/PaySheet';
 import { triggerHaptic } from '@/lib/haptics';
-import { fmtUsd } from '@/lib/data';
 import { everyVisible } from '@/lib/visible';
+
+const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 // Open plan invoices (kind plan is the default of /api/orders). Checks again every 5 seconds while one is open and `poll` is on.
 function useOpenOrders(poll) {
@@ -20,15 +21,48 @@ function useOpenOrders(poll) {
     if (!n || !poll) return undefined;
     return everyVisible(() => refresh().catch(() => {}), 5000);
   }, [n, poll]);
-  return { open, refresh };
+  return { open, refresh, multi: !!data?.multi };
 }
 
-// `show` is the page's toast function.
-export function PendingCards({ show }) {
+// `show` is the page's toast function. `poll` off: the page checks the orders itself (Plans).
+// A page can open the sheet of a new order by sending the window event 'vtx-pay-open' with { id } (PendingCards waits for that order to appear).
+export function PendingCards({ show, poll = true }) {
   const t = useT();
-  const { open, refresh } = useOpenOrders(true);
+  const { open, refresh, multi } = useOpenOrders(poll);
+  const [openId, setOpenId] = useState(null); // the order whose sheet is open
+  const [want, setWant] = useState(null); // an order to open as soon as it appears in the list
+  const [busy, setBusy] = useState(false); // a coin change is under way
+  const last = useRef(null); // the last order shown, kept while a coin change is busy so nothing flickers
+  const found = openId ? open.find((o) => o.id === openId) || null : null;
+  if (found) last.current = found;
+  const shown = found || (busy && openId ? last.current : null);
+
+  useEffect(() => {
+    const on = (e) => {
+      const id = e.detail && e.detail.id;
+      if (id) setWant(id);
+    };
+    window.addEventListener('vtx-pay-open', on);
+    return () => window.removeEventListener('vtx-pay-open', on);
+  }, []);
+  useEffect(() => {
+    if (!want) return undefined;
+    if (open.some((o) => o.id === want)) {
+      setOpenId(want);
+      setWant(null);
+      return undefined;
+    }
+    const id = setTimeout(() => setWant(null), 8000);
+    return () => clearTimeout(id);
+  }, [want, open]);
+  // The order is gone (paid, expired, cancelled): close the sheet.
+  useEffect(() => {
+    if (openId && !want && !busy && !open.some((o) => o.id === openId)) setOpenId(null);
+  }, [openId, want, busy, open]);
+
   async function cancelOrder(id) {
     triggerHaptic('light');
+    setOpenId(null);
     try {
       await post('/api/orders/cancel', { id });
     } catch (e) {
@@ -36,20 +70,51 @@ export function PendingCards({ show }) {
     }
     refresh().catch(() => {});
   }
-  return open.map((o) => (
-    <div key={o.id} className="card">
-      <div className="row" style={{ borderTop: 0 }}>
-        <div>
-          <b>{t('plans.waiting')}</b>
-          <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
-          <PayInfo order={o} show={show} />
-        </div>
-        <div>
-          <button type="button" className="linkbtn" onClick={() => cancelOrder(o.id)}>{t('common.cancel')}</button>
-        </div>
-      </div>
-    </div>
-  ));
+
+  // A coin change = cancel the open order and make the same plan again in the new coin.
+  async function switchCoin(o, c) {
+    if (busy || !o.buy) return;
+    last.current = o;
+    setBusy(true);
+    try {
+      await post('/api/orders/cancel', { id: o.id });
+      const r = await post('/api/plans/buy', { ...o.buy, pay: 'crypto', asset: c.asset, network: c.net }, uid());
+      await refresh().catch(() => {});
+      if (r?.order?.id) setWant(r.order.id);
+    } catch (e) {
+      triggerHaptic('error');
+      show(e.status ? e.message : t('common.noConnection'));
+      await refresh().catch(() => {});
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <>
+      {open.map((o) => (
+        <PayBar
+          key={o.id}
+          order={o}
+          onOpen={() => {
+            triggerHaptic('light');
+            setOpenId(o.id);
+          }}
+        />
+      ))}
+      {shown && (
+        <PaySheet
+          order={shown}
+          show={show}
+          busy={busy}
+          canSwitch={multi && !!shown.buy}
+          onClose={() => setOpenId(null)}
+          onCancel={() => cancelOrder(shown.id)}
+          onSwitch={(c) => switchCoin(shown, c)}
+        />
+      )}
+    </>
+  );
 }
 
 export function PendingStrip() {

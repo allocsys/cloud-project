@@ -20,7 +20,8 @@ import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
 import { fill, useLang } from '@/components/I18nProvider';
 import { pagePath } from '@/lib/i18n/codes';
-import { CoinChips, PayInfo } from '@/components/PayCoin';
+import { CoinTabs } from '@/components/PaySheet';
+import { PendingCards } from '@/components/PendingOrders';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -175,7 +176,7 @@ export default function Plans() {
       }
       if (r.pending && r.order?.address) {
         await refreshOrders().catch(() => {});
-        show(t('pay.sendExact'));
+        window.dispatchEvent(new CustomEvent('vtx-pay-open', { detail: { id: r.order.id } }));
         dismiss();
         return;
       }
@@ -337,13 +338,14 @@ export default function Plans() {
         <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
       </div>
 
-      {view === 'buy' && [...pending, ...review].map((o) => (
+      {view === 'buy' && <PendingCards show={show} poll={false} />}
+
+      {view === 'buy' && [...pending.filter((o) => !o.address), ...review].map((o) => (
         <div key={o.id} className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div>
               <b>{o.status === 'review' ? t('plans.needCheck') : t('plans.waiting')}</b>
               <small style={{ display: 'block' }}>{o.label} · ${fmtUsd(o.usd)}</small>
-              {o.status === 'pending' && o.address && <PayInfo order={o} show={show} />}
             </div>
             {o.status === 'pending' && (
               <div>
@@ -543,7 +545,7 @@ export default function Plans() {
             </div>
             <div className="sheetfoot">
             {ready && ord?.multi && methods.includes('crypto') && coinOpen && (
-              <div className="unfold"><CoinChips value={coin} onChange={setCoin} disabled={busy} /></div>
+              <div className="unfold"><CoinTabs value={coin} onChange={setCoin} disabled={busy} /></div>
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>
