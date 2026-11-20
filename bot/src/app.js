@@ -81,7 +81,9 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (!a.data) return a.view;
     const b = a.data;
     if (!b.miners) return { text: t(lang, 'noMiners'), rows: [openRow(lang)] };
-    const lines = [t(lang, 'earnToday', { btc: btcText(b.today) }), t(lang, 'earnTotal', { btc: btcText(b.total) })];
+    const lines = [t(lang, 'earnTitle'), '', t(lang, 'earnToday', { btc: btcText(b.today) }), t(lang, 'earnTotal', { btc: btcText(b.total) })];
+    // An older app sends no totalUsd: the line is left out, never guessed.
+    if (Number.isFinite(b.totalUsd)) lines.push(t(lang, 'earnTotalUsd', { usd: b.totalUsd.toFixed(2) }));
     if (Number.isFinite(b.avgUsd)) lines.push(t(lang, 'earnAvg', { usd: b.avgUsd.toFixed(2) }));
     return { text: lines.join('\n'), rows: [] };
   }
@@ -290,7 +292,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
         text += '\n' + t(lang, 'newsOn');
       }
       const sentMenu = await sendMenu(id, lang, text, url);
-      // Puts the Menu button under the chat (it stays until removed).
+      // Puts the Menu button under the chat (it stays until removed). The message that carries it is one emoji, no sentence.
       await reply(id, t(lang, 'kbOn'), kbExtra(lang));
       return sentMenu;
     }
