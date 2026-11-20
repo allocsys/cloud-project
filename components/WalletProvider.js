@@ -28,21 +28,30 @@ const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
 // Telegram's in-app browser blocks a page that navigates to a wc: link (net::ERR_UNKNOWN_URL_SCHEME), so there WalletConnect's wallet picker (https links) is used instead.
 const inTelegram = () => /Telegram/i.test(navigator.userAgent || '') || !!window.TelegramWebviewProxy;
 
-// In a Telegram Mini App a window.open to SafePal opens the app home without the request, so only SafePal links go through Telegram's own openLink (app link mapped to its https link). Every other wallet keeps window.open.
-const SAFEPAL = /^(safepalwallet:\/\/|https:\/\/link\.safepal\.io\/)/i;
-function routeSafepal() {
-  const real = window.open;
-  const wa = window.Telegram && window.Telegram.WebApp;
-  if (!wa || typeof wa.openLink !== 'function') return () => {};
-  window.open = (href, ...rest) => {
-    const url = String(href || '');
-    if (!SAFEPAL.test(url)) return real.call(window, href, ...rest);
-    wa.openLink(url.replace(/^safepalwallet:\/\//i, 'https://link.safepal.io/'));
-    return null;
-  };
-  return () => {
-    window.open = real;
-  };
+// Telegram: the WalletConnect provider with its own wallet picker (showQrModal) is the path that opens SafePal there.
+// Its client and session are handed to the standalone client code below, so send() and the reload pick-up work as everywhere else.
+async function connectInTelegram(projectId, mark) {
+  const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
+  const p = await EthereumProvider.init({ projectId, chains: [1], optionalChains: WC_CHAINS, showQrModal: true, metadata: meta() });
+  mark('init');
+  if (p.session) await p.disconnect().catch(() => {});
+  mark('connecting');
+  let timer;
+  try {
+    await Promise.race([
+      p.connect(),
+      new Promise((_, rej) => {
+        timer = setTimeout(() => rej(new Error('Wallet did not answer')), 180000);
+      }),
+    ]);
+    if (!p.session || !p.accounts?.[0]) throw new Error('no account');
+  } catch (e) {
+    p.disconnect().catch(() => {});
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+  return { p, client: p.signer.client, session: p.session };
 }
 
 async function initClient(projectId) {
@@ -132,10 +141,22 @@ export default function WalletProvider({ children }) {
       const id = pid || projectId;
       if (!id) throw new Error('no project id');
       setBusy(true);
-      let modal = null;
-      let undo = () => {};
       try {
         mark('loading');
+        if (inTelegram()) {
+          const { p, client, session: s } = await connectInTelegram(id, mark);
+          const a = adopt(client, s);
+          p.on('disconnect', () => {
+            if (live.current?.topic !== s.topic) return;
+            live.current = null;
+            setAcct('');
+            setChainId(0);
+            remember(false);
+          });
+          if (!a) throw new Error('no account');
+          remember(true);
+          return a;
+        }
         const client = await getClient(id);
         mark('init');
         // A session left from before is closed first, so the new request starts clean.
@@ -146,21 +167,12 @@ export default function WalletProvider({ children }) {
           optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
         });
         // Open the wallet app with the request. The approval below waits for the wallet's answer.
-        const tg = inTelegram();
-        if (uri) {
-          if (tg) {
-            // Telegram: WalletConnect's wallet picker opens the wallet with https links, which Telegram allows.
-            const { WalletConnectModal } = await import('@walletconnect/modal');
-            undo = routeSafepal();
-            modal = new WalletConnectModal({ projectId: id, chains: WC_CHAINS.map((c) => `eip155:${c}`) });
-            modal.openModal({ uri }).catch(() => {});
-          } else window.location.href = uri;
-        }
+        if (uri) window.location.href = uri;
         let timer;
         const session = await Promise.race([
           approval(),
           new Promise((_, rej) => {
-            timer = setTimeout(() => rej(new Error('Wallet did not answer')), tg ? 180000 : 60000);
+            timer = setTimeout(() => rej(new Error('Wallet did not answer')), 60000);
           }),
         ]).finally(() => clearTimeout(timer));
         const a = adopt(client, session);
@@ -168,10 +180,6 @@ export default function WalletProvider({ children }) {
         remember(true);
         return a;
       } finally {
-        undo();
-        try {
-          modal?.closeModal();
-        } catch {}
         setBusy(false);
       }
     },
