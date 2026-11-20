@@ -9,7 +9,7 @@ import { useWallet } from '@/components/WalletProvider';
 import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
 
-// Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
+// Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
 // value and onChange use { asset, net }.
 export function CoinPicker({ value, onChange, disabled = false }) {
   const t = useT();
@@ -44,7 +44,7 @@ export function CoinPicker({ value, onChange, disabled = false }) {
 }
 
 // Compact version for tight sheets: one row showing the chosen coin, tap to open the full picker. A coin with one network closes it on pick;
-// USDT and USDC stay open so the network can be chosen next, and close when it is.
+// USDT stays open so the network can be chosen next, and close when it is.
 export function CoinSelect({ value, onChange, disabled = false }) {
   const t = useT();
   const [open, setOpen] = useState(false);
@@ -112,7 +112,7 @@ export function PayInfo({ order, show }) {
   const [more, setMore] = useState(false);
   const [opening, setOpening] = useState(false);
   const [failed, setFailed] = useState(false);
-  // Where Connect wallet does the job (EVM, Solana, TON in Telegram): Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
+  // Where Connect wallet does the job (EVM, TON in Telegram): Open wallet and Copy address (kept in More) come back up front only if it is not set up or it fails.
   const w = useWallet();
   const hideEvm = !!connectKind(order, w) && !failed;
   const a = PAY_ASSETS[order.asset || 'btc'];
