@@ -1,0 +1,42 @@
+# Dependency updates. Weekly, grouped so one PR carries the small bumps; majors come as their own PRs.
+# A new release waits 14 days before it is proposed (security fixes ignore this wait).
+# Only the root app has a package-lock.json: Dependabot updates it together with package.json. The backup, bot and gateway
+# folders have no lockfile, so there it raises the ranges in package.json only.
+version: 2
+updates:
+  - package-ecosystem: npm
+    directories: ['/', '/backup', '/bot', '/gateway']
+    schedule:
+      interval: weekly
+      day: monday
+    cooldown:
+      default-days: 14
+    open-pull-requests-limit: 5
+    commit-message:
+      prefix: 'deps'
+    groups:
+      minor-and-patch:
+        update-types: ['minor', 'patch']
+
+  - package-ecosystem: github-actions
+    directory: '/'
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 14
+    commit-message:
+      prefix: 'ci'
+    groups:
+      actions:
+        patterns: ['*']
+
+  # The Node base image stays on 22 (the version CI tests); patch and minor image updates only.
+  - package-ecosystem: docker
+    directories: ['/', '/backup', '/gateway']
+    schedule:
+      interval: monthly
+    ignore:
+      - dependency-name: 'node'
+        update-types: ['version-update:semver-major']
+    commit-message:
+      prefix: 'deps'
