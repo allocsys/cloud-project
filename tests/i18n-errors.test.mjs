@@ -28,3 +28,15 @@ test('an unknown message, or one without a translation yet, stays English', () =
 test('the busy-server message is translated', () => {
   assert.equal(translateError('fa', 'Busy right now. Try again in a few seconds.'), LANGS.fa.messages['err.busy']);
 });
+
+test('the eight new server errors are translated, and the miner count is filled in', () => {
+  assert.equal(translateError('fa', 'Account limit reached for this network.'), LANGS.fa.messages['err.limitNet']);
+  assert.equal(translateError('fa', 'This account is blocked. Contact support.'), LANGS.fa.messages['err.blocked']);
+  assert.equal(translateError('fa', 'Code not valid.'), LANGS.fa.messages['err.codeNot']);
+  assert.equal(translateError('fa', 'We sent a code to your email. Enter it to withdraw.'), LANGS.fa.messages['err.mailSent']);
+  assert.equal(translateError('fa', 'Withdrawals are paused on this account. Please contact support.'), LANGS.fa.messages['err.wdPaused']);
+  assert.equal(translateError('fa', 'This withdrawal was already requested.'), LANGS.fa.messages['err.wdAlready']);
+  assert.equal(translateError('fa', 'You have no free tickets.'), LANGS.fa.messages['err.noTickets']);
+  assert.equal(translateError('fa', 'You have 1 running miner. Closing the account ends it with no refund. Tick the box to continue.'), LANGS.fa.messages['err.closeMiners'].replace('{n}', '1'));
+  assert.equal(translateError('fa', 'You have 3 running miners. Closing the account ends them with no refund. Tick the box to continue.'), LANGS.fa.messages['err.closeMiners'].replace('{n}', '3'));
+});
