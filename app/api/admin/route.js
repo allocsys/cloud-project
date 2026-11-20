@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act, adminList, adminUsers, adminUserHistory } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act, adminList, adminRefList, adminUsers, adminUserHistory } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +22,7 @@ export async function GET(req) {
     const history = await adminUserHistory(p.get('history'));
     return history ? json({ ok: true, history }) : json({ ok: false, error: 'User not found.' }, 404);
   }
+  if (p.get('list') === 'friends' || p.get('list') === 'tickets') return json({ ok: true, ...(await adminRefList(p.get('list'), { offset: p.get('offset'), limit: p.get('limit') })) });
   if (p.has('list')) {
     const page = adminList(p.get('list'), { filter: p.get('filter'), offset: p.get('offset'), limit: p.get('limit') });
     return page ? json({ ok: true, ...(await page) }) : json({ ok: false, error: 'Unknown list.' }, 400);

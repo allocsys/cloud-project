@@ -1477,6 +1477,8 @@ export default function Admin() {
   const lw = useAdminList('/api/admin', 'withdrawals', flt, tab === 'withdrawals', lv);
   const lr = useAdminList('/api/admin', 'refunds', flt, tab === 'refunds', lv);
   const lu = useAdminList('/api/admin', 'users', ufil, tab === 'users', lv, `sort=${usort}&q=${encodeURIComponent(uqd)}`);
+  const lfr = useAdminList('/api/admin', 'friends', 'all', tab === 'referrals', lv);
+  const ltk = useAdminList('/api/admin', 'tickets', 'all', tab === 'referrals', lv);
   const shownUsers = lu.rows;
   const [toast, show] = useToast();
 
@@ -2409,7 +2411,7 @@ export default function Admin() {
         };
         const put = (k, v) => setRefDraft({ ...d, [k]: v });
         const putVip = (i, k, v) => setRefDraft({ ...d, vip: d.vip.map((t, j) => (j === i ? { ...t, [k]: v } : t)) });
-        const code = tf.code || R.codes[0]?.code || '';
+        const code = (tf.code || '').trim();
         const th = tf.th ?? '15';
         return (
           <div className="adm-stack">
@@ -2453,32 +2455,31 @@ export default function Admin() {
             <div className="card">
               <h3>Try it</h3>
               <p className="fine" style={{ margin: '0 0 4px' }}>Creates a test friend who signs up with the code and gets an ASICs miner (90 days).</p>
-              <Pick id="tfc" label="Inviter code" value={code} onChange={(v) => setTf({ ...tf, code: v })}>
-                {R.codes.map((c) => <option key={c.code} value={c.code}>{c.id} · {c.code}</option>)}
-              </Pick>
+              <Field id="tfc" label="Inviter code" value={tf.code} onChange={(v) => setTf({ ...tf, code: v })} />
               <Field id="tfp" label="Hash power (TH/s)" inputMode="decimal" value={th} onChange={(v) => setTf({ ...tf, th: v })} />
               <div style={{ height: 12 }} />
               <button className="btn" disabled={busy || !code} onClick={() => run({ action: 'ref-test', code, th: Number(String(th).replace(',', '.')), days: 90 }, (r) => `Created ${r.friend}`)}>Create test friend</button>
             </div>
 
             <div className="card">
-              <h3>Free tickets · {(R.tickets || []).length}</h3>
-              {(R.tickets || []).length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No free tickets given to inviters yet.</p>}
-              {(R.tickets || []).map((x) => (
+              <h3>Free tickets · {R.counts.tickets}</h3>
+              {ltk.ready && !ltk.err && ltk.rows.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No free tickets given to inviters yet.</p>}
+              {ltk.rows.map((x) => (
                 <div className="row" key={x.id}>
                   <span>{x.id}</span>
                   <b>{x.n} / {R.settings.ticketCap}</b>
                 </div>
               ))}
+              <ListMore l={ltk} />
             </div>
 
             <div className="card">
-              <h3>Friends · {R.links.length}</h3>
-              {R.links.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No invited friends yet.</p>}
-              {R.links.map((l) => (
-                <div className="row" key={l.friend}>
+              <h3>Friends · {R.counts.friends}</h3>
+              {lfr.ready && !lfr.err && lfr.rows.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No invited friends yet.</p>}
+              {lfr.rows.map((l) => (
+                <div className="row" key={l.id}>
                   <div>
-                    {l.friend}
+                    {l.id}
                     <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.ticket ? ' · free ticket' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
@@ -2487,6 +2488,7 @@ export default function Admin() {
                   </div>
                 </div>
               ))}
+              <ListMore l={lfr} />
             </div>
           </div>
         );
