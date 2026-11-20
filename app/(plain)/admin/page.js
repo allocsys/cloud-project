@@ -7,6 +7,7 @@ import { smartHallFor } from '@/lib/smart-halls';
 import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
 import { trimAmount } from '@/lib/pay-coins';
 import MarkIcon from '@/components/MarkIcon';
+import useAdminList from '@/lib/use-admin-list';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -1379,6 +1380,21 @@ function DatabaseTab() {
   );
 }
 
+// The end of a paged list: an error with Retry, and the Load more button with how many rows are left.
+function ListMore({ l }) {
+  return (
+    <>
+      {l.err && (
+        <div className="ferr" role="alert">
+          {l.err}
+          <button className="btn ghost" style={{ marginTop: 8 }} onClick={l.retry}>Retry</button>
+        </div>
+      )}
+      {l.left > 0 && <button className="btn ghost" disabled={l.busy} onClick={l.more}>{l.busy ? 'Loading…' : `Load more · ${l.left}`}</button>}
+    </>
+  );
+}
+
 const ADJ0 = { id: null, op: 'add', cur: 'btc', amount: '', note: '' };
 
 // The BTC a balance change comes to: typed in BTC, or typed in USD and converted at the current rate.
@@ -1438,7 +1454,11 @@ export default function Admin() {
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
   const [openU, setOpenU] = useState(null); // the user card that is open
-  const [flt, setFlt] = useState('open'); // Open / All filter on Orders and Withdrawals
+  const [flt, setFlt] = useState('open'); // Open / All filter on Orders, Withdrawals and Refunds
+  const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
+  const lo = useAdminList('/api/admin', 'orders', flt, tab === 'orders', lv);
+  const lw = useAdminList('/api/admin', 'withdrawals', flt, tab === 'withdrawals', lv);
+  const lr = useAdminList('/api/admin', 'refunds', flt, tab === 'refunds', lv);
   const [toast, show] = useToast();
 
   const load = useCallback(async () => {
@@ -1447,6 +1467,7 @@ export default function Admin() {
       if (r.status === 200) {
         setData(r);
         setState('ready');
+        setLv((v) => v + 1);
       } else if (r.status === 401) {
         setSetup(!!r.setup);
         setState('login');
@@ -1563,7 +1584,7 @@ export default function Admin() {
     );
   }
 
-  const { stats, users, orders = [], withdrawals = [], refunds = [], log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
+  const { stats, users, counts = {}, log = [], mode, btcUsd, rate, serial, catalog: cat, charts = { mock: true, feed: {} } } = data;
   const sendDisabled = busy || !title.trim();
   const toNeedle = toq.trim().toLowerCase();
   const toList = users.filter((u) => !toNeedle || u.id === to || `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(toNeedle)).slice(0, 50);
@@ -1588,12 +1609,8 @@ export default function Admin() {
   const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0, flag: (u) => u.flags.length > 0 };
   const shownUsers = [...found].filter(UFIL[ufil] || UFIL.all).sort(USORT[usort] || USORT.new);
   const orderOpen = (o) => o.status === 'review' || o.status === 'pending';
-  const wdOpen = (w) => w.status === 'pending' || w.status === 'approved';
-  const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
-  const shownOrders = flt === 'open' ? orders.filter(orderOpen) : [...orders].sort(openFirst(orderOpen));
-  const shownWds = flt === 'open' ? withdrawals.filter(wdOpen) : [...withdrawals].sort(openFirst(wdOpen));
   const rrOpen = (r) => r.status === 'pending';
-  const shownRrs = flt === 'open' ? refunds.filter(rrOpen) : [...refunds].sort(openFirst(rrOpen));
+  const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
   const setDraft = (k, v) => setEdit((e) => ({ ...e, draft: { ...e.draft, [k]: v } }));
 
   const hallDraft = (h) => !h ? { name: '', place: '', power: '', efficiency: '', rig: '', net: '' } : ({ name: h.name, place: h.place, power: h.power, efficiency: h.efficiency, rig: h.rig, net: String(h.net) });
@@ -2122,9 +2139,10 @@ export default function Admin() {
 
       {tab === 'orders' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={orders.filter(orderOpen).length} all={orders.length} />
-          {shownOrders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{orders.length === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
-          {shownOrders.map((o) => (
+          <Filter value={flt} onPick={setFlt} open={cn('orders').open} all={cn('orders').all} />
+          {!lo.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
+          {lo.rows.map((o) => (
             <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
               {(o.paidAt || o.serial || o.invoiceId) && (
                 <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
@@ -2141,14 +2159,16 @@ export default function Admin() {
               )}
             </Fold>
           ))}
+          <ListMore l={lo} />
         </div>
       )}
 
       {tab === 'withdrawals' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={withdrawals.filter(wdOpen).length} all={withdrawals.length} />
-          {shownWds.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{withdrawals.length === 0 ? 'No withdrawals yet.' : 'Nothing open.'}</p>}
-          {shownWds.map((w) => {
+          <Filter value={flt} onPick={setFlt} open={cn('withdrawals').open} all={cn('withdrawals').all} />
+          {!lw.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lw.ready && !lw.err && lw.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('withdrawals').all === 0 ? 'No withdrawals yet.' : 'Nothing open.'}</p>}
+          {lw.rows.map((w) => {
             const act = (decision, okText, txid) => run({ action: 'withdrawal', userId: w.userId, withdrawalId: w.id, decision, txid }, okText);
             const open = w.status === 'pending' || w.status === 'approved';
             return (
@@ -2183,14 +2203,16 @@ export default function Admin() {
               </Fold>
             );
           })}
+          <ListMore l={lw} />
         </div>
       )}
 
       {tab === 'refunds' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={refunds.filter(rrOpen).length} all={refunds.length} />
-          {shownRrs.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{refunds.length === 0 ? 'No refund requests yet.' : 'Nothing open.'}</p>}
-          {shownRrs.map((r) => (
+          <Filter value={flt} onPick={setFlt} open={cn('refunds').open} all={cn('refunds').all} />
+          {!lr.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lr.ready && !lr.err && lr.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('refunds').all === 0 ? 'No refund requests yet.' : 'Nothing open.'}</p>}
+          {lr.rows.map((r) => (
             <Fold key={r.id} title={`${r.serial} · ${RR_WHY[r.reason] || r.reason}`} sub={`${r.userId} · ${when(r.at)}`} start={rrOpen(r)} pill={<Pill tone={r.status === 'approved' ? 'ok' : r.status === 'pending' ? 'warn' : 'bad'}>{RR[r.status] || r.status}</Pill>}>
               <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
                 <div><small>Reason</small><b>{RR_WHY[r.reason] || r.reason}</b></div>
@@ -2215,6 +2237,7 @@ export default function Admin() {
               )}
             </Fold>
           ))}
+          <ListMore l={lr} />
         </div>
       )}
 
