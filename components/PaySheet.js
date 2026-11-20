@@ -146,7 +146,7 @@ function Details({ order }) {
         </button>
       </div>
       {qr && (
-        <div className="unfold">
+        <div className="unfold" style={{ display: 'flex', justifyContent: 'center' }}>
           <Qr value={order.uri || order.address} />
         </div>
       )}
