@@ -11,9 +11,11 @@ import { trustLink } from '@/lib/trust-link';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
 // value and onChange use { asset, net }. `only` (optional) is a list of asset ids to show; without it every coin shows.
-export function CoinPicker({ value, onChange, disabled = false, only }) {
+// `skipNets` (optional) is a list of network ids to hide; a coin then starts on its first network left.
+export function CoinPicker({ value, onChange, disabled = false, only, skipNets }) {
   const t = useT();
-  const nets = PAY_ASSETS[value.asset].nets;
+  const left = (id) => PAY_ASSETS[id].nets.filter((n) => !skipNets || !skipNets.includes(n));
+  const nets = left(value.asset);
   const pick = (next) => {
     triggerHaptic('selection');
     onChange(next);
@@ -22,7 +24,7 @@ export function CoinPicker({ value, onChange, disabled = false, only }) {
     <>
       <div className="assets" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }} role="group" aria-label={t('wal.coin')}>
         {Object.entries(PAY_ASSETS).filter(([id]) => !only || only.includes(id)).map(([id, a]) => (
-          <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: a.nets[0] })}>
+          <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: left(id)[0] || a.nets[0] })}>
             {a.sym}
           </button>
         ))}
