@@ -8,6 +8,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { useApi, post, revalidate } from '@/lib/api';
 import { COUNTRIES, DOCS, MAX_PHOTO, ageOf } from '@/lib/kyc';
 import { useT } from '@/components/I18nProvider';
+import { SkCard, useWaiting } from '@/components/Skeleton';
 
 const STEPS = ['kyc.s1', 'kyc.s2', 'kyc.s3', 'kyc.s4'];
 
@@ -65,6 +66,7 @@ export default function Kyc() {
   const { data: kd, mutate } = useApi('/api/kyc', { ttl: 30000 });
   // Already submitted (or verified) from an earlier visit: show the result instead of the form.
   const status = done ? 'pending' : kd ? kd.status : 'none';
+  const waitKd = useWaiting(!kd) && !done;
 
   // Each step after the first owns a history entry, so the system back button steps back.
   const pushed = useRef(0);
@@ -182,7 +184,9 @@ export default function Kyc() {
         </div>
       </div>
 
-      {status !== 'none' ? (
+      {waitKd ? (
+        <SkCard lines={5} />
+      ) : status !== 'none' ? (
         <div className="card">
           <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
           <p className="mute" style={{ margin: '8px 0 16px' }}>
