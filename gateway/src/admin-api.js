@@ -97,8 +97,9 @@ export async function retryParked(input) {
 }
 
 // How many address indexes in a row, after the last one that ever received money, have been handed out with nothing on them.
-// A wallet restored from the seed stops looking after 20 unused addresses in a row, so money past that may not show in it.
-export const BTC_GAP_LIMIT = 20;
+// A wallet restored from the seed stops looking after this many unused addresses in a row, so money past that may not show in it.
+// The wallet's gap limit is set to 40 (the default is 20). Unpaid addresses come back into use after a day, so the run stays short.
+export const BTC_GAP_LIMIT = 40;
 export const gapCount = (next, used) => Math.max(0, Number(next ?? 0) - 1 - (used === null || used === undefined ? -1 : Number(used)));
 
 // Pauses or resumes one network. A paused network refuses new invoices, the watcher skips it and its block scanner stops calling the node.

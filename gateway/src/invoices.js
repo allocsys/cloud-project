@@ -12,6 +12,10 @@ import { quantumRule, quantumAtomic, pickAmount } from './alloc.js';
 
 const REF = /^[A-Za-z0-9_-]{1,64}$/;
 
+// An unpaid per-invoice address goes back into use this long after its invoice ended, so addresses nobody paid do not pile up
+// (a wallet restored from the seed stops looking after a run of unused ones). It is never reused once any money was seen on it.
+export const ADDRESS_REUSE_HOURS = 24;
+
 // Smallest wallet top-up. Keep in step with MIN_DEPOSIT_USD in the app's lib/data.js. Plan orders are not deposits.
 export const MIN_DEPOSIT_USD = 30;
 
@@ -105,13 +109,37 @@ export async function createInvoice(input) {
     // Pausing a network takes the same lock exclusively and refuses while invoices are open, so no invoice can slip in as it pauses.
     await c.query('SELECT pg_advisory_xact_lock_shared(hashtext($1))', [`pause:${p.network}`]);
     if ((await c.query('SELECT 1 FROM paused_networks WHERE network = $1', [p.network])).rows.length) throw new ApiError(503, 'This network is paused.');
-    const next = await c.query(
-      `INSERT INTO address_counters (network, next_index) VALUES ($1, 1)
-       ON CONFLICT (network) DO UPDATE SET next_index = address_counters.next_index + 1
-       RETURNING next_index - 1 AS idx`,
-      [p.network],
-    );
-    const index = Number(next.rows[0].idx);
+    // A per-invoice address: take back the oldest one nobody paid before counting up. The old invoice is released (it keeps its row, not its
+    // address). SKIP LOCKED: two invoices made at once never pick the same one.
+    let index = null;
+    let reusedFrom = null;
+    if (!shared) {
+      const old = (
+        await c.query(
+          `SELECT id, deriv_index FROM invoices i
+           WHERE network = $1 AND NOT match_amount AND released_at IS NULL AND status = 'expired'
+             AND expires_at < now() - ($2::int * interval '1 hour')
+             AND NOT EXISTS (SELECT 1 FROM chain_txs t WHERE t.invoice_id = i.id)
+             AND NOT EXISTS (SELECT 1 FROM unmatched_txs u WHERE u.network = i.network AND u.address = i.address)
+           ORDER BY deriv_index LIMIT 1 FOR UPDATE SKIP LOCKED`,
+          [p.network, ADDRESS_REUSE_HOURS],
+        )
+      ).rows[0];
+      if (old) {
+        await c.query('UPDATE invoices SET released_at = now() WHERE id = $1', [old.id]);
+        index = Number(old.deriv_index);
+        reusedFrom = old.id;
+      }
+    }
+    if (index === null) {
+      const next = await c.query(
+        `INSERT INTO address_counters (network, next_index) VALUES ($1, 1)
+         ON CONFLICT (network) DO UPDATE SET next_index = address_counters.next_index + 1
+         RETURNING next_index - 1 AS idx`,
+        [p.network],
+      );
+      index = Number(next.rows[0].idx);
+    }
     const address = p.chain.address(index);
     let amount = expected;
     if (shared) {
@@ -138,7 +166,7 @@ export async function createInvoice(input) {
     );
     await c.query("INSERT INTO audit_log (actor, action, subject, detail) VALUES ('app', 'invoice.create', $1, $2::jsonb)", [
       id,
-      JSON.stringify({ ref: p.ref, network: p.network, asset: p.asset, index, usd: p.usd, shared }),
+      JSON.stringify({ ref: p.ref, network: p.network, asset: p.asset, index, usd: p.usd, shared, ...(reusedFrom ? { reusedFrom } : {}) }),
     ]);
     return { row: ins.rows[0], created: true };
   });

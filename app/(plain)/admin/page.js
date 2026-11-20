@@ -979,7 +979,7 @@ function GatewayTab({ pp, run, lock, g, reload }) {
                 {NET[n.network] || n.network}
                 <small>{n.assets.map((a) => a.toUpperCase()).join(', ')} · {n.confirmations} conf</small>
                 {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
-                {n.network === 'btc' && g.btcGap && g.btcGap.gap >= 15 && <small style={WARN}>{g.btcGap.gap} unused addresses in a row. Wallets stop at {g.btcGap.limit}.</small>}
+                {n.network === 'btc' && g.btcGap && g.btcGap.gap >= g.btcGap.limit - 5 && <small style={WARN}>{g.btcGap.gap} unused addresses in a row. Wallets stop at {g.btcGap.limit}.</small>}
               </div>
               <div style={{ textAlign: 'right' }}>
                 <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : n.open === 0 ? 'Idle' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
