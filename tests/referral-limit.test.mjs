@@ -59,7 +59,7 @@ test('over the monthly limit: never by default, from the first month with room w
   assert.equal(rows[email('f3')].status, 'pending');
   assert.equal(Number(rows[email('f3')].earned), 0);
   assert.equal(referrals.historyOfCtx(ctx).some((h) => h.label.includes('f3')), false);
-  const link = (await referrals.adminView()).links.find((l) => l.friend === email('f3'));
+  const link = (await referrals.adminFriendPage({ limit: 200 })).rows.find((l) => l.id === email('f3'));
   assert.equal(link.rewarded, false);
   assert.equal(link.startsAt, monthStart(1));
   assert.equal(link.rewardUsd, 0);
