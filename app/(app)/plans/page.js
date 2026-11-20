@@ -27,6 +27,19 @@ import { DEFAULT_PAY } from '@/lib/pay-coins';
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 
+// A closing sheet gives its history step back (history.back) a moment later. The pay sheet adds its own step only after that pop,
+// otherwise the late pop closes it again as soon as it opens.
+const afterPop = () =>
+  new Promise((done) => {
+    const end = () => {
+      clearTimeout(id);
+      window.removeEventListener('popstate', end);
+      done();
+    };
+    const id = setTimeout(end, 500);
+    window.addEventListener('popstate', end);
+  });
+
 export default function Plans() {
   const { t, lang } = useLang();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
@@ -59,6 +72,7 @@ export default function Plans() {
   const boostWait = tab === 'boost' && !bd;
   const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
+  const [leaving, setLeaving] = useState(false); // the plan sheet is sliding away to hand over to the pay sheet
   const [busy, setBusy] = useState(false);
   const [coinOpen, setCoinOpen] = useState(false); // the coin picker shows once Pay with crypto is tapped
   const [moreOpen, setMoreOpen] = useState(false); // the plan details open when the balance row is tapped
@@ -133,6 +147,7 @@ export default function Plans() {
   // Close the sheet and give focus back to the button that opened it.
   function dismiss() {
     setSel(null);
+    setLeaving(false);
     setDragY(0);
     startY.current = null;
     payKey.current = null;
@@ -176,8 +191,13 @@ export default function Plans() {
       }
       if (r.pending && r.order?.address) {
         await refreshOrders().catch(() => {});
-        window.dispatchEvent(new CustomEvent('vtx-pay-open', { detail: { id: r.order.id } }));
+        // Hand over: the plan sheet slides down, goes, and only then the pay sheet slides up and stays open.
+        setLeaving(true);
+        await new Promise((done) => setTimeout(done, 200));
+        const popped = afterPop();
         dismiss();
+        await popped;
+        window.dispatchEvent(new CustomEvent('vtx-pay-open', { detail: { id: r.order.id } }));
         return;
       }
       await refresh().catch(() => {});
@@ -436,7 +456,7 @@ export default function Plans() {
 
       {sel && (
         <div
-          className="sheet"
+          className={leaving ? 'sheet leaving' : 'sheet'}
           role="dialog"
           aria-modal="true"
           aria-labelledby="st"
