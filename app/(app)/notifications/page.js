@@ -8,6 +8,7 @@ import { drillBack } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
 import { useLang } from '@/components/I18nProvider';
 import { noteTitle, noteBody, noteWhen } from '@/lib/i18n/notes';
+import { SkRows, useWaiting } from '@/components/Skeleton';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -32,6 +33,7 @@ export default function Notifications() {
   const router = useRouter();
   const { data: nd, mutate } = useApi('/api/notifications', { ttl: 5000 });
   const items = nd ? nd.items : seedItems;
+  const wait = useWaiting(!nd);
   // Ids that were new when the screen opened. They keep their dot while you read, then count as read.
   const [fresh, setFresh] = useState(null);
 
@@ -77,7 +79,7 @@ export default function Notifications() {
           </Link>
           <h2>{t('dash.notif')}</h2>
         </div>
-        {items.length > 0 && (
+        {!wait && items.length > 0 && (
           <button
             className="swap"
             type="button"
@@ -90,7 +92,9 @@ export default function Notifications() {
       </div>
 
       <div className="card">
-        {items.length ? (
+        {wait ? (
+          <SkRows n={4} />
+        ) : items.length ? (
           items.map((n, i) => {
             const k = KIND[n.kind] || KIND.news;
             return (
