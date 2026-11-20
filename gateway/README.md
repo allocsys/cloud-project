@@ -88,4 +88,4 @@ Delivery rules:
 ## Status
 - Done: skeleton, health, migrations, BTC, fixed-address mode, EVM scanner, deposit API, settlement rules, chain watcher, signed webhook sender, admin overview, Railway service and database.
 - Next: live tests with small amounts on each network, then withdrawals and swaps.
-- No lockfile yet: run `npm install` in `gateway/` once and commit `package-lock.json`, then switch the Dockerfile to `npm ci`.
+- The lockfile is committed and the Dockerfile uses `npm ci`. After changing `package.json`, run `npm install` in `gateway/` and commit `package-lock.json`.
