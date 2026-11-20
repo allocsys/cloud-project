@@ -25,12 +25,10 @@ The gateway only ever holds PUBLIC keys and addresses. Private keys and seed phr
 | Network | Coins | Detection |
 | --- | --- | --- |
 | `btc` | BTC | Esplora explorer, per invoice |
-| `eth`, `bsc`, `pol` | native coin (ETH, BNB, POL), USDT, USDC | own block scanner (`evm-scanner.js`), stored in `observed_txs`, reorg safe |
-| `trx` | TRX, USDT (TRC20) | TronGrid HTTP API (`tron-explorer.js`) |
-| `sol` | SOL, USDT, USDC (SPL) | Solana JSON-RPC (`sol-explorer.js`) |
+| `eth`, `bsc` | native coin (ETH, BNB), USDT | own block scanner (`evm-scanner.js`), stored in `observed_txs`, reorg safe |
 | `ton` | TON | toncenter v3 HTTP API (`ton-explorer.js`); plain TON transfers only, no jettons (USDT on TON) |
 
-A network is only offered when its address is set (and, for EVM, listed in `EVM_NETWORKS`). Only plain transfers to the address are seen on EVM chains; transfers made inside a contract call (internal transfers) are not. Token contracts and mints are in `src/chains/`: verify USDT on tether.to/en/supported-protocols before going live.
+A network is only offered when its address is set (and, for EVM, listed in `EVM_NETWORKS`). Only plain transfers to the address are seen on EVM chains; transfers made inside a contract call (internal transfers) are not. Token contracts are in `src/chains/`: verify USDT on tether.to/en/supported-protocols before going live.
 
 ## Environment
 | Variable | Meaning |
@@ -39,16 +37,12 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | `GATEWAY_API_SECRET` | shared secret the app sends as `Authorization: Bearer ...`, at least 16 characters (a shorter one is refused and the service will not start) |
 | `BTC_XPUB` | account-level extended public key (xpub or zpub); a fresh BTC address per invoice |
 | `PAY_ADDR_BTC` | fixed-address mode: one public BTC address (used when `BTC_XPUB` is not set) |
-| `PAY_ADDR_EVM` | one public address for Ethereum, BNB Chain and Polygon |
-| `PAY_ADDR_TRX`, `PAY_ADDR_SOL`, `PAY_ADDR_TON` | public receiving address on Tron, on Solana, on TON (friendly `UQ...`/`EQ...` or raw `0:...`, main network only) |
-| `EVM_NETWORKS` | which EVM networks to accept, comma separated (default `eth,bsc,pol`) |
-| `EVM_RPC_ETH`, `EVM_RPC_BSC`, `EVM_RPC_POL` | JSON-RPC endpoints, comma separated, https only, tried in order (public nodes by default) |
-| `EVM_CONF_ETH`, `EVM_CONF_BSC`, `EVM_CONF_POL` | confirmations before an EVM payment counts (defaults 12, 15, 64) |
+| `PAY_ADDR_EVM` | one public address for Ethereum and BNB Chain |
+| `PAY_ADDR_TON` | public receiving address on TON (friendly `UQ...`/`EQ...` or raw `0:...`, main network only) |
+| `EVM_NETWORKS` | which EVM networks to accept, comma separated (default `eth,bsc`) |
+| `EVM_RPC_ETH`, `EVM_RPC_BSC` | JSON-RPC endpoints, comma separated, https only, tried in order (public nodes by default) |
+| `EVM_CONF_ETH`, `EVM_CONF_BSC` | confirmations before an EVM payment counts (defaults 12, 15) |
 | `EVM_SCAN_SECONDS` | how often each EVM chain is scanned (default 15, minimum 3) |
-| `TRON_API_URL`, `TRON_API_KEY` | TronGrid-compatible API (default `https://api.trongrid.io`), optional key |
-| `TRX_CONFIRMATIONS` | confirmations for a Tron payment (default 1) |
-| `SOL_RPC` | Solana JSON-RPC endpoints, comma separated, https only (public nodes by default; may carry a provider key) |
-| `SOL_CONFIRMATIONS` | confirmations for a Solana payment (default 1; only finalized payments count) |
 | `TON_API_URL`, `TON_API_KEY` | toncenter-compatible v3 API (default `https://toncenter.com`), optional key (header `X-API-Key`; without one the limit is 1 request per second) |
 | `TON_CONFIRMATIONS` | confirmations for a TON payment (default 1; a payment in a masterchain block, or older than 30 s, shows 1) |
 | `BTC_CONFIRMATIONS` | confirmations before a BTC payment counts (default 1) |
@@ -66,7 +60,7 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | `PGSSL` | `1` to use TLS to Postgres |
 
 ## API (all under `/v1`, Bearer secret required)
-- `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"pol"|"trx"|"sol"|"ton", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
+- `POST /v1/invoices` body `{ ref, usd, network: "btc"|"eth"|"bsc"|"ton", asset, kind?: "order"|"deposit", user_ref? }` (network and asset default to `btc`; an unknown pair is `400`, a network that is not set up is `503`). The invoice carries `address`, `amount` (the exact amount to send), `uri` and `expires_at`. Returns `201` with the invoice, or `200` with the same invoice if `ref` was already used (`409` if it was used with different details). An order needs `usd`; a wallet top-up (`kind: "deposit"`) needs `user_ref` and no amount. No fresh rate means `503`, never a guessed price.
 - `GET /v1/invoices/:ref` returns the invoice.
 - `GET /v1/admin/overview` status for the app's admin Gateway tab: networks and scanners (cursor height, tip, age), invoices by status and recent, unmatched payments (handled ones are hidden), callbacks (waiting, failing, parked, and the stuck ones with parked first), the audit log, `alerts` (the last 20 of `payment.late`, `webhook.gave_up` and `unmatched.full` in 30 days) and `btcGap` (only with `BTC_XPUB`: how many unused addresses in a row were handed out after the last one that got money; wallets restored from the seed stop looking after 20, so the tab warns from 15).
 - `POST /v1/admin/unmatched/handle` body `{ network, txid, vout, note? }` marks an unmatched payment as handled after a person returned the money by hand (the gateway holds no keys and sends nothing). `note` is at most 80 characters. Writes an `unmatched.handled` audit row. Repeating it is fine (`already: true`); an unknown payment is `404`. The scanner never re-opens a handled row.
@@ -92,6 +86,6 @@ Delivery rules:
 - Several replicas are safe: a due row is claimed with `FOR UPDATE SKIP LOCKED` and a 60 s lease before it is sent.
 
 ## Status
-- Done: skeleton, health, migrations, BTC, fixed-address mode, EVM scanner, Tron, Solana, deposit API, settlement rules, chain watcher, signed webhook sender, admin overview, Railway service and database.
+- Done: skeleton, health, migrations, BTC, fixed-address mode, EVM scanner, deposit API, settlement rules, chain watcher, signed webhook sender, admin overview, Railway service and database.
 - Next: live tests with small amounts on each network, then withdrawals and swaps.
 - No lockfile yet: run `npm install` in `gateway/` once and commit `package-lock.json`, then switch the Dockerfile to `npm ci`.
