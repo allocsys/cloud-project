@@ -26,14 +26,14 @@ import { DEFAULT_PAY } from '@/lib/pay-coins';
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 // The fine print under the checkout figures: one small button, collapsed until tapped.
-function FineFold({ label, children }) {
+function FineFold({ label, children, plain }) {
   const [open, setOpen] = useState(false);
   return (
     <div style={{ margin: '-8px 0 12px' }}>
       <button type="button" className="pct-btn" aria-expanded={open} onClick={() => { triggerHaptic('selection'); setOpen(!open); }} style={{ height: 'auto', minHeight: 0, padding: '4px 12px', fontSize: 12 }}>
         {label} <span aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span>
       </button>
-      {open && <p className="fine" style={{ margin: '8px 0 0' }}>{children}</p>}
+      {open && (plain ? <div style={{ margin: '8px 0 0' }}>{children}</div> : <p className="fine" style={{ margin: '8px 0 0' }}>{children}</p>)}
     </div>
   );
 }
@@ -71,6 +71,7 @@ export default function Plans() {
   const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
+  const [coinOpen, setCoinOpen] = useState(false); // the coin picker shows once Pay with crypto is tapped
   const [coin, setCoin] = useState(DEFAULT_PAY); // the coin a crypto payment is made in (our own checkout only)
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
@@ -134,6 +135,7 @@ export default function Plans() {
     triggerHaptic('selection');
     openerRef.current = document.activeElement;
     payKey.current = null;
+    setCoinOpen(false);
     setSel(p);
   }
 
@@ -469,14 +471,22 @@ export default function Plans() {
           >
             <div className="sheetscroll">
             <div className="grab" aria-hidden="true" />
-            <h3 id="st">{cur.smart ? t('dash.smart') : cur.id === 'custom' ? 'ASICs' : t('plans.planName', { name: cur.name })}</h3>
-            <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>
-              {cur.smart
-                ? t('plans.smartLine', { n: fmtUsd(cur.budget), d: cur.days })
-                : cur.id === 'custom'
-                  ? t('plans.asicsLine', { th: fmtTh(cur.th), d: cur.days })
-                  : cur.blurb}
-            </p>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+              <div style={{ minWidth: 0 }}>
+                <h3 id="st">{cur.smart ? t('dash.smart') : cur.id === 'custom' ? 'ASICs' : t('plans.planName', { name: cur.name })}</h3>
+                <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>
+                  {cur.smart
+                    ? t('plans.smartLine', { n: fmtUsd(cur.budget), d: cur.days })
+                    : cur.id === 'custom'
+                      ? t('plans.asicsLine', { th: fmtTh(cur.th), d: cur.days })
+                      : cur.blurb}
+                </p>
+              </div>
+              <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                <b style={{ display: 'block', color: 'var(--gold2)', fontSize: '28px', lineHeight: 1 }}>${fmtUsd(cur.price)}</b>
+                <small className="mute" style={{ fontSize: '12px' }}>{t('plans.due')}</small>
+              </div>
+            </div>
             <div className="sheetbody">
               {hall ? (
                 <>
@@ -491,35 +501,24 @@ export default function Plans() {
                 </>
               ) : null}
               {costs ? (
-                <>
-                  <div className="row">
-                    <span className="mute">{t('plans.elec')}</span>
-                    <b className="v">~${fmtCost(costs.elec)}/{t('calc.day')}<small>{t('plans.taken')}</small></b>
-                  </div>
-                  <div className="row">
-                    <span className="mute">{t('plans.maint')}</span>
-                    <b className="v">~${fmtCost(costs.maint)}/{t('calc.day')}<small>{t('plans.taken')}</small></b>
-                  </div>
-                </>
+                <div className="row">
+                  <span className="mute">{t('plans.fees', { n: fmtCost(costs.elec + costs.maint) })}</span>
+                  <small className="mute">{t('plans.taken')}</small>
+                </div>
               ) : null}
-              <div className="row">
-                <span className="mute">{t('plans.minerId')}</span>
-                <b className="serial">{nextId || '...'}</b>
-              </div>
               {fb && (
                 <div className="row">
                   <span className="mute">{t('plans.firstBonus')}</span>
                   <b className="v" style={{ color: 'var(--green)' }}>{t('plans.bonusLine', { b: bonusText(fb.bonus) })}<small>{t('plans.fullTerm')}</small></b>
                 </div>
               )}
-              <div className="row" style={{ borderTop: '1px solid rgba(245, 165, 36, 0.25)' }}>
-                <span className="mute" style={{ fontWeight: 600 }}>{t('plans.due')}</span>
-                <b style={{ color: 'var(--gold2)', fontSize: '20px' }}>${fmtUsd(cur.price)}</b>
-              </div>
               <div className="row">
                 <span className="mute">{t('plans.balance')}</span>
-                <b className="v">${fmtUsd(sheetBal)}</b>
+                <b className="v" style={canBal ? undefined : { color: 'var(--red, #ff8a80)' }}>${fmtUsd(sheetBal)}</b>
               </div>
+            </div>
+            <FineFold plain label={t('pay.more')}>
+            <div className="sheetbody">
               <div className="row">
                 <span className="mute">{t('dash.perDayCap')}</span>
                 <b className="v">~{dailyOf(cur)}/{t('calc.day')}</b>
@@ -537,9 +536,10 @@ export default function Plans() {
                 </div>
               )}
             </div>
-            <FineFold label={t('pay.more')}>
+            <p className="fine" style={{ margin: '8px 0 0' }}>
               {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href={pagePath('/terms', lang)}>{t('auth.terms')}</Link> })}
               {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href={pagePath('/refunds', lang)}>{t('refund.more')}</Link>
+            </p>
             </FineFold>
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 0' }}>
@@ -550,19 +550,18 @@ export default function Plans() {
             )}
             </div>
             <div className="sheetfoot">
-            {ready && ord?.multi && methods.includes('crypto') && (
+            {ready && ord?.multi && methods.includes('crypto') && (coinOpen || !canBal) && (
               <CoinSelect value={coin} onChange={setCoin} disabled={busy} />
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>
             ) : (
               methods.map((m, i) => (
-                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => pay(m)} disabled={busy || (m === 'balance' && !canBal)}>
-                  {m === 'balance' ? t('plans.payBalance') : t('plans.payCrypto')}
+                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => (m === 'crypto' && canBal && ord?.multi && !coinOpen ? setCoinOpen(true) : pay(m))} disabled={busy || (m === 'balance' && !canBal)}>
+                  {m === 'balance' ? t('plans.payBalanceAmt', { n: fmtUsd(cur.price) }) : t('plans.payCrypto')}
                 </button>
               ))
             )}
-            <button className="swap" type="button" onClick={closeModal}>{t('common.cancel')}</button>
             </div>
           </div>
         </div>
