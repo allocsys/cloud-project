@@ -16,6 +16,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import Field from '@/components/Field';
 import { fill, useLang, useT } from '@/components/I18nProvider';
 import { CoinPicker, PayInfo } from '@/components/PayCoin';
+import DepositFlow from '@/components/DepositFlow';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 import { histLabel, histDate, histFee, histNet } from '@/lib/i18n/history';
 
@@ -629,6 +630,8 @@ export default function Wallet() {
                   {busy ? t('wal.sending') : t('wal.withdraw')}
                 </button>
               </div>
+            ) : cryptoOn && dod?.multi ? (
+              <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} />
             ) : cryptoOn ? (
               <div>
                 {dod?.multi && <CoinPicker value={payCoin} onChange={setPayCoin} disabled={busy} />}
