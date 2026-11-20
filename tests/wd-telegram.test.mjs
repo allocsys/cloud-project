@@ -187,10 +187,12 @@ test('an email account linked to Telegram is asked too; an unlinked one is not',
   assert.equal(sent.length, 0);
 });
 
-test('a verified email, two-factor or a switched-off bot leave the withdrawal as it was', async () => {
+test('Telegram comes first with a verified email; two-factor or a switched-off bot leave the withdrawal as it was', async () => {
   const verified = await tgAccount({ emailVerified: Date.now() });
   sent.length = 0;
-  assert.ok((await ask(verified)).ok, 'verified email: no Telegram code');
+  assert.equal((await ask(verified)).need2fa, true, 'verified email + Telegram: Telegram code first');
+  await until(() => sent.length >= 1);
+  sent.length = 0;
 
   const tf = await tgAccount({ twofa: { secret: 'x' } });
   const none = await ask(tf);
