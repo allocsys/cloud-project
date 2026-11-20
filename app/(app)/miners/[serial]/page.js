@@ -102,8 +102,9 @@ export default function ContractPage() {
   const avg = daily.length ? total / daily.length : 0;
   const pct = Math.round((c.elapsed / c.days) * 100);
   const bars = daily.slice(0, 14).reverse();
-  const max = Math.max(...bars.map((d) => d.usd));
-  const min = Math.min(...bars.map((d) => d.usd));
+  const live = bars.filter((d) => !d.paused).map((d) => d.usd);
+  const max = live.length ? Math.max(...live) : 0;
+  const min = live.length ? Math.min(...live) : 0;
   const pausedN = daily.filter((d) => d.paused).length;
 
   return (
@@ -140,9 +141,9 @@ export default function ContractPage() {
                   {bars.map((d, i) => (
                     <i
                       key={d.day}
-                      title={`${d.day} · $${formatUsd(d.usd)}`}
+                      title={d.paused ? `${d.day} · ${t('min.paused')}` : `${d.day} · $${formatUsd(d.usd)}`}
                       className={i === bars.length - 1 ? 'last' : undefined}
-                      style={{ height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }}
+                      style={d.paused ? { height: '30%', background: 'rgba(255,255,255,0.14)' } : { height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }}
                     />
                   ))}
                 </div>
