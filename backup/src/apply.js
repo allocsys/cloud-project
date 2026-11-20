@@ -11,6 +11,14 @@ const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 const CHUNK_ROWS = 500;
 
+// The app's earlier migration steps were folded into '001_init'. A backup made before that lists them; its tables are the same, so it still fits.
+// Only the app database ends up with ['001_init'] alone, so the gateway database is not affected. Never add to this list.
+const FOLDED = ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'];
+export function schemaOk(ids, fileIds) {
+  if (JSON.stringify(ids) === JSON.stringify(fileIds)) return true;
+  return ids.length === 1 && ids[0] === FOLDED[0] && fileIds.length > 0 && fileIds.every((x) => FOLDED.includes(x));
+}
+
 export function parse(buf) {
   let text;
   try {
@@ -69,7 +77,7 @@ export async function apply(buf, url, confirm) {
     ).rows.map((x) => x.name);
     const seqs = (await c.query("SELECT sequencename AS name FROM pg_sequences WHERE schemaname = 'public'")).rows.map((x) => x.name);
     const names = head.tables.map((t) => t.name);
-    if (JSON.stringify(ids) !== JSON.stringify(head.schema) || !same(tabs, names) || !same(seqs, Object.keys(head.sequences))) {
+    if (!schemaOk(ids, head.schema) || !same(tabs, names) || !same(seqs, Object.keys(head.sequences))) {
       throw new Error('The database does not match the backup (different migrations or tables).');
     }
     if (names.length) await c.query(`TRUNCATE ${names.map(quote).join(', ')}`);
