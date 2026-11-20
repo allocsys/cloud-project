@@ -41,7 +41,7 @@ test('the admin overview balance matches the wallet when the market differs from
   const wallet = w.earned - w.withdrawn - w.spent;
   // Static would be about five dollars of BTC; the market paid nothing on those days.
   assert.ok(wallet < 2 / BTC_USD, `the wallet follows the market (${wallet})`);
-  const shown = (await overview()).users.find((u) => u.id === ID);
+  const shown = (await overview({ withUsers: true })).users.find((u) => u.id === ID);
   assert.ok(shown, 'the user is listed');
   assert.ok(Math.abs(shown.available - wallet) < 1e-7, `admin ${shown.available} vs wallet ${wallet}`);
   assert.ok(Math.abs(shown.earned - w.earned) < 1e-7, `earned ${shown.earned} vs wallet ${w.earned}`);

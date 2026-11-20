@@ -17,5 +17,5 @@ export async function GET(req) {
     const page = adminList(p.get('list'), { filter: p.get('filter'), offset: p.get('offset'), limit: p.get('limit') });
     return page ? json({ ok: true, ...(await page) }) : json({ ok: false, error: 'Unknown list.' }, 400);
   }
-  return json({ ok: true, who, ...reviewView(await overview()) });
+  return json({ ok: true, who, ...reviewView(await overview({ withUsers: true })) });
 }
