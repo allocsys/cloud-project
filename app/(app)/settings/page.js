@@ -81,12 +81,14 @@ export default function Settings() {
       return undefined;
     }
     // Every 4 s for the first minute, then every 10 s; quiet checks wait while the server is failing or busy.
-    const tick = () => quietMe().catch(() => {});
+    const tick = () => {
+      if (!document.hidden) quietMe().catch(() => {});
+    };
     let n = 0;
     let poll;
     const loop = () => {
       poll = setTimeout(() => {
-        if (!document.hidden) tick();
+        tick();
         n += 1;
         loop();
       }, n < 15 ? 4000 : 10000);
