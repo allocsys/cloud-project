@@ -1,0 +1,44 @@
+name: Lockfile
+
+# Fails a pull request when a package-lock.json no longer matches its package.json, and tells how to fix it.
+# Runs only when a package file changes. Folders without a lockfile are skipped.
+on:
+  pull_request:
+    paths: ['package.json', 'package-lock.json', '*/package.json', '*/package-lock.json', '.github/workflows/lockfile.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: lockfile-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  in-sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Every lockfile matches its package.json
+        run: |
+          status=0
+          for dir in . backup bot gateway; do
+            [ -f "$dir/package.json" ] || continue
+            if [ ! -f "$dir/package-lock.json" ]; then
+              echo "skip $dir: no lockfile"
+              continue
+            fi
+            (cd "$dir" && npm install --package-lock-only --ignore-scripts --no-audit --no-fund)
+            if ! git diff --exit-code --quiet -- "$dir/package-lock.json"; then
+              echo "::error file=$dir/package-lock.json::$dir/package-lock.json is out of sync with $dir/package.json. Run 'npm install --package-lock-only' in $dir and commit the result."
+              git diff --stat -- "$dir/package-lock.json"
+              status=1
+            else
+              echo "ok $dir"
+            fi
+          done
+          exit $status
