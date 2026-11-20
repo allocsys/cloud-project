@@ -25,35 +25,6 @@ const METHODS = ['eth_sendTransaction', 'eth_accounts', 'personal_sign'];
 const EVENTS = ['chainChanged', 'accountsChanged'];
 const USER_OUT = { code: 6000, message: 'USER_DISCONNECTED' };
 
-// Telegram's in-app browser blocks a page that navigates to a wc: link (net::ERR_UNKNOWN_URL_SCHEME), so there WalletConnect's wallet picker (https links) is used instead.
-const inTelegram = () => /Telegram/i.test(navigator.userAgent || '') || !!window.TelegramWebviewProxy;
-
-// Telegram: the WalletConnect provider with its own wallet picker (showQrModal) is the path that opens SafePal there.
-// Its client and session are handed to the standalone client code below, so send() and the reload pick-up work as everywhere else.
-async function connectInTelegram(projectId, mark) {
-  const { EthereumProvider } = await import('@walletconnect/ethereum-provider');
-  const p = await EthereumProvider.init({ projectId, chains: [1], optionalChains: WC_CHAINS, showQrModal: true, metadata: meta() });
-  mark('init');
-  if (p.session) await p.disconnect().catch(() => {});
-  mark('connecting');
-  let timer;
-  try {
-    await Promise.race([
-      p.connect(),
-      new Promise((_, rej) => {
-        timer = setTimeout(() => rej(new Error('Wallet did not answer')), 180000);
-      }),
-    ]);
-    if (!p.session || !p.accounts?.[0]) throw new Error('no account');
-  } catch (e) {
-    p.disconnect().catch(() => {});
-    throw e;
-  } finally {
-    clearTimeout(timer);
-  }
-  return { p, client: p.signer.client, session: p.session };
-}
-
 async function initClient(projectId) {
   const { SignClient } = await import('@walletconnect/sign-client');
   return SignClient.init({ projectId, metadata: meta() });
@@ -143,20 +114,6 @@ export default function WalletProvider({ children }) {
       setBusy(true);
       try {
         mark('loading');
-        if (inTelegram()) {
-          const { p, client, session: s } = await connectInTelegram(id, mark);
-          const a = adopt(client, s);
-          p.on('disconnect', () => {
-            if (live.current?.topic !== s.topic) return;
-            live.current = null;
-            setAcct('');
-            setChainId(0);
-            remember(false);
-          });
-          if (!a) throw new Error('no account');
-          remember(true);
-          return a;
-        }
         const client = await getClient(id);
         mark('init');
         // A session left from before is closed first, so the new request starts clean.
