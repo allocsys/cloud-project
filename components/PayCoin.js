@@ -108,7 +108,7 @@ function Countdown({ at }) {
 
 // An open gateway payment: send exactly this amount, to this address, on this network.
 // `show` is the page's toast function; it says the text was copied.
-// `slim` drops Copy amount and the Trust link (the deposit flow shows Copy amount itself, under Copy address).
+// `slim` drops More (Copy amount, QR, Trust link): the deposit flow shows Copy address and Copy amount itself.
 export function PayInfo({ order, show, slim = false }) {
   const t = useT();
   const [qr, setQr] = useState(false);
@@ -166,8 +166,8 @@ export function PayInfo({ order, show, slim = false }) {
             {t('plans.openWallet')}
           </button>
         )}
-        <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
-        {more && (
+        {!slim && <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>}
+        {more && !slim && (
           <>
             {!slim && <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>}
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
@@ -177,7 +177,7 @@ export function PayInfo({ order, show, slim = false }) {
           </>
         )}
       </div>
-      {qr && <Qr value={order.uri || order.address} />}
+      {qr && !slim && <Qr value={order.uri || order.address} />}
     </div>
   );
 }
