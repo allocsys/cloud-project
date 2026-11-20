@@ -47,8 +47,11 @@ function useSeen() {
   return [ref, seen];
 }
 
+// Withdraw steps: readable active tab, step slide, back arrow, amount slider.
+const WSTEP_CSS = '.wcard .tabs button[aria-pressed=true]{background:#e8b84a;color:#1a1405;font-weight:500}.wstep{--dx:12px;animation:wsIn .25s ease-out}[dir=rtl] .wstep{--dx:-12px}@keyframes wsIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.wback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .wback{padding:4px 0 4px 8px}[dir=rtl] .wback svg{transform:scaleX(-1)}.wrange{-webkit-appearance:none;appearance:none;display:block;width:100%;height:24px;margin:4px 0 14px;padding:0;border:0;background:transparent;box-sizing:border-box;--f:0;--d:right}[dir=rtl] .wrange{--d:left}.wrange::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.wrange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-7px;border:0;border-radius:50%;background:#e8b84a}.wrange::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.wrange::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#e8b84a}';
+
 // Wallet motion: transform and opacity only. A light band crosses the balance card, activity rows fade in one by one, the fee quote fades in.
-const WALLET_CSS = '.whero{position:relative;overflow:hidden}.wshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:wShine 8s ease-in-out infinite}@keyframes wShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.wpause .wshine{animation-play-state:paused}.wrow{animation:wRow .35s ease-out both}@keyframes wRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.quote{animation:wQuote .25s ease-out}@keyframes wQuote{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}.tgring{position:absolute;top:0;left:0;right:0;bottom:0;border-radius:50%;border:2px solid #2AABEE;animation:tgPulse 1.8s ease-out infinite}@keyframes tgPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.7);opacity:0}}.tgdots i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#F5A623;margin:0 2px;animation:tgDot 1.2s infinite}.tgdots i:nth-child(2){animation-delay:.2s}.tgdots i:nth-child(3){animation-delay:.4s}@keyframes tgDot{0%,80%,100%{opacity:.25}40%{opacity:1}}';
+const WALLET_CSS = '.whero{position:relative;overflow:hidden}.wshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:wShine 8s ease-in-out infinite}@keyframes wShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.wpause .wshine{animation-play-state:paused}.wrow{animation:wRow .35s ease-out both}@keyframes wRow{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}.quote{animation:wQuote .25s ease-out}@keyframes wQuote{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:none}}.tgring{position:absolute;top:0;left:0;right:0;bottom:0;border-radius:50%;border:2px solid #2AABEE;animation:tgPulse 1.8s ease-out infinite}@keyframes tgPulse{0%{transform:scale(1);opacity:.55}100%{transform:scale(1.7);opacity:0}}.tgdots i{display:inline-block;width:5px;height:5px;border-radius:50%;background:#F5A623;margin:0 2px;animation:tgDot 1.2s infinite}.tgdots i:nth-child(2){animation-delay:.2s}.tgdots i:nth-child(3){animation-delay:.4s}@keyframes tgDot{0%,80%,100%{opacity:.25}40%{opacity:1}}' + WSTEP_CSS;
 
 const floorTo = (n, d) => Math.floor(n * 10 ** d) / 10 ** d;
 const ceilTo = (n, d) => Math.ceil(n * 10 ** d - 1e-9) / 10 ** d;
@@ -86,12 +89,12 @@ function DepositQr({ value }) {
 }
 
 // Coin buttons, plus a network switch for coins that live on more than one chain (USDT).
-function Picker({ asset, net, onAsset, onNet }) {
+function Picker({ asset, net, onAsset, onNet, fill }) {
   const t = useT();
   const nets = Object.keys(ASSETS[asset].nets);
   return (
     <>
-      <div className="assets" role="group" aria-label={t('wal.coin')}>
+      <div className="assets" role="group" aria-label={t('wal.coin')} style={fill ? { display: 'grid', gridTemplateColumns: `repeat(${Object.keys(ASSETS).length},minmax(0,1fr))`, gap: 8 } : undefined}>
         {Object.entries(ASSETS).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={asset === id} onClick={() => onAsset(id)}>
             {a.sym}
@@ -163,7 +166,8 @@ export default function Wallet() {
   const [tab, setTab] = useState('withdraw');
   const [asset, setAsset] = useState('btc');
   const [net, setNet] = useState('btc');
-  const [unit, setUnit] = useState('coin');
+  const [unit, setUnit] = useState('usd');
+  const [wStep, setWStep] = useState(1); // withdraw step: 1 amount, 2 coin, 3 address
   const [amount, setAmount] = useState('');
   const [address, setAddress] = useState('');
   const [errors, setErrors] = useState({});
@@ -339,6 +343,8 @@ export default function Wallet() {
     if (tab !== nextTab) {
       triggerHaptic('selection');
       setTab(nextTab);
+      setUnit(nextTab === 'withdraw' ? 'usd' : 'coin');
+      setWStep(1);
       setErrors({});
     }
   }
@@ -364,7 +370,7 @@ export default function Wallet() {
     triggerHaptic('selection');
     setAsset(id);
     setNet(Object.keys(ASSETS[id].nets)[0]);
-    setAmount('');
+    if (tab !== 'withdraw') setAmount(''); // the withdraw amount is in dollars: it survives a coin change
     setDep('');
     setAddress('');
     setErrors({});
@@ -395,8 +401,8 @@ export default function Wallet() {
     if (next.amount || next.address || next.code) {
       triggerHaptic('error');
       setErrors(next);
-      const el = document.getElementById(next.amount ? 'wa' : next.address ? 'wd' : 'wc');
-      if (el) el.focus();
+      if (next.amount) setWStep(1);
+      setTimeout(() => document.getElementById(next.amount ? 'wa' : next.address ? 'wd' : 'wc')?.focus(), 60);
       return;
     }
 
@@ -434,6 +440,7 @@ export default function Wallet() {
       setAmount('');
       setAddress('');
       setCode('');
+      setWStep(1);
       setTgWait(false);
       setShowCode(false);
       setMailPop(false);
@@ -461,10 +468,35 @@ export default function Wallet() {
         setShowCode(true);
         setTimeout(() => document.getElementById('wc')?.focus(), 50);
       }
+      if (e.field !== 'address' && e.field !== 'code') setWStep(1);
       setErrors({ [e.field === 'address' ? 'address' : e.field === 'code' ? 'code' : 'amount']: msg });
     } finally {
       setBusy(false);
     }
+  }
+
+  const sMin = ceilTo(minUsd, 2);
+  const sMax = Math.max(floorTo((liveAvailable.current || available) * btcUsd, 2), sMin);
+  const sVal = Math.min(Math.max(parsed > 0 ? parsed : sMin, sMin), sMax);
+
+  // Next step of the withdraw flow; the amount is checked before the coin step.
+  function wNext() {
+    if (wStep === 1) {
+      const usd = parsed;
+      let m = '';
+      if (!(usd > 0)) m = t('wal.errAmount');
+      else if (usd < minUsd - 0.01) m = t('wal.errMin', { min: minText });
+      else if (usd > (liveAvailable.current || available) * btcUsd * (1 + 1e-9) + 1e-9) m = t('wal.errMore');
+      if (m) {
+        triggerHaptic('error');
+        setErrors({ amount: m });
+        document.getElementById('wa')?.focus();
+        return;
+      }
+    }
+    triggerHaptic('selection');
+    setErrors({});
+    setWStep(wStep + 1);
   }
 
   wdRef.current = withdraw;
@@ -514,11 +546,19 @@ export default function Wallet() {
               </button>
             </div>
 
-            {!(tab === 'deposit' && cryptoOn) && <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} />}
+            {tab === 'deposit' && !cryptoOn && <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} />}
 
             {tab === 'withdraw' ? (
               <div>
-                <Field id="wa" label={t('wal.amount')} className="unit" side={<UnitSwitch sym={A.sym} unit={unit} onUnit={pickUnit} />} error={errors.amount}>
+                {wStep > 1 && (
+                  <button type="button" className="wback" aria-label={t('dep.back')} onClick={() => { triggerHaptic('light'); setErrors({}); setWStep(wStep - 1); }}>
+                    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
+                  </button>
+                )}
+                <div className="wstep" key={wStep}>
+                {wStep === 1 && (
+                <div>
+                <Field id="wa" label={t('wal.amount')} error={errors.amount}>
                   <input
                     id="wa"
                     inputMode="decimal"
@@ -533,6 +573,20 @@ export default function Wallet() {
                     }}
                   />
                 </Field>
+                <input
+                  type="range"
+                  className="wrange"
+                  aria-label={t('wal.amount')}
+                  min={sMin}
+                  max={sMax}
+                  step={0.01}
+                  value={sVal}
+                  style={{ '--f': sMax > sMin ? (sVal - sMin) / (sMax - sMin) : 1 }}
+                  onChange={(e) => {
+                    setAmount(parseFloat(e.target.value).toFixed(2));
+                    if (errors.amount) setErrors({ ...errors, amount: undefined });
+                  }}
+                />
                 <div className="pct-row">
                   {[0.25, 0.5, 0.75, 1].map((p) => (
                     <button key={p} type="button" className="pct-btn" onClick={() => setFraction(p)}>
@@ -541,6 +595,20 @@ export default function Wallet() {
                   ))}
                 </div>
 
+                <button className="btn" type="button" onClick={wNext} disabled={!ready}>{t('dep.pickCoin')}</button>
+                </div>
+                )}
+
+                {wStep === 2 && (
+                <div>
+                  <Picker asset={asset} net={net} onAsset={pickAsset} onNet={pickNet} fill />
+                  <p className="fine winfo">{t('wal.hint', { min: minText, fee: asset === 'btc' ? t('wal.feeFlat', { flat: flatFee, sym: A.sym }) : t('wal.feeSwap', { n: SWAP_FEE_PCT, flat: flatFee, sym: A.sym }) })}</p>
+                  <button className="btn" type="button" onClick={wNext}>{t('wal.addr', { sym: A.sym })}</button>
+                </div>
+                )}
+
+                {wStep === 3 && (
+                <div>
                 <Field id="wd" label={A.nets && Object.keys(A.nets).length > 1 ? t('wal.addrNet', { sym: A.sym, net: N.short }) : t('wal.addr', { sym: A.sym })} error={errors.address}>
                   <input
                     id="wd"
@@ -629,6 +697,9 @@ export default function Wallet() {
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? t('wal.sending') : t('wal.withdraw')}
                 </button>
+                </div>
+                )}
+                </div>
               </div>
             ) : cryptoOn && dod?.multi ? (
               <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} />
