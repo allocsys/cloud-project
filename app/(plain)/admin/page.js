@@ -1543,8 +1543,12 @@ export default function Admin() {
   const tnLoad = useCallback(async (op = 'status') => {
     try {
       const r = await call('POST', '/api/admin', { action: 'tg-notices', op });
-      if (r.ok) setTn((t) => ({ ...t, ...(op === 'count' ? { users: r.users, friend: r.friend, gift: r.gift } : {}), job: r.job }));
+      if (r.ok) {
+        setTn((t) => ({ ...t, ...(op === 'count' ? { users: r.users, friend: r.friend, gift: r.gift } : {}), job: r.job }));
+        return true;
+      }
     } catch {}
+    return false;
   }, []);
   const tnRunning = tn.job?.state === 'running';
   useEffect(() => {
@@ -1553,8 +1557,22 @@ export default function Admin() {
       tnLoad('count');
       return undefined;
     }
-    const t = setInterval(() => tnLoad(), 4000);
-    return () => clearInterval(t);
+    // Every 4 s while the job runs; each failed check doubles the wait (up to 30 s), a good one resets it.
+    let off = false;
+    let fails = 0;
+    let t;
+    const next = () => {
+      t = setTimeout(async () => {
+        const ok = await tnLoad();
+        fails = ok ? 0 : fails + 1;
+        if (!off) next();
+      }, Math.min(30000, 4000 * 2 ** fails));
+    };
+    next();
+    return () => {
+      off = true;
+      clearTimeout(t);
+    };
   }, [isReady, tab, tnRunning, tnLoad]);
   async function tnAct(op, okText, extra) {
     if (await run({ action: 'tg-notices', op, ...extra }, okText)) tnLoad(op === 'send-one' ? 'count' : 'status');
