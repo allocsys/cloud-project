@@ -4,16 +4,11 @@
 // GATEWAY_API_SECRET  shared secret the app sends as a Bearer token. At least 16 characters (a shorter one is refused, and the service will not start).
 // BTC_XPUB            account-level extended PUBLIC key (xpub or zpub). Never a private key or seed. A fresh address per invoice.
 // PAY_ADDR_BTC        fixed-address mode: one public BTC address; invoices are told apart by exact amount. Used when BTC_XPUB is not set.
-// PAY_ADDR_EVM, PAY_ADDR_TRX, PAY_ADDR_SOL, PAY_ADDR_TON  public receiving addresses (EVM chains share one) for the fixed-address networks.
-// EVM_NETWORKS        which EVM networks to accept, comma separated (default eth,bsc,pol). Needs PAY_ADDR_EVM.
-// EVM_RPC_ETH, EVM_RPC_BSC, EVM_RPC_POL  JSON-RPC endpoints, comma separated, https only. Tried in order; the next one is used when one fails.
-// EVM_CONF_ETH, EVM_CONF_BSC, EVM_CONF_POL  confirmations needed before an EVM payment counts (defaults 12, 15, 64)
+// PAY_ADDR_EVM, PAY_ADDR_TON  public receiving addresses (EVM chains share one) for the fixed-address networks.
+// EVM_NETWORKS        which EVM networks to accept, comma separated (default eth,bsc). Needs PAY_ADDR_EVM.
+// EVM_RPC_ETH, EVM_RPC_BSC  JSON-RPC endpoints, comma separated, https only. Tried in order; the next one is used when one fails.
+// EVM_CONF_ETH, EVM_CONF_BSC  confirmations needed before an EVM payment counts (defaults 12, 15)
 // EVM_SCAN_SECONDS    how often each EVM chain is scanned for new blocks (default 15, minimum 3)
-// TRON_API_URL      TronGrid-compatible API base, https only (default https://api.trongrid.io)
-// TRON_API_KEY        optional TronGrid key (sent as TRON-PRO-API-KEY; raises the rate limit)
-// TRX_CONFIRMATIONS   confirmations needed for a TRX payment (default 1; a 'confirmed' Tron payment is already solidified)
-// SOL_RPC             Solana JSON-RPC endpoints, comma separated, https only. Tried in order; may carry a provider key in the URL.
-// SOL_CONFIRMATIONS   confirmations needed for a SOL payment (default 1; only finalized payments get any)
 // TON_API_URL         toncenter-compatible API base (v3), https only (default https://toncenter.com)
 // TON_API_KEY         optional toncenter key (sent as X-API-Key; without one the limit is 1 request per second)
 // TON_CONFIRMATIONS   confirmations needed for a TON payment (default 1; a payment in a masterchain block, or older than 30 s, shows 1)
@@ -44,10 +39,7 @@ const pct = (v, dflt) => (text(v) !== '' && Number.isFinite(Number(v)) && Number
 const EVM_RPC = {
   eth: ['https://ethereum-rpc.publicnode.com', 'https://cloudflare-eth.com'],
   bsc: ['https://bsc-rpc.publicnode.com', 'https://bsc-dataseed.binance.org'],
-  pol: ['https://polygon-bor-rpc.publicnode.com', 'https://polygon-rpc.com'],
 };
-
-const SOL_RPC = ['https://api.mainnet-beta.solana.com', 'https://solana-rpc.publicnode.com'];
 
 export const config = () => {
   const nets = csv(process.env.EVM_NETWORKS).map((s) => s.toLowerCase());
@@ -64,29 +56,17 @@ export const config = () => {
     payAddr: {
       btc: text(process.env.PAY_ADDR_BTC),
       evm: text(process.env.PAY_ADDR_EVM),
-      trx: text(process.env.PAY_ADDR_TRX),
-      sol: text(process.env.PAY_ADDR_SOL),
       ton: text(process.env.PAY_ADDR_TON),
     },
     evm: {
-      networks: nets.length ? nets : ['eth', 'bsc', 'pol'],
+      networks: nets.length ? nets : ['eth', 'bsc'],
       rpc,
       confirmations: {
         eth: whole(process.env.EVM_CONF_ETH, 12),
         bsc: whole(process.env.EVM_CONF_BSC, 15),
-        pol: whole(process.env.EVM_CONF_POL, 64),
       },
       scanIntervalMs: Math.max(3, whole(process.env.EVM_SCAN_SECONDS, 15)) * 1000,
       catchupMs: whole(process.env.EVM_CATCHUP_HOURS, 6) * 3_600_000,
-    },
-    trx: {
-      apiUrl: text(process.env.TRON_API_URL) || 'https://api.trongrid.io',
-      apiKey: text(process.env.TRON_API_KEY),
-      confirmations: whole(process.env.TRX_CONFIRMATIONS, 1),
-    },
-    sol: {
-      rpc: csv(process.env.SOL_RPC).length ? csv(process.env.SOL_RPC) : SOL_RPC,
-      confirmations: whole(process.env.SOL_CONFIRMATIONS, 1),
     },
     ton: {
       apiUrl: text(process.env.TON_API_URL) || 'https://toncenter.com',
