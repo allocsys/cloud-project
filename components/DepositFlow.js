@@ -15,8 +15,8 @@ import { useT } from '@/components/I18nProvider';
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// Site and app: ETH, BNB, USDT on eth or bsc (EVM connect). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
-const EVM_COINS = ['eth', 'bnb', 'usdt'];
+// Site and app: BTC, ETH, BNB, TON, USDT on eth or bsc (ETH, BNB, USDT connect; BTC and TON pay by QR, Open wallet or manually). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
+const EVM_COINS = ['btc', 'eth', 'bnb', 'ton', 'usdt'];
 const EVM_SKIP = ['ton'];
 const TG_COINS = ['ton', 'usdt'];
 const TG_SKIP = ['eth', 'bsc'];
