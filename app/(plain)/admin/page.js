@@ -773,7 +773,7 @@ function Login({ onDone, setup }) {
 const GROUPS = [
   ['home', 'Overview', ['overview']],
   ['people', 'People', ['users', 'referrals', 'boosts', 'send']],
-  ['money', 'Money', ['orders', 'withdrawals', 'refunds', 'gateway']],
+  ['money', 'Money', ['orders', 'deposits', 'withdrawals', 'refunds', 'gateway']],
   ['mining', 'Mining', ['halls', 'smart', 'guard']],
   ['system', 'System', ['database', 'settings']],
 ];
@@ -1473,6 +1473,7 @@ export default function Admin() {
   const [flt, setFlt] = useState('open'); // Open / All filter on Orders, Withdrawals and Refunds
   const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
   const lo = useAdminList('/api/admin', 'orders', flt, tab === 'orders', lv);
+  const ld = useAdminList('/api/admin', 'deposits', flt, tab === 'deposits', lv);
   const lw = useAdminList('/api/admin', 'withdrawals', flt, tab === 'withdrawals', lv);
   const lr = useAdminList('/api/admin', 'refunds', flt, tab === 'refunds', lv);
   const lu = useAdminList('/api/admin', 'users', ufil, tab === 'users', lv, `sort=${usort}&q=${encodeURIComponent(uqd)}`);
@@ -1680,7 +1681,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['refunds', 'Refunds', stats.refundsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders', stats.ordersReview], ['deposits', 'Deposits', stats.depositsReview], ['withdrawals', 'Withdrawals', stats.withdrawalsOpen], ['refunds', 'Refunds', stats.refundsOpen], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
@@ -2182,7 +2183,7 @@ export default function Admin() {
         <div className="adm-stack">
           <Filter value={flt} onPick={setFlt} open={cn('orders').open} all={cn('orders').all} />
           {!lo.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
-          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
+          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No plan orders yet.' : 'Nothing open.'}</p>}
           {lo.rows.map((o) => (
             <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
               {(o.paidAt || o.serial || o.invoiceId) && (
@@ -2201,6 +2202,31 @@ export default function Admin() {
             </Fold>
           ))}
           <ListMore l={lo} />
+        </div>
+      )}
+
+      {tab === 'deposits' && (
+        <div className="adm-stack">
+          <Filter value={flt} onPick={setFlt} open={cn('deposits').open} all={cn('deposits').all} />
+          {!ld.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {ld.ready && !ld.err && ld.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('deposits').all === 0 ? 'No deposits yet.' : 'Nothing open.'}</p>}
+          {ld.rows.map((o) => (
+            <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
+              {(o.paidAt || o.invoiceId) && (
+                <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
+                  {o.paidAt && <div><small>Paid</small><b>{when(o.paidAt)}</b></div>}
+                  {o.invoiceId && <div><small>Invoice</small><b className="serial">{o.invoiceId}</b></div>}
+                </div>
+              )}
+              {(o.status === 'review' || o.status === 'pending') && (
+                <div className="adm-actions">
+                  <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Close this deposit for ${o.userId}?`, { ok: 'Close', danger: true }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'reject' }, 'Deposit closed'))}>Close</button>
+                  <button className="btn" disabled={busy} onClick={() => ask(`Credit $${o.usd} to ${o.userId}? Only do this once you have checked the payment with the payment provider (or on the blockchain).`, { ok: 'Credit deposit' }).then((yes) => yes && run({ action: 'order', userId: o.userId, orderId: o.id, decision: 'approve' }, 'Deposit credited'))}>Credit deposit</button>
+                </div>
+              )}
+            </Fold>
+          ))}
+          <ListMore l={ld} />
         </div>
       )}
 
