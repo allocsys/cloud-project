@@ -102,7 +102,7 @@ export function paymentsFor(inv, list) {
 
 // The smallest payment worth a person's attention, per asset, in whole coins (about one dollar). Anything below it, and any zero
 // transfer, is address-poisoning dust: it is not recorded and not audited.
-export const DUST = { btc: '0.00001', eth: '0.0003', bnb: '0.002', pol: '2', trx: '5', sol: '0.005', ton: '0.5', usdt: '1', usdc: '1' };
+export const DUST = { btc: '0.00001', eth: '0.0003', bnb: '0.002', ton: '0.5', usdt: '1' };
 // Open (not handled) unmatched rows one address may hold. When it is full, new payments are not recorded (one audit line an hour says so).
 export const MAX_UNMATCHED = 1000;
 
