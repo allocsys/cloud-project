@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fmtTh } from '@/lib/data';
 import MarkIcon from '@/components/MarkIcon';
+import useAdminList from '@/lib/use-admin-list';
 
 async function call(method, url, body) {
   const r = await fetch(url, {
@@ -113,6 +114,21 @@ function Login({ onDone }) {
   );
 }
 
+// The end of a paged list: an error with Retry, and the Load more button with how many rows are left.
+function ListMore({ l }) {
+  return (
+    <>
+      {l.err && (
+        <div className="ferr" role="alert">
+          {l.err}
+          <button className="btn ghost" style={{ marginTop: 8 }} onClick={l.retry}>Retry</button>
+        </div>
+      )}
+      {l.left > 0 && <button className="btn ghost" disabled={l.busy} onClick={l.more}>{l.busy ? 'Loading…' : `Load more · ${l.left}`}</button>}
+    </>
+  );
+}
+
 const TABS = [['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['refunds', 'Refunds']];
 
 export default function Review() {
@@ -125,6 +141,10 @@ export default function Review() {
   const [openU, setOpenU] = useState(null);
   const [hist, setHist] = useState(null);
   const [spin, setSpin] = useState(false);
+  const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
+  const lo = useAdminList('/api/adtg', 'orders', flt, tab === 'orders', lv);
+  const lw = useAdminList('/api/adtg', 'withdrawals', flt, tab === 'withdrawals', lv);
+  const lr = useAdminList('/api/adtg', 'refunds', flt, tab === 'refunds', lv);
 
   const load = useCallback(async () => {
     try {
@@ -135,6 +155,7 @@ export default function Review() {
       else {
         setData(r);
         setState('ready');
+        setLv((v) => v + 1);
       }
     } catch {
       setState('error');
@@ -174,16 +195,13 @@ export default function Review() {
     );
   }
 
-  const { stats, users = [], orders = [], withdrawals = [], refunds = [], who } = data;
-  const badge = { orders: orders.filter(orderOpen).length, withdrawals: withdrawals.filter(wdOpen).length, refunds: refunds.filter(rrOpen).length };
+  const { stats, users = [], counts = {}, who } = data;
+  const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
+  const badge = { orders: cn('orders').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
   const needle = uq.trim().toLowerCase();
   const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
   const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0, flag: (u) => u.flags.length > 0 };
   const shownUsers = found.filter(UFIL[ufil] || UFIL.all).sort((a, b) => (b.joined || 0) - (a.joined || 0));
-  const openFirst = (isOpen) => (a, b) => Number(isOpen(b)) - Number(isOpen(a));
-  const shownOrders = flt === 'open' ? orders.filter(orderOpen) : [...orders].sort(openFirst(orderOpen));
-  const shownWds = flt === 'open' ? withdrawals.filter(wdOpen) : [...withdrawals].sort(openFirst(wdOpen));
-  const shownRrs = flt === 'open' ? refunds.filter(rrOpen) : [...refunds].sort(openFirst(rrOpen));
 
   return (
     <>
@@ -330,9 +348,10 @@ export default function Review() {
 
       {tab === 'orders' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={orders.filter(orderOpen).length} all={orders.length} />
-          {shownOrders.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{orders.length === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
-          {shownOrders.map((o) => (
+          <Filter value={flt} onPick={setFlt} open={cn('orders').open} all={cn('orders').all} />
+          {!lo.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
+          {lo.rows.map((o) => (
             <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
               {(o.paidAt || o.serial || o.invoiceId) ? (
                 <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
@@ -345,14 +364,16 @@ export default function Review() {
               )}
             </Fold>
           ))}
+          <ListMore l={lo} />
         </div>
       )}
 
       {tab === 'withdrawals' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={withdrawals.filter(wdOpen).length} all={withdrawals.length} />
-          {shownWds.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{withdrawals.length === 0 ? 'No withdrawals yet.' : 'Nothing open.'}</p>}
-          {shownWds.map((w) => (
+          <Filter value={flt} onPick={setFlt} open={cn('withdrawals').open} all={cn('withdrawals').all} />
+          {!lw.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lw.ready && !lw.err && lw.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('withdrawals').all === 0 ? 'No withdrawals yet.' : 'Nothing open.'}</p>}
+          {lw.rows.map((w) => (
             <Fold key={w.id} title={`${w.amount} ${String(w.asset).toUpperCase()}`} sub={`${w.userId} · ${when(w.at)}`} start={wdOpen(w)} pill={<Pill tone={w.status === 'sent' ? 'ok' : wdOpen(w) ? 'warn' : 'bad'}>{WD[w.status] || w.status}</Pill>}>
               <div className="adm-tiles">
                 <div><small>Pay out</small><b>{w.receive}<span>{String(w.asset).toUpperCase()}</span></b></div>
@@ -362,14 +383,16 @@ export default function Review() {
               {w.txid && <div className="adm-addr"><small>Transaction</small><span className="serial">{w.txid}</span></div>}
             </Fold>
           ))}
+          <ListMore l={lw} />
         </div>
       )}
 
       {tab === 'refunds' && (
         <div className="adm-stack">
-          <Filter value={flt} onPick={setFlt} open={refunds.filter(rrOpen).length} all={refunds.length} />
-          {shownRrs.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{refunds.length === 0 ? 'No refund requests yet.' : 'Nothing open.'}</p>}
-          {shownRrs.map((r) => (
+          <Filter value={flt} onPick={setFlt} open={cn('refunds').open} all={cn('refunds').all} />
+          {!lr.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lr.ready && !lr.err && lr.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('refunds').all === 0 ? 'No refund requests yet.' : 'Nothing open.'}</p>}
+          {lr.rows.map((r) => (
             <Fold key={r.id} title={`${r.serial} · ${RR_WHY[r.reason] || r.reason}`} sub={`${r.userId} · ${when(r.at)}`} start={rrOpen(r)} pill={<Pill tone={r.status === 'approved' ? 'ok' : r.status === 'pending' ? 'warn' : 'bad'}>{RR[r.status] || r.status}</Pill>}>
               <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
                 <div><small>Reason</small><b>{RR_WHY[r.reason] || r.reason}</b></div>
@@ -379,6 +402,7 @@ export default function Review() {
               {r.answer && <div className="adm-addr"><small>Our answer</small><span>{r.answer}</span></div>}
             </Fold>
           ))}
+          <ListMore l={lr} />
         </div>
       )}
     </>
