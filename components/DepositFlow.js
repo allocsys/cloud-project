@@ -135,7 +135,8 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     else if (order) leave(order.id);
   }
 
-  const canOpen = !!order && !!order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri);
+  // Telegram's webview cannot hand a link to a wallet, except the TON one that opens in the browser.
+  const canOpen = !!order && !!order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && !(w.tg && order.network !== 'ton');
   async function openWallet() {
     if (opening || !order) return;
     // Telegram's webview does not hand ton:// to a wallet: open the https form of the same link in its own browser instead.
