@@ -58,6 +58,7 @@ export default function WalletProvider({ children }) {
   const tonP = useRef(null); // the TON Connect client (Telegram only), loaded on first use
   const tonLive = useRef(null); // { acct } while Tonkeeper is connected
   const tonPending = useRef(null); // the TON transfer the wallet has not answered yet: { sig, req, late }
+  const tonConnecting = useRef(null); // the connect that is running: a second tap joins it, it does not send a second request
   const [acct, setAcct] = useState('');
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
@@ -216,7 +217,7 @@ export default function WalletProvider({ children }) {
   );
 
   // Telegram: open Tonkeeper with the connect request and wait for its answer (the Mini App stays open behind it).
-  const connectTon = useCallback(
+  const runTon = useCallback(
     async ({ mark = () => {} } = {}) => {
       if (tonLive.current?.acct) return tonLive.current.acct;
       setBusy(true);
@@ -250,6 +251,18 @@ export default function WalletProvider({ children }) {
       }
     },
     [getTon]
+  );
+
+  const connectTon = useCallback(
+    (opts) => {
+      if (tonConnecting.current) return tonConnecting.current;
+      const p = runTon(opts).finally(() => {
+        if (tonConnecting.current === p) tonConnecting.current = null;
+      });
+      tonConnecting.current = p;
+      return p;
+    },
+    [runTon]
   );
 
   const connect = useCallback((opts) => (inTg() ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
