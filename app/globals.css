@@ -1739,7 +1739,7 @@ a.stat:active { background: var(--s3); }
 /* Sheets with pinned pay buttons: the details scroll, the coin picker and buttons stay in view above the phone's bottom bar (Telegram insets included) */
 .sheet .card.pinned { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .sheet .card.pinned .sheetscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 28px; -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); }
-.sheet .card.pinned .sheetfoot { flex: none; padding: 4px 0 max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--tg-safe-area-inset-bottom, 0px) + 8px)); }
+.sheet .card.pinned .sheetfoot { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 4px 0 max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--tg-safe-area-inset-bottom, 0px) + 8px)); }
 .coinrow { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 46px; padding: 0 14px; margin: 0 0 10px; background: transparent; border: 1px solid var(--outline); border-radius: 12px; color: var(--text); font: inherit; font-size: 14px; cursor: pointer; }
 .coinrow span { color: var(--mute); }
 .coinrow b { display: inline-flex; align-items: center; gap: 10px; color: var(--gold2); font-weight: 600; }
