@@ -36,7 +36,7 @@ export default function Settings() {
   const { data: sd, mutate: mutateSettings, refresh: refreshSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
-  const { data: me, refresh: refreshMe } = useApi('/api/auth/me', { ttl: 60000 });
+  const { data: me, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
   const [pwOpen, setPwOpen] = useState(false);
@@ -80,14 +80,24 @@ export default function Settings() {
       show(t('set.botDone'));
       return undefined;
     }
-    const tick = () => refreshMe();
-    const poll = setInterval(() => {
-      if (!document.hidden) tick();
-    }, 4000);
+    // Every 4 s for the first minute, then every 10 s; quiet checks wait while the server is failing or busy.
+    const tick = () => {
+      if (!document.hidden) quietMe().catch(() => {});
+    };
+    let n = 0;
+    let poll;
+    const loop = () => {
+      poll = setTimeout(() => {
+        tick();
+        n += 1;
+        loop();
+      }, n < 15 ? 4000 : 10000);
+    };
+    loop();
     const stop = setTimeout(() => setBl(null), 10 * 60_000);
     document.addEventListener('visibilitychange', tick);
     return () => {
-      clearInterval(poll);
+      clearTimeout(poll);
       clearTimeout(stop);
       document.removeEventListener('visibilitychange', tick);
     };

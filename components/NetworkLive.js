@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import CountUp from '@/components/CountUp';
 import { everyVisible } from '@/lib/visible';
+import { waiting, good, bad } from '@/lib/backoff';
 import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
 
 const REFRESH = 60000;
@@ -24,11 +25,23 @@ export default function NetworkLive() {
 
   useEffect(() => {
     let on = true;
-    const load = () =>
+    // A failed answer (or a Retry-After) makes the next checks wait longer, and the strip keeps what it shows.
+    const load = () => {
+      if (waiting('/api/network')) return;
       fetch('/api/network', { cache: 'no-store' })
-        .then((r) => r.json())
-        .then((j) => on && setD(j?.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null))
-        .catch(() => {});
+        .then((r) => {
+          if (!r.ok) {
+            bad('/api/network', Number(r.headers.get('retry-after')) || 0);
+            return null;
+          }
+          good('/api/network');
+          return r.json();
+        })
+        .then((j) => {
+          if (on && j) setD(j.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null);
+        })
+        .catch(() => bad('/api/network'));
+    };
     load();
     const stop = everyVisible(load, REFRESH);
     return () => {
