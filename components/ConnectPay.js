@@ -3,6 +3,7 @@
 // EVM coins and tokens, and Solana (SOL, USDT, USDC). The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 // EVM works in two taps: Connect wallet only connects (no payment request), then the same button becomes Send payment and asks the connected wallet for the transfer.
 // The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
+// Inside Telegram (wc: links are blocked there) the same two taps work for TON invoices with Tonkeeper over TON Connect; EVM invoices have no Connect wallet there.
 // Solana has no wallet picker in its provider: it opens the connect link in a hidden frame and, if no wallet takes it, gives up so the pay screen can fall back to Open wallet.
 // The Solana provider (@walletconnect/universal-provider) comes with @walletconnect/ethereum-provider, which stays in package.json only for that (the EVM connect uses the standalone client).
 import { useRef, useState } from 'react';
@@ -10,6 +11,7 @@ import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
 import { post } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
+import { tonTx } from '@/lib/ton-tx';
 import { evmTx } from '@/lib/wc-tx';
 
 const SOL_CHAIN = 'solana:5eykt4UsFv8P8NJdTREpY1vzqKqZKvdp';
@@ -100,6 +102,14 @@ async function sendSol(order) {
   }
 }
 
+// Which Connect wallet flow an invoice gets: 'evm', 'sol', 'ton' (Telegram only) or null (no button, Open wallet and Copy address stay up front).
+export function connectKind(order, w) {
+  if (order.wc && order.network === 'sol' && order.id) return 'sol';
+  if (!w) return null;
+  if (w.tg) return order.network === 'ton' && tonTx(order.uri) ? 'ton' : null;
+  return order.wc && evmTx(order.uri) ? 'evm' : null;
+}
+
 // `onFail(auto)`: auto is true on Solana, where the pay screen goes on by itself to Open wallet.
 export function ConnectBtn({ order, show, onFail }) {
   const t = useT();
@@ -108,24 +118,33 @@ export function ConnectBtn({ order, show, onFail }) {
   const [sentFor, setSentFor] = useState(''); // the invoice this wallet already sent a payment for (also kept in localStorage)
   const silent = useRef(0); // taps in a row that the wallet never answered
   const key = String(order.id || order.uri || '');
-  const evm = w && order.wc ? evmTx(order.uri) : null;
-  const sol = !!order.wc && order.network === 'sol' && !!order.id;
-  if (!evm && !sol) return null;
-  const acct = evm ? w.acct : '';
+  const kind = connectKind(order, w);
+  const evm = kind === 'evm' ? evmTx(order.uri) : null;
+  const ton = kind === 'ton' ? tonTx(order.uri) : null;
+  if (!kind) return null;
+  const own = !!(evm || ton); // the wallet connection is shared with the header pill
+  const acct = own ? w.acct : '';
   const go = async () => {
-    if (busy || (evm && w.busy)) return;
+    if (busy || (own && w.busy)) return;
     triggerHaptic('selection');
     setBusy(true);
     let ok = false;
     let why = '';
     const mark = () => {};
     try {
-      if (evm && !w.acct) {
+      if (own && !w.acct) {
         await w.connect({ projectId: order.wc, mark });
         setBusy(false);
         return;
       }
-      if (evm) {
+      if (ton) {
+        await w.sendTon(ton, mark, () => {
+          setSentFor(key);
+          markSent(key);
+          show(t('pay.sent'));
+        });
+        silent.current = 0;
+      } else if (evm) {
         // The wallet may answer after "no answer" (a person who approves a few minutes later): then the payment is sent after all.
         await w.send(evm, mark, tryOpen, () => {
           setSentFor(key);
@@ -144,7 +163,7 @@ export function ConnectBtn({ order, show, onFail }) {
     // A wallet that never answered may still be asked: the request stays open (and a tap on Send again waits for that same one, it does not
     // send a second payment), and the session is kept so a late approval still counts. Only a wallet that stays silent twice in a row is
     // treated as a dead session and dropped, so the next try starts clean.
-    if (evm && !ok && /no answer/.test(why) && ++silent.current >= 2) {
+    if (own && !ok && /no answer/.test(why) && ++silent.current >= 2) {
       silent.current = 0;
       w.disconnect();
     }
@@ -154,11 +173,11 @@ export function ConnectBtn({ order, show, onFail }) {
       show(t('pay.sent'));
       return;
     }
-    if (evm) show(t('pay.notSent'));
-    if (onFail) onFail(!evm);
+    if (own) show(t('pay.notSent'));
+    if (onFail) onFail(!own);
   };
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
-  const working = busy || (evm && w.busy);
+  const working = busy || (own && w.busy);
   if (key && (sentFor === key || wasSent(key))) {
     return (
       <button type="button" className="pct-btn" style={{ padding: '0 12px' }} disabled>
