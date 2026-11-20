@@ -5,7 +5,7 @@ import assert from 'node:assert/strict';
 
 const { pool, q, tx, createUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { overview } = await import('@/lib/server/admin');
+const { overview, adminUsers } = await import('@/lib/server/admin');
 const { getWallet } = await import('@/lib/server/wallet');
 const { BTC_USD } = await import('@/lib/data');
 
@@ -41,7 +41,8 @@ test('the admin overview balance matches the wallet when the market differs from
   const wallet = w.earned - w.withdrawn - w.spent;
   // Static would be about five dollars of BTC; the market paid nothing on those days.
   assert.ok(wallet < 2 / BTC_USD, `the wallet follows the market (${wallet})`);
-  const shown = (await overview({ withUsers: true })).users.find((u) => u.id === ID);
+  await overview(); // works the accounts out afresh; the Users page reads that copy
+  const shown = (await adminUsers({ q: ID, limit: 200 })).rows.find((u) => u.id === ID);
   assert.ok(shown, 'the user is listed');
   assert.ok(Math.abs(shown.available - wallet) < 1e-7, `admin ${shown.available} vs wallet ${wallet}`);
   assert.ok(Math.abs(shown.earned - w.earned) < 1e-7, `earned ${shown.earned} vs wallet ${w.earned}`);
