@@ -220,7 +220,7 @@ export default function Review() {
 
   const { stats, counts = {}, who } = data;
   const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
-  const badge = { orders: cn('orders').open, deposits: cn('deposits').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
+  const badge = { users: stats.kycPending || 0, orders: cn('orders').open, deposits: cn('deposits').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
 
   return (
     <>
