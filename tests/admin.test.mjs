@@ -6,7 +6,15 @@ import { halls as defaultHalls } from '@/lib/data';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { act, overview, adminUsers, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
+const { act, overview, adminUsers, adminUserHistory, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
+
+// The Users page reads the copy that overview() works out afresh, so overview() first, then the page. `who` is one id or a list of ids.
+const userRows = async (who) => {
+  await overview();
+  const out = [];
+  for (const id of [].concat(who)) out.push(...(await adminUsers({ q: id, limit: 200 })).rows.filter((u) => u.id === id));
+  return out;
+};
 const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 const auth = await import('@/lib/server/auth');
@@ -271,7 +279,7 @@ test('admin can block, unblock, note, sign out, reset 2FA and verify one account
   assert.ok(await tx((c) => createUser(c, id, {})));
   const req = (t) => ({ cookies: { get: (name) => (name === auth.COOKIE && t ? { value: t } : undefined) } });
   const op = (o, extra = {}) => act({ action: 'user', userId: id, op: o, ...extra });
-  const row = async () => (await overview({ withUsers: true })).users.find((u) => u.id === id);
+  const row = async () => (await userRows(id))[0];
 
   // Bad input and the demo account are refused.
   assert.equal((await op('explode')).status, 400);
@@ -318,7 +326,7 @@ test('admin can pause and allow withdrawals for one account, and sees its activi
   const { withdraw } = await import('@/lib/server/wallet');
   const id = `frz${run}@test.dev`;
   assert.ok(await tx((c) => createUser(c, id, {})));
-  const row = async () => (await overview({ withUsers: true })).users.find((u) => u.id === id);
+  const row = async () => (await userRows(id))[0];
   const ask = () => withdraw({ asset: 'btc', net: 'btc', amount: 0.001, address: 'bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh' }, { userId: id, key: `f${Date.now()}${Math.random()}` });
 
   // Not paused: the request gets as far as the balance check.
@@ -339,7 +347,8 @@ test('admin can pause and allow withdrawals for one account, and sees its activi
 
   // Activity rows: a balance change shows up, newest first, at most 25.
   assert.ok((await act({ action: 'balance', userId: id, op: 'add', amountBtc: '0.001', note: 'history test' })).ok);
-  const h = (await row()).history;
+  await overview();
+  const h = await adminUserHistory(id);
   assert.ok(h.length >= 1 && h.length <= 25);
   assert.equal(h[0].kind, 'adjustment');
   assert.match(h[0].amount, /^\+0\.001/);
@@ -348,7 +357,7 @@ test('admin can pause and allow withdrawals for one account, and sees its activi
 test('admin can message one user and gift a free miner or free boost tickets', async () => {
   const id = `gft${run}@test.dev`;
   assert.ok(await tx((c) => createUser(c, id, {})));
-  const row = async () => (await overview({ withUsers: true })).users.find((u) => u.id === id);
+  const row = async () => (await userRows(id))[0];
   const read = (fn) => withUser(id, (u) => fn(u));
   const gift = (extra) => act({ action: 'gift', userId: id, ...extra });
 
@@ -476,7 +485,7 @@ test('admin can set a new password, and set or remove the inviter', async () => 
   assert.ok(code);
   assert.ok((await ref({ inviter: code.toLowerCase() })).ok);
   assert.equal(await refBy(), inv);
-  assert.ok((await overview({ withUsers: true })).users.find((u) => u.id === id).hasPw);
+  assert.ok((await userRows(id))[0].hasPw);
 });
 
 test('flagged users: same network, invite burst, quick withdrawal and many open withdrawals', () => {
@@ -522,12 +531,12 @@ test('the admin overview carries each user\'s flags', async () => {
     assert.ok(await tx((c) => createUser(c, id, {})));
     await withUser(id, (u) => { u.netKey = key; return true; });
   }
-  const users = (await overview({ withUsers: true })).users;
+  const users = await userRows(ids);
   for (const id of ids) assert.deepEqual(users.find((u) => u.id === id).flags, ['Same network ×3']);
   // A user nobody flagged has an empty list.
   const calm = `calm${run}@test.dev`;
   assert.ok(await tx((c) => createUser(c, calm, {})));
-  assert.deepEqual((await overview({ withUsers: true })).users.find((u) => u.id === calm).flags, []);
+  assert.deepEqual((await userRows(calm))[0].flags, []);
 });
 
 test('bulk actions: bad input is refused, and each user goes through the single-user rules', async () => {
@@ -535,7 +544,7 @@ test('bulk actions: bad input is refused, and each user goes through the single-
   for (const id of ids) assert.ok(await tx((c) => createUser(c, id, {})));
   const ghost = `ghost${run}@test.dev`;
   const bulk = (extra) => act({ action: 'bulk', ...extra });
-  const rows = async () => (await overview({ withUsers: true })).users.filter((u) => ids.includes(u.id));
+  const rows = () => userRows(ids);
   const t0 = Date.now();
 
   // Refused before anything changes.
@@ -638,7 +647,7 @@ test('admin can close an account: refused with a balance, then erased, hidden an
   assert.ok((await auth.signup({ email: friend, password: pw })).ok);
   assert.ok((await act({ action: 'user', userId: friend, op: 'ref-set', inviter: id })).ok);
   const close = (extra = {}) => act({ action: 'user-close', userId: id, ...extra });
-  const listed = async (who) => (await overview({ withUsers: true })).users.some((u) => u.id === who);
+  const listed = async (who) => (await userRows(who)).length > 0;
   const exists = async (who) => (await q('SELECT 1 FROM users WHERE id = $1', [who])).rowCount === 1;
 
   // Refused: no confirmation word, the wrong word, an unknown user and the demo account.
@@ -666,7 +675,8 @@ test('admin can close an account: refused with a balance, then erased, hidden an
 
   // Gone: the old id has no row, the list hides the closed account, nobody can sign in to it, and a second close finds nothing.
   assert.equal(await exists(id), false);
-  assert.ok(!(await overview({ withUsers: true })).users.some((u) => String(u.id).startsWith('closed:')));
+  await overview();
+  assert.equal((await adminUsers({ q: 'closed:', limit: 200 })).rows.filter((u) => String(u.id).startsWith('closed:')).length, 0);
   assert.notEqual((await auth.login({ email: id, password: pw })).status, 200);
   assert.equal((await close({ confirm: 'DELETE' })).status, 404);
 
