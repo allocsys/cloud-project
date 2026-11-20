@@ -139,12 +139,16 @@ export default function Review() {
   const [uq, setUq] = useState('');
   const [ufil, setUfil] = useState('all');
   const [openU, setOpenU] = useState(null);
-  const [hist, setHist] = useState(null);
+  const [hist, setHist] = useState(null); // user whose history is open
+  const [histRows, setHistRows] = useState({ id: null, rows: null });
+  const [uqd, setUqd] = useState(''); // the search text, after a short pause in typing
   const [spin, setSpin] = useState(false);
   const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
   const lo = useAdminList('/api/adtg', 'orders', flt, tab === 'orders', lv);
   const lw = useAdminList('/api/adtg', 'withdrawals', flt, tab === 'withdrawals', lv);
   const lr = useAdminList('/api/adtg', 'refunds', flt, tab === 'refunds', lv);
+  const lu = useAdminList('/api/adtg', 'users', ufil, tab === 'users', lv, `sort=new&q=${encodeURIComponent(uqd)}`);
+  const shownUsers = lu.rows;
 
   const load = useCallback(async () => {
     try {
@@ -165,6 +169,24 @@ export default function Review() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // The search waits for a short pause in typing before it asks the server.
+  useEffect(() => {
+    const t = setTimeout(() => setUqd(uq.trim()), 300);
+    return () => clearTimeout(t);
+  }, [uq]);
+
+  // The activity rows of the open user are read when History is opened, and again after every reload.
+  useEffect(() => {
+    if (!hist || state !== 'ready') return undefined;
+    let dead = false;
+    call('GET', `/api/adtg?history=${encodeURIComponent(hist)}`)
+      .then((r) => !dead && setHistRows({ id: hist, rows: r.ok ? r.history : [] }))
+      .catch(() => {});
+    return () => {
+      dead = true;
+    };
+  }, [hist, state, lv]);
 
   async function refresh() {
     setSpin(true);
@@ -195,13 +217,9 @@ export default function Review() {
     );
   }
 
-  const { stats, users = [], counts = {}, who } = data;
+  const { stats, counts = {}, who } = data;
   const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
   const badge = { orders: cn('orders').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
-  const needle = uq.trim().toLowerCase();
-  const found = needle ? users.filter((u) => `${u.id} ${u.tg ? `@${u.tg}` : ''}`.toLowerCase().includes(needle)) : users;
-  const UFIL = { all: () => true, blocked: (u) => !!u.blocked, frozen: (u) => !!u.frozen, unver: (u) => u.kyc.status !== 'verified', wd: (u) => u.withdrawalsOpen > 0, flag: (u) => u.flags.length > 0 };
-  const shownUsers = found.filter(UFIL[ufil] || UFIL.all).sort((a, b) => (b.joined || 0) - (a.joined || 0));
 
   return (
     <>
@@ -269,8 +287,9 @@ export default function Review() {
               <button key={k} aria-pressed={ufil === k} onClick={() => setUfil(k)}>{t}</button>
             ))}
           </div>
-          <span className="mute">{shownUsers.length} user{shownUsers.length === 1 ? '' : 's'}</span>
-          {shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
+          <span className="mute">{lu.shown} user{lu.shown === 1 ? '' : 's'}</span>
+          {!lu.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {lu.ready && !lu.err && shownUsers.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>No user matches.</p>}
           {shownUsers.map((u) => (
             <div className="card adm-fold" data-open={openU === u.id} key={u.id}>
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => setOpenU(openU === u.id ? null : u.id)}>
@@ -315,10 +334,11 @@ export default function Review() {
                   )}
 
                   <div className="adm-grid two" style={{ marginTop: 12 }}>
-                    <button className="swap" style={SM} onClick={() => setHist(hist === u.id ? null : u.id)}>{hist === u.id ? 'Hide history' : `Show history · ${u.history.length}`}</button>
+                    <button className="swap" style={SM} onClick={() => setHist(hist === u.id ? null : u.id)}>{hist === u.id ? 'Hide history' : `Show history · ${u.historyN}`}</button>
                   </div>
-                  {hist === u.id && u.history.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
-                  {hist === u.id && u.history.map((h, i) => (
+                  {hist === u.id && histRows.id !== u.id && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
+                  {hist === u.id && histRows.id === u.id && histRows.rows?.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>Nothing yet.</p>}
+                  {hist === u.id && histRows.id === u.id && (histRows.rows || []).map((h, i) => (
                     <div className="row adm-m" key={`${h.at}-${i}`}>
                       <div>{h.label || h.kind}<small>{when(h.at) || h.date}{h.status ? ` · ${h.status}` : ''}</small></div>
                       <b>{h.amount ? `${h.amount} ${h.coin}` : ''}</b>
@@ -343,6 +363,7 @@ export default function Review() {
               )}
             </div>
           ))}
+          <ListMore l={lu} />
         </div>
       )}
 

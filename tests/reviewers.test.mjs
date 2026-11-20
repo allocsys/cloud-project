@@ -58,7 +58,8 @@ test('a reviewer signs in and reads people and money, without notes or ID photos
   assert.equal(r.status, 200);
   const j = await r.json();
   assert.equal(j.who, 'anna');
-  for (const k of ['stats', 'users', 'counts']) assert.ok(j[k], k);
+  for (const k of ['stats', 'counts']) assert.ok(j[k], k);
+  assert.equal('users' in j, false, 'the account list comes a page at a time');
   for (const k of ['orders', 'withdrawals', 'refunds']) assert.equal(typeof j.counts[k].all, 'number', `counts.${k}`);
   // The lists themselves come a page at a time, with exact counts, and only to a signed-in reviewer.
   const page = await data.GET(new NextRequest('http://t/api/adtg?list=withdrawals&filter=open&limit=5', { headers: { cookie: `vtx_review=${c}` } }));
@@ -70,10 +71,18 @@ test('a reviewer signs in and reads people and money, without notes or ID photos
   assert.equal((await data.GET(new NextRequest('http://t/api/adtg?list=withdrawals'))).status, 401);
   assert.equal((await data.GET(new NextRequest('http://t/api/adtg?list=nope', { headers: { cookie: `vtx_review=${c}` } }))).status, 400);
   for (const k of ['catalog', 'smart', 'guard', 'reviews', 'log', 'reviewers', 'payProvider']) assert.equal(k in j, false, `${k} must not reach a reviewer`);
-  for (const u of j.users) {
+  // The accounts come a page at a time, without the private note or ID photos, and only to a signed-in reviewer.
+  const up = await data.GET(new NextRequest('http://t/api/adtg?list=users&limit=5', { headers: { cookie: `vtx_review=${c}` } }));
+  assert.equal(up.status, 200);
+  const uj = await up.json();
+  assert.ok(Array.isArray(uj.rows) && uj.rows.length <= 5);
+  assert.equal(typeof uj.shown, 'number');
+  for (const u of uj.rows) {
     assert.equal('note' in u, false);
     assert.equal('photos' in u.kyc, false);
   }
+  assert.equal((await data.GET(new NextRequest('http://t/api/adtg?list=users'))).status, 401);
+  assert.equal((await data.GET(new NextRequest('http://t/api/adtg?history=anyone'))).status, 401);
 });
 
 test('a reviewer has no way to change anything', async () => {

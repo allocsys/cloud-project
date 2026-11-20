@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
-import { overview, adminList } from '@/lib/server/admin';
-import { reviewEnabled, reviewerOf, reviewView } from '@/lib/server/reviewers';
+import { overview, adminList, adminUsers, adminUserHistory } from '@/lib/server/admin';
+import { reviewEnabled, reviewerOf, reviewView, reviewRow } from '@/lib/server/reviewers';
 
 export const dynamic = 'force-dynamic';
 
@@ -13,9 +13,17 @@ export async function GET(req) {
   const who = await reviewerOf(req);
   if (!who) return json({ ok: false, error: 'Sign in required.' }, 401);
   const p = new URL(req.url).searchParams;
+  if (p.get('list') === 'users') {
+    const page = await adminUsers({ q: p.get('q'), filter: p.get('filter'), sort: p.get('sort'), offset: p.get('offset'), limit: p.get('limit') });
+    return json({ ok: true, ...page, rows: page.rows.map(reviewRow) });
+  }
+  if (p.has('history')) {
+    const history = await adminUserHistory(p.get('history'));
+    return history ? json({ ok: true, history }) : json({ ok: false, error: 'User not found.' }, 404);
+  }
   if (p.has('list')) {
     const page = adminList(p.get('list'), { filter: p.get('filter'), offset: p.get('offset'), limit: p.get('limit') });
     return page ? json({ ok: true, ...(await page) }) : json({ ok: false, error: 'Unknown list.' }, 400);
   }
-  return json({ ok: true, who, ...reviewView(await overview({ withUsers: true })) });
+  return json({ ok: true, who, ...reviewView(await overview()) });
 }
