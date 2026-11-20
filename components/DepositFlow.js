@@ -10,7 +10,7 @@ import { Qr } from '@/components/Qr';
 import { CoinPicker, PayInfo } from '@/components/PayCoin';
 import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
 import { useWallet } from '@/components/WalletProvider';
-import { useDepT } from '@/lib/dep-text';
+import { useT } from '@/components/I18nProvider';
 
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
@@ -31,7 +31,7 @@ const CSS = '.dfbar{height:4px;border-radius:2px;background:#3d3519;overflow:hid
 const linkBtn = { background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' };
 
 export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel, orders }) {
-  const dt = useDepT();
+  const dt = useT();
   const w = useWallet();
   const [env, setEnv] = useState('site');
   const [amt, setAmt] = useState('');
