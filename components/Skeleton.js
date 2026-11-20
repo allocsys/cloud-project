@@ -41,13 +41,13 @@ export function SkHero() {
 // The Earnings screen before its first data.
 export function SkDash() {
   return (
-    <div className="grid skpage" role="status" aria-busy="true" aria-label="Loading">
+    <>
       <SkHero />
       <SkCard lines={2} heading={false} />
       <div className="pair">
         <SkCard lines={2} />
         <SkCard lines={2} />
       </div>
-    </div>
+    </>
   );
 }
