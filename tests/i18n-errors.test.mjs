@@ -29,6 +29,12 @@ test('the busy-server message is translated', () => {
   assert.equal(translateError('fa', 'Busy right now. Try again in a few seconds.'), LANGS.fa.messages['err.busy']);
 });
 
+test('the maintenance message is translated', () => {
+  assert.equal(translateError('en', 'Back soon. Try again in a minute.'), 'Back soon. Try again in a minute.');
+  assert.equal(translateError('fa', 'Back soon. Try again in a minute.'), LANGS.fa.messages['err.maint']);
+  assert.ok(LANGS.fa.messages['err.maint']);
+});
+
 test('the eight new server errors are translated, and the miner count is filled in', () => {
   assert.equal(translateError('fa', 'Account limit reached for this network.'), LANGS.fa.messages['err.limitNet']);
   assert.equal(translateError('fa', 'This account is blocked. Contact support.'), LANGS.fa.messages['err.blocked']);
