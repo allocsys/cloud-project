@@ -32,6 +32,7 @@ export function PendingCards({ show, poll = true }) {
   const [openId, setOpenId] = useState(null); // the order whose sheet is open
   const [want, setWant] = useState(null); // an order to open as soon as it appears in the list
   const [busy, setBusy] = useState(false); // a coin change is under way
+  const [next, setNext] = useState(null); // the order a coin change made, until it shows in the list
   const last = useRef(null); // the last order shown, kept while a coin change is busy so nothing flickers
   const found = openId ? open.find((o) => o.id === openId) || null : null;
   if (found) last.current = found;
@@ -55,6 +56,20 @@ export function PendingCards({ show, poll = true }) {
     const id = setTimeout(() => setWant(null), 8000);
     return () => clearTimeout(id);
   }, [want, open]);
+  // The new order of a coin change is in the list: the sheet switches to it (busy ends here, so it never closes in between).
+  useEffect(() => {
+    if (!next) return undefined;
+    if (open.some((o) => o.id === next)) {
+      setNext(null);
+      setBusy(false);
+      return undefined;
+    }
+    const id = setTimeout(() => {
+      setNext(null);
+      setBusy(false);
+    }, 8000);
+    return () => clearTimeout(id);
+  }, [next, open]);
   // The order is gone (paid, expired, cancelled): close the sheet.
   useEffect(() => {
     if (openId && !want && !busy && !open.some((o) => o.id === openId)) setOpenId(null);
@@ -76,17 +91,22 @@ export function PendingCards({ show, poll = true }) {
     if (busy || !o.buy) return;
     last.current = o;
     setBusy(true);
+    let made = null;
     try {
       await post('/api/orders/cancel', { id: o.id });
       const r = await post('/api/plans/buy', { ...o.buy, pay: 'crypto', asset: c.asset, network: c.net }, uid());
       await refresh().catch(() => {});
-      if (r?.order?.id) setWant(r.order.id);
+      if (r?.order?.id) {
+        made = r.order.id;
+        setOpenId(made);
+        setNext(made);
+      }
     } catch (e) {
       triggerHaptic('error');
       show(e.status ? e.message : t('common.noConnection'));
       await refresh().catch(() => {});
     } finally {
-      setBusy(false);
+      if (!made) setBusy(false);
     }
   }
 
