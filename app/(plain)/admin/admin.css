@@ -145,3 +145,12 @@
 .adm-fb .adm-grid .swap { min-height: 36px; }
 .adm-fb .adm-form { margin-top: 8px; }
 .adm-fb .adm-note { margin-top: 8px; }
+
+/* Gateway networks: one tight block per network (name and state on top, details under) */
+.gw-net { padding: 8px 0; border-top: 1px solid var(--line); }
+.gw-top { display: flex; align-items: center; gap: 8px; min-height: 32px; }
+.gw-top > b { font-size: 15px; line-height: 22px; font-weight: 500; }
+.gw-sp { flex: 1; }
+.gw-net small { display: block; font-size: 12px; line-height: 16px; color: var(--mute); }
+.gw-top small { display: inline; white-space: nowrap; }
+.gw-line { margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
