@@ -91,10 +91,10 @@ test('handleUnmatched posts to the gateway with the Bearer secret and reports th
     seen.push({ url, method: opts.method, auth: opts.headers.authorization, body: JSON.parse(opts.body) });
     return new Response(JSON.stringify(body), { status });
   };
-  const input = { network: 'pol', txid: tx, vout: 0, note: '  sent back  ' };
+  const input = { network: 'bsc', txid: tx, vout: 0, note: '  sent back  ' };
   const ok = await withEnv(env, fetchImpl(200, { ok: true, handled: true }), () => handleUnmatched(input));
   assert.deepEqual(ok, { ok: true });
-  assert.deepEqual(seen, [{ url: 'https://g.example/v1/admin/unmatched/handle', method: 'POST', auth: `Bearer ${SECRET}`, body: { network: 'pol', txid: tx, vout: 0, note: 'sent back' } }]);
+  assert.deepEqual(seen, [{ url: 'https://g.example/v1/admin/unmatched/handle', method: 'POST', auth: `Bearer ${SECRET}`, body: { network: 'bsc', txid: tx, vout: 0, note: 'sent back' } }]);
   const gone = await withEnv(env, fetchImpl(404, { ok: false, error: 'Not found.' }), () => handleUnmatched(input));
   assert.equal(gone.ok, false);
   const bad = await withEnv(env, fetchImpl(401, { ok: false }), () => handleUnmatched(input));
