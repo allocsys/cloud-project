@@ -8,7 +8,7 @@ const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const { act } = await import('@/lib/server/admin');
-const { createRequest, myRefunds, adminRefunds, decideRefund } = await import('@/lib/server/refund-requests');
+const { createRequest, myRefunds, adminRefundPage, decideRefund } = await import('@/lib/server/refund-requests');
 const { REFUND_MS } = await import('@/lib/refund-rules');
 
 const run = `q${Date.now().toString(36)}`;
@@ -56,7 +56,7 @@ test('a request is saved with its answers and shows as open for that miner', asy
   assert.equal(mine.requests[0].reason, 'low');
   assert.equal(mine.requests[0].again, 'maybe');
   assert.equal(mine.requests[0].note, 'Looked too low');
-  assert.ok((await adminRefunds()).some((x) => x.id === r.id && x.status === 'pending'));
+  assert.ok((await adminRefundPage({ open: true, limit: 200 })).rows.some((x) => x.id === r.id && x.status === 'pending'));
 });
 
 test('one open request per miner, and the answers are checked', async () => {
