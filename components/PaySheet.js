@@ -131,7 +131,7 @@ function Details({ order }) {
           className="pct-btn"
           aria-pressed={qr}
           aria-label={t('pay.qr')}
-          style={{ width: 40, minWidth: 40, height: 40, padding: 0, flex: 'none' }}
+          style={{ width: 40, minWidth: 40, height: 40, padding: 0, flex: 'none', border: 'none', background: qr ? 'rgba(232, 184, 74, 0.14)' : 'transparent' }}
           onClick={() => {
             triggerHaptic('selection');
             setQr(!qr);
