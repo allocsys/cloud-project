@@ -65,6 +65,7 @@ export default function Kyc() {
   const { data: kd, mutate } = useApi('/api/kyc', { ttl: 30000 });
   // Already submitted (or verified) from an earlier visit: show the result instead of the form.
   const status = done ? 'pending' : kd ? kd.status : 'none';
+  const waitKd = useWaiting(!kd) && !done;
 
   // Each step after the first owns a history entry, so the system back button steps back.
   const pushed = useRef(0);
@@ -182,7 +183,9 @@ export default function Kyc() {
         </div>
       </div>
 
-      {status !== 'none' ? (
+      {waitKd ? (
+        <SkCard lines={5} />
+      ) : status !== 'none' ? (
         <div className="card">
           <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
           <p className="mute" style={{ margin: '8px 0 16px' }}>
