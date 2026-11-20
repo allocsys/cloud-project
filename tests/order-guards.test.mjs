@@ -1,5 +1,5 @@
 // Guards around payment orders against a real Postgres, with the payment provider replaced by a stub:
-// #33 opening, cancelling and Solana asks share a limit per account, so a create-and-cancel loop stops;
+// #33 opening and cancelling share a limit per account, so a create-and-cancel loop stops;
 // #34 an order support rejects has its gateway invoice closed, and a payment that still arrives is held for a person, never paid out;
 // low items: a key used again after a cancel or a payment, a paid deposit with no BTC price, and orders expiring only when old.
 // No request ever leaves the machine for the provider; other URLs (prices) pass through.
@@ -78,7 +78,7 @@ after(async () => {
   await pool().end();
 });
 
-test('#33 opening, cancelling and Solana asks share one limit, so a create-and-cancel loop stops', async () => {
+test('#33 opening and cancelling share one limit, so a create-and-cancel loop stops', async () => {
   const id = await account('loop');
   await withEnv(NOW_ENV, async () => {
     reply = nowInvoice;
@@ -98,7 +98,6 @@ test('#33 opening, cancelling and Solana asks share one limit, so a create-and-c
     assert.equal(opened, 20, 'forty asks in the window, an open and a cancel each');
     assert.equal(calls.length, 20, 'no invoice is asked for once the limit is reached');
     assert.equal((await miners.cancelOrder(id, 'ord_none')).status, 429);
-    assert.equal((await miners.solTxFor(id, 'ord_none', 'x')).status, 429);
     assert.equal((await miners.startDeposit({ usd: 50 }, { userId: id, key: 'k-loop-dep' })).status, 429);
     assert.equal(calls.length, 20);
 

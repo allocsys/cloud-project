@@ -12,7 +12,6 @@ test('the step is a power of ten close to the USD step', () => {
 
 test('stablecoins get a finer step and more slots', () => {
   assert.deepEqual(quantumRule('usdt'), { usd: 0.0001, slots: 100 });
-  assert.deepEqual(quantumRule('usdc'), { usd: 0.0001, slots: 100 });
   assert.deepEqual(quantumRule('eth'), { usd: 0.0002, slots: 50 });
 });
 

@@ -326,25 +326,25 @@ test('the gateway is switched on only with an https address (or a private one), 
 test('gateway mode: the chosen coin and network go to the gateway and stay on the order, and the payment must match them', async () => {
   const id = await account('gwcoin');
   await withEnv(GW_ENV, async () => {
-    const addr = 'TVQpr1AFM8qbUT1JRbjL8KJDMuqNvP6AEH';
+    const addr = '0x1111111111111111111111111111111111111111';
     reply = (c) => json({ invoice: { id: `gw_${c.body.ref}`, address: addr, uri: addr, amount: '26.751234', expires_at: '2026-10-21T00:00:00Z' } }, 201);
-    const buy = (key) => miners.buyPlan({ ...SMALL, pay: 'crypto', asset: 'usdt', network: 'trx' }, { userId: id, key });
+    const buy = (key) => miners.buyPlan({ ...SMALL, pay: 'crypto', asset: 'usdt', network: 'bsc' }, { userId: id, key });
     const r = await buy('k-coin');
     assert.equal(r.status, 200, JSON.stringify(r));
     assert.equal(r.order.asset, 'usdt');
-    assert.equal(r.order.network, 'trx');
-    assert.equal(calls[0].body.network, 'trx');
+    assert.equal(r.order.network, 'bsc');
+    assert.equal(calls[0].body.network, 'bsc');
     assert.equal(calls[0].body.asset, 'usdt');
     assert.equal((await miners.getOrders(id)).multi, true);
 
     // Paid in another coin: held for a person, no miner.
-    assert.ok((await miners.settleOrder(hook(r.order, { pay_currency: 'trx', network: 'trx' }))).ok);
+    assert.ok((await miners.settleOrder(hook(r.order, { pay_currency: 'bnb', network: 'bsc' }))).ok);
     assert.equal((await orderRows(id)).find((o) => o.id === r.order.id).status, 'review');
     assert.equal((await getUser(id)).contracts.length, 0);
 
     // Paid in the chosen coin on the chosen network: the miner starts.
     const r2 = await buy('k-coin-2');
-    assert.ok((await miners.settleOrder(hook(r2.order, { pay_currency: 'usdt', network: 'trx' }))).ok);
+    assert.ok((await miners.settleOrder(hook(r2.order, { pay_currency: 'usdt', network: 'bsc' }))).ok);
     assert.equal((await getUser(id)).contracts.length, 1);
   });
 });
@@ -353,7 +353,7 @@ test('a coin we do not take is refused before any invoice, and NOWPayments leave
   const id = await account('coinbad');
   await withEnv(GW_ENV, async () => {
     reply = () => json({}, 500);
-    for (const pick of [{ asset: 'doge' }, { asset: 'usdc', network: 'trx' }, { asset: 'btc', network: 'eth' }]) {
+    for (const pick of [{ asset: 'doge' }, { asset: 'usdc' }, { asset: 'usdt', network: 'trx' }, { asset: 'btc', network: 'eth' }]) {
       const r = await miners.buyPlan({ ...SMALL, pay: 'crypto', ...pick }, { userId: id, key: 'k-bad-coin' });
       assert.equal(r.status, 400);
     }

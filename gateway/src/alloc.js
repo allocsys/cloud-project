@@ -3,7 +3,7 @@
 // invoice on that address and asset expects the same amount. The payer sends that exact amount; the watcher matches on it.
 // The extra cost to the payer stays under one cent: slots x step.
 
-export const STABLES = new Set(['usdt', 'usdc']);
+export const STABLES = new Set(['usdt']);
 
 // Step size in USD and how many steps are tried. Stablecoins: 0.0001 x 100. Everything else: 0.0002 x 50.
 export function quantumRule(asset) {

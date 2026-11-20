@@ -1,5 +1,5 @@
 // Network pause tests. Input checks need no database; the rest use a real Postgres (skipped without DATABASE_URL).
-// Only 'sol' is ever really paused here: other test files share this database and run at the same time, and none of them uses sol.
+// Only 'ton' is ever really paused here: other test files share this database and run at the same time, and none of them opens an invoice on ton.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { q, closeDb } from '../src/db.js';
@@ -24,40 +24,40 @@ before(async () => {
 after(async () => {
   if (!skip) {
     await q('DELETE FROM invoices WHERE ref LIKE $1', [`${run}-%`]);
-    await q("DELETE FROM paused_networks WHERE network = 'sol'");
-    await q("DELETE FROM chain_cursors WHERE network = 'sol'");
+    await q("DELETE FROM paused_networks WHERE network = 'ton'");
+    await q("DELETE FROM chain_cursors WHERE network = 'ton'");
   }
   await closeDb();
 });
 
 test('pausing needs a known network and a true or false', async () => {
   await assert.rejects(setNetworkPaused({ network: 'nope', paused: true }), (e) => e.status === 400);
-  await assert.rejects(setNetworkPaused({ network: 'sol', paused: 'yes' }), (e) => e.status === 400);
+  await assert.rejects(setNetworkPaused({ network: 'ton', paused: 'yes' }), (e) => e.status === 400);
   await assert.rejects(setNetworkPaused({}), (e) => e.status === 400);
 });
 
 test('pause and resume: the flag, the overview, the audit log and the scanner cursor', { skip }, async () => {
-  await q("INSERT INTO chain_cursors (network, height, hash, tip) VALUES ('sol', 5, $1, 5) ON CONFLICT (network) DO NOTHING", [`0x${'b'.repeat(64)}`]);
+  await q("INSERT INTO chain_cursors (network, height, hash, tip) VALUES ('ton', 5, $1, 5) ON CONFLICT (network) DO NOTHING", [`0x${'b'.repeat(64)}`]);
   try {
-    assert.deepEqual(await setNetworkPaused({ network: 'sol', paused: true }), { paused: true, already: false });
-    assert.deepEqual(await setNetworkPaused({ network: 'sol', paused: true }), { paused: true, already: true });
-    assert.equal(await isPaused('sol'), true);
-    assert.ok((await pausedNetworks()).has('sol'));
+    assert.deepEqual(await setNetworkPaused({ network: 'ton', paused: true }), { paused: true, already: false });
+    assert.deepEqual(await setNetworkPaused({ network: 'ton', paused: true }), { paused: true, already: true });
+    assert.equal(await isPaused('ton'), true);
+    assert.ok((await pausedNetworks()).has('ton'));
     const o = await adminOverview();
-    const sol = o.networks.find((n) => n.network === 'sol');
-    assert.equal(sol.paused, true);
-    assert.equal(sol.open, 0);
+    const ton = o.networks.find((n) => n.network === 'ton');
+    assert.equal(ton.paused, true);
+    assert.equal(ton.open, 0);
     assert.equal(o.networks.find((n) => n.network === 'btc').paused, false);
-    const audited = (await q("SELECT count(*)::int AS n FROM audit_log WHERE action = 'network.pause' AND subject = 'sol'")).rows[0].n;
+    const audited = (await q("SELECT count(*)::int AS n FROM audit_log WHERE action = 'network.pause' AND subject = 'ton'")).rows[0].n;
     assert.ok(audited >= 1);
 
-    assert.deepEqual(await setNetworkPaused({ network: 'sol', paused: false }), { paused: false, already: false });
-    assert.equal(await isPaused('sol'), false);
-    assert.equal((await q("SELECT 1 FROM chain_cursors WHERE network = 'sol'")).rows.length, 1, 'resuming leaves the cursor; the scanner wake logic bounds the catch-up');
-    assert.deepEqual(await setNetworkPaused({ network: 'sol', paused: false }), { paused: false, already: true });
+    assert.deepEqual(await setNetworkPaused({ network: 'ton', paused: false }), { paused: false, already: false });
+    assert.equal(await isPaused('ton'), false);
+    assert.equal((await q("SELECT 1 FROM chain_cursors WHERE network = 'ton'")).rows.length, 1, 'resuming leaves the cursor; the scanner wake logic bounds the catch-up');
+    assert.deepEqual(await setNetworkPaused({ network: 'ton', paused: false }), { paused: false, already: true });
   } finally {
-    await q("DELETE FROM paused_networks WHERE network = 'sol'");
-    await q("DELETE FROM chain_cursors WHERE network = 'sol'");
+    await q("DELETE FROM paused_networks WHERE network = 'ton'");
+    await q("DELETE FROM chain_cursors WHERE network = 'ton'");
   }
 });
 
@@ -75,7 +75,7 @@ test('an idle scanner makes no node calls, wakes when an invoice opens and sleep
   const calls = { wake: 0, scan: 0 };
   let windowSeen = null;
   const fake = {
-    network: 'sol',
+    network: 'ton',
     wake: async (windowMs) => {
       calls.wake++;
       windowSeen = windowMs;
@@ -91,19 +91,19 @@ test('an idle scanner makes no node calls, wakes when an invoice opens and sleep
   try {
     await sleep(200);
     assert.deepEqual(calls, { wake: 0, scan: 0 }, 'no open invoice: no calls');
-    assert.equal(await hasOpenInvoices('sol'), false);
-    assert.equal(await oldestOpenInvoiceAgeMs('sol'), null);
+    assert.equal(await hasOpenInvoices('ton'), false);
+    assert.equal(await oldestOpenInvoiceAgeMs('ton'), null);
 
     await q(
-      "INSERT INTO invoices (id, ref, network, asset, address, deriv_index, expires_at, status) VALUES ($1, $2, 'sol', 'sol', $3, 0, now() + interval '10 minutes', 'pending')",
-      [`inv_${run}`, `${run}-sol`, `sol${run}`],
+      "INSERT INTO invoices (id, ref, network, asset, address, deriv_index, expires_at, status) VALUES ($1, $2, 'ton', 'ton', $3, 0, now() + interval '10 minutes', 'pending')",
+      [`inv_${run}`, `${run}-ton`, `ton${run}`],
     );
-    assert.equal(await hasOpenInvoices('sol'), true);
+    assert.equal(await hasOpenInvoices('ton'), true);
     const until = Date.now() + 3000;
     while (Date.now() < until && calls.scan < 2) await sleep(20);
     assert.equal(calls.wake, 1, 'woken once');
     assert.ok(windowSeen >= 600_000 && windowSeen <= 660_000, `a fresh invoice wakes the scanner for about 10 minutes, not 6 hours (got ${windowSeen} ms)`);
-    assert.ok((await oldestOpenInvoiceAgeMs('sol')) >= 0);
+    assert.ok((await oldestOpenInvoiceAgeMs('ton')) >= 0);
     assert.ok(calls.scan >= 2, 'scanning while the invoice is open');
 
     await q("UPDATE invoices SET status = 'expired' WHERE id = $1", [`inv_${run}`]);

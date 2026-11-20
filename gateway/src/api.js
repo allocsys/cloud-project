@@ -5,7 +5,6 @@ import { hasDb } from './db.js';
 import { ApiError, json, readJson } from './http.js';
 import { createInvoice, getInvoice } from './invoices.js';
 import { adminOverview, closeInvoice, handleUnmatched, retryParked, setNetworkPaused } from './admin-api.js';
-import { solTransferTx } from './sol-tx.js';
 
 // The shortest API secret the gateway accepts. Same minimum as the app's, so a weak secret is refused on both sides.
 export const MIN_SECRET = 16;
@@ -42,14 +41,6 @@ export async function handleApi(req, res, url) {
     }
     if (url.pathname === '/v1/admin/callbacks/retry' && req.method === 'POST') {
       return json(res, 200, { ok: true, ...(await retryParked()) });
-    }
-    const sm = /^\/v1\/invoices\/([^/]+)\/sol-tx$/.exec(url.pathname);
-    if (sm && req.method === 'GET') {
-      let ref = sm[1];
-      try {
-        ref = decodeURIComponent(ref);
-      } catch {}
-      return json(res, 200, { ok: true, tx: await solTransferTx(ref, url.searchParams.get('from')) });
     }
     const m = /^\/v1\/invoices\/([^/]+)$/.exec(url.pathname);
     if (m && req.method === 'GET') {

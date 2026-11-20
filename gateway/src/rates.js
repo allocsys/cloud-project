@@ -7,12 +7,8 @@ const IDS = {
   btc: 'bitcoin',
   eth: 'ethereum',
   bnb: 'binancecoin',
-  pol: 'polygon-ecosystem-token',
-  trx: 'tron',
-  sol: 'solana',
   ton: 'the-open-network',
   usdt: 'tether',
-  usdc: 'usd-coin',
 };
 const FRESH = 30_000;
 const MAX_AGE = 300_000;

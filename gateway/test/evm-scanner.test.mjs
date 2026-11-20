@@ -183,14 +183,14 @@ test('EVM networks are configured only with a well-formed address and when liste
   try {
     delete process.env.EVM_NETWORKS;
     process.env.PAY_ADDR_EVM = ADDR;
-    assert.deepEqual(['eth', 'bsc', 'pol'].map((n) => CHAINS[n].configured()), [true, true, true]);
+    assert.deepEqual(['eth', 'bsc'].map((n) => CHAINS[n].configured()), [true, true]);
     process.env.EVM_NETWORKS = 'eth';
-    assert.deepEqual(['eth', 'bsc', 'pol'].map((n) => CHAINS[n].configured()), [true, false, false]);
+    assert.deepEqual(['eth', 'bsc'].map((n) => CHAINS[n].configured()), [true, false]);
     process.env.PAY_ADDR_EVM = '0x123';
     assert.equal(CHAINS.eth.configured(), false);
-    assert.deepEqual(CHAINS.bsc.assets, ['bnb', 'usdt', 'usdc']);
+    assert.deepEqual(CHAINS.bsc.assets, ['bnb', 'usdt']);
     assert.equal(CHAINS.bsc.decimalsOf('usdt'), 18);
-    assert.equal(CHAINS.pol.decimalsOf('usdc'), 6);
+    assert.equal(CHAINS.eth.decimalsOf('usdt'), 6);
     assert.equal(CHAINS.eth.decimalsOf('eth'), 18);
   } finally {
     if (keep.a === undefined) delete process.env.PAY_ADDR_EVM;
