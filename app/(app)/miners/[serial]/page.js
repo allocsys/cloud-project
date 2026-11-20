@@ -44,6 +44,8 @@ function Back({ title }) {
   );
 }
 
+import { Sk, SkHero, SkCard, useWaiting } from '@/components/Skeleton';
+
 export default function ContractPage() {
   const { serial } = useParams();
   const t = useT();
@@ -56,9 +58,24 @@ export default function ContractPage() {
   const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
   // The finished payout days and what they came to in BTC, from the server (each day at its own market).
   const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
+  const waitMd = useWaiting(!md);
+  const waitDet = useWaiting(!det);
 
   if (!c) {
-    if (!md) return <div className="top rich"><Back title={t('min.miner')} /></div>; // still loading: say nothing yet
+    if (!md) {
+      // Still loading: the header and a placeholder of the page.
+      return (
+        <>
+          <div className="top rich"><Back title={t('min.miner')} /></div>
+          {waitMd && (
+            <div className="grid">
+              <SkHero />
+              <SkCard lines={4} />
+            </div>
+          )}
+        </>
+      );
+    }
     return (
       <>
         <div className="top rich"><Back title={t('min.miner')} /></div>
@@ -117,8 +134,17 @@ export default function ContractPage() {
         <div className="card hero">
           <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={c.serial} />
           <span className="mute eyebrow">{t('min.earned', { serial: c.serial })}</span>
-          <div className="big"><span>${formatUsd(total)}</span></div>
-          <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
+          {waitDet ? (
+            <div className="skc" aria-busy="true">
+              <Sk w="46%" h={38} r={10} />
+              <Sk w="32%" h={14} />
+            </div>
+          ) : (
+            <>
+              <div className="big"><span>${formatUsd(total)}</span></div>
+              <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
+            </>
+          )}
           <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <i style={{ width: `${pct}%` }} />
           </div>
