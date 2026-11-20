@@ -1,6 +1,6 @@
 'use client';
-// Deposit flow of our own gateway checkout: amount, then connect the wallet, with Pay manually as the side path.
-// The screen comes from state: no open order = amount, an order = connect, the manual flag = manual. The coin comes from the order.
+// Deposit flow of our own gateway checkout: 1 amount, 2 coin, 3 connect the wallet (auto coins) or pay manually (the other coins).
+// The screen comes from state: no open order = amount or coin (stage), an order = connect, the manual flag = manual. The coin comes from the order.
 import { useEffect, useRef, useState } from 'react';
 import { post } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
@@ -13,14 +13,14 @@ import { useWallet } from '@/components/WalletProvider';
 import { useT } from '@/components/I18nProvider';
 
 const CHIPS = [30, 100, 500];
+const SLIDER_MAX = 1000;
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// Site and app: BTC, ETH, BNB, TON, USDT on eth or bsc (ETH, BNB, USDT connect; BTC and TON pay by QR, Open wallet or manually). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
-const EVM_COINS = ['btc', 'eth', 'bnb', 'ton', 'usdt'];
-const EVM_SKIP = ['ton'];
-const TG_COINS = ['ton', 'usdt'];
-const TG_SKIP = ['eth', 'bsc'];
+// Site and app: skip USDT on TON (no jetton send over TON Connect). Telegram shows every network.
+const SITE_SKIP = ['ton'];
 const TON_COIN = { asset: 'ton', net: 'ton' };
+// Coins that pay by Connect wallet: Telegram = TON; site and app = ETH, BNB, TON and USDT on EVM. The rest (BTC, EVM in Telegram, USDT on TON) pay manually.
+const isAuto = (c, tg) => (tg ? c.asset === 'ton' : c.asset === 'eth' || c.asset === 'bnb' || c.asset === 'ton' || (c.asset === 'usdt' && c.net !== 'ton'));
 
 function copyText(text) {
   triggerHaptic('success');
@@ -30,7 +30,7 @@ function copyText(text) {
   } catch {}
 }
 
-const CSS = '.dfbar{height:4px;border-radius:2px;background:#3d3519;overflow:hidden;margin:0 0 12px}.dfbar i{display:block;height:100%;background:#e8b84a;transform-origin:left;transition:transform .3s}[dir=rtl] .dfbar i{transform-origin:right}.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}.dfenv .dfpulse{animation:dfPulse 1.1s ease-in-out infinite}@keyframes dfPulse{0%,100%{opacity:.45}50%{opacity:1}}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}';
+const CSS = '.dfbar{height:4px;border-radius:2px;background:#3d3519;overflow:hidden;margin:0 0 12px}.dfbar i{display:block;height:100%;background:#e8b84a;transform-origin:left;transition:transform .3s}[dir=rtl] .dfbar i{transform-origin:right}.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}.dfenv .dfpulse{animation:dfPulse 1.1s ease-in-out infinite}@keyframes dfPulse{0%,100%{opacity:.45}50%{opacity:1}}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}.dfrange{width:100%;margin:2px 0 10px;accent-color:#e8b84a}';
 
 const linkBtn = { background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' };
 
@@ -39,16 +39,19 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const w = useWallet();
   const [env, setEnv] = useState('site');
   const [amt, setAmt] = useState('');
+  const [usd, setUsd] = useState(0);
+  const [stage, setStage] = useState('amount');
   const [coin, setCoin] = useState({ asset: 'eth', net: 'eth' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
-  const [manual, setManual] = useState(false);
+  const [manual, setManual] = useState(false); // false | 'direct' (a manual coin, straight from the coin step) | 'link' (Pay manually on the connect screen)
   const [phase, setPhase] = useState('done');
   const [gone, setGone] = useState(() => new Set());
   const [qr, setQr] = useState(false);
   const [opening, setOpening] = useState(false);
   const key = useRef(null); // idempotency key of the order in progress: { sig, key }
   const last = useRef(null); // the last order shown, kept while a coin change is busy so nothing flickers
+  const direct = useRef(false); // the order being made is for a manual coin: open the manual screen when it appears
 
   useEffect(() => {
     const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
@@ -62,29 +65,38 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const others = (orders || []).filter((o) => o.url && !gone.has(o.id));
   const oid = order?.id;
 
-  // A new order: the device chips pulse for a moment, then the detected one is pressed.
+  // A new order: a manual coin goes straight to the manual screen; otherwise the device chips pulse for a moment, then the detected one is pressed.
   useEffect(() => {
     if (!oid) return undefined;
+    if (direct.current) {
+      direct.current = false;
+      setManual('direct');
+    }
     setPhase('checking');
     const id = setTimeout(() => setPhase('done'), 1100);
     return () => clearTimeout(id);
   }, [oid]);
 
-  const connected = !!order && !!w.acct && !!connectKind(order, w);
-  const screen = !order ? 'amount' : manual ? 'manual' : 'connect';
-  const step = screen === 'amount' ? 1 : screen === 'connect' && connected ? 3 : 2;
+  const kind = order ? connectKind(order, w) : null;
+  const acct = kind === 'ton' ? w.tonAcct : kind === 'evm' ? w.acct : '';
+  const connected = !!kind && !!acct;
+  const screen = order ? (manual ? 'manual' : 'connect') : stage;
+  const step = screen === 'amount' ? 1 : screen === 'coin' ? 2 : 3;
+  const tg = env === 'tg';
 
-  async function create(usd, c) {
+  async function create(amount, c) {
     setBusy(true);
     setErr('');
+    direct.current = !isAuto(c, tg);
     try {
-      const body = { usd, asset: c.asset, network: c.net };
+      const body = { usd: amount, asset: c.asset, network: c.net };
       const sig = JSON.stringify(body);
       if (key.current?.sig !== sig) key.current = { sig, key: uid() };
       await post('/api/wallet/deposit', body, key.current.key);
       key.current = null;
       await refreshDod().catch(() => {});
     } catch (e) {
+      direct.current = false;
       triggerHaptic('error');
       setErr(e.status ? e.message : dt('common.noConnection'));
     } finally {
@@ -92,7 +104,8 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     }
   }
 
-  function start() {
+  // Step 1 to 2: check the amount.
+  function next() {
     if (busy) return;
     const v = parseFloat(amt);
     if (!(v > 0)) {
@@ -105,11 +118,13 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
       setErr(dt('err.wdMin', { n: minDep }));
       return;
     }
-    create(Math.round(v * 100) / 100, env === 'tg' && coin.net !== 'ton' ? TON_COIN : coin);
+    setUsd(Math.round(v * 100) / 100);
+    setErr('');
+    setStage('coin');
   }
 
   // A coin change = cancel the open order and make a new one for the same amount.
-  async function switchCoin(next) {
+  async function switchCoin(nextCoin) {
     if (busy || !order) return;
     const prev = order;
     last.current = prev;
@@ -122,21 +137,24 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
       setBusy(false);
       return;
     }
-    await create(prev.usd, next);
+    await create(prev.usd, nextCoin);
   }
 
-  function leave(id) {
+  // `to` = the stage to show next: 'coin' (Back) or 'amount' (Cancel).
+  function leave(id, to = 'amount') {
     setGone((s) => new Set(s).add(id));
     last.current = null;
     setManual(false);
     setQr(false);
+    setStage(to);
     onCancel(id);
   }
 
   function back() {
     triggerHaptic('light');
-    if (screen === 'manual') setManual(false);
-    else if (order) leave(order.id);
+    if (screen === 'coin') setStage('amount');
+    else if (screen === 'manual' && manual === 'link') setManual(false);
+    else if (order) leave(order.id, 'coin');
   }
 
   // Telegram's webview cannot hand a link to a wallet, except the TON one that opens in the browser.
@@ -144,9 +162,9 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   async function openWallet() {
     if (opening || !order) return;
     // Telegram's webview does not hand ton:// to a wallet: open the https form of the same link in its own browser instead.
-    const tg = window.Telegram?.WebApp;
-    if (order.network === 'ton' && tg?.initData && tg.openLink && /^ton:\/\/transfer\//.test(order.uri || '')) {
-      tg.openLink(order.uri.replace(/^ton:\/\//, 'https://app.tonkeeper.com/'));
+    const tgApp = window.Telegram?.WebApp;
+    if (order.network === 'ton' && tgApp?.initData && tgApp.openLink && /^ton:\/\/transfer\//.test(order.uri || '')) {
+      tgApp.openLink(order.uri.replace(/^ton:\/\//, 'https://app.tonkeeper.com/'));
       return;
     }
     setOpening(true);
@@ -155,7 +173,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     if (ok) return;
     copyText(order.address);
     show(dt('pay.noWallet'));
-    setManual(true);
+    setManual('link');
   }
 
   const openBtn = canOpen && (
@@ -167,7 +185,8 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const scanBtn = (
     <button type="button" className="btn ghost" aria-pressed={qr} onClick={() => setQr(!qr)}>{dt('dep.scan')}</button>
   );
-  const short = w.acct ? `${w.acct.slice(0, 6)}\u2026${w.acct.slice(-4)}` : '';
+  const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
+  const sv = Math.min(Math.max(parseFloat(amt) || minDep, minDep), Math.max(SLIDER_MAX, minDep));
 
   return (
     <div>
@@ -199,16 +218,39 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
                 }}
               />
             </Field>
+            <input
+              type="range"
+              className="dfrange"
+              aria-label={dt('wal.depUsd')}
+              min={minDep}
+              max={Math.max(SLIDER_MAX, minDep)}
+              step={1}
+              value={sv}
+              onChange={(e) => {
+                setAmt(e.target.value);
+                if (err) setErr('');
+              }}
+            />
             <div className="pct-row">
               {CHIPS.filter((v) => v >= minDep).map((v) => (
                 <button key={v} type="button" className="pct-btn" onClick={() => { triggerHaptic('selection'); setAmt(String(v)); setErr(''); }}>${v}</button>
               ))}
             </div>
             <p className="fine" style={{ margin: '6px 0 10px' }}>{dt('wal.depNote', { n: minDep })}</p>
-            <CoinPicker only={env === 'tg' ? TG_COINS : EVM_COINS} skipNets={env === 'tg' ? TG_SKIP : EVM_SKIP} value={coin} onChange={setCoin} disabled={busy} />
-            <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
-              {busy && <Spin />}
+            <button className="btn" type="button" onClick={next} disabled={!ready}>
               {dt('dep.pickCoin')}
+            </button>
+          </div>
+        )}
+
+        {screen === 'coin' && (
+          <div>
+            <p className="fine" style={{ margin: '0 0 10px' }}>{dt('wal.depOrder', { n: formatUsd(usd) })}</p>
+            <CoinPicker skipNets={tg ? undefined : SITE_SKIP} value={coin} onChange={setCoin} disabled={busy} mark={(id) => isAuto({ asset: id, net: id === 'usdt' ? 'eth' : id }, tg)} />
+            {err && <p className="fine" role="alert" style={{ margin: '0 0 8px', color: 'var(--red)' }}>{err}</p>}
+            <button className="btn" type="button" onClick={() => create(usd, coin)} disabled={busy || !ready}>
+              {busy && <Spin />}
+              {dt('dep.pay', { n: `$${formatUsd(usd)}` })}
             </button>
           </div>
         )}
@@ -232,7 +274,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
                 ) : null}
                 {!connected && env !== 'site' && openBtn}
                 {!connected && env !== 'tg' && scanBtn}
-                <button type="button" style={linkBtn} onClick={() => setManual(true)}>{dt('dep.manual')}</button>
+                <button type="button" style={linkBtn} onClick={() => setManual('link')}>{dt('dep.manual')}</button>
               </div>
             )}
             {qr && <Qr value={order.uri || order.address} />}
@@ -241,9 +283,10 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
 
         {screen === 'manual' && order && (
           <div>
-            <CoinPicker value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />
+            <CoinPicker skipNets={tg ? undefined : SITE_SKIP} value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />
             <PayInfo order={order} show={show} slim />
             <div className="dfcol" style={{ marginTop: 10 }}>
+              {canOpen && openBtn}
               <button type="button" className="btn ghost" onClick={() => { copyText(order.address); show(dt('wal.copied')); }}>{dt('wal.copy')}</button>
               <button type="button" className="btn ghost" onClick={() => { copyText(String(order.amount)); show(dt('wal.copied')); }}>{dt('pay.copyAmt')}</button>
               <button type="button" className="btn ghost" onClick={() => leave(order.id)}>{dt('wal.depCancel')}</button>
