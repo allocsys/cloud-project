@@ -40,6 +40,8 @@ const afterPop = () =>
     window.addEventListener('popstate', end);
   });
 
+import { SkTab, SkPlans, SkMiners, SkBoost, useWaiting } from '@/components/Skeleton';
+
 export default function Plans() {
   const { t, lang } = useLang();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
@@ -70,6 +72,10 @@ export default function Plans() {
   const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
   // Restored on the Boost tab: wait for /api/boost before deciding, so Buy plans does not flash first.
   const boostWait = tab === 'boost' && !bd;
+  // Shimmer placeholders while the first answers are on their way (see components/Skeleton.js).
+  const waitCat = useWaiting(!cat);
+  const waitMd = useWaiting(!md);
+  const waitBd = useWaiting(!bd);
   const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
   const [dragY, setDragY] = useState(0);
   const [leaving, setLeaving] = useState(false); // the plan sheet is sliding away to hand over to the pay sheet
@@ -354,7 +360,7 @@ export default function Plans() {
 
       <div className="tabs" role="group" aria-label={t('plans.aria')}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
-        {boostOn && <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button>}
+        {boostOn ? <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button> : waitBd ? <SkTab /> : null}
         <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
       </div>
 
@@ -377,8 +383,10 @@ export default function Plans() {
         </div>
       ))}
 
-      {view === 'boost' && boostWait ? null : view === 'boost' ? (
+      {view === 'boost' && boostWait ? <SkBoost /> : view === 'boost' ? (
         <BoostCard show={show} />
+      ) : view === 'buy' && waitCat ? (
+        <SkPlans />
       ) : view === 'buy' ? (
       <>
       {cat?.smartOn !== false && (
@@ -452,7 +460,7 @@ export default function Plans() {
           <p className="empty">{t('plans.noMiners')}</p>
           <button className="swap" onClick={() => setTab('buy')}>{t('plans.buyOne')}</button>
         </div>
-      ) : null}
+      ) : waitMd ? <SkMiners /> : null}
 
       {sel && (
         <div
