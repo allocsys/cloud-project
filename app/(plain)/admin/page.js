@@ -955,24 +955,25 @@ function GatewayTab({ pp, run, lock, g, reload }) {
           const s = g.scanners.find((x) => x.network === n.network);
           const lag = s ? Number(s.tip) - Number(s.height) : 0;
           const stale = s && !n.paused && n.open > 0 ? s.age_s > 300 || lag > 150 : false;
+          const state = !n.configured ? 'Off' : n.paused ? 'Paused' : n.open === 0 ? 'Idle' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling';
+          const tone = { Paused: 'warn', Behind: 'bad', Scanning: 'ok', Polling: 'ok' }[state] || '';
+          const where = n.address ? (n.address.length > 28 ? `${n.address.slice(0, 10)}…${n.address.slice(-8)}` : n.address) : n.configured && !n.shared ? 'new address per invoice' : '';
           return (
-            <div className="row adm-m" key={n.network}>
-              <div>
-                {NET[n.network] || n.network}
-                <small>{n.assets.map((a) => a.toUpperCase()).join(', ')} · {n.confirmations} conf</small>
-                {n.address && <small className="serial" style={{ wordBreak: 'break-all' }}>{n.address}</small>}
-                {n.network === 'btc' && g.btcGap && g.btcGap.gap >= g.btcGap.limit - 5 && <small style={WARN}>{g.btcGap.gap} unused addresses in a row. Wallets stop at {g.btcGap.limit}.</small>}
-              </div>
-              <div style={{ textAlign: 'right' }}>
-                <b style={stale ? WARN : undefined}>{!n.configured ? 'Off' : n.paused ? 'Paused' : n.open === 0 ? 'Idle' : s ? (stale ? 'Behind' : 'Scanning') : 'Polling'}</b>
-                {n.configured && s && !n.paused && n.open > 0 && <small>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
-                {n.configured && !n.paused && <small>{n.open > 0 ? `${n.open} open invoice${n.open === 1 ? '' : 's'}` : 'No open invoices'}</small>}
+            <div className="gw-net" key={n.network}>
+              <div className="gw-top">
+                <b>{NET[n.network] || n.network}</b>
+                <span className={`adm-pill ${tone}`}>{state}</span>
+                <span className="gw-sp" />
+                {n.open > 0 && <small>{n.open} open</small>}
                 {n.configured && (
-                  <button className="swap" style={{ ...SM, marginTop: 6 }} disabled={busy || lock || (!n.paused && n.open > 0)} onClick={() => toggle(n)}>
+                  <button className="swap" style={{ ...SM, minHeight: 32 }} disabled={busy || lock || (!n.paused && n.open > 0)} onClick={() => toggle(n)}>
                     {n.paused ? 'Resume' : 'Pause'}
                   </button>
                 )}
               </div>
+              <small className="gw-line">{n.assets.map((a) => a.toUpperCase()).join(', ')} · {n.confirmations} conf{where ? ` · ${where}` : ''}</small>
+              {n.configured && s && !n.paused && n.open > 0 && <small className="gw-line" style={stale ? WARN : undefined}>Block {s.height} · {agoText(s.age_s)}{lag > 0 ? ` · ${lag} behind` : ''}</small>}
+              {n.network === 'btc' && g.btcGap && g.btcGap.gap >= g.btcGap.limit - 5 && <small className="gw-line" style={WARN}>{g.btcGap.gap} unused addresses in a row. Wallets stop at {g.btcGap.limit}.</small>}
             </div>
           );
         })}
