@@ -25,6 +25,19 @@ import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
+// The fine print under the checkout figures: one small button, collapsed until tapped.
+function FineFold({ label, children }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div style={{ margin: '-8px 0 12px' }}>
+      <button type="button" className="pct-btn" aria-expanded={open} onClick={() => { triggerHaptic('selection'); setOpen(!open); }} style={{ height: 'auto', minHeight: 0, padding: '4px 12px', fontSize: 12 }}>
+        {label} <span aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span>
+      </button>
+      {open && <p className="fine" style={{ margin: '8px 0 0' }}>{children}</p>}
+    </div>
+  );
+}
+
 export default function Plans() {
   const { t, lang } = useLang();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
@@ -524,10 +537,10 @@ export default function Plans() {
                 </div>
               )}
             </div>
-            <p className="fine" style={{ margin: '-8px 0 12px' }}>
+            <FineFold label={t('pay.more')}>
               {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href={pagePath('/terms', lang)}>{t('auth.terms')}</Link> })}
               {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href={pagePath('/refunds', lang)}>{t('refund.more')}</Link>
-            </p>
+            </FineFold>
             {ready && !canBal && (
               <p className="fine" style={{ margin: '-4px 0 0' }}>
                 {!crypto

@@ -12,7 +12,7 @@ import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay'
 import { useWallet } from '@/components/WalletProvider';
 import { useT } from '@/components/I18nProvider';
 
-const CHIPS = [30, 100, 500];
+const CHIPS = [30, 100, 500, 1000];
 const SLIDER_MAX = 1000;
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
@@ -30,7 +30,7 @@ function copyText(text) {
   } catch {}
 }
 
-const CSS = '.dfbar{height:4px;border-radius:2px;background:#3d3519;overflow:hidden;margin:0 0 12px}.dfbar i{display:block;height:100%;background:#e8b84a;transform-origin:left;transition:transform .3s}[dir=rtl] .dfbar i{transform-origin:right}.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}.dfenv .dfpulse{animation:dfPulse 1.1s ease-in-out infinite}@keyframes dfPulse{0%,100%{opacity:.45}50%{opacity:1}}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}.dfrange{width:100%;margin:2px 0 10px;accent-color:#e8b84a}';
+const CSS = '.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}.dfenv .dfpulse{animation:dfPulse 1.1s ease-in-out infinite}@keyframes dfPulse{0%,100%{opacity:.45}50%{opacity:1}}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}.dfrange{-webkit-appearance:none;appearance:none;display:block;width:100%;height:24px;margin:4px 0 14px;padding:0;border:0;background:transparent;box-sizing:border-box;--f:0;--d:right}[dir=rtl] .dfrange{--d:left}.dfrange::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-7px;border:0;border-radius:50%;background:#e8b84a}.dfrange::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#e8b84a}.dfchips{display:grid;gap:8px}.dfchips .pct-btn{width:100%;margin:0}';
 
 const linkBtn = { background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' };
 
@@ -81,7 +81,6 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const acct = kind === 'ton' ? w.tonAcct : kind === 'evm' ? w.acct : '';
   const connected = !!kind && !!acct;
   const screen = order ? (manual ? 'manual' : 'connect') : stage;
-  const step = screen === 'amount' ? 1 : screen === 'coin' ? 2 : 3;
   const tg = env === 'tg';
 
   async function create(amount, c) {
@@ -186,14 +185,13 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     <button type="button" className="btn ghost" aria-pressed={qr} onClick={() => setQr(!qr)}>{dt('dep.scan')}</button>
   );
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
-  const sv = Math.min(Math.max(parseFloat(amt) || minDep, minDep), Math.max(SLIDER_MAX, minDep));
+  const smax = Math.max(SLIDER_MAX, minDep);
+  const sv = Math.min(Math.max(parseFloat(amt) || minDep, minDep), smax);
+  const chips = CHIPS.filter((v) => v >= minDep);
 
   return (
     <div>
       <style>{CSS}</style>
-      <div className="dfbar" role="progressbar" aria-label={dt('dep.progress')} aria-valuemin={0} aria-valuemax={3} aria-valuenow={step}>
-        <i style={{ width: '100%', transform: `scaleX(${step / 3})` }} />
-      </div>
       {screen !== 'amount' && (
         <button type="button" className="dfback" aria-label={dt('dep.back')} onClick={back}>
           <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6" /></svg>
@@ -223,16 +221,17 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               className="dfrange"
               aria-label={dt('wal.depUsd')}
               min={minDep}
-              max={Math.max(SLIDER_MAX, minDep)}
+              max={smax}
               step={1}
               value={sv}
+              style={{ '--f': smax > minDep ? (sv - minDep) / (smax - minDep) : 1 }}
               onChange={(e) => {
                 setAmt(e.target.value);
                 if (err) setErr('');
               }}
             />
-            <div className="pct-row">
-              {CHIPS.filter((v) => v >= minDep).map((v) => (
+            <div className="pct-row dfchips" style={{ gridTemplateColumns: `repeat(${Math.max(chips.length, 1)},1fr)` }}>
+              {chips.map((v) => (
                 <button key={v} type="button" className="pct-btn" onClick={() => { triggerHaptic('selection'); setAmt(String(v)); setErr(''); }}>${v}</button>
               ))}
             </div>
