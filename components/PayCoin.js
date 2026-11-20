@@ -106,7 +106,8 @@ function Countdown({ at }) {
 
 // An open gateway payment: send exactly this amount, to this address, on this network.
 // `show` is the page's toast function; it says the text was copied.
-export function PayInfo({ order, show }) {
+// `slim` drops Copy amount and the Trust link (the deposit flow shows Copy amount itself, under Copy address).
+export function PayInfo({ order, show, slim = false }) {
   const t = useT();
   const [qr, setQr] = useState(false);
   const [more, setMore] = useState(false);
@@ -122,7 +123,7 @@ export function PayInfo({ order, show }) {
     copyText(text);
     show(t('wal.copied'));
   };
-  const trust = trustLink(order);
+  const trust = slim ? null : trustLink(order);
   // A payment link only opens a wallet that registered its scheme. If the page is still in front after 1.5 s, nothing opened:
   // copy the address, and show Copy address, Copy amount and the rest under More.
   const openWallet = async () => {
@@ -166,7 +167,7 @@ export function PayInfo({ order, show }) {
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
           <>
-            <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
+            {!slim && <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>}
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
             {trust && (
               <a className="pct-btn" href={trust} target="_blank" rel="noopener noreferrer" style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('pay.trust')}</a>
