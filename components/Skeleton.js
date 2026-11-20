@@ -56,6 +56,24 @@ export function SkHero() {
   );
 }
 
+// List rows (an icon, two lines and an amount), for activity and notification lists.
+export function SkRows({ n = 3 }) {
+  return (
+    <div className="skc" aria-hidden="true" style={{ gap: 16, padding: '8px 0' }}>
+      {Array.from({ length: n }).map((_, i) => (
+        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Sk w={34} h={34} r="50%" />
+          <div className="skc" style={{ flex: 1, gap: 8 }}>
+            <Sk w="55%" h={13} />
+            <Sk w="35%" h={10} />
+          </div>
+          <Sk w={64} h={13} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // A pill in the tab bar, standing in for a tab whose presence is not known yet.
 export function SkTab() {
   return <i className="sk sktab" aria-hidden="true" />;
