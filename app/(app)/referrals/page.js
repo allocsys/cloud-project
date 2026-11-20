@@ -40,6 +40,8 @@ function useSeen() {
   return [ref, seen];
 }
 
+import { Sk } from '@/components/Skeleton';
+
 export default function Referrals() {
   const t = useT();
   const [toast, show] = useToast();
@@ -181,6 +183,13 @@ export default function Referrals() {
         <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`}>
           <i className="rshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('ref.earnings')}</span>
+          {!rd ? (
+            <div className="skc" aria-busy="true">
+              <Sk w="62%" h={38} r={10} />
+              <Sk w="80%" h={22} r={11} />
+            </div>
+          ) : (
+          <>
           <div className="big">
             {referral.earnedBtc}
             <small>BTC</small>
@@ -190,6 +199,8 @@ export default function Referrals() {
             <span>{t('ref.active', { n: active })}</span>
             <span>{rewardText}</span>
           </div>
+          </>
+          )}
         </div>
 
         <div className="grid wal">
