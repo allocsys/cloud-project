@@ -44,11 +44,17 @@ after(async () => {
   await closeDb();
 });
 
-test('/earnings asks the app with the Telegram id and shows today, total and per day', async () => {
-  answer = good({ miners: true, today: 0.00001234, total: 0.00123456, avgUsd: 4.5 });
+test('/earnings asks the app with the Telegram id and shows a card: today, total farmed with its USD value, per day', async () => {
+  answer = good({ miners: true, today: 0.00001234, total: 0.00123456, totalUsd: 16.5, avgUsd: 4.5 });
   await say('/earnings');
   assert.deepEqual(calls, [{ name: 'earnings', payload: { tg_id: 7002 } }]);
-  assert.equal(sent[0].text, 'Today: 0.00001234 BTC\nTotal: 0.00123456 BTC\nPer day: ≈ $4.50');
+  assert.equal(sent[0].text, '📈 Earnings\n\n☀️ Today: 0.00001234 BTC\n⛏ Total farmed: 0.00123456 BTC\n💵 ≈ $16.50\n📅 Per day: ≈ $4.50');
+});
+
+test('/earnings from an older app (no totalUsd): the USD line is left out', async () => {
+  answer = good({ miners: true, today: 0.00001234, total: 0.00123456, avgUsd: 4.5 });
+  await say('/earnings');
+  assert.equal(sent[0].text, '📈 Earnings\n\n☀️ Today: 0.00001234 BTC\n⛏ Total farmed: 0.00123456 BTC\n📅 Per day: ≈ $4.50');
 });
 
 test('/earnings with no miner: message and Open app button', async () => {
@@ -60,9 +66,9 @@ test('/earnings with no miner: message and Open app button', async () => {
 
 test('/earnings in Persian', async () => {
   await q("INSERT INTO chats (tg_id, lang) VALUES (7002, 'fa')");
-  answer = good({ miners: true, today: 0, total: 0.5, avgUsd: 1 });
+  answer = good({ miners: true, today: 0, total: 0.5, totalUsd: 42, avgUsd: 1 });
   await say('/earnings');
-  assert.equal(sent[0].text, 'امروز: 0.00000000 BTC\nمجموع: 0.50000000 BTC\nروزانه: ≈ $1.00');
+  assert.equal(sent[0].text, '📈 درآمد\n\n☀️ امروز: 0.00000000 BTC\n⛏ مجموع: 0.50000000 BTC\n💵 ≈ $42.00\n📅 روزانه: ≈ $1.00');
 });
 
 test('/referrals shows code, friends, earned and VIP; code and links are buttons', async () => {
@@ -121,6 +127,6 @@ test('the menu lists both commands and the texts exist in en and fa', () => {
   const cmds = commandList('en');
   assert.ok(cmds.some((c) => c.command === 'earnings' && c.description === 'Show earnings'));
   assert.ok(cmds.some((c) => c.command === 'referrals' && c.description === 'Invite friends'));
-  for (const k of ['earnToday', 'earnTotal', 'earnAvg', 'noMiners', 'refCode', 'refFriends', 'refEarned', 'refVip', 'd_earnings', 'd_referrals', 'b_copyCode', 'b_copyLink', 'b_share']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  for (const k of ['earnTitle', 'earnToday', 'earnTotal', 'earnTotalUsd', 'earnAvg', 'noMiners', 'refCode', 'refFriends', 'refEarned', 'refVip', 'd_earnings', 'd_referrals', 'b_copyCode', 'b_copyLink', 'b_share']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   assert.equal(t('fa', 'd_referrals'), 'دعوت دوستان');
 });
