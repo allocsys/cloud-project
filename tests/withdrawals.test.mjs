@@ -6,7 +6,7 @@ const { pool, q, getUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const { withdraw } = await import('@/lib/server/wallet');
-const { reviewWithdrawal, adminWithdrawals } = await import('@/lib/server/withdrawals');
+const { reviewWithdrawal, adminWithdrawalPage } = await import('@/lib/server/withdrawals');
 
 const run = `w${Date.now().toString(36)}`;
 const PW = 'correct horse 1';
@@ -49,7 +49,7 @@ test('a withdrawal is saved as a pending request, not sent', async () => {
   assert.equal(await statusOf(wid), 'pending');
   const entry = (await getUser(id)).history.find((h) => h.wid === wid);
   assert.equal(entry.status, 'pending');
-  const row = (await adminWithdrawals(500)).find((w) => w.id === wid);
+  const row = (await adminWithdrawalPage({ open: true, limit: 200 })).rows.find((w) => w.id === wid);
   assert.equal(row.userId, id);
   assert.equal(row.address, ADDR);
 });
