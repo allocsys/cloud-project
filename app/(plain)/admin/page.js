@@ -843,7 +843,7 @@ function Filter({ value, onPick, open, all }) {
 }
 
 // Gateway tab: the payment gateway, fetched through the app server (the gateway secret never reaches the browser).
-const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', pol: 'Polygon', trx: 'Tron', sol: 'Solana', ton: 'TON' };
+const NET = { btc: 'Bitcoin', eth: 'Ethereum', bsc: 'BNB Chain', ton: 'TON', pol: 'Polygon', trx: 'Tron', sol: 'Solana' }; // the last three are no longer taken; kept so old invoices still show a name
 const INV = { pending: 'Waiting', confirming: 'Confirming', paid: 'Paid', partial: 'Partly paid', expired: 'Expired', failed: 'Failed' };
 const ALERT = { 'payment.late': 'Late payment', 'webhook.gave_up': 'Callback gave up', 'unmatched.full': 'Address full' };
 const shortId = (s) => (s && s.length > 18 ? `${s.slice(0, 8)}…${s.slice(-6)}` : s || '');
