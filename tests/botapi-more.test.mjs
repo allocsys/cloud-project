@@ -50,6 +50,7 @@ test('/earnings: an account with no miner says so, with zeros', async () => {
   assert.equal(r.json.miners, false);
   assert.equal(r.json.today, 0);
   assert.equal(r.json.total, 0);
+  assert.equal(r.json.totalUsd, 0);
   assert.equal(r.json.avgUsd, 0);
 });
 
@@ -63,7 +64,8 @@ test('/earnings: an account with a miner has numbers that are finite and never n
   const r = await call(earningsFor, { tg_id: n });
   assert.equal(r.status, 200);
   assert.equal(r.json.miners, true);
-  for (const k of ['today', 'total', 'avgUsd']) assert.ok(Number.isFinite(r.json[k]) && r.json[k] >= 0, k);
+  for (const k of ['today', 'total', 'totalUsd', 'avgUsd']) assert.ok(Number.isFinite(r.json[k]) && r.json[k] >= 0, k);
+  assert.ok(r.json.totalUsd > 0, 'a miner that has run for days has earned dollars');
 });
 
 test('/referrals: the default code, no friends yet, VIP 0', async () => {
