@@ -106,6 +106,22 @@ test('a file that is not a backup, is damaged, or comes from other migrations is
   assert.equal((await inspectBackup(b.buf)).ok, true, 'the real file is still fine');
 });
 
+test('a backup made before the migrations were folded into one is still accepted', async () => {
+  const b = await makeBackup();
+  const lines = unpack(b.buf);
+  const head = JSON.parse(lines[0]);
+  assert.deepEqual(head.schema, ['001_init'], 'the database holds the one baseline');
+  const old = pack([
+    JSON.stringify({ ...head, schema: ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'] }),
+    ...lines.slice(1),
+  ]);
+  assert.equal((await inspectBackup(old)).ok, true);
+  assert.equal((await restoreBackup(old, 'RESTORE')).ok, true);
+  // Steps that were never part of the baseline are still refused.
+  const other = pack([JSON.stringify({ ...head, schema: ['001_init', '006_other'] }), ...lines.slice(1)]);
+  assert.equal((await inspectBackup(other)).ok, false);
+});
+
 test('a restore that fails halfway changes nothing', async () => {
   const keep = `${run}d@test.dev`;
   assert.ok((await auth.signup({ email: keep, password: 'correct horse 1' })).ok);

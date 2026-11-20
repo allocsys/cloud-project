@@ -4,7 +4,7 @@
 // Proves: the key opens the file, the file is whole, it matches the live schema, and every row loads.
 import { decrypt } from './crypt.js';
 import { download, listBackups } from './store.js';
-import { parse } from './apply.js';
+import { parse, schemaOk } from './apply.js';
 
 const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
@@ -29,7 +29,7 @@ export async function verifyLatest({ kv, pool, secret, prefix }) {
       )
     ).rows.map((x) => x.name);
     const seqs = (await c.query("SELECT sequencename AS name FROM pg_sequences WHERE schemaname = 'public'")).rows.map((x) => x.name);
-    if (JSON.stringify(ids) !== JSON.stringify(head.schema) || !same(tabs, names) || !same(seqs, Object.keys(head.sequences))) {
+    if (!schemaOk(ids, head.schema) || !same(tabs, names) || !same(seqs, Object.keys(head.sequences))) {
       throw new Error('the backup does not match the live database (different migrations or tables)');
     }
     await c.query(`CREATE SCHEMA ${SCRATCH}`);
