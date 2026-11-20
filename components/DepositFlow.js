@@ -15,8 +15,9 @@ import { useT } from '@/components/I18nProvider';
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// TON Connect needs a TON order (Telegram), EVM connect needs an EVM one (site, app).
-const startCoin = (env) => (env === 'tg' ? { asset: 'ton', net: 'ton' } : { asset: 'eth', net: 'eth' });
+// TON Connect needs a TON order (Telegram, no choice), EVM connect needs an EVM one (site, app: ETH, BNB, USDT on eth or bsc).
+const EVM_COINS = ['eth', 'bnb', 'usdt'];
+const TON_COIN = { asset: 'ton', net: 'ton' };
 
 function copyText(text) {
   triggerHaptic('success');
@@ -35,6 +36,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const w = useWallet();
   const [env, setEnv] = useState('site');
   const [amt, setAmt] = useState('');
+  const [coin, setCoin] = useState({ asset: 'eth', net: 'eth' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
@@ -99,7 +101,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
       setErr(dt('err.wdMin', { n: minDep }));
       return;
     }
-    create(Math.round(v * 100) / 100, startCoin(env));
+    create(Math.round(v * 100) / 100, env === 'tg' ? TON_COIN : coin);
   }
 
   // A coin change = cancel the open order and make a new one for the same amount.
@@ -198,6 +200,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               ))}
             </div>
             <p className="fine" style={{ margin: '6px 0 10px' }}>{dt('wal.depNote', { n: minDep })}</p>
+            {env !== 'tg' && <CoinPicker only={EVM_COINS} value={coin} onChange={setCoin} disabled={busy} />}
             <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
               {busy && <Spin />}
               {dt('pay.connect')}
