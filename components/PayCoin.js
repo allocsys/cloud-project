@@ -8,6 +8,7 @@ import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay'
 import { useWallet } from '@/components/WalletProvider';
 import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
+import { evmTx } from '@/lib/wc-tx';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT, USDC).
 // value and onChange use { asset, net }.
@@ -142,6 +143,13 @@ export function PayInfo({ order, show }) {
     setFailed(true);
     setMore(true);
   };
+  // Telegram blocks the wallet links WalletConnect needs, so an EVM invoice there can be opened in the phone's browser, where it works.
+  const inBrowser = !!w?.tg && !!order.wc && !!evmTx(order.uri);
+  const openBrowser = () => {
+    triggerHaptic('selection');
+    const tg = window.Telegram?.WebApp;
+    if (tg?.openLink) tg.openLink(window.location.href);
+  };
   return (
     <div style={{ marginTop: 6 }}>
       <Countdown at={order.expiresAt} />
@@ -162,6 +170,9 @@ export function PayInfo({ order, show }) {
             {opening && <Spin />}
             {t('plans.openWallet')}
           </button>
+        )}
+        {inBrowser && (
+          <button type="button" className="pct-btn" onClick={openBrowser} style={{ padding: '0 12px' }}>{t('pay.inBrowser')}</button>
         )}
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
