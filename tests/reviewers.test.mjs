@@ -60,7 +60,7 @@ test('a reviewer signs in and reads people and money, without notes or ID photos
   assert.equal(j.who, 'anna');
   for (const k of ['stats', 'counts']) assert.ok(j[k], k);
   assert.equal('users' in j, false, 'the account list comes a page at a time');
-  for (const k of ['orders', 'withdrawals', 'refunds']) assert.equal(typeof j.counts[k].all, 'number', `counts.${k}`);
+  for (const k of ['orders', 'deposits', 'withdrawals', 'refunds']) assert.equal(typeof j.counts[k].all, 'number', `counts.${k}`);
   // The lists themselves come a page at a time, with exact counts, and only to a signed-in reviewer.
   const page = await data.GET(new NextRequest('http://t/api/adtg?list=withdrawals&filter=open&limit=5', { headers: { cookie: `vtx_review=${c}` } }));
   assert.equal(page.status, 200);
@@ -68,6 +68,10 @@ test('a reviewer signs in and reads people and money, without notes or ID photos
   assert.ok(Array.isArray(p.rows) && p.rows.length <= 5);
   assert.equal(typeof p.all, 'number');
   assert.equal(p.shown, p.open);
+  const dep = await data.GET(new NextRequest('http://t/api/adtg?list=deposits&filter=open&limit=5', { headers: { cookie: `vtx_review=${c}` } }));
+  assert.equal(dep.status, 200);
+  const dj = await dep.json();
+  assert.ok(Array.isArray(dj.rows) && dj.rows.length <= 5 && dj.rows.every((r) => r.kind === 'deposit'));
   assert.equal((await data.GET(new NextRequest('http://t/api/adtg?list=withdrawals'))).status, 401);
   assert.equal((await data.GET(new NextRequest('http://t/api/adtg?list=nope', { headers: { cookie: `vtx_review=${c}` } }))).status, 400);
   for (const k of ['catalog', 'smart', 'guard', 'reviews', 'log', 'reviewers', 'payProvider']) assert.equal(k in j, false, `${k} must not reach a reviewer`);

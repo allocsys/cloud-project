@@ -55,5 +55,5 @@ test('the history is read on its own, and the overview carries no account list',
   assert.equal('users' in o, false);
   assert.ok(o.hallStat && typeof o.hallStat === 'object');
   assert.ok(Array.isArray(o.rated));
-  assert.ok((await overview({ withUsers: true })).users.some((u) => u.id === mail(0)));
+  assert.equal('users' in (await overview({ withUsers: true })), false, 'the old option is gone');
 });

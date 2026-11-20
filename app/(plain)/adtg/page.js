@@ -129,7 +129,7 @@ function ListMore({ l }) {
   );
 }
 
-const TABS = [['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['withdrawals', 'Withdrawals'], ['refunds', 'Refunds']];
+const TABS = [['overview', 'Overview'], ['users', 'Users'], ['orders', 'Orders'], ['deposits', 'Deposits'], ['withdrawals', 'Withdrawals'], ['refunds', 'Refunds']];
 
 export default function Review() {
   const [state, setState] = useState('loading'); // loading, login, off, error, ready
@@ -145,6 +145,7 @@ export default function Review() {
   const [spin, setSpin] = useState(false);
   const [lv, setLv] = useState(0); // counts up after every reload, so an open list is read again
   const lo = useAdminList('/api/adtg', 'orders', flt, tab === 'orders', lv);
+  const ld = useAdminList('/api/adtg', 'deposits', flt, tab === 'deposits', lv);
   const lw = useAdminList('/api/adtg', 'withdrawals', flt, tab === 'withdrawals', lv);
   const lr = useAdminList('/api/adtg', 'refunds', flt, tab === 'refunds', lv);
   const lu = useAdminList('/api/adtg', 'users', ufil, tab === 'users', lv, `sort=new&q=${encodeURIComponent(uqd)}`);
@@ -219,7 +220,7 @@ export default function Review() {
 
   const { stats, counts = {}, who } = data;
   const cn = (k) => ({ open: counts[k]?.open || 0, all: counts[k]?.all || 0 });
-  const badge = { orders: cn('orders').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
+  const badge = { orders: cn('orders').open, deposits: cn('deposits').open, withdrawals: cn('withdrawals').open, refunds: cn('refunds').open };
 
   return (
     <>
@@ -258,6 +259,12 @@ export default function Review() {
           {stats.withdrawalsOpen > 0 && (
             <button className="card adm-alert" onClick={() => setTab('withdrawals')}>
               <b>{stats.withdrawalsOpen} withdrawal{stats.withdrawalsOpen === 1 ? '' : 's'} open</b>
+              <span className="mute">Open ›</span>
+            </button>
+          )}
+          {stats.depositsReview > 0 && (
+            <button className="card adm-alert" onClick={() => setTab('deposits')}>
+              <b>{stats.depositsReview} deposit{stats.depositsReview === 1 ? '' : 's'} need a check</b>
               <span className="mute">Open ›</span>
             </button>
           )}
@@ -371,7 +378,7 @@ export default function Review() {
         <div className="adm-stack">
           <Filter value={flt} onPick={setFlt} open={cn('orders').open} all={cn('orders').all} />
           {!lo.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
-          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No crypto orders yet.' : 'Nothing open.'}</p>}
+          {lo.ready && !lo.err && lo.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('orders').all === 0 ? 'No plan orders yet.' : 'Nothing open.'}</p>}
           {lo.rows.map((o) => (
             <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
               {(o.paidAt || o.serial || o.invoiceId) ? (
@@ -386,6 +393,27 @@ export default function Review() {
             </Fold>
           ))}
           <ListMore l={lo} />
+        </div>
+      )}
+
+      {tab === 'deposits' && (
+        <div className="adm-stack">
+          <Filter value={flt} onPick={setFlt} open={cn('deposits').open} all={cn('deposits').all} />
+          {!ld.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
+          {ld.ready && !ld.err && ld.rows.length === 0 && <p className="empty" style={{ textAlign: 'center' }}>{cn('deposits').all === 0 ? 'No deposits yet.' : 'Nothing open.'}</p>}
+          {ld.rows.map((o) => (
+            <Fold key={o.id} title={`${o.label} · $${o.usd}`} sub={`${o.userId} · ${when(o.at)}`} start={orderOpen(o)} pill={<Pill tone={o.status === 'paid' ? 'ok' : o.status === 'review' ? 'warn' : o.status === 'failed' ? 'bad' : ''}>{ORDER[o.status] || o.status}</Pill>}>
+              {(o.paidAt || o.invoiceId) ? (
+                <div className="adm-kv" style={{ borderTop: 0, marginTop: 4, paddingTop: 0 }}>
+                  {o.paidAt && <div><small>Paid</small><b>{when(o.paidAt)}</b></div>}
+                  {o.invoiceId && <div><small>Invoice</small><b className="serial">{o.invoiceId}</b></div>}
+                </div>
+              ) : (
+                <p className="fine" style={{ margin: 0 }}>No more details.</p>
+              )}
+            </Fold>
+          ))}
+          <ListMore l={ld} />
         </div>
       )}
 
