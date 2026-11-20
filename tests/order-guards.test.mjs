@@ -78,7 +78,7 @@ after(async () => {
   await pool().end();
 });
 
-test('#33 opening, cancelling and Solana asks share one limit, so a create-and-cancel loop stops', async () => {
+test('#33 opening and cancelling share one limit, so a create-and-cancel loop stops', async () => {
   const id = await account('loop');
   await withEnv(NOW_ENV, async () => {
     reply = nowInvoice;
