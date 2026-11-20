@@ -16,6 +16,7 @@ import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
+import { SkDash } from '@/components/Skeleton';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -250,6 +251,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid rise">
+        {!bundle ? <SkDash /> : <>
         {paid && (
           <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>
@@ -489,6 +491,7 @@ export default function Dashboard() {
         )}
 
         <RateUs />
+        </>}
       </div>
     </>
   );
