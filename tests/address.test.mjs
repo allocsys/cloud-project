@@ -52,11 +52,8 @@ test('Bitcoin: bech32, bech32m and legacy addresses', () => {
   assert.equal(validAddress('btc', ''), false);
 });
 
-test('Tron addresses need a valid base58 checksum', () => {
-  const usdt = 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t';
-  assert.ok(validAddress('trc20', usdt));
-  assert.equal(validAddress('trc20', bump(usdt, 't', 'u')), false);
-  assert.equal(validAddress('trc20', '1A1zP1eP5QGefi2DMPTfTL5SLmv7DivfNa'), false, 'a Bitcoin address is not a Tron address');
+test('Tron is no longer a withdrawal network', () => {
+  assert.equal(validAddress('trc20', 'TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t'), false);
 });
 
 test('TON addresses need a valid CRC16', () => {
@@ -90,8 +87,8 @@ test('floorCoin rounds down and ceilCoin rounds up to the coin decimals', () => 
   assert.equal(ceilCoin('btc', 0.001), 0.001);
   assert.equal(floorCoin('usdt', 0.29), 0.29, 'float noise (0.29 * 100) does not drop a cent');
   assert.equal(ceilCoin('usdt', 0.29), 0.29, 'float noise does not add a cent');
-  assert.equal(floorCoin('trx', 1.239), 1.23);
-  assert.equal(ceilCoin('trx', 1.231), 1.24);
+  assert.equal(floorCoin('ton', 1.23459), 1.2345);
+  assert.equal(ceilCoin('ton', 1.23451), 1.2346);
   assert.equal(floorCoin('eth', 0.0123456789), 0.012345);
   assert.equal(floorCoin('btc', 1e-10), 0);
 });
