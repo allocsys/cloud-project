@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act, adminList } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -14,7 +14,14 @@ async function gate(req) {
 }
 
 export async function GET(req) {
-  return (await gate(req)) || json({ ok: true, ...(await overview()) });
+  const denied = await gate(req);
+  if (denied) return denied;
+  const p = new URL(req.url).searchParams;
+  if (p.has('list')) {
+    const page = adminList(p.get('list'), { filter: p.get('filter'), offset: p.get('offset'), limit: p.get('limit') });
+    return page ? json({ ok: true, ...(await page) }) : json({ ok: false, error: 'Unknown list.' }, 400);
+  }
+  return json({ ok: true, ...(await overview()) });
 }
 
 export async function POST(req) {
