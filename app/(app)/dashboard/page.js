@@ -16,7 +16,7 @@ import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
-import { SkDash } from '@/components/Skeleton';
+import { SkDash, useWaiting } from '@/components/Skeleton';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -120,6 +120,7 @@ export default function Dashboard() {
   // five requests that each loaded the same account document are now one (lib/server/bundle.js).
   // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
   const { data: bundle } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
+  const waitBundle = useWaiting(!bundle);
   const md = bundle?.miners;
   const miners = md ? md.contracts : [];
   const online = miners.filter((c) => c.online);
@@ -251,7 +252,7 @@ export default function Dashboard() {
         </div>
       </div>
       <div className="grid rise">
-        {!bundle ? <SkDash /> : <>
+        {waitBundle ? <SkDash /> : <>
         {paid && (
           <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>
