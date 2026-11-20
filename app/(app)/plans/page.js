@@ -25,18 +25,6 @@ import { DEFAULT_PAY } from '@/lib/pay-coins';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
-// The fine print under the checkout figures: one small button, collapsed until tapped.
-function FineFold({ label, children, plain }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div style={{ margin: '-8px 0 12px' }}>
-      <button type="button" className="pct-btn" aria-expanded={open} onClick={() => { triggerHaptic('selection'); setOpen(!open); }} style={{ height: 'auto', minHeight: 0, padding: '4px 12px', fontSize: 12 }}>
-        {label} <span aria-hidden="true">{open ? '\u25B4' : '\u25BE'}</span>
-      </button>
-      {open && (plain ? <div style={{ margin: '8px 0 0' }}>{children}</div> : <p className="fine" style={{ margin: '8px 0 0' }}>{children}</p>)}
-    </div>
-  );
-}
 
 export default function Plans() {
   const { t, lang } = useLang();
@@ -72,6 +60,7 @@ export default function Plans() {
   const [dragY, setDragY] = useState(0);
   const [busy, setBusy] = useState(false);
   const [coinOpen, setCoinOpen] = useState(false); // the coin picker shows once Pay with crypto is tapped
+  const [moreOpen, setMoreOpen] = useState(false); // the plan details open when the balance row is tapped
   const [coin, setCoin] = useState(DEFAULT_PAY); // the coin a crypto payment is made in (our own checkout only)
   const [toast, show] = useToast();
   const sheetRef = useRef(null);
@@ -136,6 +125,7 @@ export default function Plans() {
     openerRef.current = document.activeElement;
     payKey.current = null;
     setCoinOpen(false);
+    setMoreOpen(false);
     setSel(p);
   }
 
@@ -512,19 +502,20 @@ export default function Plans() {
                   <b className="v" style={{ color: 'var(--green)' }}>{t('plans.bonusLine', { b: bonusText(fb.bonus) })}<small>{t('plans.fullTerm')}</small></b>
                 </div>
               )}
-              <div className="row">
+              <button type="button" className="row" aria-expanded={moreOpen} onClick={() => { triggerHaptic('selection'); setMoreOpen((v) => !v); }} style={{ width: '100%', background: 'none', border: 0, color: 'inherit', font: 'inherit', textAlign: 'inherit', cursor: 'pointer' }}>
                 <span className="mute">{t('plans.balance')}</span>
-                <b className="v" style={canBal ? undefined : { color: 'var(--red, #ff8a80)' }}>${fmtUsd(sheetBal)}</b>
-              </div>
+                <b className="v" style={canBal ? undefined : { color: 'var(--red, #ff8a80)' }}>${fmtUsd(sheetBal)} <span aria-hidden="true" className="mute">{moreOpen ? '\u25B4' : '\u25BE'}</span></b>
+              </button>
             </div>
             {ready && !canBal && (
-              <p className="fine" style={{ margin: '-4px 0 0' }}>
+              <p className="fine" style={{ margin: '4px 0 0' }}>
                 {!crypto
                   ? t('plans.noBalance')
                   : t('plans.short', { n: fmtUsd(cur.price - sheetBal) })}
               </p>
             )}
-            <FineFold plain label={t('pay.more')}>
+            {moreOpen && (
+            <div className="unfold" style={{ margin: '8px 0 12px' }}>
             <div className="sheetbody">
               <div className="row">
                 <span className="mute">{t('dash.perDayCap')}</span>
@@ -547,17 +538,18 @@ export default function Plans() {
               {fill(t('plans.fine', { n: cat?.minWithdraw ?? MIN_WITHDRAW_USD }), { terms: <Link href={pagePath('/terms', lang)}>{t('auth.terms')}</Link> })}
               {' '}{t('refund.badge', { hours: REFUND_HOURS })}{' '}<Link href={pagePath('/refunds', lang)}>{t('refund.more')}</Link>
             </p>
-            </FineFold>
+            </div>
+            )}
             </div>
             <div className="sheetfoot">
-            {ready && ord?.multi && methods.includes('crypto') && (coinOpen || !canBal) && (
-              <CoinChips value={coin} onChange={setCoin} disabled={busy} />
+            {ready && ord?.multi && methods.includes('crypto') && coinOpen && (
+              <div className="unfold"><CoinChips value={coin} onChange={setCoin} disabled={busy} /></div>
             )}
             {!ready ? (
               <button className="btn" type="button" disabled>{t('plans.loading')}</button>
             ) : (
               methods.map((m, i) => (
-                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => (m === 'crypto' && canBal && ord?.multi && !coinOpen ? setCoinOpen(true) : pay(m))} disabled={busy || (m === 'balance' && !canBal)}>
+                <button key={m} className={i === 0 ? 'btn' : 'swap'} autoFocus={i === 0} onClick={() => (m === 'crypto' && ord?.multi && !coinOpen ? setCoinOpen(true) : pay(m))} disabled={busy || (m === 'balance' && !canBal)}>
                   {m === 'balance' ? t('plans.payBalanceAmt', { n: fmtUsd(cur.price) }) : t('plans.payCrypto')}
                 </button>
               ))
