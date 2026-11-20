@@ -14,13 +14,12 @@ test('a coin without a network gets its first network', () => {
 
 test('a coin on a network it does not live on is refused', () => {
   assert.equal(payChoice({ asset: 'usdt', network: 'trx' }), null);
-  assert.equal(payChoice({ asset: 'usdt', network: 'ton' }), null);
   assert.equal(payChoice({ asset: 'btc', network: 'eth' }), null);
   assert.equal(payChoice({ asset: 'eth', network: 'bsc' }), null);
 });
 
-test('USDT can be paid on Ethereum and BNB Chain, and nothing else is taken', () => {
-  for (const net of ['eth', 'bsc']) assert.deepEqual(payChoice({ asset: 'usdt', network: net }), { asset: 'usdt', net });
+test('USDT can be paid on Ethereum, BNB Chain and TON, and nothing else is taken', () => {
+  for (const net of ['eth', 'bsc', 'ton']) assert.deepEqual(payChoice({ asset: 'usdt', network: net }), { asset: 'usdt', net });
   assert.deepEqual(Object.keys(PAY_ASSETS), ['btc', 'eth', 'bnb', 'ton', 'usdt']);
   for (const asset of ['trx', 'sol', 'pol', 'usdc']) assert.equal(payChoice({ asset }), null, asset);
 });

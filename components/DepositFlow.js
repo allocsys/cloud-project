@@ -15,8 +15,11 @@ import { useT } from '@/components/I18nProvider';
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// TON Connect needs a TON order (Telegram, no choice), EVM connect needs an EVM one (site, app: ETH, BNB, USDT on eth or bsc).
+// Site and app: ETH, BNB, USDT on eth or bsc (EVM connect). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
 const EVM_COINS = ['eth', 'bnb', 'usdt'];
+const EVM_SKIP = ['ton'];
+const TG_COINS = ['ton', 'usdt'];
+const TG_SKIP = ['eth', 'bsc'];
 const TON_COIN = { asset: 'ton', net: 'ton' };
 
 function copyText(text) {
@@ -50,6 +53,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   useEffect(() => {
     const standalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone;
     setEnv(w.tg ? 'tg' : standalone ? 'pwa' : 'site');
+    if (w.tg) setCoin(TON_COIN);
   }, [w.tg]);
 
   const cur = (orders || []).find((o) => o.address && !gone.has(o.id)) || null;
@@ -101,7 +105,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
       setErr(dt('err.wdMin', { n: minDep }));
       return;
     }
-    create(Math.round(v * 100) / 100, env === 'tg' ? TON_COIN : coin);
+    create(Math.round(v * 100) / 100, env === 'tg' && coin.net !== 'ton' ? TON_COIN : coin);
   }
 
   // A coin change = cancel the open order and make a new one for the same amount.
@@ -201,7 +205,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               ))}
             </div>
             <p className="fine" style={{ margin: '6px 0 10px' }}>{dt('wal.depNote', { n: minDep })}</p>
-            {env !== 'tg' && <CoinPicker only={EVM_COINS} value={coin} onChange={setCoin} disabled={busy} />}
+            <CoinPicker only={env === 'tg' ? TG_COINS : EVM_COINS} skipNets={env === 'tg' ? TG_SKIP : EVM_SKIP} value={coin} onChange={setCoin} disabled={busy} />
             <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
               {busy && <Spin />}
               {dt('pay.connect')}

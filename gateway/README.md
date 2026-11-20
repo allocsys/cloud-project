@@ -26,7 +26,7 @@ The gateway only ever holds PUBLIC keys and addresses. Private keys and seed phr
 | --- | --- | --- |
 | `btc` | BTC | Esplora explorer, per invoice |
 | `eth`, `bsc` | native coin (ETH, BNB), USDT | own block scanner (`evm-scanner.js`), stored in `observed_txs`, reorg safe |
-| `ton` | TON | toncenter v3 HTTP API (`ton-explorer.js`); plain TON transfers only, no jettons (USDT on TON) |
+| `ton` | TON | toncenter v3 HTTP API (`ton-explorer.js`); plain TON transfers, plus USDT (a jetton, 6 decimals) read from `/api/v3/jetton/transfers` and checked against the official USDT master |
 
 A network is only offered when its address is set (and, for EVM, listed in `EVM_NETWORKS`). Only plain transfers to the address are seen on EVM chains; transfers made inside a contract call (internal transfers) are not. Token contracts are in `src/chains/`: verify USDT on tether.to/en/supported-protocols before going live.
 

@@ -1,7 +1,14 @@
 // TON network: native TON to ONE fixed receiving address (PAY_ADDR_TON), invoices told apart by exact amount.
 // Detection lives in ../ton-explorer.js (toncenter v3 HTTP API). Amounts are in nanoton (9 decimals).
-// Only the main network, workchain 0. Not built: USDT on TON (a jetton, read from different data).
+// Only the main network, workchain 0. USDT on TON is a jetton (a token contract): it pays the same address, is read from the
+// explorer's jetton transfers (same file) and is told apart by its exact amount like TON.
 import { config } from '../config.js';
+
+// Tokens on TON. master = the token's master contract; its address is the token's identity (a fake token has another master).
+// USDT: master and 6 decimals checked 20 Nov 2026 against docs.ton.org (Jettons payments processing, Deep links).
+export const TON_JETTONS = {
+  usdt: { master: 'EQCxE6mUtQJKFnGfaROTKOt1lZbDiiX1kCixRv7Nw2Id_sDs', decimals: 6 },
+};
 
 // CRC16-XMODEM, the checksum inside a user-friendly TON address.
 export function crc16(bytes) {
@@ -51,14 +58,19 @@ export function tonAddress() {
 }
 
 export const tonChain = () => ({
-  assets: ['ton'],
+  assets: ['ton', ...Object.keys(TON_JETTONS)],
   decimals: 9,
-  decimalsOf: () => 9,
+  decimalsOf: (asset) => (asset === 'ton' ? 9 : Object.hasOwn(TON_JETTONS, asset) ? TON_JETTONS[asset].decimals : undefined),
   confirmations: () => config().ton.confirmations,
   recentConfirmations: 1000, // a TON payment shows 0 or 1 confirmation; the explorer's 14 day window is what keeps this recent
   shared: () => true,
   configured: () => !!tonAddress(),
   address: () => tonAddress(),
-  // 'ton://transfer/<to>?amount=<nanoton>' (Tonkeeper, Wallet in Telegram, MyTonWallet and others). No amount: the plain address.
-  uri: (address, amount, asset, atomic) => (/^[1-9][0-9]{0,37}$/.test(String(atomic ?? '')) ? `ton://transfer/${address}?amount=${atomic}` : address),
+  // 'ton://transfer/<to>?amount=<nanoton>' (Tonkeeper, Wallet in Telegram, MyTonWallet and others); a token adds '&jetton=<master>'
+  // and its amount is in the token's own units. No amount: the plain address.
+  uri: (address, amount, asset, atomic) => {
+    if (!/^[1-9][0-9]{0,37}$/.test(String(atomic ?? ''))) return address;
+    if (asset === 'ton') return `ton://transfer/${address}?amount=${atomic}`;
+    return Object.hasOwn(TON_JETTONS, asset) ? `ton://transfer/${address}?jetton=${TON_JETTONS[asset].master}&amount=${atomic}` : address;
+  },
 });

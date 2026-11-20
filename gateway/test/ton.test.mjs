@@ -1,7 +1,7 @@
 // TON: address parsing, payment link and the toncenter explorer. No network and no database: fetch is a stub.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { crc16, tonParse, tonFriendly, tonChain } from '../src/chains/ton.js';
+import { crc16, tonParse, tonFriendly, tonChain, TON_JETTONS } from '../src/chains/ton.js';
 import { tonExplorer } from '../src/ton-explorer.js';
 import { ExplorerError } from '../src/explorer.js';
 
@@ -64,10 +64,15 @@ test('ton: configured only with a well-formed address; the payment link carries 
     assert.equal(ch.configured(), false);
     process.env.PAY_ADDR_TON = '';
     assert.equal(ch.configured(), false);
-    assert.deepEqual(ch.assets, ['ton']);
+    assert.deepEqual(ch.assets, ['ton', 'usdt']);
     assert.equal(ch.decimalsOf('ton'), 9);
+    assert.equal(ch.decimalsOf('usdt'), 6);
+    assert.equal(ch.decimalsOf('sol'), undefined);
     assert.equal(ch.shared(), true);
     assert.equal(ch.uri(UQ, '1.5', 'ton', '1500000000'), `ton://transfer/${UQ}?amount=1500000000`);
+    assert.equal(ch.uri(UQ, '2.5', 'usdt', '2500000'), `ton://transfer/${UQ}?jetton=${TON_JETTONS.usdt.master}&amount=2500000`);
+    assert.equal(ch.uri(UQ, '2.5', 'sol', '2500000'), UQ);
+    assert.equal(ch.uri(UQ, null, 'usdt', null), UQ);
     assert.equal(ch.uri(UQ, null, 'ton', null), UQ);
     assert.equal(ch.uri(UQ, '0', 'ton', '0'), UQ);
   } finally {
@@ -139,6 +144,92 @@ test('ton: a failing or broken answer throws instead of looking like no payments
   await assert.rejects(ton([{ ...tx(), in_msg: { ...tx().in_msg, destination: 'nope' } }]).addressPayments(UQ), isExplorerError(/malformed/));
   await assert.rejects(ton([tx({ value: 'x' })]).addressPayments(UQ), isExplorerError(/malformed/));
   assert.throws(() => tonExplorer({ baseUrl: 'http://ton.test' }), /https/);
+});
+
+// ---------- Tokens (USDT jetton) ----------
+const MASTER = tonParse(TON_JETTONS.usdt.master).hash;
+const jt = ({ h = 1, to = H, amount = '2500000', master = MASTER, ago = 120_000, aborted } = {}) => ({
+  transaction_hash: hashB64(h),
+  transaction_now: Math.floor((NOW - ago) / 1000),
+  ...(aborted === undefined ? {} : { transaction_aborted: aborted }),
+  jetton_master: `0:${master.toUpperCase()}`,
+  source: `0:${OTHER.toUpperCase()}`,
+  destination: `0:${to.toUpperCase()}`,
+  amount,
+});
+const routed = (txs, jets, seen = []) => async (url) => {
+  seen.push(url);
+  return new Response(JSON.stringify(url.includes('/jetton/transfers') ? { jetton_transfers: jets } : { transactions: txs }));
+};
+const tonWith = (txs, jets, seen, extra = {}) => tonExplorer({ baseUrl: 'https://ton.test', fetchImpl: routed(txs, jets, seen), now: () => NOW, ...extra });
+
+test('ton: USDT transfers to the address are read; another token, other receiver, aborted and zero ones are skipped', async () => {
+  const seen = [];
+  const jets = [
+    jt({ h: 1 }),
+    jt({ h: 2, ago: 5_000, amount: '7' }), // young: 0 confirmations
+    jt({ h: 3, master: OTHER }), // a fake token
+    jt({ h: 4, to: OTHER }),
+    jt({ h: 5, aborted: true }),
+    jt({ h: 6, amount: '0' }),
+    jt({ h: 7, aborted: false, amount: '0012' }),
+    jt({ h: 1 }), // repeated
+  ];
+  const got = await tonWith([], jets, seen).addressPayments(UQ, { assets: ['usdt'] });
+  assert.deepEqual(got, [
+    { txid: hashHex(1), vout: 0, amount: '2500000', confirmations: 1, height: null, asset: 'usdt' },
+    { txid: hashHex(2), vout: 0, amount: '7', confirmations: 0, height: null, asset: 'usdt' },
+    { txid: hashHex(7), vout: 0, amount: '12', confirmations: 1, height: null, asset: 'usdt' },
+  ]);
+  assert.equal(seen.length, 1); // only the token call, no plain TON call
+  assert.ok(seen[0].startsWith('https://ton.test/api/v3/jetton/transfers?'));
+  const q = new URL(seen[0]).searchParams;
+  assert.equal(q.get('owner_address'), UQ);
+  assert.equal(q.get('jetton_master'), TON_JETTONS.usdt.master);
+  assert.equal(q.get('direction'), 'in');
+  assert.equal(q.get('sort'), 'desc');
+  // the receiver in the other address form is found as well
+  assert.equal((await tonWith([], jets).addressPayments(EQ, { assets: ['usdt'] })).length, 3);
+});
+
+test('ton: assets pick what is read; no assets means plain TON only', async () => {
+  const txs = [tx({ h: 1 })];
+  const jets = [jt({ h: 2 })];
+  const seen = [];
+  assert.deepEqual((await tonWith(txs, jets, seen).addressPayments(UQ)).map((p) => p.asset), ['ton']);
+  assert.equal(seen.length, 1);
+  assert.ok(seen[0].includes('/api/v3/transactions?'));
+  const both = await tonWith(txs, jets).addressPayments(UQ, { assets: ['ton', 'usdt', 'usdt'] });
+  assert.deepEqual(both.map((p) => p.asset), ['ton', 'usdt']);
+  assert.deepEqual(await tonWith(txs, jets).addressPayments(UQ, { assets: ['sol'] }), []);
+});
+
+test('ton: a broken token answer throws instead of looking like no payments', async () => {
+  const run = (jets) => tonWith([], jets).addressPayments(UQ, { assets: ['usdt'] });
+  await assert.rejects(run([{ ...jt(), transaction_hash: 'bad' }]), isExplorerError(/malformed/));
+  await assert.rejects(run([{ ...jt(), destination: 'nope' }]), isExplorerError(/malformed/));
+  await assert.rejects(run([{ ...jt(), jetton_master: undefined }]), isExplorerError(/malformed/));
+  await assert.rejects(run([jt({ amount: 'x' })]), isExplorerError(/malformed/));
+  await assert.rejects(run([{ ...jt(), amount: 5 }]), isExplorerError(/malformed/));
+  await assert.rejects(run([{ ...jt(), transaction_now: 'x' }]), isExplorerError(/malformed/));
+  await assert.rejects(run([null]), isExplorerError(/malformed/));
+  await assert.rejects(tonExplorer({ baseUrl: 'https://ton.test', fetchImpl: fetchOf([]), now: () => NOW }).addressPayments(UQ, { assets: ['usdt'] }), isExplorerError(/unexpected/));
+});
+
+test('ton: token paging follows full pages and stops at the cap', async () => {
+  const seen = [];
+  const pages = [[jt({ h: 1, to: OTHER }), jt({ h: 2, to: OTHER })], [jt({ h: 3 }), jt({ h: 4, to: OTHER })], [jt({ h: 5 })]];
+  const fetchImpl = async (url) => {
+    const offset = Number(new URL(url).searchParams.get('offset'));
+    seen.push(offset);
+    return new Response(JSON.stringify({ jetton_transfers: pages[offset / 2] ?? [] }));
+  };
+  const ex = (maxPages) => tonExplorer({ baseUrl: 'https://ton.test', fetchImpl, now: () => NOW, limit: 2, maxPages });
+  assert.deepEqual((await ex(5).addressPayments(UQ, { assets: ['usdt'] })).map((p) => p.txid), [hashHex(3), hashHex(5)]);
+  assert.deepEqual(seen, [0, 2, 4]);
+  seen.length = 0;
+  assert.deepEqual((await ex(1).addressPayments(UQ, { assets: ['usdt'] })).map((p) => p.txid), []);
+  assert.deepEqual(seen, [0]);
 });
 
 // pages of 2 (limit: 2): the answer for offset 0, 2, 4 ...
