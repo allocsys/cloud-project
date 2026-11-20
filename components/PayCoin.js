@@ -10,8 +10,8 @@ import { Qr } from '@/components/Qr';
 import { trustLink } from '@/lib/trust-link';
 
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
-// value and onChange use { asset, net }.
-export function CoinPicker({ value, onChange, disabled = false }) {
+// value and onChange use { asset, net }. `only` (optional) is a list of asset ids to show; without it every coin shows.
+export function CoinPicker({ value, onChange, disabled = false, only }) {
   const t = useT();
   const nets = PAY_ASSETS[value.asset].nets;
   const pick = (next) => {
@@ -21,7 +21,7 @@ export function CoinPicker({ value, onChange, disabled = false }) {
   return (
     <>
       <div className="assets" style={{ gridTemplateColumns: 'repeat(3, 1fr)' }} role="group" aria-label={t('wal.coin')}>
-        {Object.entries(PAY_ASSETS).map(([id, a]) => (
+        {Object.entries(PAY_ASSETS).filter(([id]) => !only || only.includes(id)).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: a.nets[0] })}>
             {a.sym}
           </button>
@@ -106,7 +106,8 @@ function Countdown({ at }) {
 
 // An open gateway payment: send exactly this amount, to this address, on this network.
 // `show` is the page's toast function; it says the text was copied.
-export function PayInfo({ order, show }) {
+// `slim` drops Copy amount and the Trust link (the deposit flow shows Copy amount itself, under Copy address).
+export function PayInfo({ order, show, slim = false }) {
   const t = useT();
   const [qr, setQr] = useState(false);
   const [more, setMore] = useState(false);
@@ -122,7 +123,7 @@ export function PayInfo({ order, show }) {
     copyText(text);
     show(t('wal.copied'));
   };
-  const trust = trustLink(order);
+  const trust = slim ? null : trustLink(order);
   // A payment link only opens a wallet that registered its scheme. If the page is still in front after 1.5 s, nothing opened:
   // copy the address, and show Copy address, Copy amount and the rest under More.
   const openWallet = async () => {
@@ -157,7 +158,7 @@ export function PayInfo({ order, show }) {
             if (auto) openWallet();
           }}
         />
-        {!hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+        {!hideEvm && !(w.tg && order.network !== 'ton') && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
           <button type="button" className="pct-btn" onClick={openWallet} disabled={opening} style={{ padding: '0 12px' }}>
             {opening && <Spin />}
             {t('plans.openWallet')}
@@ -166,7 +167,7 @@ export function PayInfo({ order, show }) {
         <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-expanded={more} onClick={() => setMore(!more)}>{t('pay.more')}</button>
         {more && (
           <>
-            <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>
+            {!slim && <button type="button" className="pct-btn" style={{ padding: '0 12px' }} onClick={() => copy(String(order.amount))}>{t('pay.copyAmt')}</button>}
             <button type="button" className="pct-btn" style={{ padding: '0 12px' }} aria-pressed={qr} onClick={() => setQr(!qr)}>{t('pay.qr')}</button>
             {trust && (
               <a className="pct-btn" href={trust} target="_blank" rel="noopener noreferrer" style={{ padding: '0 12px', display: 'inline-flex', alignItems: 'center' }}>{t('pay.trust')}</a>

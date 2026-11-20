@@ -15,8 +15,9 @@ import { useT } from '@/components/I18nProvider';
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// TON Connect needs a TON order (Telegram), EVM connect needs an EVM one (site, app).
-const startCoin = (env) => (env === 'tg' ? { asset: 'ton', net: 'ton' } : { asset: 'eth', net: 'eth' });
+// TON Connect needs a TON order (Telegram, no choice), EVM connect needs an EVM one (site, app: ETH, BNB, USDT on eth or bsc).
+const EVM_COINS = ['eth', 'bnb', 'usdt'];
+const TON_COIN = { asset: 'ton', net: 'ton' };
 
 function copyText(text) {
   triggerHaptic('success');
@@ -35,6 +36,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const w = useWallet();
   const [env, setEnv] = useState('site');
   const [amt, setAmt] = useState('');
+  const [coin, setCoin] = useState({ asset: 'eth', net: 'eth' });
   const [err, setErr] = useState('');
   const [busy, setBusy] = useState(false);
   const [manual, setManual] = useState(false);
@@ -99,7 +101,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
       setErr(dt('err.wdMin', { n: minDep }));
       return;
     }
-    create(Math.round(v * 100) / 100, startCoin(env));
+    create(Math.round(v * 100) / 100, env === 'tg' ? TON_COIN : coin);
   }
 
   // A coin change = cancel the open order and make a new one for the same amount.
@@ -133,7 +135,8 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     else if (order) leave(order.id);
   }
 
-  const canOpen = !!order && !!order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri);
+  // Telegram's webview cannot hand a link to a wallet, except the TON one that opens in the browser.
+  const canOpen = !!order && !!order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && !(w.tg && order.network !== 'ton');
   async function openWallet() {
     if (opening || !order) return;
     // Telegram's webview does not hand ton:// to a wallet: open the https form of the same link in its own browser instead.
@@ -198,6 +201,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               ))}
             </div>
             <p className="fine" style={{ margin: '6px 0 10px' }}>{dt('wal.depNote', { n: minDep })}</p>
+            {env !== 'tg' && <CoinPicker only={EVM_COINS} value={coin} onChange={setCoin} disabled={busy} />}
             <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
               {busy && <Spin />}
               {dt('pay.connect')}
@@ -234,9 +238,10 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
         {screen === 'manual' && order && (
           <div>
             <CoinPicker value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />
-            <PayInfo order={order} show={show} />
+            <PayInfo order={order} show={show} slim />
             <div className="dfcol" style={{ marginTop: 10 }}>
               <button type="button" className="btn ghost" onClick={() => { copyText(order.address); show(dt('wal.copied')); }}>{dt('wal.copy')}</button>
+              <button type="button" className="btn ghost" onClick={() => { copyText(String(order.amount)); show(dt('wal.copied')); }}>{dt('pay.copyAmt')}</button>
               <button type="button" className="btn ghost" onClick={() => leave(order.id)}>{dt('wal.depCancel')}</button>
             </div>
           </div>
