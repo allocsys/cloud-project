@@ -11,7 +11,7 @@
     "test": "INVOICE_BUFFER_PERCENT=0 node --test --test-concurrency=1 \"test/**/*.test.mjs\""
   },
   "dependencies": {
-    "@noble/hashes": "1.7.1",
+    "@noble/hashes": "2.4.0",
     "@scure/base": "2.4.0",
     "@scure/bip32": "1.6.2",
     "pg": "8.23.1"
