@@ -208,7 +208,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
             <CoinPicker only={env === 'tg' ? TG_COINS : EVM_COINS} skipNets={env === 'tg' ? TG_SKIP : EVM_SKIP} value={coin} onChange={setCoin} disabled={busy} />
             <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
               {busy && <Spin />}
-              {dt('pay.connect')}
+              {dt('dep.pickCoin')}
             </button>
           </div>
         )}
