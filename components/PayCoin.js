@@ -158,7 +158,7 @@ export function PayInfo({ order, show, slim = false }) {
             if (auto) openWallet();
           }}
         />
-        {!hideEvm && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
+        {!hideEvm && !(w.tg && order.network !== 'ton') && order.uri && /^[a-z][a-z0-9+.-]*:/i.test(order.uri) && (
           <button type="button" className="pct-btn" onClick={openWallet} disabled={opening} style={{ padding: '0 12px' }}>
             {opening && <Spin />}
             {t('plans.openWallet')}
