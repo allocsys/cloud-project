@@ -138,4 +138,17 @@ CREATE TABLE paused_networks (
 );
 `,
   },
+  {
+    id: '002_address_reuse',
+    sql: `
+-- released_at  an unpaid per-invoice address is given to a new invoice 24 hours after the old one ended (see createInvoice in invoices.js).
+--              The old invoice keeps its row and its address for the record, but no longer owns them: the two unique indexes below
+--              only count invoices that still own their address.
+ALTER TABLE invoices ADD COLUMN released_at timestamptz;
+DROP INDEX invoices_address_idx;
+DROP INDEX invoices_index_idx;
+CREATE UNIQUE INDEX invoices_address_idx ON invoices (network, address) WHERE NOT match_amount AND released_at IS NULL;
+CREATE UNIQUE INDEX invoices_index_idx ON invoices (network, deriv_index) WHERE released_at IS NULL;
+`,
+  },
 ];

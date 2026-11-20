@@ -84,7 +84,7 @@ export const LATE_DAYS = 14;
 export async function endedInvoices(now = new Date()) {
   const r = await q(
     `SELECT id, network, asset, address, expires_at FROM invoices i
-     WHERE kind = 'order' AND NOT match_amount
+     WHERE kind = 'order' AND NOT match_amount AND released_at IS NULL
        AND expires_at > $1::timestamptz - ($2::int * interval '1 day')
        AND EXISTS (SELECT 1 FROM webhook_outbox o WHERE o.invoice_id = i.id)
      ORDER BY expires_at DESC, id LIMIT 500`,
