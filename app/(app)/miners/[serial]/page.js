@@ -14,6 +14,9 @@ import Spark from '@/components/Spark';
 import { useT } from '@/components/I18nProvider';
 import RefundRequest from '@/components/RefundRequest';
 
+const COIN_COLOR = { KAS: '#1D9E75', XMR: '#EF9F27', BTC: '#378ADD', ETC: '#D85A30', RVN: '#D4537E' };
+const chipStyle = { flex: 1, display: 'flex', flexDirection: 'column', gap: 2, padding: '10px 12px', borderRadius: 12, background: 'rgba(255,255,255,0.05)' };
+
 const chev = (
   <svg viewBox="0 0 24 24" aria-hidden="true">
     <path d="M15 5l-7 7 7 7" />
@@ -45,6 +48,7 @@ export default function ContractPage() {
   const { serial } = useParams();
   const t = useT();
   const [all, setAll] = useState(false);
+  const [coinAll, setCoinAll] = useState(false);
   const { data: md, mutate: mutateMiners } = useApi('/api/miners', { ttl: 10000 });
   const [toast, show] = useToast();
   const [renewBusy, setRenewBusy] = useState(false);
@@ -98,8 +102,10 @@ export default function ContractPage() {
   const avg = daily.length ? total / daily.length : 0;
   const pct = Math.round((c.elapsed / c.days) * 100);
   const bars = daily.slice(0, 14).reverse();
-  const max = Math.max(...bars.map((d) => d.usd));
-  const min = Math.min(...bars.map((d) => d.usd));
+  const live = bars.filter((d) => !d.paused).map((d) => d.usd);
+  const max = live.length ? Math.max(...live) : 0;
+  const min = live.length ? Math.min(...live) : 0;
+  const pausedN = daily.filter((d) => d.paused).length;
 
   return (
     <>
@@ -135,9 +141,9 @@ export default function ContractPage() {
                   {bars.map((d, i) => (
                     <i
                       key={d.day}
-                      title={`${d.day} · $${formatUsd(d.usd)}`}
+                      title={d.paused ? `${d.day} · ${t('min.paused')}` : `${d.day} · $${formatUsd(d.usd)}`}
                       className={i === bars.length - 1 ? 'last' : undefined}
-                      style={{ height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }}
+                      style={d.paused ? { height: '30%', background: 'rgba(255,255,255,0.14)' } : { height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }}
                     />
                   ))}
                 </div>
@@ -145,7 +151,11 @@ export default function ContractPage() {
                   <span>{bars[0].day}</span>
                   <span className="now">{bars[bars.length - 1].day}</span>
                 </div>
-                {(all ? daily : daily.slice(0, 5)).map((d) => (
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <span style={chipStyle}><small className="mute">{t('min.payoutDay')}</small><b>{daily.length - pausedN}</b></span>
+                  <span style={chipStyle}><small className="mute">{t('min.paused')}</small><b>{pausedN}</b></span>
+                </div>
+                {all && daily.map((d) => (
                   <div key={d.day} className="row">
                     <div>{d.paused ? t('min.pausedDay') : t('min.payoutDay')}<small>{d.day}</small></div>
                     {d.paused ? <b className="mute">{t('min.paused')}</b> : <b className="up">+${formatUsd(d.usd)}</b>}
@@ -197,14 +207,48 @@ export default function ContractPage() {
                 <h3>{t('min.coin')}</h3>
                 <span className="mute">{sc?.today ? t('min.coinToday', { coin: sc.today }) : '–'}</span>
               </div>
-              {sc?.history?.length ? (
-                sc.history.map((h) => (
-                  <div key={h.day} className="row">
-                    <span className="mute">{h.day}</span>
-                    <b className="v">{h.coin}</b>
-                  </div>
-                ))
-              ) : (
+              {sc?.history?.length ? (() => {
+                const last = sc.history.slice(0, 13);
+                const counts = {};
+                last.forEach((h) => {
+                  counts[h.coin] = (counts[h.coin] || 0) + 1;
+                });
+                return (
+                  <>
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      {Object.entries(counts).map(([coin, n]) => (
+                        <span key={coin} style={chipStyle}>
+                          <small className="mute" style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <i style={{ width: 8, height: 8, borderRadius: '50%', background: COIN_COLOR[coin] || '#888780' }} />
+                            {coin}
+                          </small>
+                          <b>{n}</b>
+                        </span>
+                      ))}
+                    </div>
+                    <div style={{ display: 'flex', gap: 4, alignItems: 'flex-end', marginTop: 12 }}>
+                      {last.slice().reverse().map((h) => (
+                        <span key={h.day} title={`${h.day} · ${h.coin}`} style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+                          <i style={{ display: 'block', width: '100%', height: 28, borderRadius: 4, background: COIN_COLOR[h.coin] || '#888780' }} />
+                          <small className="mute">{h.day.split(' ')[0]}</small>
+                        </span>
+                      ))}
+                    </div>
+                    {coinAll &&
+                      sc.history.map((h) => (
+                        <div key={h.day} className="row">
+                          <span className="mute">{h.day}</span>
+                          <b className="v">{h.coin}</b>
+                        </div>
+                      ))}
+                    {sc.history.length > 13 && (
+                      <button className="swap" onClick={() => setCoinAll((v) => !v)}>
+                        {coinAll ? t('min.showLess') : t('min.showAll', { n: sc.history.length })}
+                      </button>
+                    )}
+                  </>
+                );
+              })() : (
                 <p className="empty">{det ? t('min.firstCoin') : t('common.loading')}</p>
               )}
             </div>
