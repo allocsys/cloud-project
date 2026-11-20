@@ -30,7 +30,13 @@ function copyText(text) {
   } catch {}
 }
 
-const CSS = '.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:0 0 12px}.dfenv .dfpulse{animation:dfPulse 1.1s ease-in-out infinite}@keyframes dfPulse{0%,100%{opacity:.45}50%{opacity:1}}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}.dfrange{-webkit-appearance:none;appearance:none;display:block;width:100%;height:24px;margin:4px 0 14px;padding:0;border:0;background:transparent;box-sizing:border-box;--f:0;--d:right}[dir=rtl] .dfrange{--d:left}.dfrange::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-7px;border:0;border-radius:50%;background:#e8b84a}.dfrange::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#e8b84a}.dfchips{display:grid;gap:8px}.dfchips .pct-btn{width:100%;margin:0}';
+const CSS = '.dfstep{--dx:12px;animation:dfIn .25s ease-out}[dir=rtl] .dfstep{--dx:-12px}@keyframes dfIn{from{opacity:0;transform:translateX(var(--dx))}to{opacity:1;transform:none}}.dfenv{position:relative;overflow:hidden;display:flex;align-items:center;gap:10px;height:44px;padding:0 14px;margin:0 0 12px;border-radius:12px;border:1px solid #3d3519;background:rgba(232,184,74,.06);opacity:.55;transition:opacity .3s,border-color .3s}.dfenv.ok{opacity:1;border-color:#e8b84a}.dfenv.chk::after{content:'';position:absolute;inset:0;background:linear-gradient(100deg,transparent 30%,rgba(232,184,74,.28) 50%,transparent 70%);transform:translateX(-100%);animation:dfSweep 1.1s linear infinite}[dir=rtl] .dfenv.chk::after{animation-name:dfSweepR}@keyframes dfSweep{to{transform:translateX(100%)}}@keyframes dfSweepR{from{transform:translateX(100%)}to{transform:translateX(-100%)}}.dfico{width:22px;height:22px;overflow:hidden;flex:none;color:#e8b84a}.dfroll{display:flex;flex-direction:column;transition:transform .35s cubic-bezier(.3,1.4,.5,1)}.dfroll svg{width:22px;height:22px;flex:none}.dfenv.chk .dfroll{animation:dfRoll .9s steps(1) infinite}@keyframes dfRoll{0%{transform:translateY(0)}33.33%{transform:translateY(-22px)}66.66%{transform:translateY(-44px)}}.dfenvl{height:20px;overflow:hidden;line-height:20px;font-size:14px;font-weight:600}.dfenvl>span{display:block;height:20px;transition:transform .3s}.dfenv.ok .dfenvl>span{transform:translateY(-20px)}.dfback{background:none;border:0;padding:4px 8px 4px 0;margin:0 0 6px;color:inherit;cursor:pointer;display:inline-flex}[dir=rtl] .dfback{padding:4px 0 4px 8px}[dir=rtl] .dfback svg{transform:scaleX(-1)}.dfcol{display:flex;flex-direction:column;gap:8px}.dfrange{-webkit-appearance:none;appearance:none;display:block;width:100%;height:24px;margin:4px 0 14px;padding:0;border:0;background:transparent;box-sizing:border-box;--f:0;--d:right}[dir=rtl] .dfrange{--d:left}.dfrange::-webkit-slider-runnable-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;margin-top:-7px;border:0;border-radius:50%;background:#e8b84a}.dfrange::-moz-range-track{height:8px;border-radius:4px;background:linear-gradient(to var(--d),#e8b84a calc(11px + (100% - 22px) * var(--f)),#3d3519 0)}.dfrange::-moz-range-thumb{width:22px;height:22px;border:0;border-radius:50%;background:#e8b84a}.dfchips{display:grid;gap:8px}.dfchips .pct-btn{width:100%;margin:0}';
+
+const ENV_ICONS = [
+  <path key="tg" d="M21 3L10 14M21 3l-7 18-4-7-7-4z" />,
+  <g key="site"><circle cx="12" cy="12" r="9" /><path d="M3 12h18M12 3a14 14 0 010 18M12 3a14 14 0 000 18" /></g>,
+  <g key="pwa"><rect x="7" y="2" width="10" height="20" rx="2" /><path d="M11 18h2" /></g>,
+];
 
 const linkBtn = { background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' };
 
@@ -256,16 +262,20 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
 
         {screen === 'connect' && order && (
           <div>
-            <div className="dfenv" role="group" aria-label={dt('dep.checking')}>
-              {ENVS.map(([id, label]) => (
-                <button key={id} type="button" tabIndex={-1} className={`pct-btn${phase === 'checking' ? ' dfpulse' : ''}`} aria-pressed={phase === 'done' && env === id} onClick={() => {}}>
-                  {dt(label)}
-                </button>
-              ))}
+            <div className={`dfenv ${phase === 'checking' ? 'chk' : 'ok'}`} role="status">
+              <span className="dfico" aria-hidden="true">
+                <span className="dfroll" style={{ transform: `translateY(${-22 * Math.max(ENVS.findIndex(([id]) => id === env), 0)}px)` }}>
+                  {ENV_ICONS.map((p, i) => (
+                    <svg key={i} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">{p}</svg>
+                  ))}
+                </span>
+              </span>
+              <span className="dfenvl">
+                <span>{dt('dep.checking')}</span>
+                <span>{dt((ENVS.find(([id]) => id === env) || ENVS[1])[1])}</span>
+              </span>
             </div>
-            {phase === 'checking' ? (
-              <p className="fine" role="status" style={{ margin: '0 0 6px' }}>{dt('dep.checking')}</p>
-            ) : (
+            {phase === 'checking' ? null : (
               <div className="dfcol">
                 {connected && <p className="fine" style={{ margin: 0 }}>{`${dt('dep.connected')} \u00b7 ${short}`}</p>}
                 {connected || env !== 'pwa' ? (
