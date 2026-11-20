@@ -6,7 +6,7 @@ import { halls as defaultHalls } from '@/lib/data';
 
 const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
-const { act, overview, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
+const { act, overview, adminUsers, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
 const { getWallet, TOLERANCE } = await import('@/lib/server/wallet');
 const { getPrices } = await import('@/lib/server/prices');
 const auth = await import('@/lib/server/auth');
@@ -194,7 +194,10 @@ test('taking a balance allows the buy tolerance and no more', async () => {
 test('the admin overview shows each user\'s available balance, matching their wallet', async () => {
   const id = `ovw${run}@test.dev`;
   assert.ok(await tx((c) => createUser(c, id, {})));
-  const shown = async () => (await overview({ withUsers: true })).users.find((u) => u.id === id)?.available;
+  const shown = async () => {
+    await overview(); // works the accounts out afresh; the Users page reads that copy
+    return (await adminUsers({ q: id, limit: 200 })).rows.find((u) => u.id === id)?.available;
+  };
   const wallet = async () => {
     const w = await getWallet(id);
     return w.earned - w.withdrawn - w.spent;
