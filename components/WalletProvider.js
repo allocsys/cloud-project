@@ -60,6 +60,7 @@ export default function WalletProvider({ children }) {
   const tonPending = useRef(null); // the TON transfer the wallet has not answered yet: { sig, req, late }
   const tonConnecting = useRef(null); // the connect that is running: a second tap joins it, it does not send a second request
   const [acct, setAcct] = useState('');
+  const [tonAcct, setTonAcct] = useState(''); // the TON Connect account; in Telegram it is also what `acct` shows
   const [chainId, setChainId] = useState(0);
   const [busy, setBusy] = useState(false);
   const [tg, setTg] = useState(false); // opened inside Telegram: the wallet is Tonkeeper (TON Connect)
@@ -84,14 +85,13 @@ export default function WalletProvider({ children }) {
             if (a && String(a.chain) === MAINNET) {
               const friendly = toUserFriendlyAddress(a.address);
               tonLive.current = { acct: friendly };
-              setAcct(friendly);
-              setChainId(0);
+              setTonAcct(friendly);
               remember(true, TON_FLAG);
               return;
             }
             if (a) c.disconnect().catch(() => {}); // a test network wallet is not accepted
             tonLive.current = null;
-            setAcct('');
+            setTonAcct('');
             remember(false, TON_FLAG);
           });
           return c;
@@ -160,7 +160,7 @@ export default function WalletProvider({ children }) {
 
   // A reload inside Telegram: pick up the Tonkeeper session (also a connect that was still waiting when the app was put away).
   useEffect(() => {
-    if (!tg || tonLive.current) return undefined;
+    if (tonLive.current) return undefined;
     let known = '';
     try {
       known = localStorage.getItem(TON_FLAG) || localStorage.getItem('ton-connect-storage_bridge-connection') || '';
@@ -265,7 +265,7 @@ export default function WalletProvider({ children }) {
     [runTon]
   );
 
-  const connect = useCallback((opts) => (inTg() ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
+  const connect = useCallback((opts) => (inTg() || opts?.ton ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
 
   const disconnect = useCallback(async () => {
     const cur = live.current;
@@ -275,6 +275,7 @@ export default function WalletProvider({ children }) {
     tonLive.current = null;
     tonPending.current = null;
     setAcct('');
+    setTonAcct('');
     setChainId(0);
     remember(false);
     remember(false, TON_FLAG);
@@ -389,8 +390,8 @@ export default function WalletProvider({ children }) {
   }, [getTon]);
 
   const value = useMemo(
-    () => ({ enabled: tg || !!pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon }),
-    [pid, tg, acct, chainId, busy, connect, disconnect, send, sendTon]
+    () => ({ enabled: tg || !!pid, tg, acct: tg ? tonAcct : acct, tonAcct, chainId, busy, connect, disconnect, send, sendTon }),
+    [pid, tg, acct, tonAcct, chainId, busy, connect, disconnect, send, sendTon]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

@@ -15,8 +15,8 @@ import { useT } from '@/components/I18nProvider';
 const CHIPS = [30, 100, 500];
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
-// Site and app: ETH, BNB, USDT on eth or bsc (EVM connect). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
-const EVM_COINS = ['eth', 'bnb', 'usdt'];
+// Site and app: BTC, ETH, BNB, TON, USDT on eth or bsc (ETH, BNB, USDT connect; BTC and TON pay by QR, Open wallet or manually). Telegram: TON, or USDT on TON (TON network only; USDT pays through Open wallet).
+const EVM_COINS = ['btc', 'eth', 'bnb', 'ton', 'usdt'];
 const EVM_SKIP = ['ton'];
 const TG_COINS = ['ton', 'usdt'];
 const TG_SKIP = ['eth', 'bsc'];
@@ -208,7 +208,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
             <CoinPicker only={env === 'tg' ? TG_COINS : EVM_COINS} skipNets={env === 'tg' ? TG_SKIP : EVM_SKIP} value={coin} onChange={setCoin} disabled={busy} />
             <button className="btn" type="button" onClick={start} disabled={busy || !ready}>
               {busy && <Spin />}
-              {dt('pay.connect')}
+              {dt('dep.pickCoin')}
             </button>
           </div>
         )}

@@ -12,7 +12,7 @@ import { trustLink } from '@/lib/trust-link';
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
 // value and onChange use { asset, net }. `only` (optional) is a list of asset ids to show; without it every coin shows.
 // `skipNets` (optional) is a list of network ids to hide; a coin then starts on its first network left.
-export function CoinPicker({ value, onChange, disabled = false, only, skipNets }) {
+export function CoinPicker({ value, onChange, disabled = false, only, skipNets, mark }) {
   const t = useT();
   const left = (id) => PAY_ASSETS[id].nets.filter((n) => !skipNets || !skipNets.includes(n));
   const nets = left(value.asset);
@@ -26,6 +26,7 @@ export function CoinPicker({ value, onChange, disabled = false, only, skipNets }
         {Object.entries(PAY_ASSETS).filter(([id]) => !only || only.includes(id)).map(([id, a]) => (
           <button key={id} type="button" className="pct-btn" aria-pressed={value.asset === id} disabled={disabled} onClick={() => id !== value.asset && pick({ asset: id, net: left(id)[0] || a.nets[0] })}>
             {a.sym}
+            {mark && mark(id) && <span style={{ fontSize: 10, opacity: 0.75, marginInlineStart: 4 }}>{t('dep.auto')}</span>}
           </button>
         ))}
       </div>
