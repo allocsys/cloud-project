@@ -1,0 +1,27 @@
+{
+  "$schema": "https://railway.com/railway.schema.json",
+  "build": {
+    "watchPatterns": [
+      "/app/(app)/**",
+      "/app/(plain)/**",
+      "/app/(site)/**",
+      "/app/status/**",
+      "/app/healthz/**",
+      "/app/icons/**",
+      "/app/*.js",
+      "/app/*.css",
+      "/components/**",
+      "/public/**",
+      "/middleware.js",
+      "/instrumentation.js",
+      "/lib/*.js",
+      "/lib/i18n/**",
+      "/next.config.mjs",
+      "/jsconfig.json",
+      "/package.json",
+      "/package-lock.json",
+      "/Dockerfile",
+      "/scripts/**"
+    ]
+  }
+}
