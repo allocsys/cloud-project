@@ -11,6 +11,8 @@ import { telegramReady } from '@/lib/telegram';
 // Inside Telegram, on the first visit of a session, it also asks the server whether this Telegram already has an account
 // (it never creates one). If so the person is signed in and sent to the dashboard, and the landing page never shows.
 // After a sign-out on purpose (vtx-out) this stays off until the person signs in again.
+// After the first visit in a session the welcome screen is skipped altogether (a head script in the root layout hides it before the first paint
+// on a reload or a language change; <html data-sp="off"> does that), and the scrambling headings stay plain (components/Decrypt.js).
 const FIRST = 1100;
 const REPEAT = 250;
 const CAP = 2500;
@@ -52,6 +54,17 @@ export default function Splash() {
       sessionStorage.setItem('vtx-splash', '1');
     } catch {}
     const t0 = performance.now();
+    window.__vtxSeen = seen;
+    if (seen) {
+      window.__vtxSplash = 'off';
+      document.documentElement.dataset.sp = 'off';
+      try {
+        router.prefetch('/login');
+      } catch {}
+      setGone(true);
+      window.dispatchEvent(new Event('vtx-splash-done'));
+      return undefined;
+    }
     window.__vtxSplash = 'on';
     let out = false;
     try {
@@ -117,7 +130,10 @@ export default function Splash() {
         if (ref.current) ref.current.classList.add('sp-out');
         window.__vtxSplash = 'off';
         window.dispatchEvent(new Event('vtx-splash-done'));
-        t2 = setTimeout(() => setGone(true), 600);
+        t2 = setTimeout(() => {
+          document.documentElement.dataset.sp = 'off';
+          setGone(true);
+        }, 600);
       }, wait);
     });
     return () => {
