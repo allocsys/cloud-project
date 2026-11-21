@@ -71,8 +71,7 @@ export default function Plans() {
   // The Boost tab shows only while boost tickets are on (or a boost is still running); otherwise the page falls back to Buy plans.
   const { data: bd } = useApi('/api/boost', { ttl: 10000 });
   const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
-  // Restored on the Boost tab: wait for /api/boost before deciding, so Buy plans does not flash first.
-  const boostWait = tab === 'boost' && !bd;
+  // The Boost card draws itself in the loading look until /api/boost answers (BoostCard's loading prop), so Buy plans does not flash first.
   // Shimmer placeholders while the first answers are on their way (see components/Skeleton.js).
   const waitCat = useWaiting(!cat);
   const waitMd = useWaiting(!md);
