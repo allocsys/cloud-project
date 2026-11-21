@@ -3,7 +3,7 @@ import { q } from '@/lib/server/db';
 
 export const dynamic = 'force-dynamic';
 
-// Liveness and readiness probe for Docker and hosts: 200 only when the database answers.
+// Liveness and readiness probe for Docker and hosts: returns 200 only when the database answers.
 export async function GET() {
   try {
     await q('SELECT 1');
