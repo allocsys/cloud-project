@@ -128,7 +128,7 @@ function UnitSwitch({ sym, unit, onUnit }) {
   );
 }
 
-import { SkRows } from '@/components/Skeleton';
+import { PH_HISTORY } from '@/lib/placeholder';
 
 export default function Wallet() {
   const { t, lang } = useLang();
@@ -328,6 +328,8 @@ export default function Wallet() {
   const dq = depCoin > 0 ? depositQuote(asset, depCoin, prices) : null;
   // Invite income counts as a payout; the kind filter already ran on the server.
   const shown = history;
+  // History opened before its first answer: three placeholder rows in the loading look (lib/placeholder.js, .ld).
+  const loadingRows = shown.length === 0 && !(ready && sameFilter);
 
   // The minimum is the admin's dollar amount (from /api/plans) worth of coin, shown in whatever unit the person is typing in.
   const minUsd = cat?.minWithdraw ?? MIN_WITHDRAW_USD;
@@ -814,11 +816,11 @@ export default function Wallet() {
                 ))}
               </div>
             )}
-            {open && shown.map((h, i) => {
+            {open && (loadingRows ? PH_HISTORY : shown).map((h, i) => {
               const k = KIND[h.kind] || KIND.payout;
               const hu = usdOf(h, prices);
               return (
-                <div key={`${h.date}-${i}`} className={`row wrow${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}`} style={{ animationDelay: `${i * 50}ms` }}>
+                <div key={`${h.date}-${i}`} className={`row wrow${i === 0 && h.date === 'Just now' ? ' shareitem' : ''}${loadingRows ? ' ld' : ''}`} style={{ animationDelay: `${i * 50}ms` }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                     <span className={`kind ${k.cls}`} aria-hidden="true">{k.glyph}</span>
                     <div>
@@ -835,7 +837,7 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && (ready && sameFilter ? <p className="empty">{t('wal.nothing')}</p> : <SkRows n={3} right="two" />)}
+            {open && shown.length === 0 && ready && sameFilter && <p className="empty">{t('wal.nothing')}</p>}
             {open && wd && sameFilter && history.length < (wd.historyTotal ?? 0) && (
               <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
             )}
