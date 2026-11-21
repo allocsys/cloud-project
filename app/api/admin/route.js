@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act, adminList, adminRefList, adminUsers, adminUserHistory } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, isAdmin, needsSetup, overview, act, adminList, adminRefList, adminUsers, adminUserHistory, adminUserWallets } from '@/lib/server/admin';
 
 export const dynamic = 'force-dynamic';
 
@@ -18,6 +18,10 @@ export async function GET(req) {
   if (denied) return denied;
   const p = new URL(req.url).searchParams;
   if (p.get('list') === 'users') return json({ ok: true, ...(await adminUsers({ q: p.get('q'), filter: p.get('filter'), sort: p.get('sort'), offset: p.get('offset'), limit: p.get('limit') })) });
+  if (p.has('wallets')) {
+    const w = await adminUserWallets(p.get('wallets'));
+    return w ? json({ ok: true, ...w }) : json({ ok: false, error: 'User not found.' }, 404);
+  }
   if (p.has('history')) {
     const history = await adminUserHistory(p.get('history'));
     return history ? json({ ok: true, history }) : json({ ok: false, error: 'User not found.' }, 404);
