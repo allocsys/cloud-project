@@ -25,8 +25,9 @@ export function fmtAtomic(atomic, dec) {
 }
 
 export function publicInvoice(r) {
-  const ch = CHAINS[r.network];
-  const amount = r.expected_atomic === null ? null : fmtAtomic(r.expected_atomic, ch.decimalsOf(r.asset));
+  // A network removed since the invoice was made: still readable (status, ids), but no amount text or payment link.
+  const ch = Object.hasOwn(CHAINS, r.network) ? CHAINS[r.network] : null;
+  const amount = r.expected_atomic === null || !ch ? null : fmtAtomic(r.expected_atomic, ch.decimalsOf(r.asset));
   return {
     id: r.id,
     ref: r.ref,
@@ -40,7 +41,7 @@ export function publicInvoice(r) {
     received_atomic: r.received_atomic,
     rate_usd: r.rate_usd === null ? null : Number(r.rate_usd),
     status: r.status,
-    uri: ch.uri(r.address, amount, r.asset, r.expected_atomic),
+    uri: ch ? ch.uri(r.address, amount, r.asset, r.expected_atomic) : null,
     created_at: r.created_at.toISOString(),
     expires_at: r.expires_at.toISOString(),
     paid_at: r.paid_at ? r.paid_at.toISOString() : null,
