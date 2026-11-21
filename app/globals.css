@@ -433,7 +433,6 @@ input::placeholder { color: var(--ph); }
 .sk::after { content: ''; position: absolute; inset: 0; transform: translateX(-100%); background: linear-gradient(100deg, transparent, rgba(var(--gold-rgb), 0.16), transparent); animation: skShine 1.4s ease-in-out infinite; }
 [dir=rtl] .sk::after { animation-direction: reverse; }
 @keyframes skShine { to { transform: translateX(100%); } }
-.sktab { flex: 1; min-width: 0; height: 22px; margin: 11px 18px; border-radius: 8px; }
 
 /* Loading state (class "ld"): the real screen drawn with placeholder data (lib/placeholder.js). Text, icons and fields turn into soft blocks
    with a light sweep, and nothing can be tapped. Text that shares a box with other elements shows as a soft smudge instead. */
