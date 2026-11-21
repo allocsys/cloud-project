@@ -734,7 +734,7 @@ export default function Settings() {
               )}
             </>
           )}
-          {me?.email && (
+          {me?.email && !me.telegram && (
             <>
               <div className="row">
                 <div>
