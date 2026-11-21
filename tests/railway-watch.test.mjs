@@ -60,6 +60,20 @@ const kind = (f) => {
 };
 const of = (k) => files.filter((f) => kind(f) === k);
 
+// .railway/railway.ts keeps its own copy of the two lists (a TypeScript file cannot be imported here), so compare the text.
+const rawPatterns = (name) => JSON.parse(readFileSync(join(ROOT, name), 'utf8')).build.watchPatterns;
+const tsList = (src, name) => {
+  const m = src.match(new RegExp(`const ${name} = \\[([\\s\\S]*?)\\];`));
+  assert.ok(m, `${name} not found in .railway/railway.ts`);
+  return [...m[1].matchAll(/"([^"]+)"/g)].map((x) => x[1]);
+};
+
+test('.railway/railway.ts lists the same watch patterns as the two json files', () => {
+  const src = readFileSync(join(ROOT, '.railway/railway.ts'), 'utf8');
+  assert.deepEqual(tsList(src, 'WEB_WATCH'), rawPatterns('railway.web.json'));
+  assert.deepEqual(tsList(src, 'API_WATCH'), rawPatterns('railway.api.json'));
+});
+
 test('the pattern matcher follows gitignore-style rules', () => {
   const m = (pat, f) => toRegExp(pat).test(f);
   assert.ok(m('/lib/*.js', 'lib/data.js'));
