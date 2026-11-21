@@ -11,7 +11,12 @@ concurrency:
 
 jobs:
   build:
+    name: build (${{ matrix.role }})
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        role: [all, web, api]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -22,9 +27,10 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: .next/cache
-          key: nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**', 'public/**', 'middleware.js', 'instrumentation.js', 'next.config.mjs', 'jsconfig.json') }}
+          key: nextjs-${{ runner.os }}-${{ matrix.role }}-${{ hashFiles('package-lock.json') }}-${{ hashFiles('app/**', 'components/**', 'lib/**', 'public/**', 'middleware.js', 'instrumentation.js', 'next.config.mjs', 'jsconfig.json') }}
           restore-keys: |
-            nextjs-${{ runner.os }}-${{ hashFiles('package-lock.json') }}-
+            nextjs-${{ runner.os }}-${{ matrix.role }}-${{ hashFiles('package-lock.json') }}-
       - run: npm run build
         env:
           NEXT_TELEMETRY_DISABLED: 1
+          APP_ROLE: ${{ matrix.role }}
