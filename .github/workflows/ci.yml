@@ -3,7 +3,7 @@ name: CI
 on:
   push:
     branches: [main, db-scale]
-    paths-ignore: &skip
+    paths-ignore:
       - 'bot/**'
       - 'gateway/**'
       - 'promo/**'
@@ -13,7 +13,15 @@ on:
       - '.github/workflows/promo.yml'
       - '.github/workflows/lockfile-update.yml'
   pull_request:
-    paths-ignore: *skip
+    paths-ignore:
+      - 'bot/**'
+      - 'gateway/**'
+      - 'promo/**'
+      - '**.md'
+      - '.github/workflows/gateway.yml'
+      - '.github/workflows/bot.yml'
+      - '.github/workflows/promo.yml'
+      - '.github/workflows/lockfile-update.yml'
 
 concurrency:
   group: ci-${{ github.ref }}
