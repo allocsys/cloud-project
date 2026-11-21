@@ -3,8 +3,9 @@
 // Uses the standalone WalletConnect client (same path as the working WalletConnect demo). connect() opens the wallet with the
 // connection request and waits for its approval; send() asks the connected wallet for one transfer.
 // A connection is remembered (flag vtx-wc) so a reload picks the session up again; people who never connected do not load the wallet code.
-// Inside Telegram the wc: links are blocked, so there the wallet is Tonkeeper over TON Connect (TON only, flag vtx-tc): connect() opens
-// Tonkeeper with the request, sendTon() asks it for one transfer. The site and the PWA keep WalletConnect.
+// Inside Telegram the wc: and safepal:// links are blocked. TON invoices use Tonkeeper over TON Connect (flag vtx-tc): connect() opens
+// Tonkeeper with the request, sendTon() asks it for one transfer. EVM invoices use WalletConnect with SafePal: Telegram.WebApp.openLink
+// opens SafePal's https link with the request, and again after a transfer request to bring the wallet forward (tested 21 Nov). The site and the PWA keep WalletConnect.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
 import { telegramReady } from '@/lib/telegram';
@@ -15,6 +16,8 @@ const TON_FLAG = 'vtx-tc';
 // Tonkeeper's TON Connect link and bridge (fixed values from the wallets list, so no list is fetched). Main network only.
 const TK = { universalLink: 'https://app.tonkeeper.com/ton-connect', bridgeUrl: 'https://bridge.tonapi.io/bridge' };
 const MAINNET = '-239';
+// SafePal's https link: the only way found to open it from Telegram's webview (wc: and safepal:// give ERR_UNKNOWN_URL_SCHEME).
+const SAFEPAL = 'https://link.safepal.io/';
 const inTg = () => typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData;
 const Ctx = createContext(null);
 
@@ -137,7 +140,7 @@ export default function WalletProvider({ children }) {
 
   // A reload: pick up the saved session, only for someone who connected before.
   useEffect(() => {
-    if (!pid || live.current || tg) return undefined;
+    if (!pid || live.current) return undefined;
     let flag = '';
     try {
       flag = localStorage.getItem(FLAG) || '';
@@ -156,7 +159,7 @@ export default function WalletProvider({ children }) {
     return () => {
       off = true;
     };
-  }, [pid, tg, getClient, adopt]);
+  }, [pid, getClient, adopt]);
 
   // A reload inside Telegram: pick up the Tonkeeper session (also a connect that was still waiting when the app was put away).
   useEffect(() => {
@@ -197,7 +200,11 @@ export default function WalletProvider({ children }) {
           optionalNamespaces: { eip155: { methods: METHODS, chains: OPTIONAL, events: EVENTS } },
         });
         // Open the wallet app with the request. The approval below waits for the wallet's answer.
-        if (uri) window.location.href = uri;
+        if (uri) {
+          const tgApp = window.Telegram?.WebApp;
+          if (tgApp?.initData && tgApp.openLink) tgApp.openLink(`${SAFEPAL}wc?uri=${encodeURIComponent(uri)}`);
+          else window.location.href = uri;
+        }
         let timer;
         const session = await Promise.race([
           approval(),
@@ -265,7 +272,8 @@ export default function WalletProvider({ children }) {
     [runTon]
   );
 
-  const connect = useCallback((opts) => (inTg() || opts?.ton ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
+  // In Telegram, no options (the header pill) = Tonkeeper; the pay button says which wallet its invoice needs (opts.ton).
+  const connect = useCallback((opts) => ((opts && 'ton' in opts ? opts.ton : inTg()) ? connectTon(opts) : connectEvm(opts)), [connectTon, connectEvm]);
 
   const disconnect = useCallback(async () => {
     const cur = live.current;
@@ -313,8 +321,16 @@ export default function WalletProvider({ children }) {
         req.then(clear, clear);
       }
       const { req } = entry;
-      const link = cur.session?.peer?.metadata?.redirect?.native;
-      if (link) setTimeout(() => open(link), 700);
+      const redirect = cur.session?.peer?.metadata?.redirect;
+      const tgApp = window.Telegram?.WebApp;
+      if (tgApp?.initData && tgApp.openLink) {
+        // Telegram: the wallet's own https link, else SafePal's home link.
+        const url = /^https:\/\//.test(redirect?.universal || '') ? redirect.universal : SAFEPAL;
+        setTimeout(() => tgApp.openLink(url), 700);
+      } else {
+        const link = redirect?.native;
+        if (link) setTimeout(() => open(link), 700);
+      }
       // Do not wait forever if the wallet never answers.
       let timer;
       try {
@@ -390,7 +406,7 @@ export default function WalletProvider({ children }) {
   }, [getTon]);
 
   const value = useMemo(
-    () => ({ enabled: tg || !!pid, tg, acct: tg ? tonAcct : acct, tonAcct, chainId, busy, connect, disconnect, send, sendTon }),
+    () => ({ enabled: tg || !!pid, tg, acct: tg ? tonAcct : acct, evmAcct: acct, tonAcct, chainId, busy, connect, disconnect, send, sendTon }),
     [pid, tg, acct, tonAcct, chainId, busy, connect, disconnect, send, sendTon]
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
