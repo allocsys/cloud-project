@@ -147,6 +147,7 @@ export default function BoostCard({ show, loading = false }) {
   const finished = (data.finished || []).slice(0, 3);
   return (
     <div className={ph ? 'card ld' : 'card'} aria-busy={ph || undefined}>
+      <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('bst.sub', { h: data.hours })}</p>
       {running.length > 0 && (
         <div style={{ marginTop: 14 }}>
