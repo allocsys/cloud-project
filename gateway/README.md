@@ -49,7 +49,7 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | `BTC_EXPLORER_URL` | Esplora-compatible API, https only (default `https://mempool.space/api`) |
 | `POLL_SECONDS` | how often open invoices are checked on chain (default 30, minimum 5) |
 | `WATCHER` | `off` stops this process from watching the chain |
-| `APP_WEBHOOK_URL` | the app's `/api/payments/webhook`. https only (http only for localhost) |
+| `APP_WEBHOOK_URL` | the app's `/api/payments/webhook`. https only (http only for localhost and `*.railway.internal`) |
 | `GATEWAY_WEBHOOK_SECRET` | signs every callback, at least 16 characters, same value in the app |
 | `OUTBOX_SECONDS` | how often due callbacks are sent (default 10, minimum 1) |
 | `INVOICE_TTL_MINUTES` | how long an invoice stays open before it expires (default 10) |

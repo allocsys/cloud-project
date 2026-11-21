@@ -10,7 +10,8 @@ It has its OWN database and never touches the app database. Rules, fees and VIP 
 | BOT_TOKEN | Bot token (reference the app variable TELEGRAM_BOT_TOKEN) |
 | BOT_WEBHOOK_PATH | Secret part of the webhook URL, 16-64 letters, digits, `_` or `-` |
 | BOT_WEBHOOK_SECRET | Value of Telegram's secret header, 16-256 of the same characters |
-| APP_URL | https address of the app, no path |
+| APP_URL | public https address of the app, no path (used in buttons and links people see) |
+| APP_API_URL | optional: where the bot's own calls to the app go. https, or http on `*.railway.internal` (private address, e.g. `http://api.railway.internal:8080`). Empty = APP_URL |
 | DATABASE_URL | The bot database |
 | BOT_DB_NAME, BOT_DB_USER, BOT_DB_PASSWORD | One-time setup: with an admin DATABASE_URL the bot creates its own database and a limited login. Afterwards point DATABASE_URL at the limited login and remove these three. |
 | RAILWAY_PUBLIC_DOMAIN or BOT_PUBLIC_HOST | Public host; at boot the bot sets the Telegram webhook to `https://HOST/tg/BOT_WEBHOOK_PATH` |

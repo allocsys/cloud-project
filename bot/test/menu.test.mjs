@@ -84,6 +84,25 @@ test('/start shows the app button and four buttons plus More, and remembers the 
   assert.ok(buttons(rows).every((b) => !b.callback_data || b.callback_data.endsWith(`:${c.menu_ver}`)));
 });
 
+test('the private API address is for the bot own calls only: every button link people see stays public https', async () => {
+  const priv = 'http://api.railway.internal:8080';
+  const tg = fakeTg();
+  const spy = async (name) =>
+    name === 'referrals' ? { ok: true, status: 200, json: { code: 'ABC123', friends: 1, active: 1, earned: 0, vip: 0 } } : { ok: false, status: 500, json: null };
+  const bot = makeBot({ config: { ...cfg, appApiUrl: priv }, tg, appApi: spy });
+  await bot.handleUpdate(msg('/start'));
+  await bot.handleUpdate(msg('/referrals'));
+  await bot.handleUpdate(msg('/faq'));
+  const links = tg
+    .of('send')
+    .flatMap((c) => (c.extra && c.extra.reply_markup && c.extra.reply_markup.inline_keyboard ? c.extra.reply_markup.inline_keyboard.flat() : []))
+    .flatMap((b) => [b.url, b.web_app && b.web_app.url, b.copy_text && b.copy_text.text].filter(Boolean))
+    .filter((v) => /^https?:\/\//.test(v));
+  assert.ok(links.length >= 4, 'the app button, the copy link, the share link and the FAQ link');
+  assert.ok(links.every((v) => v.startsWith('https://')), links.join(' '));
+  assert.ok(links.every((v) => !v.includes('railway.internal')), links.join(' '));
+});
+
 test('/start also puts one collapsible Menu button under the chat; tapping its label opens the menu', async () => {
   const { tg, bot } = await started();
   const kb = tg.of('send')[1];
