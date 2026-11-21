@@ -8,6 +8,7 @@
       "/app/status/**",
       "/app/healthz/**",
       "/app/icons/**",
+      "/app/tonconnect-manifest.json/**",
       "/app/*.js",
       "/app/*.css",
       "/components/**",
