@@ -1,6 +1,6 @@
 'use client';
 // The small wallet button in the header, next to the bell: 'Connect', then the short address. Tap the address once to get Disconnect, tap again to disconnect.
-// Inside Telegram, Connect first shows two wallet names (Tonkeeper, SafePal) to choose from; the choice is not shown again until the next tap.
+// Inside Telegram, Connect first shows two wallet names (Tonkeeper, SafePal) to choose from. The button shows whichever wallet is connected (EVM or TON).
 // `compact` = round icon only (the Earnings bar is tight).
 import { useEffect, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
@@ -25,9 +25,11 @@ export default function WalletPill({ compact = false }) {
     const id = setTimeout(() => setPick(false), 6000);
     return () => clearTimeout(id);
   }, [pick]);
-  if (!w || (!w.enabled && !w.acct)) return null;
-  const short = w.acct ? `${w.acct.slice(0, 4)}\u2026${w.acct.slice(-4)}` : '';
-  const label = w.acct ? (ask ? t('wp.disconnect') : short) : t('wp.connect');
+  if (!w || (!w.enabled && !w.acct && !w.evmAcct)) return null;
+  // In Telegram, w.acct is the TON account only; show the EVM account when that is the one connected.
+  const who = w.tg ? w.evmAcct || w.tonAcct : w.acct;
+  const short = who ? `${who.slice(0, 4)}\u2026${who.slice(-4)}` : '';
+  const label = who ? (ask ? t('wp.disconnect') : short) : t('wp.connect');
   const choose = async (ton) => {
     setPick(false);
     if (w.busy) return;
@@ -39,7 +41,7 @@ export default function WalletPill({ compact = false }) {
   const tap = async () => {
     if (w.busy) return;
     triggerHaptic('selection');
-    if (w.acct) {
+    if (who) {
       if (!ask) {
         setAsk(true);
         return;
@@ -56,7 +58,7 @@ export default function WalletPill({ compact = false }) {
       await w.connect();
     } catch {}
   };
-  if (pick && !w.acct) {
+  if (pick && !who) {
     return (
       <div style={{ display: 'inline-flex', gap: 6 }}>
         <button type="button" className="eh-wal" onClick={() => choose(true)}>
@@ -82,16 +84,16 @@ export default function WalletPill({ compact = false }) {
   );
   if (compact) {
     return (
-      <button type="button" className="bell eh-walc" aria-label={w.acct ? (ask ? t('wp.disconnect') : short) : t('wp.connect')} disabled={w.busy} onClick={tap}>
+      <button type="button" className="bell eh-walc" aria-label={who ? (ask ? t('wp.disconnect') : short) : t('wp.connect')} disabled={w.busy} onClick={tap}>
         {icon}
-        {w.acct && !ask && <i />}
+        {who && !ask && <i />}
       </button>
     );
   }
   return (
     <button type="button" className="eh-wal" disabled={w.busy} onClick={tap}>
       {icon}
-      {w.acct && !ask && <i aria-hidden="true" />}
+      {who && !ask && <i aria-hidden="true" />}
       <span>{label}</span>
     </button>
   );
