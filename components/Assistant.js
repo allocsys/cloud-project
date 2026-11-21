@@ -53,9 +53,22 @@ export default function Assistant() {
 
   useEffect(() => {
     let live = true;
+    // The last answer is kept for the tab, so the button shows at once on the next page.
+    try {
+      const c = sessionStorage.getItem('vtx.ast');
+      if (c) setInfo(JSON.parse(c));
+    } catch {}
     fetch('/api/assistant', { headers: { accept: 'application/json' } })
       .then((r) => (r.ok ? r.json() : null))
-      .then((j) => live && j?.enabled && setInfo(j))
+      .then((j) => {
+        if (!live) return;
+        const on = j?.enabled ? j : null;
+        setInfo(on);
+        try {
+          if (on) sessionStorage.setItem('vtx.ast', JSON.stringify(on));
+          else sessionStorage.removeItem('vtx.ast');
+        } catch {}
+      })
       .catch(() => {});
     return () => {
       live = false;
@@ -193,6 +206,7 @@ export default function Assistant() {
             </div>
 
             {leftNote && <p className="asst-left">{leftNote}</p>}
+            {text.length >= MAX - 100 && <p className="asst-left">{text.length}/{MAX}</p>}
             <form
               className="asst-form"
               onSubmit={(e) => {

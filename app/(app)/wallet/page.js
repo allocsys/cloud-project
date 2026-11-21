@@ -699,6 +699,7 @@ export default function Wallet() {
                   </Field>
                 )}
 
+                {!tf && <p className="fine" style={{ margin: '0 0 10px' }}>{t('wal.codeNote')}</p>}
                 <button className="btn" type="button" onClick={withdraw} disabled={busy || !ready}>
                   {busy ? t('wal.sending') : t('wal.withdraw')}
                 </button>

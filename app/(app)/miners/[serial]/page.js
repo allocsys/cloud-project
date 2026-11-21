@@ -52,6 +52,7 @@ export default function ContractPage() {
   const t = useT();
   const [all, setAll] = useState(false);
   const [coinAll, setCoinAll] = useState(false);
+  const [pick, setPick] = useState(null); // the tapped bar: { k: 'd' | 'u', i }
   const { data: md, mutate: mutateMiners } = useApi('/api/miners', { ttl: 10000 });
   const [toast, show] = useToast();
   const [renewBusy, setRenewBusy] = useState(false);
@@ -123,6 +124,10 @@ export default function ContractPage() {
   const max = live.length ? Math.max(...live) : 0;
   const min = live.length ? Math.min(...live) : 0;
   const pausedN = daily.filter((d) => d.paused).length;
+  const dim = (k, i) => (pick && pick.k === k && pick.i !== i ? { opacity: 0.5 } : null);
+  const dailyLbl = (d) => (d.paused ? `${d.day} · ${t('min.paused')}` : `${d.day} · $${formatUsd(d.usd)}`);
+  const upLbl = (d) => `${d.day} · ${d.pct === null ? t('min.noData') : `${d.pct.toFixed(1)}%`}`;
+  const capStyle = { fontSize: 13, textAlign: 'center', margin: '4px 0 0' };
 
   return (
     <>
@@ -160,12 +165,14 @@ export default function ContractPage() {
                   {bars.map((d, i) => (
                     <i
                       key={d.day}
-                      title={d.paused ? `${d.day} · ${t('min.paused')}` : `${d.day} · $${formatUsd(d.usd)}`}
+                      title={dailyLbl(d)}
+                      onClick={() => setPick({ k: 'd', i })}
                       className={i === bars.length - 1 ? 'last' : undefined}
-                      style={d.paused ? { height: '30%', background: 'rgba(255,255,255,0.14)' } : { height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }}
+                      style={{ ...(d.paused ? { height: '30%', background: 'rgba(255,255,255,0.14)' } : { height: `${35 + ((d.usd - min) / (max - min || 1)) * 65}%` }), ...dim('d', i) }}
                     />
                   ))}
                 </div>
+                {pick?.k === 'd' && bars[pick.i] && <p className="mute" role="status" style={capStyle}>{dailyLbl(bars[pick.i])}</p>}
                 <div className="chartlabels">
                   <span>{bars[0].day}</span>
                   <span className="now">{bars[bars.length - 1].day}</span>
@@ -203,12 +210,14 @@ export default function ContractPage() {
                   {ch.uptime.series.map((d, i) => (
                     <i
                       key={d.day}
-                      title={`${d.day} · ${d.pct === null ? t('min.noData') : `${d.pct.toFixed(1)}%`}`}
+                      title={upLbl(d)}
+                      onClick={() => setPick({ k: 'u', i })}
                       className={i === ch.uptime.series.length - 1 ? 'last' : undefined}
-                      style={{ height: `${d.pct === null ? 6 : Math.max(8, d.pct)}%`, ...(d.pct === null ? { opacity: 0.25 } : {}) }}
+                      style={{ height: `${d.pct === null ? 6 : Math.max(8, d.pct)}%`, ...dim('u', i), ...(d.pct === null ? { opacity: 0.25 } : {}) }}
                     />
                   ))}
                 </div>
+                {pick?.k === 'u' && ch.uptime.series[pick.i] && <p className="mute" role="status" style={capStyle}>{upLbl(ch.uptime.series[pick.i])}</p>}
                 <div className="chartlabels">
                   <span>{ch.uptime.series[0].day}</span>
                   <span className="now">{t('min.today')}</span>
