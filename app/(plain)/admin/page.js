@@ -1,4 +1,13 @@
 'use client';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { fmtTh, fmtUsd } from '@/lib/data';
+import { useToast } from '@/components/Toast';
+import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
+import { smartHallFor } from '@/lib/smart-halls';
+import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
+import { trimAmount } from '@/lib/pay-coins';
+import MarkIcon from '@/components/MarkIcon';
+import useAdminList from '@/lib/use-admin-list';
 
 // Email from the support address (admin action 'email-send'). mode 'test' goes to an address typed in; mode 'one' goes to a user ID whose email is verified.
 function EmailCard({ run, ask, busy }) {
@@ -46,16 +55,6 @@ function EmailCard({ run, ask, busy }) {
     </div>
   );
 }
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { fmtTh, fmtUsd } from '@/lib/data';
-import { useToast } from '@/components/Toast';
-import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
-import { smartHallFor } from '@/lib/smart-halls';
-import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
-import { trimAmount } from '@/lib/pay-coins';
-import MarkIcon from '@/components/MarkIcon';
-import useAdminList from '@/lib/use-admin-list';
-
 // The wallets of one user in the admin user card: connected wallets and the addresses withdrawn to. Masked until tapped.
 const maskAddr = (a) => (a.length > 12 ? `${a.slice(0, 6)}\u2026${a.slice(-4)}` : a);
 function UserWallets({ id }) {
@@ -81,14 +80,14 @@ function UserWallets({ id }) {
         {label}
         <small>{shown[x.address] ? x.address : maskAddr(x.address)}</small>
       </div>
-      <button className="swap" style={{ width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 }} onClick={() => setShown({ ...shown, [x.address]: !shown[x.address] })}>
+      <button className="swap" style={SM} onClick={() => setShown({ ...shown, [x.address]: !shown[x.address] })}>
         {shown[x.address] ? 'Hide' : 'Reveal'}
       </button>
     </div>
   );
   return (
     <>
-      <button className="swap" style={{ width: 'auto', margin: '6px 0 0', padding: '0 12px', minHeight: 36 }} onClick={() => setOpen((v) => !v)}>
+      <button className="swap" style={SM} onClick={() => setOpen((v) => !v)}>
         {open ? 'Hide wallets' : 'Show wallets'}
       </button>
       {open && !data && !err && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
