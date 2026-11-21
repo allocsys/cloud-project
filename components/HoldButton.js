@@ -64,15 +64,22 @@ export default function HoldButton({ mode = 'signup', className = '', ...rest })
       e.currentTarget.setPointerCapture(e.pointerId);
     } catch {}
     triggerHaptic('selection');
+    clearTimeout(r.hintTimer);
     r.t0 = performance.now();
     r.raf = requestAnimationFrame(step);
   };
 
-  const stop = () => {
+  // A tap that lets go too soon says so for a moment, so nobody wonders why nothing happened.
+  const stop = (up) => {
     const r = run.current;
     if (r.done) return;
     cancelAnimationFrame(r.raf);
     paint(0);
+    if (up === true && txt.current && performance.now() - r.t0 < HOLD_MS) {
+      txt.current.textContent = t('common.holdKeep');
+      clearTimeout(r.hintTimer);
+      r.hintTimer = window.setTimeout(() => paint(0), 1200);
+    }
   };
 
   useEffect(() => {
@@ -80,6 +87,7 @@ export default function HoldButton({ mode = 'signup', className = '', ...rest })
     return () => {
       cancelAnimationFrame(r.raf);
       clearTimeout(r.timer);
+      clearTimeout(r.hintTimer);
     };
   }, []);
 
@@ -90,8 +98,8 @@ export default function HoldButton({ mode = 'signup', className = '', ...rest })
       className={`hold ${className}`}
       aria-label={t('common.getStarted')}
       onPointerDown={start}
-      onPointerUp={stop}
-      onPointerCancel={stop}
+      onPointerUp={() => stop(true)}
+      onPointerCancel={() => stop(false)}
       onContextMenu={(e) => e.preventDefault()}
       onClick={(e) => {
         if (e.detail === 0) finish();
