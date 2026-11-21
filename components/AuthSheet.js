@@ -14,6 +14,8 @@ import { triggerHaptic } from '@/lib/haptics';
 // The form only renders when the sheet opens, so it stays out of first load until then.
 const AuthForm = dynamic(() => import('@/components/AuthForm'), { loading: () => null });
 
+const FOCUSABLE = 'button:not(:disabled), [href], input:not(:disabled), select:not(:disabled), textarea:not(:disabled), [tabindex]:not([tabindex="-1"])';
+
 const Ctx = createContext(null);
 
 export function useAuthSheet() {
@@ -128,10 +130,28 @@ export function AuthSheetProvider({ signedIn = false, showDemo = true, children 
       popped = true;
       setAuth(null);
     };
+    // Escape closes. Tab wraps inside the card (last to first, first to last) and pulls focus back in if it is outside.
     const onKey = (e) => {
       if (e.key === 'Escape') {
         e.preventDefault();
         setAuth(null);
+      } else if (e.key === 'Tab' && card.current) {
+        const f = [...card.current.querySelectorAll(FOCUSABLE)].filter((el) => el.offsetParent !== null);
+        if (!f.length) return;
+        const first = f[0];
+        const last = f[f.length - 1];
+        const a = document.activeElement;
+        const inside = a !== card.current && card.current.contains(a);
+        if (!inside) {
+          e.preventDefault();
+          (e.shiftKey ? last : first).focus();
+        } else if (e.shiftKey && a === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && a === last) {
+          e.preventDefault();
+          first.focus();
+        }
       }
     };
     window.addEventListener('popstate', onPop);
