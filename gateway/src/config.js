@@ -13,7 +13,7 @@
 // TON_API_KEY         optional toncenter key (sent as X-API-Key; without one the limit is 1 request per second)
 // TON_CONFIRMATIONS   confirmations needed for a TON payment (default 1; a payment in a masterchain block, or older than 30 s, shows 1)
 // BTC_CONFIRMATIONS   confirmations needed before a BTC payment counts (default 1, matching the app)
-// BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://mempool.space/api)
+// BTC_EXPLORER_URL    Esplora-compatible API base, https only (default https://blockstream.info/api)
 // POLL_SECONDS        how often open invoices are checked on chain (default 30, minimum 5)
 // WATCHER             'off' stops this process from watching the chain (default: on when a database and a BTC key or address are set)
 // INVOICE_TTL_MINUTES  how long an invoice stays open before it expires (default 10)
@@ -52,7 +52,7 @@ export const config = () => {
     apiSecret: process.env.GATEWAY_API_SECRET || '',
     btcXpub: text(process.env.BTC_XPUB),
     btcConfirmations: whole(process.env.BTC_CONFIRMATIONS, 1),
-    btcExplorerUrl: text(process.env.BTC_EXPLORER_URL) || 'https://mempool.space/api',
+    btcExplorerUrl: text(process.env.BTC_EXPLORER_URL) || 'https://blockstream.info/api',
     payAddr: {
       btc: text(process.env.PAY_ADDR_BTC),
       evm: text(process.env.PAY_ADDR_EVM),
