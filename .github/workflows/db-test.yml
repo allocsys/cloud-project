@@ -1,5 +1,7 @@
 name: DB tests
 
+# Page-only changes (app/(app), app/(site), app/(plain), components) skip this workflow: no test here loads page or
+# component code. The tests that read pages from disk run without a database in ci.yml (job "static").
 on:
   push:
     branches: [main, db-scale]
@@ -7,6 +9,10 @@ on:
       - '**.css'
       - '**.md'
       - 'public/**'
+      - 'components/**'
+      - 'app/(app)/**'
+      - 'app/(site)/**'
+      - 'app/(plain)/**'
       - 'bot/**'
       - 'gateway/**'
       - 'promo/**'
@@ -19,6 +25,10 @@ on:
       - '**.css'
       - '**.md'
       - 'public/**'
+      - 'components/**'
+      - 'app/(app)/**'
+      - 'app/(site)/**'
+      - 'app/(plain)/**'
       - 'bot/**'
       - 'gateway/**'
       - 'promo/**'
