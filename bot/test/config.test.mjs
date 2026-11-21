@@ -31,6 +31,17 @@ test('weak or missing settings stop the boot and the error never shows a value',
   assert.throws(() => checkConfig(config({ ...good, BOT_USERNAME: 'bad name!' })), /BOT_USERNAME/);
 });
 
+test('the private Railway address may use http, with an optional port and no path', () => {
+  const ok = (u) => assert.doesNotThrow(() => checkConfig(config({ ...good, APP_URL: u })));
+  const no = (u) => assert.throws(() => checkConfig(config({ ...good, APP_URL: u })), /APP_URL/);
+  ok('http://api.railway.internal:8080');
+  ok('http://api.railway.internal');
+  no('http://api.railway.internal:8080/path');
+  no('http://railway.internal.evil.example');
+  no('http://evil.example:8080');
+  no('http://api.railway.internal:abc');
+});
+
 test('every fa key exists in en with the same placeholders', () => {
   for (const k of Object.keys(texts.fa)) {
     assert.ok(k in texts.en, `fa key ${k} missing in en`);
