@@ -56,6 +56,54 @@ import { trimAmount } from '@/lib/pay-coins';
 import MarkIcon from '@/components/MarkIcon';
 import useAdminList from '@/lib/use-admin-list';
 
+// The wallets of one user in the admin user card: connected wallets and the addresses withdrawn to. Masked until tapped.
+const maskAddr = (a) => (a.length > 12 ? `${a.slice(0, 6)}\u2026${a.slice(-4)}` : a);
+function UserWallets({ id }) {
+  const [open, setOpen] = useState(false);
+  const [data, setData] = useState(null);
+  const [err, setErr] = useState('');
+  const [shown, setShown] = useState({});
+  useEffect(() => {
+    if (!open || data || err) return;
+    let off = false;
+    call('GET', `/api/admin?wallets=${encodeURIComponent(id)}`).then((r) => {
+      if (off) return;
+      if (r?.ok) setData(r);
+      else setErr(r?.error || 'Could not load the wallets.');
+    });
+    return () => {
+      off = true;
+    };
+  }, [open, id, data, err]);
+  const row = (x, i, label) => (
+    <div className="row adm-m" key={`${label}-${x.address}-${i}`}>
+      <div>
+        {label}
+        <small>{shown[x.address] ? x.address : maskAddr(x.address)}</small>
+      </div>
+      <button className="swap" style={{ width: 'auto', margin: 0, padding: '0 12px', minHeight: 36 }} onClick={() => setShown({ ...shown, [x.address]: !shown[x.address] })}>
+        {shown[x.address] ? 'Hide' : 'Reveal'}
+      </button>
+    </div>
+  );
+  return (
+    <>
+      <button className="swap" style={{ width: 'auto', margin: '6px 0 0', padding: '0 12px', minHeight: 36 }} onClick={() => setOpen((v) => !v)}>
+        {open ? 'Hide wallets' : 'Show wallets'}
+      </button>
+      {open && !data && !err && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
+      {open && err && <p className="empty" style={{ paddingTop: 8 }}>{err}</p>}
+      {open && data && (
+        <>
+          {data.connected.length === 0 && data.withdrawals.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No wallets yet.</p>}
+          {data.connected.map((x, i) => row(x, i, `Connected · ${x.chain || 'wallet'}`))}
+          {data.withdrawals.map((x, i) => row(x, i, `Withdrawn to · ${[x.asset, x.net].filter(Boolean).join(' ') || 'wallet'}`))}
+        </>
+      )}
+    </>
+  );
+}
+
 async function call(method, url, body) {
   const r = await fetch(url, {
     method,
@@ -2033,6 +2081,7 @@ export default function Admin() {
                 </div>
               )}
 
+              {u.id !== 'demo' && <UserWallets id={u.id} />}
               {u.id !== 'demo' && (
                 <>
                   {uhist === u.id && hist.id !== u.id && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
