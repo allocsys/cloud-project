@@ -2,9 +2,9 @@
   "$schema": "https://railway.com/railway.schema.json",
   "build": {
     "watchPatterns": [
-      "/app/(app)/**",
-      "/app/(plain)/**",
-      "/app/(site)/**",
+      "/app/*app*/**",
+      "/app/*plain*/**",
+      "/app/*site*/**",
       "/app/status/**",
       "/app/healthz/**",
       "/app/icons/**",
