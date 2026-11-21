@@ -51,7 +51,7 @@ export default defineRailway(() => {
   const repo = () => github("allocsys/cloud-project", { branch: "main", checkSuites: true });
 
   // Pages (APP_ROLE=web).
-  const web = service("Cloud-project", {
+  const web = service("frontend", {
     source: repo(),
     build: { builder: "RAILPACK", buildEnvironment: "V3", watchPatterns: WEB_WATCH },
     replicas: { iad: 1 },
