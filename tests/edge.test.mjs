@@ -41,6 +41,22 @@ test('secret set: health, webhook, telemetry and bot calls stay open; pages are 
   delete process.env.API_EDGE_SECRET;
 });
 
+test('web service: /api/site/* passes with the service secret, nothing else does', () => {
+  process.env.API_EDGE_SECRET = SECRET;
+  process.env.API_SVC_SECRET = 'svc-secret-for-tests-0123456789';
+  clearCounters();
+  const svc = { 'x-vtx-svc': 'svc-secret-for-tests-0123456789' };
+  assert.ok(passes(call('/api/site/landing', svc)));
+  assert.ok(passes(call('/api/site/status', svc)));
+  assert.equal(call('/api/site/landing').status, 403, 'no secret');
+  assert.equal(call('/api/site/landing', { 'x-vtx-svc': 'wrong' }).status, 403);
+  assert.equal(call('/api/auth/login', svc).status, 403, 'the service secret opens only /api/site/*');
+  assert.equal(call('/api/prices', svc).status, 403);
+  delete process.env.API_SVC_SECRET;
+  assert.equal(call('/api/site/landing', svc).status, 403, 'no service secret set on the API: nothing passes');
+  delete process.env.API_EDGE_SECRET;
+});
+
 test('x-vtx-ip is trusted only with a valid edge header', () => {
   process.env.API_EDGE_SECRET = SECRET;
   const h = (o) => new Headers({ 'x-forwarded-for': '6.6.6.6, 9.9.9.9', ...o });
