@@ -8,7 +8,7 @@ import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { getLang, getT, getMessages } from '@/lib/i18n/server';
 
-// The signed-in pages stay dynamic: the language comes from the cookie, as before.
+// The signed-in pages stay dynamic: the language comes from the cookie.
 export async function generateMetadata() {
   const t = await getT();
   return { description: t('meta.description'), openGraph: { description: t('meta.description') } };
