@@ -269,7 +269,7 @@ export default function Kyc() {
                 file={front}
                 onPick={(f) => {
                   setFront(f);
-                  setErrors({});
+                  setErrors(f && f.size > MAX_PHOTO ? { front: t('kyc.eBig') } : {});
                 }}
               />
               {errors.front && <div className="ferr" role="alert">{errors.front}</div>}
@@ -286,7 +286,7 @@ export default function Kyc() {
                 file={selfie}
                 onPick={(f) => {
                   setSelfie(f);
-                  setErrors({});
+                  setErrors(f && f.size > MAX_PHOTO ? { selfie: t('kyc.eBig') } : {});
                 }}
               />
               {errors.selfie && <div className="ferr" role="alert">{errors.selfie}</div>}
