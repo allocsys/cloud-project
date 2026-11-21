@@ -31,15 +31,22 @@ test('weak or missing settings stop the boot and the error never shows a value',
   assert.throws(() => checkConfig(config({ ...good, BOT_USERNAME: 'bad name!' })), /BOT_USERNAME/);
 });
 
-test('the private Railway address may use http, with an optional port and no path', () => {
-  const ok = (u) => assert.doesNotThrow(() => checkConfig(config({ ...good, APP_URL: u })));
-  const no = (u) => assert.throws(() => checkConfig(config({ ...good, APP_URL: u })), /APP_URL/);
+test('APP_URL (shown to people) must be https, even on the private Railway address', () => {
+  assert.throws(() => checkConfig(config({ ...good, APP_URL: 'http://api.railway.internal:8080' })), /APP_URL/);
+});
+
+test('APP_API_URL (bot to app calls) may use http only on *.railway.internal, with an optional port and no path', () => {
+  const ok = (u) => assert.doesNotThrow(() => checkConfig(config({ ...good, APP_API_URL: u })));
+  const no = (u) => assert.throws(() => checkConfig(config({ ...good, APP_API_URL: u })), /APP_API_URL/);
   ok('http://api.railway.internal:8080');
   ok('http://api.railway.internal');
+  ok('https://vertexhash.com');
   no('http://api.railway.internal:8080/path');
   no('http://railway.internal.evil.example');
   no('http://evil.example:8080');
   no('http://api.railway.internal:abc');
+  assert.equal(config({ ...good, APP_API_URL: 'http://api.railway.internal:8080/' }).appApiUrl, 'http://api.railway.internal:8080');
+  assert.equal(config(good).appApiUrl, '', 'empty when not set');
 });
 
 test('every fa key exists in en with the same placeholders', () => {
