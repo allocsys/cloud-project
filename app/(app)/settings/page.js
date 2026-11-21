@@ -13,6 +13,7 @@ import { useT, useLang } from '@/components/I18nProvider';
 import { translateError } from '@/lib/i18n/errors';
 import { applyTheme, readTheme } from '@/lib/theme';
 import { SOCIALS } from '@/lib/site';
+import { Qr } from '@/components/Qr';
 
 const KYC = {
   none: { label: 'set.notVerified', cls: 'warn', cta: 'set.verify' },
@@ -370,6 +371,16 @@ export default function Settings() {
     }
   }
 
+  async function copyKey() {
+    triggerHaptic('light');
+    try {
+      await navigator.clipboard.writeText(tfKey.secret);
+      show(t('set.copied'));
+    } catch {
+      show(t('set.copyFail'));
+    }
+  }
+
   async function copyCodes() {
     triggerHaptic('light');
     try {
@@ -599,10 +610,16 @@ export default function Settings() {
                   <div style={{ fontFamily: 'monospace', fontSize: '13px', wordBreak: 'break-all', userSelect: 'all', padding: '10px 12px', borderRadius: '10px', background: 'rgba(128,128,128,.12)' }}>
                     {tfKey.secret.replace(/(.{4})/g, '$1 ').trim()}
                   </div>
+                  {/* The QR carries only the key (a short link): the full account link is too long for the small encoder. */}
+                  <Qr value={`otpauth://totp/Vertexhash?secret=${tfKey.secret}&issuer=Vertexhash`} />
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+                  <button type="button" className="btn ghost" style={{ display: 'inline-block', textAlign: 'center' }} onClick={copyKey}>
+                    {t('set.copyKey')}
+                  </button>
                   <button
                     type="button"
                     className="btn ghost"
-                    style={{ display: 'inline-block', marginTop: '8px', textAlign: 'center' }}
+                    style={{ display: 'inline-block', textAlign: 'center' }}
                     onClick={() => {
                       try {
                         const f = document.createElement('iframe');
@@ -615,6 +632,7 @@ export default function Settings() {
                   >
                     {t('set.tfOpen')}
                   </button>
+                  </div>
                   <Field id="tf" label={t('set.code6')} error={tfErr.code}>
                     <input
                       id="tf"
