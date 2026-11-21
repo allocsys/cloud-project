@@ -452,7 +452,6 @@ input::placeholder { color: var(--ph); }
 .ld :is(input, select, textarea) { border-color: transparent !important; border-radius: 12px; }
 .ld ::placeholder { color: transparent; }
 @keyframes ldShine { from { background-position: 100% 0; } to { background-position: 0 0; } }
-@media (prefers-reduced-motion: reduce) { .ld:not(:empty):not(:has(*)), .ld :not(:empty):not(:has(*)), .ld svg { animation: none; } }
 
 /* Top bar actions and notifications */
 .topact { display: flex; align-items: center; gap: 8px; }
