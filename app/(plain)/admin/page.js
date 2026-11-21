@@ -1,4 +1,50 @@
 'use client';
+
+// Email from the support address (admin action 'email-send'). mode 'test' goes to an address typed in; mode 'one' goes to a user ID whose email is verified.
+function EmailCard({ run, ask, busy }) {
+  const [mode, setMode] = useState('test');
+  const [to, setTo] = useState('');
+  const [userId, setUserId] = useState('');
+  const [subject, setSubject] = useState('');
+  const [text, setText] = useState('');
+  const ready = !busy && subject.trim() && text.trim() && (mode === 'test' ? to.trim() : userId.trim());
+  return (
+    <div className="card adm-stack">
+      <h3>Email from support</h3>
+      <div className="adm-row">
+        <button className={mode === 'test' ? 'btn' : 'swap'} onClick={() => setMode('test')}>Test address</button>
+        <button className={mode === 'one' ? 'btn' : 'swap'} onClick={() => setMode('one')}>One user</button>
+      </div>
+      {mode === 'test' ? (
+        <div className="field" style={{ marginTop: 4 }}>
+          <input id="emto" autoComplete="off" placeholder=" " value={to} onChange={(e) => setTo(e.target.value)} />
+          <label htmlFor="emto">Email address</label>
+        </div>
+      ) : (
+        <div className="field" style={{ marginTop: 4 }}>
+          <input id="emuid" autoComplete="off" placeholder=" " value={userId} onChange={(e) => setUserId(e.target.value)} />
+          <label htmlFor="emuid">User ID</label>
+        </div>
+      )}
+      <input aria-label="Subject" placeholder="Subject" maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} />
+      <textarea aria-label="Message" placeholder="Message" maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} />
+      <button
+        className="btn"
+        disabled={!ready}
+        onClick={async () => {
+          const who = mode === 'test' ? to.trim() : userId.trim();
+          if (mode === 'one' && !(await ask(`Email user ${who} from support? It cannot be undone.`, { ok: 'Send email', danger: true }))) return;
+          if (await run({ action: 'email-send', mode, to: to.trim(), userId: userId.trim(), subject, text }, mode === 'test' ? 'Test sent' : 'Sent')) {
+            setSubject('');
+            setText('');
+          }
+        }}
+      >
+        Send email
+      </button>
+    </div>
+  );
+}
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { fmtTh, fmtUsd } from '@/lib/data';
 import { useToast } from '@/components/Toast';
@@ -2563,6 +2609,7 @@ export default function Admin() {
             Send to all
           </button>
         </div>
+        <EmailCard run={run} ask={ask} busy={busy} />
         <div className="card adm-stack">
           <h3>Telegram notices</h3>
           <p style={{ margin: 0 }}>{tn.users === null ? '…' : `${tn.users} users · ${tn.friend} friend · ${tn.gift} gift`}</p>
