@@ -193,7 +193,12 @@ test('Handled hides an unmatched payment, audits it once and the scanner seeing 
     assert.equal(await shown(txid), false);
 
     // Bad input is 400, an unknown payment is 404.
-    await assert.rejects(handleUnmatched({ network: 'nope', txid, vout: 0 }), (e) => e.status === 400);
+    await assert.rejects(handleUnmatched({ network: 'nope', txid, vout: 0 }), (e) => e.status === 404);
+    await assert.rejects(handleUnmatched({ network: '', txid, vout: 0 }), (e) => e.status === 400);
+    // An old row of a removed network can still be marked handled.
+    const oldTxid = randomBytes(32).toString('hex');
+    await q("INSERT INTO unmatched_txs (network, asset, address, txid, vout, amount_atomic, confirmations) VALUES ('trx', 'usdt', $1, $2, 0, 5000000, 1)", [`T${run}old`, oldTxid]);
+    assert.deepEqual(await handleUnmatched({ network: 'trx', txid: oldTxid, vout: 0, note: 'returned' }), { handled: true, already: false });
     await assert.rejects(handleUnmatched({ network: 'btc', txid, vout: -1 }), (e) => e.status === 400);
     await assert.rejects(handleUnmatched({ network: 'btc', txid: randomBytes(32).toString('hex'), vout: 0 }), (e) => e.status === 404);
 
