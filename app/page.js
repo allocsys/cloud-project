@@ -18,6 +18,7 @@ import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
+import { menuLinks, plansHref } from '@/lib/menu-links';
 import SocialLinks from '@/components/SocialLinks';
 import Reviews from '@/components/Reviews';
 import Farm from '@/components/Farm';
@@ -138,14 +139,7 @@ export default async function Home() {
             )}
             <LandingMenu
               label={t('landing.menu')}
-              links={[
-                { href: pagePath('/how-it-works', lang), label: t('how.link') },
-                { href: pagePath('/faq', lang), label: t('faq.link') },
-                { href: pagePath('/glossary', lang), label: t('glo.link') },
-                { href: pagePath('/about', lang), label: t('about.link') },
-                { href: pagePath('/refunds', lang), label: t('refunds.link') },
-                { href: pagePath('/status', lang), label: t('status.link') },
-              ]}
+              links={menuLinks(t, lang, signedIn)}
               contact={t('landing.contact')}
             >
               <SocialLinks className="lp-social lm-soc" />
@@ -235,6 +229,8 @@ export default async function Home() {
           {' \u00b7 '}
           <Link href={pagePath('/privacy', lang)} style={foot}>{t('auth.privacy')}</Link>
           <br />
+          <Link href={plansHref(signedIn)} style={foot}>{t('nav.plans')}</Link>
+          {' \u00b7 '}
           <Link href={pagePath('/about', lang)} style={foot}>{t('about.link')}</Link>
           {' \u00b7 '}
           <Link href={pagePath('/refunds', lang)} style={foot}>{t('refunds.link')}</Link>
