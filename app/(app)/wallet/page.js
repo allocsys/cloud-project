@@ -835,7 +835,7 @@ export default function Wallet() {
                 </div>
               );
             })}
-            {open && shown.length === 0 && (ready && sameFilter ? <p className="empty">{t('wal.nothing')}</p> : <SkRows n={3} />)}
+            {open && shown.length === 0 && (ready && sameFilter ? <p className="empty">{t('wal.nothing')}</p> : <SkRows n={3} right="two" />)}
             {open && wd && sameFilter && history.length < (wd.historyTotal ?? 0) && (
               <button type="button" className="btn ghost" style={{ width: '100%', marginTop: 8 }} onClick={() => setLimit((l) => l + 20)}>{t('wal.showMore')}</button>
             )}
