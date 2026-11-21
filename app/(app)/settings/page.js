@@ -28,7 +28,7 @@ function Switch({ on, onChange, label }) {
   );
 }
 
-import { SkCard, useWaiting } from '@/components/Skeleton';
+import { SkSettings, useWaiting } from '@/components/Skeleton';
 
 export default function Settings() {
   const router = useRouter();
@@ -487,9 +487,7 @@ export default function Settings() {
       <>
         <PageHead title={t('nav.settings')} icon="settings" />
         <div className="grid wal" style={{ alignItems: 'start' }}>
-          <SkCard lines={4} heading={false} />
-          <SkCard lines={3} />
-          <SkCard lines={2} />
+          <SkSettings />
         </div>
       </>
     );
