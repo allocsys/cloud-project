@@ -21,6 +21,31 @@ DATABASE_URL=postgres://user:password@host:5432/dbname
 
 The app creates and updates its tables on boot (numbered migrations, safe when several servers start at once). `DATABASE_URL` is required: without it the app cannot serve accounts and `/api/health` answers 503.
 
+## Web and API as two services
+
+One repo, one Dockerfile, two services. `APP_ROLE` picks what a service builds and runs (set it before the build):
+
+- **unset or `all`:** pages and API in one server. This is also the rollback.
+- **`web`:** pages only. The API code is removed at build, so it needs no database and no secrets. Health path `/healthz`. Reads site data from the API through `API_URL` with `API_SVC_SECRET`.
+- **`api`:** API only. The pages are removed at build. Runs migrations and the tickers, and holds the secrets. Health path `/api/health`.
+
+A Cloudflare Worker sends `/api/*` to the API (`API_ORIGIN`) and everything else to web. It adds `x-vtx-edge` (`API_EDGE_SECRET`) and `x-vtx-ip`. When `API_EDGE_SECRET` is set on the API, `/api/*` without the edge header is refused. Health checks, the payment webhook, telemetry and bot calls are exempt.
+
+Variables:
+
+- **web:** `APP_ROLE=web`, `HEALTH_PATH=/healthz`, `API_URL`, `API_SVC_SECRET`, `APP_URL`.
+- **api:** `APP_ROLE=api`, `HEALTH_PATH=/api/health`, `API_EDGE_SECRET`, `API_SVC_SECRET`, plus everything in the notes below (database, session, payments, gateway, bot, mail).
+- **Gateway and bot:** point to the API's private address (`APP_WEBHOOK_URL`, `APP_URL`), not to web.
+
+Tickers must run on one service only: the API. Never run a second `all` service next to it.
+
+Watch patterns (Railway redeploys a service only when these files change):
+
+- **web:** `app/(app)`, `app/(plain)`, `app/(site)`, `app/status`, `app/healthz`, `app/icons`, `app/*.js`, `app/*.css`, `components`, `public`, shared `lib/*.js` and `lib/i18n`, `middleware.js`, `instrumentation.js`, build files.
+- **api:** `app/api`, `lib/server`, shared `lib/*.js` and `lib/i18n`, `middleware.js`, `instrumentation.js`, build files.
+- Build files: `next.config.mjs`, `jsconfig.json`, `package.json`, `package-lock.json`, `Dockerfile`, `scripts`.
+- If a push is skipped by mistake, redeploy by hand.
+
 ## Moving existing data
 
 ```
