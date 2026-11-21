@@ -8,7 +8,6 @@ import { useEffect, useState } from 'react';
 import { useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
 import CountUp from '@/components/CountUp';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
-import { Sk } from '@/components/Skeleton';
 
 // The first goal is the minimum withdrawal (set by the admin, in dollars); the milestones after it are fixed and only those above it are used.
 const GOALS = [0, 0.001, 0.0025, 0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1];
@@ -117,11 +116,15 @@ export function WalletBalance({ wd, dailyUsd, btcUsd, liveRef, t }) {
     if (liveRef) liveRef.current = available;
   }, [available, liveRef]);
   if (!wd) {
+    // No answer yet: the same lines as below, in the loading look (.ld), so nothing moves when the balance arrives.
     return (
-      <div className="skc" aria-busy="true">
-        <Sk w="62%" h={38} r={10} />
-        <Sk w="30%" h={14} />
-        <Sk w="44%" h={12} />
+      <div className="ld" aria-busy="true" style={{ display: 'contents' }}>
+        <div className="big">
+          <span>0.00000000</span>
+          <small>BTC</small>
+        </div>
+        <span className="mute" style={{ display: 'block', fontSize: '14px' }}>≈ $0.00</span>
+        <span className="mute" style={{ display: 'block', fontSize: '12.5px', marginTop: '2px' }}>{t('wal.totalMined', { n: '0.00000000' })}</span>
       </div>
     );
   }
