@@ -32,7 +32,7 @@ export default function LandingMenu({ label, links, contact, children }) {
         .lm-b:active{opacity:.6}
         .lm-p{position:absolute;z-index:60;top:calc(100% + 4px);right:0;left:auto;min-width:200px;max-width:calc(100vw - 24px);max-height:calc(100dvh - 80px);overflow-y:auto;padding:6px;border:1px solid var(--line);border-radius:16px;background:var(--s2);box-shadow:0 8px 24px rgba(0,0,0,.35)}
         [dir=rtl] .lm-p{right:auto;left:0}
-        .lm-p>a{display:block;padding:11px 14px;border-radius:10px;color:var(--text);font-size:14px;line-height:20px;white-space:nowrap;text-decoration:none}
+        .lm-p>a{display:block;padding:12px 14px;border-radius:10px;color:var(--text);font-size:14px;line-height:20px;white-space:nowrap;text-decoration:none}
         .lm-p>a:active{background:rgba(var(--gold-rgb),.12)}
         .lm-sep{height:1px;margin:6px 8px;background:var(--line)}
         .lm-p .lm-soc{margin:4px 0 6px;flex-wrap:wrap}
