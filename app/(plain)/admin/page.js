@@ -7,34 +7,35 @@ function EmailCard({ run, ask, busy }) {
   const [userId, setUserId] = useState('');
   const [subject, setSubject] = useState('');
   const [text, setText] = useState('');
-  const ready = !busy && subject.trim() && text.trim() && (mode === 'test' ? to.trim() : userId.trim());
+  const ready = !busy && subject.trim() && text.trim() && (mode === 'test' ? to.trim() : mode === 'one' ? userId.trim() : true);
   return (
     <div className="card adm-stack">
       <h3>Email from support</h3>
       <div className="adm-row">
         <button className={mode === 'test' ? 'btn' : 'swap'} onClick={() => setMode('test')}>Test address</button>
         <button className={mode === 'one' ? 'btn' : 'swap'} onClick={() => setMode('one')}>One user</button>
+        <button className={mode === 'all' ? 'btn' : 'swap'} onClick={() => setMode('all')}>All users</button>
       </div>
       {mode === 'test' ? (
         <div className="field" style={{ marginTop: 4 }}>
           <input id="emto" autoComplete="off" placeholder=" " value={to} onChange={(e) => setTo(e.target.value)} />
           <label htmlFor="emto">Email address</label>
         </div>
-      ) : (
+      ) : mode === 'one' ? (
         <div className="field" style={{ marginTop: 4 }}>
           <input id="emuid" autoComplete="off" placeholder=" " value={userId} onChange={(e) => setUserId(e.target.value)} />
           <label htmlFor="emuid">User ID</label>
         </div>
-      )}
+      ) : null}
       <input aria-label="Subject" placeholder="Subject" maxLength={120} value={subject} onChange={(e) => setSubject(e.target.value)} />
       <textarea aria-label="Message" placeholder="Message" maxLength={5000} value={text} onChange={(e) => setText(e.target.value)} />
       <button
         className="btn"
         disabled={!ready}
         onClick={async () => {
-          const who = mode === 'test' ? to.trim() : userId.trim();
-          if (mode === 'one' && !(await ask(`Email user ${who} from support? It cannot be undone.`, { ok: 'Send email', danger: true }))) return;
-          if (await run({ action: 'email-send', mode, to: to.trim(), userId: userId.trim(), subject, text }, mode === 'test' ? 'Test sent' : 'Sent')) {
+          if (mode === 'all' && !(await ask('Email every user with a verified email? It cannot be undone.', { ok: 'Send to all', danger: true }))) return;
+          if (mode === 'one' && !(await ask(`Email user ${userId.trim()} from support? It cannot be undone.`, { ok: 'Send email', danger: true }))) return;
+          if (await run({ action: 'email-send', mode, to: to.trim(), userId: userId.trim(), subject, text }, mode === 'test' ? 'Test sent' : mode === 'all' ? (x) => `Queued for ${x.queued} users` : 'Sent')) {
             setSubject('');
             setText('');
           }
