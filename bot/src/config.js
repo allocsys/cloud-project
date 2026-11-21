@@ -24,7 +24,7 @@ export function checkConfig(c) {
   if (!/^[A-Za-z0-9_-]{16,64}$/.test(c.path)) bad.push('BOT_WEBHOOK_PATH (16-64 letters, digits, _ or -)');
   if (!/^[A-Za-z0-9_-]{16,256}$/.test(c.secret)) bad.push('BOT_WEBHOOK_SECRET (16-256 letters, digits, _ or -)');
   if (c.path && c.path === c.secret) bad.push('BOT_WEBHOOK_PATH and BOT_WEBHOOK_SECRET must differ');
-  if (!/^https:\/\/[^\s/]+$/.test(c.appUrl)) bad.push('APP_URL (https, no path)');
+  if (!/^(https:\/\/[^\s/]+|http:\/\/[A-Za-z0-9-]+(\.[A-Za-z0-9-]+)*\.railway\.internal(:\d{1,5})?)$/.test(c.appUrl)) bad.push('APP_URL (https, no path)');
   if (c.notifySecret && c.notifySecret.length < 16) bad.push('APP_BOT_SECRET (at least 16 characters)');
   if (c.notifySecret && (c.notifySecret === c.secret || c.notifySecret === c.path)) bad.push('APP_BOT_SECRET must differ from the webhook values');
   if (!/^[A-Za-z0-9_]{5,32}$/.test(c.botUsername)) bad.push('BOT_USERNAME (5-32 letters, digits or _)');
