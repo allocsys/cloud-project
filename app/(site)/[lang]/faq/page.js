@@ -8,7 +8,7 @@ import { siteData } from '@/lib/site-api';
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 // One question per row: tap to open. The answers stay in the page itself, so search engines and no-script readers still get them.
 const row = { borderBottom: '1px solid rgba(128,128,128,.25)' };
-const sum = { cursor: 'pointer', minHeight: '44px', display: 'flex', alignItems: 'center', fontSize: '14.5px', fontWeight: 500, padding: '6px 0' };
+const sum = { cursor: 'pointer', minHeight: '44px', display: 'list-item', fontSize: '14.5px', fontWeight: 500, padding: '12px 0', boxSizing: 'border-box' };
 const ans = { margin: '0 0 12px' };
 
 // Only general questions that are the same for everyone. The answers are the ones the owner approved in lib/faq.js
