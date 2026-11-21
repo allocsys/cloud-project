@@ -12,7 +12,7 @@ import { trustLink } from '@/lib/trust-link';
 // Coin buttons, plus a network row for a coin that lives on more than one chain (USDT).
 // value and onChange use { asset, net }. `only` (optional) is a list of asset ids to show; without it every coin shows.
 // `skipNets` (optional) is a list of network ids to hide; a coin then starts on its first network left.
-const PICK_BTN = { height: 'auto', minHeight: 40, minWidth: 0, padding: '6px 2px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, lineHeight: 1.15 };
+const PICK_BTN = { height: 'auto', minHeight: 44, minWidth: 0, padding: '6px 2px', display: 'inline-flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1, lineHeight: 1.15 };
 
 export function CoinPicker({ value, onChange, disabled = false, only, skipNets, mark }) {
   const t = useT();
