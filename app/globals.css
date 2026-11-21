@@ -1913,6 +1913,14 @@ a.stat:active { background: var(--s3); }
   transform: none;
 }
 
+/* The snackbar has a close button; it can be tapped while it shows. */
+#toast { display: flex; align-items: center; gap: 8px; padding: 12px; padding-inline: 16px 10px; }
+#toast span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+#toast.on { pointer-events: auto; }
+.toast-x { flex: none; position: relative; width: 28px; height: 28px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 50%; background: transparent; color: var(--mute); cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.toast-x::after { content: ''; position: absolute; inset: -8px; }
+.toast-x svg { width: 14px; height: 14px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; }
+
 /* Wider screens: navigation drawer and two columns */
 @media (min-width: 760px) {
   nav {
