@@ -1,5 +1,6 @@
 'use client';
 // The small wallet button in the header, next to the bell: 'Connect', then the short address. Tap the address once to get Disconnect, tap again to disconnect.
+// Inside Telegram, Connect first shows two wallet names (Tonkeeper, SafePal) to choose from; the choice is not shown again until the next tap.
 // `compact` = round icon only (the Earnings bar is tight).
 import { useEffect, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
@@ -13,14 +14,28 @@ export default function WalletPill({ compact = false }) {
   const t = useT();
   const w = useWallet();
   const [ask, setAsk] = useState(false);
+  const [pick, setPick] = useState(false);
   useEffect(() => {
     if (!ask) return undefined;
     const id = setTimeout(() => setAsk(false), 3000);
     return () => clearTimeout(id);
   }, [ask]);
+  useEffect(() => {
+    if (!pick) return undefined;
+    const id = setTimeout(() => setPick(false), 6000);
+    return () => clearTimeout(id);
+  }, [pick]);
   if (!w || (!w.enabled && !w.acct)) return null;
   const short = w.acct ? `${w.acct.slice(0, 4)}\u2026${w.acct.slice(-4)}` : '';
   const label = w.acct ? (ask ? t('wp.disconnect') : short) : t('wp.connect');
+  const choose = async (ton) => {
+    setPick(false);
+    if (w.busy) return;
+    triggerHaptic('selection');
+    try {
+      await w.connect({ ton });
+    } catch {}
+  };
   const tap = async () => {
     if (w.busy) return;
     triggerHaptic('selection');
@@ -33,10 +48,26 @@ export default function WalletPill({ compact = false }) {
       w.disconnect();
       return;
     }
+    if (w.tg) {
+      setPick(true);
+      return;
+    }
     try {
       await w.connect();
     } catch {}
   };
+  if (pick && !w.acct) {
+    return (
+      <div style={{ display: 'inline-flex', gap: 6 }}>
+        <button type="button" className="eh-wal" onClick={() => choose(true)}>
+          <span>Tonkeeper</span>
+        </button>
+        <button type="button" className="eh-wal" onClick={() => choose(false)}>
+          <span>SafePal</span>
+        </button>
+      </div>
+    );
+  }
   const icon = w.busy ? (
     <svg viewBox="0 0 24 24" aria-hidden="true">
       <circle cx="12" cy="12" r="9" strokeOpacity="0.25" strokeWidth="3" />
