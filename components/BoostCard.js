@@ -35,10 +35,10 @@ const rim = (r, a1, a2) => `M${xy(pt(r, a1))}A${r} ${r} 0 0 1 ${xy(pt(r, a2))}`;
 
 export default function BoostCard({ show, loading = false }) {
   const t = useT();
-  const { data: live, refresh } = useApi('/api/boost', { ttl: 10000 });
+  const { data: answer, refresh } = useApi('/api/boost', { ttl: 10000 });
   // While the first answer is on its way the card draws itself with placeholder tickets in the loading look (lib/placeholder.js, .ld).
-  const ph = !live && loading;
-  const data = live || (ph ? PH_BOOST : undefined);
+  const ph = !answer && loading;
+  const data = answer || (ph ? PH_BOOST : undefined);
   const [now, setNow] = useState(() => Date.now());
   const [arm, setArm] = useState(null); // the ticket waiting for its second tap
   const [busy, setBusy] = useState(false);
