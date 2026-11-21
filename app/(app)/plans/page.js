@@ -40,7 +40,8 @@ const afterPop = () =>
     window.addEventListener('popstate', end);
   });
 
-import { SkTab, SkPlans, SkMiners, SkBoost, useWaiting } from '@/components/Skeleton';
+import { SkTab, useWaiting } from '@/components/Skeleton';
+import { PH_MINERS } from '@/lib/placeholder';
 
 export default function Plans() {
   const { t, lang } = useLang();
@@ -383,12 +384,10 @@ export default function Plans() {
         </div>
       ))}
 
-      {view === 'boost' && boostWait ? <SkBoost /> : view === 'boost' ? (
-        <BoostCard show={show} />
-      ) : view === 'buy' && waitCat ? (
-        <SkPlans />
+      {view === 'boost' ? (
+        <BoostCard show={show} loading={!bd && waitBd} />
       ) : view === 'buy' ? (
-      <>
+      <div className={waitCat ? 'ld' : undefined} aria-busy={waitCat || undefined} style={{ display: 'contents' }}>
       {cat?.smartOn !== false && (
         <SmartCard
           budget={budget}
@@ -416,10 +415,10 @@ export default function Plans() {
         within={balUsd >= ap.price}
         onBuy={() => selectPlan({ id: 'custom' })}
       />
-      </>
-      ) : list.length ? (
-        <div className="clist">
-          {list.map((c) => {
+      </div>
+      ) : list.length || (!md && waitMd) ? (
+        <div className={md ? 'clist' : 'clist ld'} aria-busy={!md || undefined}>
+          {(md ? list : PH_MINERS).map((c) => {
             const pct = Math.round((c.elapsed / c.days) * 100);
             const rig = rigFor(c);
             return (
@@ -460,7 +459,7 @@ export default function Plans() {
           <p className="empty">{t('plans.noMiners')}</p>
           <button className="swap" onClick={() => setTab('buy')}>{t('plans.buyOne')}</button>
         </div>
-      ) : waitMd ? <SkMiners /> : null}
+      ) : null}
 
       {sel && (
         <div
