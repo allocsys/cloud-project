@@ -490,7 +490,7 @@ input::placeholder { color: var(--ph); }
 .lp-top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
 .lp-brand { display: flex; align-items: center; gap: 8px; color: var(--text); font-size: 16px; font-weight: 500; letter-spacing: 0.15px; }
 .lp-brand img { width: 28px; height: 28px; border-radius: 8px; }
-.lp-signin { display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 20px; color: var(--gold); font-size: 14px; font-weight: 500; }
+.lp-signin { display: inline-flex; align-items: center; min-height: 44px; padding: 0 16px; border-radius: 20px; color: var(--gold); font-size: 14px; font-weight: 500; }
 .lp-signin:active { background: rgba(var(--gold-rgb), 0.12); }
 /* Settings language dropdown: the app's gold pill, like the wallet balance in the header. */
 .set-lang {
@@ -1207,7 +1207,7 @@ main {
 }
 
 .pct-btn {
-  min-height: 32px;
+  min-height: 44px;
   padding: 0 4px;
   background: none;
   border: 1px solid var(--outline);
@@ -1253,7 +1253,7 @@ main {
 .wcard .field,
 .wcard .pct-row + .field { margin-top: 12px; }
 .wcard .pct-row { margin: 8px 0 0; }
-.wcard .pct-btn { min-height: 34px; }
+.wcard .pct-btn { min-height: 44px; }
 .wcard .quote { margin: 12px 0 0; padding: 0 14px; }
 .wcard .quote .row { padding: 8px 0; }
 .wcard .btn:not(.ghost) { margin-top: 16px; }
@@ -1393,7 +1393,7 @@ main {
   color: var(--gold2);
 }
 
-.codebox .btn { width: auto; min-height: 36px; padding: 0 18px; font-size: 13px; }
+.codebox .btn { width: auto; min-height: 44px; padding: 0 18px; font-size: 13px; }
 
 .steps3 { display: flex; margin-top: 16px; }
 
@@ -1760,6 +1760,7 @@ a.stat:active { background: var(--s3); }
 /* Sheets with pinned pay buttons: the details scroll, the coin picker and buttons stay in view above the phone's bottom bar (Telegram insets included) */
 .sheet .card.pinned { display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .sheet .card.pinned .sheetscroll { flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding-bottom: 28px; -webkit-mask-image: linear-gradient(#000 calc(100% - 28px), transparent); mask-image: linear-gradient(#000 calc(100% - 28px), transparent); }
+.sheet .card.pinned .sheetfoot .btn { flex-shrink: 0; min-height: 44px; }
 .sheet .card.pinned .sheetfoot { flex: none; display: flex; flex-direction: column; gap: 12px; padding: 4px 0 max(16px, calc(env(safe-area-inset-bottom, 0px) + 8px), calc(var(--tg-safe-area-inset-bottom, 0px) + 8px)); }
 .unfold { animation: unfold 0.28s cubic-bezier(0.2, 0, 0, 1); }
 @keyframes unfold { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
@@ -1777,7 +1778,7 @@ a.stat:active { background: var(--s3); }
 .seg { position: relative; display: grid; grid-template-columns: repeat(var(--n), 1fr); padding: 3px; margin: 0 0 10px; border: 1px solid var(--outline); border-radius: 12px; }
 .seg i { position: absolute; top: 3px; bottom: 3px; inset-inline-start: 3px; width: calc((100% - 6px) / var(--n)); border-radius: 9px; background: rgba(232, 184, 74, 0.16); box-shadow: inset 0 0 0 1px var(--gold); transform: translateX(calc(var(--i) * 100%)); transition: transform 0.28s cubic-bezier(0.3, 1.2, 0.5, 1); pointer-events: none; }
 [dir='rtl'] .seg i { transform: translateX(calc(var(--i) * -100%)); }
-.seg button { position: relative; z-index: 1; min-width: 0; height: 36px; padding: 0; border: 0; background: none; color: var(--mute); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
+.seg button { position: relative; z-index: 1; min-width: 0; height: 44px; padding: 0; border: 0; background: none; color: var(--mute); font: inherit; font-size: 13px; font-weight: 600; cursor: pointer; transition: color 0.2s; }
 .seg button[aria-pressed='true'] { color: var(--gold2); }
 .seg button:disabled { cursor: default; }
 
@@ -2046,7 +2047,7 @@ a.stat:active { background: var(--s3); }
 .iact { display: flex; align-items: center; justify-content: space-between; margin-top: 6px; }
 .iact small { font-size: 12px; color: var(--mute); }
 .iact span { display: flex; gap: 4px; }
-.linkbtn { min-height: 36px; padding: 0 12px; border: 0; background: none; color: var(--gold); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
+.linkbtn { min-height: 44px; padding: 0 12px; border: 0; background: none; color: var(--gold); font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; }
 .linkbtn:disabled { color: var(--mute); }
 .irebate { display: flex; align-items: baseline; gap: 12px; margin-top: 8px; }
 .irebate b { font-size: 24px; line-height: 30px; font-weight: 500; color: var(--gold2); }
