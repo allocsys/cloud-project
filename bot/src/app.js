@@ -70,7 +70,7 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     const a = await fetchApp(lang, userId, 'balance', (x) => Number.isFinite(x.btc) && Number.isFinite(x.locked));
     if (!a.data) return a.view;
     const b = a.data;
-    const lines = [t(lang, 'bal', { btc: btcText(b.btc) })];
+    const lines = [t(lang, 'balTitle'), '', t(lang, 'bal', { btc: btcText(b.btc) })];
     if (Number.isFinite(b.usd)) lines.push(t(lang, 'balUsd', { usd: b.usd.toFixed(2) }));
     if (b.locked > 0) lines.push(t(lang, 'balHold', { locked: btcText(b.locked) }));
     return { text: lines.join('\n'), rows: [] };
