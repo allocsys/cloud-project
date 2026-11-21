@@ -3,10 +3,19 @@
 // any other failure exits immediately.
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { pruneRole } from './roles.mjs';
 
 const require = createRequire(import.meta.url);
 const nextBin = require.resolve('next/dist/bin/next');
 const MAX = 3;
+const role = process.env.APP_ROLE || 'all';
+try {
+  const removed = pruneRole(process.cwd(), role);
+  console.log(`[role] building "${role}"${removed.length ? `, removed ${removed.length} entries` : ''}`);
+} catch (e) {
+  console.error(`[role] ${e.message}`);
+  process.exit(1);
+}
 const FONT_FLAKE = /next\/font|fonts\.googleapis|fonts\.gstatic|google\/loader/i;
 
 function run() {
