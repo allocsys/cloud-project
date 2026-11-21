@@ -93,7 +93,7 @@ export default function Notifications() {
 
       <div className="card">
         {wait ? (
-          <SkRows n={4} />
+          <SkRows n={4} right="time" />
         ) : items.length ? (
           items.map((n, i) => {
             const k = KIND[n.kind] || KIND.news;
