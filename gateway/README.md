@@ -46,7 +46,7 @@ A network is only offered when its address is set (and, for EVM, listed in `EVM_
 | `TON_API_URL`, `TON_API_KEY` | toncenter-compatible v3 API (default `https://toncenter.com`), optional key (header `X-API-Key`; without one the limit is 1 request per second) |
 | `TON_CONFIRMATIONS` | confirmations for a TON payment (default 1; a payment in a masterchain block, or older than 30 s, shows 1) |
 | `BTC_CONFIRMATIONS` | confirmations before a BTC payment counts (default 1) |
-| `BTC_EXPLORER_URL` | Esplora-compatible API, https only (default `https://mempool.space/api`) |
+| `BTC_EXPLORER_URL` | Esplora-compatible API, https only (default `https://blockstream.info/api`) |
 | `POLL_SECONDS` | how often open invoices are checked on chain (default 30, minimum 5) |
 | `WATCHER` | `off` stops this process from watching the chain |
 | `APP_WEBHOOK_URL` | the app's `/api/payments/webhook`. https only (http only for localhost and `*.railway.internal`) |
