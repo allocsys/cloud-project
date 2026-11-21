@@ -11,7 +11,8 @@ import WinnersBar from '@/components/WinnersBar';
 import NetworkLive from '@/components/NetworkLive';
 import LandingMenu from '@/components/LandingMenu';
 import { AuthSheetProvider, AuthButton } from '@/components/AuthSheet';
-import { COOKIE } from '@/lib/server/auth';
+import { SESSION_COOKIE } from '@/lib/session-cookie';
+import { siteData } from '@/lib/site-api';
 import { getLang, getT, getMessages } from '@/lib/i18n/server';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
@@ -20,9 +21,6 @@ import { pagePath } from '@/lib/i18n/codes';
 import SocialLinks from '@/components/SocialLinks';
 import Reviews from '@/components/Reviews';
 import Farm from '@/components/Farm';
-import { reviewList } from '@/lib/server/reviews';
-import { farmVideos } from '@/lib/server/farm';
-import { showDemo } from '@/lib/server/flags';
 import { SITE_URL } from '@/lib/site';
 
 export async function generateMetadata() {
@@ -73,13 +71,13 @@ const ICONS = {
 // The calculator uses the live market and the real plan prices, and says it is an estimate.
 export default async function Home() {
   const jar = await cookies();
-  const signedIn = jar.has(COOKIE);
+  const signedIn = jar.has(SESSION_COOKIE);
   const t = await getT();
   const lang = await getLang();
   const messages = await getMessages(lang);
-  const demoOn = await showDemo().catch(() => false); // the admin's switch (Settings > Demo account); without a database the demo is off
-  const reviews = await reviewList().catch(() => []); // real reviews the admin added (Settings > Reviews); none = no section
-  const farm = await farmVideos().catch(() => []); // videos the admin added (Settings > Our farm videos); none = the note only
+  // From the API (/api/site/landing): the admin's demo switch (Settings > Demo account; without a database the demo is off), the real reviews the
+  // admin added (Settings > Reviews; none = no section) and the farm videos (Settings > Our farm videos; none = the note only).
+  const { showDemo: demoOn, reviews, farm } = await siteData('/api/site/landing', { showDemo: false, reviews: [], farm: [] });
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [

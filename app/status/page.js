@@ -3,11 +3,10 @@ import { getLang, getT, getMessages } from '@/lib/i18n/server';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { langAlternates } from '@/lib/seo';
-import { getLive } from '@/lib/server/market';
+import { siteData } from '@/lib/site-api';
 import { NETWORK_MOCK as MOCK, minersText } from '@/lib/status-mock';
-import { minersRunning, payoutProof } from '@/lib/server/network-stats';
 
-// The first two cards are REAL: Bitcoin network difficulty from the live market (lib/server/market.js) and the hash power
+// The first two cards are REAL: Bitcoin network difficulty from the live market (API: /api/site/status) and the hash power
 // that follows from it. With no live reading they show a dash, never a made-up number.
 // MOCK FIGURES: miners, paid, last payout and uptime come from lib/status-mock.js (shared with the dashboard). Replace them with
 // real numbers before launch, then drop `robots` below.
@@ -47,12 +46,11 @@ export default async function Status() {
   const t = await getT();
   const lang = await getLang();
   const messages = await getMessages(lang);
-  let d = null;
-  try {
-    d = (await getLive())?.difficulty ?? null;
-  } catch {}
-  const values = { ...MOCK, miners: minersText(await minersRunning()), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH, last: t('status.lastVal') };
-  const proof = await payoutProof();
+  // One call to the API. Without an answer: no difficulty (a dash), no miners, no payout proof.
+  const site = await siteData('/api/site/status', { difficulty: null, miners: 0, proof: null });
+  const d = site.difficulty;
+  const values = { ...MOCK, miners: minersText(site.miners), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH, last: t('status.lastVal') };
+  const proof = site.proof;
   const sent = proof && proof.count > 0 ? proof : null;
   return (
     <I18nProvider lang={lang} messages={messages}>
