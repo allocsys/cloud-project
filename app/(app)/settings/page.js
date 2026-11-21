@@ -734,14 +734,16 @@ export default function Settings() {
               )}
             </>
           )}
-          {me?.email && !me.telegram && (
+          {me?.email && (
             <>
               <div className="row">
                 <div>
                   <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('set.bot')}</div>
                   <small>{me.botLinked ? t('set.botOn') : t('set.botSub')}</small>
                 </div>
-                {me.botLinked ? (
+                {me.telegram ? (
+                  <span className="badge ok">{t('set.botOn')}</span>
+                ) : me.botLinked ? (
                   <button className="btn ghost" type="button" disabled={blBusy} onClick={disconnectBot}>{t('set.botOff')}</button>
                 ) : bl ? (
                   <a className="btn ghost" href={bl} target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', textAlign: 'center', textDecoration: 'none' }}>{t('set.botOpen')}</a>
