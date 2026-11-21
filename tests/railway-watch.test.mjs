@@ -85,6 +85,14 @@ test('the pattern matcher follows gitignore-style rules', () => {
   assert.ok(!m('/Dockerfile', 'Dockerfile.bak'));
 });
 
+// Railway reads ( ) [ ] { } ? as glob syntax, not as part of a folder name: a pattern with them skipped a deploy of app/(app)/settings (21 Nov).
+// Use * for folders like (app).
+test('no watch pattern contains glob syntax characters', () => {
+  for (const name of ['railway.web.json', 'railway.api.json']) {
+    assert.deepEqual(rawPatterns(name).filter((p) => /[()[\]{}?!]/.test(p)), [], `${name} has a pattern with ( ) [ ] { } ? or !`);
+  }
+});
+
 test('the scan sees every group of files', () => {
   for (const k of ['api', 'web', 'both']) assert.ok(of(k).length, `no ${k} files found`);
 });
