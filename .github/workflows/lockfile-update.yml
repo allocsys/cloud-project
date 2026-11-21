@@ -1,0 +1,79 @@
+name: Lockfile update
+
+# Run by hand: Actions > Lockfile update > Run workflow. It rebuilds a package-lock.json on CI (so it does not depend on a local machine),
+# checks that `npm ci` accepts it, commits it on a new branch and opens a pull request.
+#   dir    which package folder: the root app (.), backup, bot or gateway
+#   remove packages to uninstall, space separated. Leave empty to only rebuild the lockfile from package.json.
+#   branch the new branch name. Leave empty for chore/lockfile-<run number>.
+# Pushes made with the workflow token do not start the other checks: close and reopen the pull request once to run CI.
+on:
+  workflow_dispatch:
+    inputs:
+      dir:
+        description: Package folder
+        type: choice
+        options: ['.', backup, bot, gateway]
+        default: '.'
+      remove:
+        description: Packages to uninstall (space separated, optional)
+        type: string
+        default: ''
+      branch:
+        description: New branch name (optional)
+        type: string
+        default: ''
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: lockfile-update
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      DIR: ${{ inputs.dir }}
+      REMOVE: ${{ inputs.remove }}
+      BRANCH_IN: ${{ inputs.branch }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - name: Check the inputs
+        run: |
+          [[ "$REMOVE" =~ ^[@A-Za-z0-9._/\ -]*$ ]] || { echo "::error::remove has characters a package name cannot have"; exit 1; }
+          [[ "$BRANCH_IN" =~ ^[A-Za-z0-9._/-]*$ ]] || { echo "::error::branch has characters a branch name should not have"; exit 1; }
+          [ -f "$DIR/package.json" ] || { echo "::error::$DIR has no package.json"; exit 1; }
+      - name: Regenerate the lockfile
+        run: |
+          cd "$DIR"
+          if [ -n "$REMOVE" ]; then
+            npm uninstall $REMOVE --ignore-scripts --no-audit --no-fund
+          else
+            npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+          fi
+      - name: npm ci accepts the result
+        run: cd "$DIR" && npm ci --ignore-scripts --no-audit --no-fund
+      - name: Commit and open the pull request
+        run: |
+          git add -- "$DIR/package.json" "$DIR/package-lock.json"
+          if git diff --cached --quiet; then
+            echo "Nothing changed: the lockfile is already up to date."
+            exit 0
+          fi
+          branch="${BRANCH_IN:-chore/lockfile-$GITHUB_RUN_NUMBER}"
+          if [ -n "$REMOVE" ]; then msg="Remove unused packages from $DIR: $REMOVE"; else msg="Rebuild $DIR/package-lock.json"; fi
+          git config user.name allocsys
+          git config user.email noreply@vertexhash.com
+          git checkout -b "$branch"
+          git commit -m "$msg"
+          git push origin "$branch"
+          gh pr create --base "${{ github.event.repository.default_branch }}" --head "$branch" --title "$msg" \
+            --body "Made by the Lockfile update workflow (run $GITHUB_RUN_NUMBER). \`npm ci\` accepted the result. Close and reopen this pull request once to start CI." \
+            || echo "::warning::Branch $branch is pushed, but the pull request could not be opened. Open it by hand."
