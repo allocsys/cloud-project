@@ -9,9 +9,9 @@ export const partial = "cloud-project";
 
 // Same lists as railway.web.json / railway.api.json; tests/railway-watch.test.mjs keeps all three in step with the real files.
 const WEB_WATCH = [
-  "/app/(app)/**",
-  "/app/(plain)/**",
-  "/app/(site)/**",
+  "/app/*app*/**",
+  "/app/*plain*/**",
+  "/app/*site*/**",
   "/app/status/**",
   "/app/healthz/**",
   "/app/icons/**",
