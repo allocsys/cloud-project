@@ -19,8 +19,3 @@ export function useWaiting(pending, ms = 6000) {
   }, [pending, ms]);
   return pending && !late;
 }
-
-// A pill in the tab bar, standing in for a tab whose presence is not known yet (the Boost tab).
-export function SkTab() {
-  return <i className="sk sktab" aria-hidden="true" />;
-}
