@@ -87,7 +87,7 @@ export default function BoostCard({ show, loading = false }) {
     return () => io.disconnect();
   }, [freeN > 0, data?.enabled]);
 
-  if (!data || (!data.enabled && !running.length)) return null;
+  if (!data) return null;
 
   async function tap(tk) {
     if (busy) return;
