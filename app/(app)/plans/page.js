@@ -40,7 +40,7 @@ const afterPop = () =>
     window.addEventListener('popstate', end);
   });
 
-import { SkTab, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
 import { PH_MINERS } from '@/lib/placeholder';
 
 export default function Plans() {
@@ -68,15 +68,14 @@ export default function Plans() {
   const [budget, setBudget] = useState('500'); // Smart Mining budget as typed, in dollars
   const [spos, setSpos] = useState(() => posFromBudget(500)); // Smart Mining slider position
   const [tab, setTab] = useState('buy');
-  // The Boost tab shows only while boost tickets are on (or a boost is still running); otherwise the page falls back to Buy plans.
+  // The Boost tab is always there, like the other two tabs.
   const { data: bd } = useApi('/api/boost', { ttl: 10000 });
-  const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
   // The Boost card draws itself in the loading look until /api/boost answers (BoostCard's loading prop), so Buy plans does not flash first.
   // Shimmer placeholders while the first answers are on their way (see components/Skeleton.js).
   const waitCat = useWaiting(!cat);
   const waitMd = useWaiting(!md);
   const waitBd = useWaiting(!bd);
-  const view = tab === 'boost' && bd && !boostOn ? 'buy' : tab;
+  const view = tab;
   const [dragY, setDragY] = useState(0);
   const [leaving, setLeaving] = useState(false); // the plan sheet is sliding away to hand over to the pay sheet
   const [busy, setBusy] = useState(false);
@@ -360,7 +359,7 @@ export default function Plans() {
 
       <div className="tabs" role="group" aria-label={t('plans.aria')}>
         <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
-        {boostOn ? <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button> : waitBd ? <SkTab /> : null}
+        <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button>
         <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
       </div>
 
