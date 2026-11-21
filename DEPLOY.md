@@ -35,7 +35,7 @@ Variables:
 
 - **web:** `APP_ROLE=web`, `HEALTH_PATH=/healthz`, `API_URL`, `API_SVC_SECRET`, `APP_URL`.
 - **api:** `APP_ROLE=api`, `HEALTH_PATH=/api/health`, `API_EDGE_SECRET`, `API_SVC_SECRET`, plus everything in the notes below (database, session, payments, gateway, bot, mail).
-- **Gateway and bot:** point to the API's private address (`APP_WEBHOOK_URL`, `APP_URL`), not to web.
+- **Gateway and bot:** point to the API's private address, not to web: the gateway with `APP_WEBHOOK_URL`, the bot with `APP_API_URL` (e.g. `http://api.railway.internal:8080`). The bot's `APP_URL` stays the public https address (`https://vertexhash.com`): it goes into buttons people see, and Telegram refuses a non-https web app button.
 
 Tickers must run on one service only: the API. Never run a second `all` service next to it.
 
