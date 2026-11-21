@@ -50,7 +50,12 @@ function clean(t) {
 }
 
 export function payload(inv, status, confirmed) {
-  const dec = CHAINS[inv.network].decimalsOf(inv.asset);
+  // A network removed since the invoice was made has no decimals: the amounts are then null, the rest still works.
+  let dec;
+  try {
+    dec = Object.hasOwn(CHAINS, inv.network) ? CHAINS[inv.network].decimalsOf(inv.asset) : undefined;
+  } catch {}
+  const fmt = (v) => (dec === undefined || v === null || v === undefined ? null : fmtAtomic(v, dec));
   return {
     order_id: inv.ref,
     payment_id: inv.id,
@@ -59,8 +64,8 @@ export function payload(inv, status, confirmed) {
     price_currency: 'usd',
     pay_currency: inv.asset,
     network: inv.network,
-    pay_amount: fmtAtomic(inv.expected_atomic, dec),
-    actually_paid: fmtAtomic(confirmed, dec),
+    pay_amount: fmt(inv.expected_atomic),
+    actually_paid: fmt(confirmed),
   };
 }
 

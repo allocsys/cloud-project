@@ -32,13 +32,14 @@ function networks(paused = new Set(), open = new Map()) {
 }
 
 // Marks one unmatched payment handled, with a short note (how it was returned). Repeating it is fine: nothing changes the second time.
+// The network may be one that was removed since: old rows must stay closable, so only the row itself decides.
 // The watcher never re-opens it (recordUnmatched only updates confirmations on a conflict).
 export async function handleUnmatched(input) {
   const network = typeof input?.network === 'string' ? input.network : '';
   const txid = typeof input?.txid === 'string' ? input.txid : '';
   const vout = input?.vout;
   const note = typeof input?.note === 'string' ? input.note.trim().slice(0, 80) : '';
-  if (!Object.hasOwn(CHAINS, network) || !txid || txid.length > 128 || !Number.isInteger(vout) || vout < 0) throw new ApiError(400, 'Invalid request.');
+  if (!network || network.length > 40 || !txid || txid.length > 128 || !Number.isInteger(vout) || vout < 0) throw new ApiError(400, 'Invalid request.');
   return tx(async (c) => {
     const row = (await c.query('SELECT id, handled_at FROM unmatched_txs WHERE network = $1 AND txid = $2 AND vout = $3 FOR UPDATE', [network, txid, vout])).rows[0];
     if (!row) throw new ApiError(404, 'Not found.');
