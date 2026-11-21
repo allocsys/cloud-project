@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useApi, post, revalidate } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { useT } from '@/components/I18nProvider';
+import { PH_BOOST } from '@/lib/placeholder';
 
 // Boost tickets on the Plans page: a ticket starts a 2 hour boost of extra hashrate with a prize draw. Rules in lib/boost.js, server in
 // lib/server/boost.js. Every purchase is its own boost, drawn as a wedge in a 20 slot dial (the fill grows outward as it runs). The draw shows when the boost ends.
@@ -32,9 +33,12 @@ const xy = (p) => `${p[0].toFixed(1)} ${p[1].toFixed(1)}`;
 const wedge = (r1, r2, a1, a2) => `M${xy(pt(r2, a1))}A${r2} ${r2} 0 0 1 ${xy(pt(r2, a2))}L${xy(pt(r1, a2))}A${r1} ${r1} 0 0 0 ${xy(pt(r1, a1))}Z`;
 const rim = (r, a1, a2) => `M${xy(pt(r, a1))}A${r} ${r} 0 0 1 ${xy(pt(r, a2))}`;
 
-export default function BoostCard({ show }) {
+export default function BoostCard({ show, loading = false }) {
   const t = useT();
-  const { data, refresh } = useApi('/api/boost', { ttl: 10000 });
+  const { data: answer, refresh } = useApi('/api/boost', { ttl: 10000 });
+  // While the first answer is on its way the card draws itself with placeholder tickets in the loading look (lib/placeholder.js, .ld).
+  const ph = !answer && loading;
+  const data = answer || (ph ? PH_BOOST : undefined);
   const [now, setNow] = useState(() => Date.now());
   const [arm, setArm] = useState(null); // the ticket waiting for its second tap
   const [busy, setBusy] = useState(false);
@@ -142,7 +146,7 @@ export default function BoostCard({ show }) {
 
   const finished = (data.finished || []).slice(0, 3);
   return (
-    <div className="card">
+    <div className={ph ? 'card ld' : 'card'} aria-busy={ph || undefined}>
       <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('bst.sub', { h: data.hours })}</p>
       {running.length > 0 && (

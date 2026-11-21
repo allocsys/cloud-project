@@ -438,6 +438,21 @@ input::placeholder { color: var(--ph); }
 .skcol { display: grid; gap: 8px; }
 .sktab { flex: 1; min-width: 0; height: 22px; margin: 11px 18px; border-radius: 8px; }
 
+/* Loading state (class "ld"): the real screen drawn with placeholder data (lib/placeholder.js). Text, icons and fields turn into soft blocks
+   with a light sweep, and nothing can be tapped. Text that shares a box with other elements shows as a soft smudge instead. */
+.ld { pointer-events: none; user-select: none; -webkit-user-select: none; }
+.ld, .ld *, .ld *::before, .ld *::after { color: transparent !important; caret-color: transparent; text-shadow: 0 0 10px color-mix(in srgb, var(--mute) 60%, transparent); }
+.ld:not(:empty):not(:has(*)), .ld :not(:empty):not(:has(*)), .ld svg, .ld :is(input, select, textarea) {
+  text-shadow: none;
+  border-radius: 6px;
+  background: linear-gradient(100deg, var(--s4) 30%, rgba(var(--gold-rgb), 0.2) 50%, var(--s4) 70%) 0 0 / 250% 100% !important;
+  animation: ldShine 1.4s linear infinite;
+}
+.ld svg * { opacity: 0; }
+.ld :is(input, select, textarea) { border-color: transparent !important; border-radius: 12px; }
+.ld ::placeholder { color: transparent; }
+@keyframes ldShine { from { background-position: 100% 0; } to { background-position: 0 0; } }
+
 /* Top bar actions and notifications */
 .topact { display: flex; align-items: center; gap: 8px; }
 .top.rich::before { content: ''; position: absolute; inset: 0; pointer-events: none; background: var(--bg); background: radial-gradient(90% 120% at 0% 0%, rgba(var(--gold-rgb), 0.13), transparent 70%), color-mix(in srgb, var(--bg) 70%, transparent); -webkit-backdrop-filter: blur(16px) saturate(1.4); backdrop-filter: blur(16px) saturate(1.4); -webkit-mask-image: radial-gradient(ellipse 50% 14px at 50% 100%, transparent 93%, #000 100%); mask-image: radial-gradient(ellipse 50% 14px at 50% 100%, transparent 93%, #000 100%); }

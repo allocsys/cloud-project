@@ -40,7 +40,8 @@ function useSeen() {
   return [ref, seen];
 }
 
-import { Sk, SkInvite, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_REF, PH_VIP } from '@/lib/placeholder';
 
 export default function Referrals() {
   const t = useT();
@@ -49,8 +50,9 @@ export default function Referrals() {
   const [stepsRef, stepsSeen] = useSeen();
   const [sheet, setSheet] = useState(null);
   const { data: rd, mutate } = useApi('/api/referrals', { ttl: 0 });
-  const referral = rd || seed;
   const waitRd = useWaiting(!rd);
+  // Until the first answer, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  const referral = rd || (waitRd ? PH_REF : seed);
   const [name, setName] = useState('');
   const [pct, setPct] = useState(10);
   const [edit, setEdit] = useState(null); // the code being edited
@@ -167,7 +169,7 @@ export default function Referrals() {
         t('ref.rule7', rv),
       ]
     : referral.rules;
-  const vip = rd?.vip;
+  const vip = rd?.vip || (waitRd ? PH_VIP : undefined);
   const nx = vip?.next;
   const vipFrac = nx ? Math.max(nx.leftUsd !== null && nx.minSpendUsd > 0 ? 1 - nx.leftUsd / nx.minSpendUsd : 0, nx.leftFriends !== null && nx.minFriends > 0 ? 1 - nx.leftFriends / nx.minFriends : 0) : 1;
   const steps = [
@@ -180,19 +182,12 @@ export default function Referrals() {
     <>
       <style>{'.rhero{position:relative;overflow:hidden}.rshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:rShine 8s ease-in-out infinite}@keyframes rShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.steps3 .sico{position:relative}.steps3 .sico::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;border-radius:inherit;border:1.5px solid var(--gold2);opacity:0;animation:rPing 4.5s ease-out infinite}.steps3 .st:nth-child(2) .sico::after{animation-delay:1.5s}.steps3 .st:nth-child(3) .sico::after{animation-delay:3s}@keyframes rPing{0%{transform:scale(.9);opacity:.7}30%,100%{transform:scale(1.6);opacity:0}}.rpause .rshine,.rpause .sico::after{animation-play-state:paused}'}</style>
       <PageHead title={t('nav.invite')} icon="invite" />
-      <div className="grid rise">
+      <div className={waitRd ? 'grid rise ld' : 'grid rise'} aria-busy={waitRd || undefined}>
         <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`}>
           <i className="rshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('ref.earnings')}</span>
-          {waitRd ? (
-            <div className="skc" aria-busy="true">
-              <Sk w="62%" h={38} r={10} />
-              <Sk w="80%" h={22} r={11} />
-            </div>
-          ) : (
-          <>
           <div className="big">
-            {referral.earnedBtc}
+            <span>{referral.earnedBtc}</span>
             <small>BTC</small>
           </div>
           <div className="chips">
@@ -200,15 +195,9 @@ export default function Referrals() {
             <span>{t('ref.active', { n: active })}</span>
             <span>{rewardText}</span>
           </div>
-          </>
-          )}
         </div>
 
         <div className="grid wal">
-          {waitRd ? (
-            <SkInvite />
-          ) : (
-          <>
           {vip && (
             <div className="card">
               <div className="itop">
@@ -303,8 +292,6 @@ export default function Referrals() {
               ))}
             </div>
           </div>
-          </>
-          )}
         </div>
 
         <div className="linkrow">

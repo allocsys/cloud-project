@@ -44,7 +44,8 @@ function Back({ title }) {
   );
 }
 
-import { Sk, SkMinerPage, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_MINER, PH_MINER_DET } from '@/lib/placeholder';
 
 export default function ContractPage() {
   const { serial } = useParams();
@@ -55,26 +56,23 @@ export default function ContractPage() {
   const [toast, show] = useToast();
   const [renewBusy, setRenewBusy] = useState(false);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
-  const c = (md ? md.contracts : contracts).find((x) => x.serial === serial);
+  const found = (md ? md.contracts : contracts).find((x) => x.serial === serial);
   // The finished payout days and what they came to in BTC, from the server (each day at its own market).
-  const { data: det } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
+  const { data: detLive } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
   const waitMd = useWaiting(!md);
-  const waitDet = useWaiting(!det);
+  const waitDet = useWaiting(!detLive);
+  // Until the first answers arrive the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  const phMd = !found && !md && waitMd;
+  const phDet = !detLive && waitDet;
+  const c = found || (phMd ? PH_MINER : undefined);
+  const det = detLive || (phDet ? PH_MINER_DET : undefined);
 
   if (!c) {
     if (!md) {
-      // Still loading: the header and a placeholder of the page.
+      // Still loading (and waiting too long): just the header.
       return (
         <>
-          <div className="top rich">
-            <Back title={t('min.miner')} />
-            {waitMd && <Sk w={64} h={24} r={12} />}
-          </div>
-          {waitMd && (
-            <div className="grid">
-              <SkMinerPage />
-            </div>
-          )}
+          <div className="top rich"><Back title={t('min.miner')} /></div>
         </>
       );
     }
@@ -129,24 +127,17 @@ export default function ContractPage() {
   return (
     <>
       <div className="top rich">
-        <Back title={c.smart ? t('dash.smart') : t('min.title', { name: planLabel(c.plan) })} />
-        <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}`}>{!c.online ? t('dash.offline') : c.paused ? t('plans.pausedToday') : t('dash.online')}</span>
+        <Back title={phMd ? t('min.miner') : c.smart ? t('dash.smart') : t('min.title', { name: planLabel(c.plan) })} />
+        <span className={`badge ${c.online && !c.paused ? 'ok' : 'warn'}${phMd ? ' ld' : ''}`}>{!c.online ? t('dash.offline') : c.paused ? t('plans.pausedToday') : t('dash.online')}</span>
       </div>
-      <div className="grid">
+      <div className={phMd ? 'grid ld' : 'grid'} aria-busy={phMd || undefined}>
         <div className="card hero">
           <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={c.serial} />
           <span className="mute eyebrow">{t('min.earned', { serial: c.serial })}</span>
-          {waitDet ? (
-            <div className="skc" aria-busy="true">
-              <Sk w="46%" h={38} r={10} />
-              <Sk w="32%" h={14} />
-            </div>
-          ) : (
-            <>
-              <div className="big"><span>${formatUsd(total)}</span></div>
-              <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
-            </>
-          )}
+          <div className={phDet ? 'ld' : undefined} style={{ display: 'contents' }}>
+            <div className="big"><span>${formatUsd(total)}</span></div>
+            <span className="mute" style={{ fontSize: '14px' }}>≈ {formatBtc(det?.contract?.earnedBtc ?? 0)} BTC</span>
+          </div>
           <div className="bar" role="progressbar" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100}>
             <i style={{ width: `${pct}%` }} />
           </div>
@@ -157,7 +148,7 @@ export default function ContractPage() {
           {c.extendedDays > 0 && <span className="mute" style={{ fontSize: '13px' }}>{c.extendedDays === 1 ? t('min.ext1') : t('min.extN', { n: c.extendedDays })}</span>}
         </div>
 
-        <div className="grid cols">
+        <div className={phDet ? 'grid cols ld' : 'grid cols'}>
           <div className="card">
             <div className="cardhead">
               <h3>{t('min.daily')}</h3>

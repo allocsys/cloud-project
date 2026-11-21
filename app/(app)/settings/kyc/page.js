@@ -8,7 +8,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { useApi, post, revalidate } from '@/lib/api';
 import { COUNTRIES, DOCS, MAX_PHOTO, ageOf } from '@/lib/kyc';
 import { useT } from '@/components/I18nProvider';
-import { SkKyc, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
 
 const STEPS = ['kyc.s1', 'kyc.s2', 'kyc.s3', 'kyc.s4'];
 
@@ -184,9 +184,7 @@ export default function Kyc() {
         </div>
       </div>
 
-      {waitKd ? (
-        <SkKyc />
-      ) : status !== 'none' ? (
+      {!waitKd && status !== 'none' ? (
         <div className="card">
           <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
           <p className="mute" style={{ margin: '8px 0 16px' }}>
@@ -197,7 +195,7 @@ export default function Kyc() {
           <button className="btn" type="button" onClick={() => drillBack(router, '/settings')}>{t('kyc.backSettings')}</button>
         </div>
       ) : (
-        <div className="card">
+        <div className={waitKd ? 'card ld' : 'card'} aria-busy={waitKd || undefined}>
           {kd?.rejectedAt && <div className="ferr" role="status" style={{ marginBottom: 12 }}>{t('kyc.rejected')}</div>}
           <div className="steps" role="progressbar" aria-valuemin={1} aria-valuemax={4} aria-valuenow={step + 1} aria-label={t('kyc.progress')}>
             {STEPS.map((s, i) => (

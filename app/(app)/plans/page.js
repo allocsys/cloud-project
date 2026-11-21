@@ -40,7 +40,8 @@ const afterPop = () =>
     window.addEventListener('popstate', end);
   });
 
-import { SkTab, SkPlans, SkMiners, SkBoost, useWaiting } from '@/components/Skeleton';
+import { SkTab, useWaiting } from '@/components/Skeleton';
+import { PH_MINERS } from '@/lib/placeholder';
 
 export default function Plans() {
   const { t, lang } = useLang();
@@ -70,8 +71,7 @@ export default function Plans() {
   // The Boost tab shows only while boost tickets are on (or a boost is still running); otherwise the page falls back to Buy plans.
   const { data: bd } = useApi('/api/boost', { ttl: 10000 });
   const boostOn = !!bd && (bd.enabled || (bd.running || []).length > 0);
-  // Restored on the Boost tab: wait for /api/boost before deciding, so Buy plans does not flash first.
-  const boostWait = tab === 'boost' && !bd;
+  // The Boost card draws itself in the loading look until /api/boost answers (BoostCard's loading prop), so Buy plans does not flash first.
   // Shimmer placeholders while the first answers are on their way (see components/Skeleton.js).
   const waitCat = useWaiting(!cat);
   const waitMd = useWaiting(!md);
@@ -383,12 +383,10 @@ export default function Plans() {
         </div>
       ))}
 
-      {view === 'boost' && boostWait ? <SkBoost /> : view === 'boost' ? (
-        <BoostCard show={show} />
-      ) : view === 'buy' && waitCat ? (
-        <SkPlans />
+      {view === 'boost' ? (
+        <BoostCard show={show} loading={!bd && waitBd} />
       ) : view === 'buy' ? (
-      <>
+      <div className={waitCat ? 'ld' : undefined} aria-busy={waitCat || undefined} style={{ display: 'contents' }}>
       {cat?.smartOn !== false && (
         <SmartCard
           budget={budget}
@@ -416,10 +414,10 @@ export default function Plans() {
         within={balUsd >= ap.price}
         onBuy={() => selectPlan({ id: 'custom' })}
       />
-      </>
-      ) : list.length ? (
-        <div className="clist">
-          {list.map((c) => {
+      </div>
+      ) : list.length || (!md && waitMd) ? (
+        <div className={md ? 'clist' : 'clist ld'} aria-busy={!md || undefined}>
+          {(md ? list : PH_MINERS).map((c) => {
             const pct = Math.round((c.elapsed / c.days) * 100);
             const rig = rigFor(c);
             return (
@@ -460,7 +458,7 @@ export default function Plans() {
           <p className="empty">{t('plans.noMiners')}</p>
           <button className="swap" onClick={() => setTab('buy')}>{t('plans.buyOne')}</button>
         </div>
-      ) : waitMd ? <SkMiners /> : null}
+      ) : null}
 
       {sel && (
         <div

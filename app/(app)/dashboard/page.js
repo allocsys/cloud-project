@@ -16,7 +16,8 @@ import { useT, useLang } from '@/components/I18nProvider';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
-import { SkDash, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_BUNDLE } from '@/lib/placeholder';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -119,8 +120,11 @@ export default function Dashboard() {
   // One call for the per-user data (miners, dashboard, wallet, referrals, notifications):
   // five requests that each loaded the same account document are now one (lib/server/bundle.js).
   // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
-  const { data: bundle } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
-  const waitBundle = useWaiting(!bundle);
+  const { data: live } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
+  const waitBundle = useWaiting(!live);
+  // While the first answer is on its way the screen draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  const ph = !live && waitBundle;
+  const bundle = live || (ph ? PH_BUNDLE : undefined);
   const md = bundle?.miners;
   const miners = md ? md.contracts : [];
   const online = miners.filter((c) => c.online);
@@ -217,7 +221,7 @@ export default function Dashboard() {
   }, []);
   // payoutCard only needs the current UTC day, so a plain timestamp at render time is enough — no ticking clock (the 60s data poll keeps it fresh).
   const now = Date.now();
-  const paid = dd && dash.hasMiners ? payoutCard(all, now, paySeen) : null;
+  const paid = dd && !ph && dash.hasMiners ? payoutCard(all, now, paySeen) : null;
   const closePaid = () => {
     try {
       localStorage.setItem('vtx-payout-seen', String(paid.day));
@@ -233,7 +237,7 @@ export default function Dashboard() {
           <HeadIcon kind="earnings" />
           <div className="eh-ttl">
             <h2>{t('nav.earnings')}<i className="ldot" role="img" aria-label={t('dash.live')} /></h2>
-            <small>{md ? (online.length ? t('dash.mining') : t('dash.idle')) : '\u00a0'}</small>
+            <small>{md && !ph ? (online.length ? t('dash.mining') : t('dash.idle')) : '\u00a0'}</small>
           </div>
         </div>
         <div className="topact">
@@ -251,8 +255,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className="grid rise">
-        {waitBundle ? <SkDash /> : <>
+      <div className={ph ? 'grid rise ld' : 'grid rise'} aria-busy={ph || undefined}>
         {paid && (
           <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>
@@ -491,8 +494,7 @@ export default function Dashboard() {
           </div>
         )}
 
-        <RateUs />
-        </>}
+        {!ph && <RateUs />}
       </div>
     </>
   );

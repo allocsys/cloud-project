@@ -28,7 +28,8 @@ function Switch({ on, onChange, label }) {
   );
 }
 
-import { SkSettings, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_ME } from '@/lib/placeholder';
 
 export default function Settings() {
   const router = useRouter();
@@ -38,8 +39,10 @@ export default function Settings() {
   const { data: sd, mutate: mutateSettings, refresh: refreshSettings } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
-  const { data: me, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
-  const waitMe = useWaiting(!me);
+  const { data: meLive, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
+  const waitMe = useWaiting(!meLive);
+  // Until the account answers, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  const me = meLive || (waitMe ? PH_ME : undefined);
   const [inst, setInst] = useState({ can: false, ios: false, standalone: true });
   const [theme, setTheme] = useState('dark');
   const [pwOpen, setPwOpen] = useState(false);
@@ -482,21 +485,10 @@ export default function Settings() {
     window.location.assign('/'); // a fresh load, so the home page shows the signed-out version
   }
 
-  if (waitMe) {
-    return (
-      <>
-        <PageHead title={t('nav.settings')} icon="settings" />
-        <div className="grid wal" style={{ alignItems: 'start' }}>
-          <SkSettings />
-        </div>
-      </>
-    );
-  }
-
   return (
     <>
       <PageHead title={t('nav.settings')} icon="settings" />
-      <div className="grid wal" style={{ alignItems: 'start' }}>
+      <div className={waitMe ? 'grid wal ld' : 'grid wal'} aria-busy={waitMe || undefined} style={{ alignItems: 'start' }}>
         <div className="card">
           <div className="row" style={{ borderTop: 0 }}>
             <div>

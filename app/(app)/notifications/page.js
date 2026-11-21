@@ -8,7 +8,7 @@ import { drillBack } from '@/lib/nav';
 import { triggerHaptic } from '@/lib/haptics';
 import { useLang } from '@/components/I18nProvider';
 import { noteTitle, noteBody, noteWhen } from '@/lib/i18n/notes';
-import { SkRows, useWaiting } from '@/components/Skeleton';
+import { useWaiting } from '@/components/Skeleton';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -91,10 +91,8 @@ export default function Notifications() {
         )}
       </div>
 
-      <div className="card">
-        {wait ? (
-          <SkRows n={4} right="time" />
-        ) : items.length ? (
+      <div className={wait ? 'card ld' : 'card'} aria-busy={wait || undefined}>
+        {items.length ? (
           items.map((n, i) => {
             const k = KIND[n.kind] || KIND.news;
             return (
