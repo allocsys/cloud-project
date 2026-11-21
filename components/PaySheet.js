@@ -155,7 +155,7 @@ function Details({ order }) {
 }
 
 // The pinned part: one main button (Connect wallet when it fits, else Open wallet), Copy address and Copy amount, Cancel order.
-function Actions({ order, show, onCancel }) {
+function Actions({ order, show, onCancel, expired = false }) {
   const t = useT();
   const w = useWallet();
   const [opening, setOpening] = useState(false);
@@ -190,17 +190,19 @@ function Actions({ order, show, onCancel }) {
   };
   return (
     <>
-      {kind && <ConnectBtn big order={order} show={show} onFail={() => setFailed(true)} />}
-      {canOpen && (!kind || failed) && (
+      {!expired && kind && <ConnectBtn big order={order} show={show} onFail={() => setFailed(true)} />}
+      {!expired && canOpen && (!kind || failed) && (
         <button type="button" className={kind ? 'btn ghost' : 'btn'} onClick={openWallet} disabled={opening}>
           {opening && <Spin />}
           {t('plans.openWallet')}
         </button>
       )}
-      <div style={{ display: 'flex', gap: 8 }}>
-        <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('addr', order.address)}>{copied === 'addr' ? t('ref.copied') : t('pay.copyAddr')}</button>
-        <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('amt', String(order.amount))}>{copied === 'amt' ? t('ref.copied') : t('pay.copyAmt')}</button>
-      </div>
+      {!expired && (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('addr', order.address)}>{copied === 'addr' ? t('ref.copied') : t('pay.copyAddr')}</button>
+          <button type="button" className="btn ghost" style={{ flex: 1 }} aria-live="polite" onClick={() => copy('amt', String(order.amount))}>{copied === 'amt' ? t('ref.copied') : t('pay.copyAmt')}</button>
+        </div>
+      )}
       <button type="button" className="linkbtn" style={{ alignSelf: 'center', color: 'var(--red)' }} onClick={onCancel}>{t('pay.cancelOrder')}</button>
     </>
   );
@@ -216,6 +218,7 @@ export function PaySheet({ order, show, busy = false, canSwitch = false, onClose
   const [dragY, setDragY] = useState(0);
   const [target, setTarget] = useState(null); // the coin just tapped: the highlight moves at once, before the new order arrives
   const left = useLeft(order.expiresAt);
+  const expired = left === 0; // timed out: no address, amount or pay buttons (the header says Expired); the coin tabs and Cancel stay
   const a = PAY_ASSETS[order.asset || 'btc'] || PAY_ASSETS.btc;
   const coin = target || { asset: order.asset || 'btc', net: order.network || a.nets[0] };
 
@@ -303,12 +306,14 @@ export function PaySheet({ order, show, busy = false, canSwitch = false, onClose
             )}
           </div>
           {canSwitch && <CoinTabs value={coin} onChange={pick} disabled={busy} />}
-          <div style={{ opacity: busy ? 0.45 : 1, transition: 'opacity 0.2s' }}>
-            <Details key={order.id} order={order} />
-          </div>
+          {!expired && (
+            <div style={{ opacity: busy ? 0.45 : 1, transition: 'opacity 0.2s' }}>
+              <Details key={order.id} order={order} />
+            </div>
+          )}
         </div>
         <div className="sheetfoot" style={busy ? { pointerEvents: 'none', opacity: 0.6 } : undefined}>
-          <Actions key={order.id} order={order} show={show} onCancel={onCancel} />
+          <Actions key={order.id} order={order} show={show} onCancel={onCancel} expired={expired} />
         </div>
       </div>
     </div>
