@@ -122,7 +122,7 @@ test('a tap answers in the same message, the menu buttons go, one Menu button co
   assert.equal(tg.of('send').length, 2, 'no new message: only the menu and the Menu button message from /start');
   const e = tg.of('edit')[0];
   assert.equal(e.message_id, mid);
-  assert.ok(e.text.includes('Balance: 0.50000000 BTC'), e.text);
+  assert.ok(e.text.includes('₿ 0.50000000 BTC'), e.text);
   const after = rowsOf(e);
   assert.deepEqual(buttons(after).map((b) => b.callback_data.split(':')[1]), ['menu']);
   assert.equal(buttons(after)[0].text, texts.en.b_menu);

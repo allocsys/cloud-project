@@ -51,19 +51,19 @@ after(async () => {
 test('/balance asks the app with the Telegram id and shows BTC, USD and the hold', async () => {
   await say('/balance');
   assert.deepEqual(calls, [{ name: 'balance', payload: { tg_id: 7001 } }]);
-  assert.equal(sent[0].text, 'Balance: 0.00123456 BTC\n≈ $85.20\nOn hold: 0.00050000 BTC');
+  assert.equal(sent[0].text, '💰 Balance\n\n₿ 0.00123456 BTC\n💵 ≈ $85.20\n🔒 On hold: 0.00050000 BTC');
 });
 
 test('no USD line without a real price, no hold line without a hold', async () => {
   answer = { ok: true, status: 200, json: { ok: true, btc: 0.5, locked: 0, usd: null } };
   await say('/balance');
-  assert.equal(sent[0].text, 'Balance: 0.50000000 BTC');
+  assert.equal(sent[0].text, '💰 Balance\n\n₿ 0.50000000 BTC');
 });
 
 test('Persian chat gets the Persian text', async () => {
   await q("INSERT INTO chats (tg_id, lang) VALUES (7001, 'fa')");
   await say('/balance');
-  assert.equal(sent[0].text, 'موجودی: 0.00123456 BTC\n≈ $85.20\nمسدود: 0.00050000 BTC');
+  assert.equal(sent[0].text, '💰 موجودی\n\n₿ 0.00123456 BTC\n💵 ≈ $85.20\n🔒 مسدود: 0.00050000 BTC');
 });
 
 test('no account: message and Open app button', async () => {
@@ -88,7 +88,7 @@ test('app down, switched off or odd answer: Try again in a minute', async () => 
 
 test('the menu lists /balance and the texts exist in en and fa', () => {
   assert.ok(commandList('en').some((c) => c.command === 'balance' && c.description === 'Show balance'));
-  for (const k of ['bal', 'balUsd', 'balHold', 'noAcc', 'busy', 'd_balance']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  for (const k of ['balTitle', 'bal', 'balUsd', 'balHold', 'noAcc', 'busy', 'd_balance']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
   assert.equal(t('fa', 'd_balance'), 'نمایش موجودی');
 });
 
