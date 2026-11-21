@@ -40,7 +40,7 @@ function useSeen() {
   return [ref, seen];
 }
 
-import { Sk, SkCard, useWaiting } from '@/components/Skeleton';
+import { Sk, SkInvite, useWaiting } from '@/components/Skeleton';
 
 export default function Referrals() {
   const t = useT();
@@ -206,10 +206,7 @@ export default function Referrals() {
 
         <div className="grid wal">
           {waitRd ? (
-            <>
-              <SkCard lines={3} />
-              <SkCard lines={4} />
-            </>
+            <SkInvite />
           ) : (
           <>
           {vip && (

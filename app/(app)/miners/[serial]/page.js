@@ -44,7 +44,7 @@ function Back({ title }) {
   );
 }
 
-import { Sk, SkHero, SkCard, useWaiting } from '@/components/Skeleton';
+import { Sk, SkMinerPage, useWaiting } from '@/components/Skeleton';
 
 export default function ContractPage() {
   const { serial } = useParams();
@@ -66,11 +66,13 @@ export default function ContractPage() {
       // Still loading: the header and a placeholder of the page.
       return (
         <>
-          <div className="top rich"><Back title={t('min.miner')} /></div>
+          <div className="top rich">
+            <Back title={t('min.miner')} />
+            {waitMd && <Sk w={64} h={24} r={12} />}
+          </div>
           {waitMd && (
             <div className="grid">
-              <SkHero />
-              <SkCard lines={4} />
+              <SkMinerPage />
             </div>
           )}
         </>

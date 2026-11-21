@@ -8,7 +8,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { useApi, post, revalidate } from '@/lib/api';
 import { COUNTRIES, DOCS, MAX_PHOTO, ageOf } from '@/lib/kyc';
 import { useT } from '@/components/I18nProvider';
-import { SkCard, useWaiting } from '@/components/Skeleton';
+import { SkKyc, useWaiting } from '@/components/Skeleton';
 
 const STEPS = ['kyc.s1', 'kyc.s2', 'kyc.s3', 'kyc.s4'];
 
@@ -185,7 +185,7 @@ export default function Kyc() {
       </div>
 
       {waitKd ? (
-        <SkCard lines={5} />
+        <SkKyc />
       ) : status !== 'none' ? (
         <div className="card">
           <h3>{status === 'verified' ? t('kyc.verified') : t('kyc.submitted')}</h3>
