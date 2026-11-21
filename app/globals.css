@@ -713,6 +713,11 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
 @keyframes sp-spin { to { transform: rotate(360deg); } }
 @keyframes sp-breathe { 50% { transform: scale(1.08); } }
 
+/* Top bar of the info pages (components/SiteTop.js) */
+.site-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; max-width: 960px; min-height: 56px; margin: 0 auto; padding: max(8px, env(safe-area-inset-top, 0px)) 20px 0; }
+.site-top a { text-decoration: none; }
+.site-top + #auth { min-height: calc(100dvh - 56px); padding-top: 12px; }
+
 /* Login */
 #auth {
   min-height: 100vh;
