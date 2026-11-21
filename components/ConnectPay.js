@@ -3,7 +3,7 @@
 // EVM coins and USDT. The project id (a free Reown id, variable NEXT_PUBLIC_WC_PROJECT_ID on the server) comes with the order; without it the button is not shown.
 // EVM works in two taps: Connect wallet only connects (no payment request), then the same button becomes Send payment and asks the connected wallet for the transfer.
 // The EVM connection lives in components/WalletProvider.js (shared with the header pill), so a wallet connected there goes straight to Send payment.
-// Inside Telegram (wc: links are blocked there) the same two taps work for TON invoices with Tonkeeper over TON Connect; EVM invoices have no Connect wallet there.
+// Inside Telegram (wc: links are blocked there) TON invoices use Tonkeeper over TON Connect, and EVM invoices open SafePal with its https link.
 import { useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
@@ -64,11 +64,10 @@ export function tryOpen(url, ms = 1500) {
   });
 }
 
-// Which Connect wallet flow an invoice gets: 'evm', 'ton' (Telegram only) or null (no button, Open wallet and Copy address stay up front).
+// Which Connect wallet flow an invoice gets: 'evm', 'ton' or null (no button, Open wallet and Copy address stay up front).
 export function connectKind(order, w) {
   if (!w) return null;
   if (order.network === 'ton') return tonTx(order.uri) ? 'ton' : null;
-  if (w.tg) return null;
   return order.wc && evmTx(order.uri) ? 'evm' : null;
 }
 
@@ -86,7 +85,7 @@ export function ConnectBtn({ order, show, onFail, big = false, payLabel = '', co
   const ton = kind === 'ton' ? tonTx(order.uri) : null;
   if (!kind) return null;
   const own = !!(evm || ton); // the wallet connection is shared with the header pill
-  const acct = own ? (kind === 'ton' ? w.tonAcct : w.acct) : '';
+  const acct = own ? (kind === 'ton' ? w.tonAcct : w.evmAcct) : '';
   const go = async () => {
     if (busy || (own && w.busy)) return;
     triggerHaptic('selection');
