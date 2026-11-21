@@ -87,7 +87,9 @@ test('the target must be https (localhost may use http) with a long enough secre
   assert.equal(webhookTarget({ appWebhookUrl: '', webhookSecret: '' }), null);
   assert.ok(t('https://app.example/hook', SECRET)());
   assert.ok(t('http://localhost:3000/hook', SECRET)());
+  assert.ok(t('http://api.railway.internal:8080/hook', SECRET)());
   assert.throws(t('http://app.example/hook', SECRET), /https/);
+  assert.throws(t('http://railway.internal.evil.example/hook', SECRET), /https/);
   assert.throws(t('ftp://app.example/hook', SECRET), /https/);
   assert.throws(t('not a url', SECRET), /valid URL/);
   assert.throws(t('https://app.example/hook', 'short'), /16 characters/);
