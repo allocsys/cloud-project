@@ -7,7 +7,25 @@ on:
       - '**.css'
       - '**.md'
       - 'public/**'
+      - 'bot/**'
+      - 'gateway/**'
+      - 'promo/**'
+      - '.github/workflows/gateway.yml'
+      - '.github/workflows/bot.yml'
+      - '.github/workflows/promo.yml'
+      - '.github/workflows/lockfile-update.yml'
   pull_request:
+    paths-ignore:
+      - '**.css'
+      - '**.md'
+      - 'public/**'
+      - 'bot/**'
+      - 'gateway/**'
+      - 'promo/**'
+      - '.github/workflows/gateway.yml'
+      - '.github/workflows/bot.yml'
+      - '.github/workflows/promo.yml'
+      - '.github/workflows/lockfile-update.yml'
   workflow_dispatch:
 
 permissions:
