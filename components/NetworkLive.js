@@ -76,12 +76,12 @@ export default function NetworkLive() {
     <div ref={ref} className="nl" aria-label={t('netlive.title')}>
       <style>{`
         .nl{border:1px solid rgba(232,184,74,.3);border-radius:14px;padding:12px 14px;margin:6px 0}
-        .nl-h{display:flex;align-items:center;gap:8px;font-size:13px;color:#a89868;margin-bottom:10px}
+        .nl-h{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute);margin-bottom:10px}
         .nl-dot{width:8px;height:8px;border-radius:50%;background:#7fd8a0;box-shadow:0 0 0 0 rgba(127,216,160,.6);animation:nlPulse 1.8s infinite}
         .nl-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
         .nl-c{text-align:center;animation:nlIn .6s ease both}
-        .nl-n{font-size:17px;font-weight:700;color:#e8b84a;white-space:nowrap}
-        .nl-l{font-size:11px;color:#a89868;white-space:nowrap}
+        .nl-n{font-size:17px;font-weight:700;color:var(--gold2);white-space:nowrap}
+        .nl-l{font-size:11px;color:var(--mute);white-space:nowrap}
         @keyframes nlPulse{0%{box-shadow:0 0 0 0 rgba(127,216,160,.6)}70%{box-shadow:0 0 0 8px rgba(127,216,160,0)}100%{box-shadow:0 0 0 0 rgba(127,216,160,0)}}
         @keyframes nlIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
       `}</style>
