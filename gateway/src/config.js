@@ -20,7 +20,7 @@
 // INVOICE_BUFFER_PERCENT  extra added to every invoice amount for fees, commissions and price moves (default 2, 0 to 20)
 // EVM_CATCHUP_HOURS   an idle EVM scanner wakes when an invoice opens and reads back at most this many hours (default 6)
 // IDLE_POLL_SECONDS   how often the watcher looks for new invoices while none is open (default 60, minimum 5)
-// APP_WEBHOOK_URL    where signed payment callbacks go (the app's /api/payments/webhook). https only (http only for localhost).
+// APP_WEBHOOK_URL    where signed payment callbacks go (the app's /api/payments/webhook). https only (http only for localhost and *.railway.internal).
 // GATEWAY_WEBHOOK_SECRET  signs every callback (x-gateway-sig). At least 16 characters. Same value in the app.
 // OUTBOX_SECONDS      how often due callbacks are sent (default 10, minimum 1)
 // RATE_SOURCE         'coingecko' (default) or 'static' (staging and tests: uses RATE_BTC_USD, or RATE_<ASSET>_USD)
