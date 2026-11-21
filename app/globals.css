@@ -484,7 +484,7 @@ input::placeholder { color: var(--ph); }
 .minitabs.fill button { flex: 1; padding: 0 4px; }
 
 /* Landing (the page before sign-in) */
-.lp { min-height: 100vh; min-height: 100dvh; padding: max(12px, env(safe-area-inset-top, 0px)) 20px calc(80px + env(safe-area-inset-bottom, 0px)); }
+.lp { min-height: 100vh; min-height: 100dvh; padding: max(12px, env(safe-area-inset-top, 0px)) 20px calc(80px + env(safe-area-inset-bottom, 0px) + var(--cookie-h, 0px)); }
 .lp-in { max-width: 960px; margin: 0 auto; }
 .lp a { text-decoration: none; }
 .lp-top { display: flex; align-items: center; justify-content: space-between; min-height: 48px; }
@@ -640,7 +640,7 @@ input::placeholder { color: var(--ph); }
 :root[data-theme="light"] .lp-why { box-shadow: inset 0 0 0 1px var(--line); }
 .lp-ic { flex: none; width: 36px; height: 36px; display: grid; place-items: center; border-radius: 12px; background: var(--gold-c); }
 .lp-ic svg { width: 20px; height: 20px; fill: none; stroke: var(--on-gold-c); stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-.lp-sticky { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px)); max-width: 420px; margin: 0 auto; opacity: 0; transform: translateY(140%); pointer-events: none; }
+.lp-sticky { position: fixed; z-index: 20; left: 16px; right: 16px; bottom: calc(16px + env(safe-area-inset-bottom, 0px) + var(--cookie-h, 0px)); max-width: 420px; margin: 0 auto; opacity: 0; transform: translateY(140%); pointer-events: none; }
 .lp-sticky.on { opacity: 1; transform: none; pointer-events: auto; }
 .lp-sticky .btn { min-height: 44px; font-size: 14px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.5); text-decoration: none; }
 /* Hold to start: outline button, the gold fill sweeps across while the label decrypts */
@@ -719,7 +719,7 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
   min-height: 100dvh;
   display: grid;
   place-items: center;
-  padding: max(24px, env(safe-area-inset-top, 0px)) 24px 24px;
+  padding: max(24px, env(safe-area-inset-top, 0px)) 24px calc(24px + var(--cookie-h, 0px));
 }
 
 .authbox {
