@@ -19,6 +19,12 @@ const MAINNET = '-239';
 // SafePal's https link: the only way found to open it from Telegram's webview (wc: and safepal:// give ERR_UNKNOWN_URL_SCHEME).
 const SAFEPAL = 'https://link.safepal.io/';
 const inTg = () => typeof window !== 'undefined' && !!window.Telegram?.WebApp?.initData;
+// Tells the server which wallet this account connected (address and chain only). Quiet if nobody is signed in.
+const saveAddr = (address, chain) => {
+  try {
+    fetch('/api/account/wallet', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ address, chain }), keepalive: true }).catch(() => {});
+  } catch {}
+};
 const Ctx = createContext(null);
 
 const meta = () => ({ name: 'Vertexhash', description: 'Vertexhash', url: window.location.origin, icons: [`${window.location.origin}/icons/192`] });
@@ -89,6 +95,7 @@ export default function WalletProvider({ children }) {
               const friendly = toUserFriendlyAddress(a.address);
               tonLive.current = { acct: friendly };
               setTonAcct(friendly);
+              saveAddr(friendly, 'ton');
               remember(true, TON_FLAG);
               return;
             }
@@ -214,6 +221,7 @@ export default function WalletProvider({ children }) {
         ]).finally(() => clearTimeout(timer));
         const a = adopt(client, session);
         if (!a) throw new Error('no account');
+        saveAddr(a, 'evm');
         remember(true);
         return a;
       } finally {
