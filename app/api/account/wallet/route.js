@@ -13,7 +13,7 @@ const NO_STORE = { 'Cache-Control': 'no-store' };
 async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
-  if (await reserveAction(`w:${id}`)) {
+  if (await reserveAction(`cw:${id}`)) {
     return NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
   }
   let body;
