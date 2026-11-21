@@ -291,7 +291,7 @@ export function PaySheet({ order, show, busy = false, canSwitch = false, onClose
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
             <div style={{ minWidth: 0 }}>
               <h3 id="pay-t">{order.label}</h3>
-              <b style={{ color: 'var(--gold2)' }}>${fmtUsd(order.usd)}</b>
+              {!String(order.label || '').includes('$') && <b style={{ color: 'var(--gold2)' }}>${fmtUsd(order.usd)}</b>}
             </div>
             {left !== null && (
               <div style={{ textAlign: 'end', flexShrink: 0 }}>
