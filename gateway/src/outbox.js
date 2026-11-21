@@ -44,7 +44,7 @@ export function webhookTarget(c = config()) {
   } catch {
     throw new Error('APP_WEBHOOK_URL is not a valid URL');
   }
-  const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1';
+  const local = u.hostname === 'localhost' || u.hostname === '127.0.0.1' || u.hostname.endsWith('.railway.internal');
   if (u.protocol !== 'https:' && !(u.protocol === 'http:' && local)) throw new Error('APP_WEBHOOK_URL must be https');
   if (c.webhookSecret.length < 16) throw new Error('GATEWAY_WEBHOOK_SECRET must be at least 16 characters');
   return { url: u.toString(), secret: c.webhookSecret };
