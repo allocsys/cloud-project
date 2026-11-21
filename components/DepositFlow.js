@@ -19,8 +19,8 @@ const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.r
 // Site and app: skip USDT on TON (no jetton send over TON Connect). Telegram shows every network.
 const SITE_SKIP = ['ton'];
 const TON_COIN = { asset: 'ton', net: 'ton' };
-// Coins that pay by Connect wallet: Telegram = TON; site and app = ETH, BNB, TON and USDT on EVM. The rest (BTC, EVM in Telegram, USDT on TON) pay manually.
-const isAuto = (c, tg) => (tg ? c.asset === 'ton' : c.asset === 'eth' || c.asset === 'bnb' || c.asset === 'ton' || (c.asset === 'usdt' && c.net !== 'ton'));
+// Coins that pay by Connect wallet, in Telegram and on site and app: ETH, BNB, TON and USDT on EVM. The rest (BTC, USDT on TON in Telegram) pay manually.
+const isAuto = (c) => c.asset === 'eth' || c.asset === 'bnb' || c.asset === 'ton' || (c.asset === 'usdt' && c.net !== 'ton');
 
 function copyText(text) {
   triggerHaptic('success');
