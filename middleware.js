@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { DEFAULT_LANG, LANG_CODES, LANG_COOKIE, STATIC_PAGES } from '@/lib/i18n/codes';
 import { over, addressOf, isTool, LIMITS } from '@/lib/rate-mem';
-import { edgeOn, fromEdge, edgeFree } from '@/lib/edge';
+import { edgeOn, fromEdge, fromSvc, edgeFree } from '@/lib/edge';
 
 const KEEP = { path: '/', maxAge: 31536000, sameSite: 'lax' };
 
@@ -15,7 +15,8 @@ const MACHINE = ['/api/payments/webhook', '/api/telemetry', '/api/health'];
 function gate(req, pathname) {
   const api = pathname.startsWith('/api/');
   // With API_EDGE_SECRET set, an API call that did not come through the Worker is refused (health check and signed machine calls excepted).
-  if (api && edgeOn() && !edgeFree(pathname) && !fromEdge(req.headers)) return NextResponse.json({ ok: false, error: 'Forbidden.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
+  // The web service reads /api/site/* directly (not through the Worker) with its service secret.
+  if (api && edgeOn() && !edgeFree(pathname) && !fromEdge(req.headers) && !(pathname.startsWith('/api/site/') && fromSvc(req.headers))) return NextResponse.json({ ok: false, error: 'Forbidden.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   if (api && (MACHINE.includes(pathname) || pathname.startsWith('/api/bot/'))) return null; // bot calls are signed; an unsigned one costs one cheap check
   const ip = addressOf(req.headers);
   const ua = req.headers.get('user-agent') || '';
