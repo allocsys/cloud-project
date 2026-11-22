@@ -409,6 +409,8 @@ export default function Dashboard() {
           </div>
         )}
 
+        {!ph && <RateUs />}
+
         {rein && (
           <Link href={reinvestHref(rein)} className="card rein">
             <div>
@@ -496,7 +498,6 @@ export default function Dashboard() {
           </div>
         )}
 
-        {!ph && <RateUs />}
       </div>
     </>
   );

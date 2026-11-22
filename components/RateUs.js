@@ -1,5 +1,5 @@
 'use client';
-// Rate us card at the bottom of the Earnings screen (see lib/rating.js). It sits last, so nothing moves when it appears.
+// Rate us card on the Earnings screen, under the goal card (see lib/rating.js). Slim: title and Later on one line, one small text line, the stars.
 import { useState } from 'react';
 import { useApi, post } from '@/lib/api';
 import { useT } from '@/components/I18nProvider';
@@ -51,10 +51,12 @@ export default function RateUs({ style }) {
   }
 
   return (
-    <div className="card rate" style={style}>
-      <h3>{t('rate.title')}</h3>
-      <small className="mute" style={{ fontSize: '12px' }}>{t('rate.sub')}</small>
-      {data.reward && <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 4 }}>{t('rate.reward')}</small>}
+    <div className="card rate" style={{ padding: '12px 14px', ...style }}>
+      <div className="rate-top">
+        <h3>{t('rate.title')}</h3>
+        <button type="button" className="rate-skip" disabled={busy} onClick={later}>{t('rate.later')}</button>
+      </div>
+      <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 2 }}>{t('rate.sub')}{data.reward ? ` ${t('rate.reward')}` : ''}</small>
       <div className="rate-stars" role="group" aria-label={t('rate.title')}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" className={n <= stars ? 'on' : ''} aria-pressed={n === stars} aria-label={t('rev.stars', { n })} onClick={() => setStars(n)}>
@@ -70,13 +72,9 @@ export default function RateUs({ style }) {
             <input id="rate-c" placeholder=" " value={comment} maxLength={280} onChange={(e) => setComment(e.target.value)} />
           </Field>
           <div className="rate-act">
-            <button type="button" className="btn ghost" disabled={busy} onClick={later}>{t('rate.later')}</button>
             <button type="button" className="btn" disabled={busy} onClick={send}>{t('rate.send')}</button>
           </div>
         </>
-      )}
-      {stars === 0 && (
-        <button type="button" className="rate-skip" onClick={later}>{t('rate.later')}</button>
       )}
     </div>
   );
