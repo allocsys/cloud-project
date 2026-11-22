@@ -83,7 +83,6 @@ export default function Calculator({ signedIn = false }) {
     <div className="calc">
       <div className="calc-l">
         <div className="calc-top">
-          <span className="calc-lbl">{t('calc.earn')}</span>
           <span className="calc-live">
             <i className={best ? '' : 'off'} />
             {best ? t('calc.live', { coin: best.coin }) : t('calc.ref')}
