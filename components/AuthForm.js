@@ -371,18 +371,20 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
 
       {!view && signup && (
         <>
-          <button
-            type="button"
-            className="swap"
-            aria-expanded={refOpen}
-            aria-controls="rc"
-            onClick={() => {
-              triggerHaptic('selection');
-              setRefOpen(!refOpen);
-            }}
-          >
-            {t('auth.refToggle')}
-          </button>
+          <div className="pills">
+            <button
+              type="button"
+              className="pill"
+              aria-expanded={refOpen}
+              aria-controls="rc"
+              onClick={() => {
+                triggerHaptic('selection');
+                setRefOpen(!refOpen);
+              }}
+            >
+              {t('auth.refToggle')}
+            </button>
+          </div>
           {refOpen && (
             <Field id="rc" label={t('auth.refLabel')}>
               <input
@@ -459,10 +461,14 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
           <button className="pill" type="button" onClick={handleForgot}>{t('auth.forgot')}</button>
           <button className="pill" type="button" onClick={handleSwap}>{t('auth.createAccount')}</button>
         </div>
-      ) : (
+      ) : view ? (
         <button className="swap" type="button" onClick={handleSwap}>
-          {view ? t('auth.swapBack') : signup ? t('auth.swapSignin') : t('auth.swapSignup')}
+          {t('auth.swapBack')}
         </button>
+      ) : (
+        <div className="pills">
+          <button className="pill" type="button" onClick={handleSwap}>{t('auth.swapSignin')}</button>
+        </div>
       )}
 
       {!view && tg && (
