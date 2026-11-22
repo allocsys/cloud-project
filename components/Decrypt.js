@@ -85,6 +85,9 @@ export default function Decrypt({ text, when = 'load', delay = 0, pace = 0.6 }) 
       }
     };
 
+    // After the first visit in a session the welcome screen is skipped (components/Splash.js) and so is the scramble here.
+    if (when === 'load' && (window.__vtxSeen === true || document.documentElement.dataset.sp === 'off')) return undefined;
+
     if (when === 'view' && 'IntersectionObserver' in window) {
       arm();
       io = new IntersectionObserver(
