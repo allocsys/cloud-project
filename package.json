@@ -11,7 +11,7 @@
   "dependencies": {
     "@tonconnect/sdk": "5.0.0",
     "@walletconnect/sign-client": "2.26.0",
-    "next": "^15.0.0",
+    "next": "^16.4.5",
     "pg": "^8.23.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0"
