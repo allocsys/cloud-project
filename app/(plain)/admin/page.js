@@ -87,9 +87,11 @@ function UserWallets({ id }) {
   );
   return (
     <>
-      <button className="swap" style={SM} onClick={() => setOpen((v) => !v)}>
-        {open ? 'Hide wallets' : 'Show wallets'}
-      </button>
+      <div className="adm-grid" style={{ gridTemplateColumns: '1fr' }}>
+        <button className="swap" style={SM} onClick={() => setOpen((v) => !v)}>
+          {open ? 'Hide wallets' : 'Show wallets'}
+        </button>
+      </div>
       {open && !data && !err && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
       {open && err && <p className="empty" style={{ paddingTop: 8 }}>{err}</p>}
       {open && data && (
