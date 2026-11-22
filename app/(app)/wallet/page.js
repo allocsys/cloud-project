@@ -19,6 +19,7 @@ import { CoinPicker, PayInfo } from '@/components/PayCoin';
 import DepositFlow from '@/components/DepositFlow';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 import { histLabel, histDate, histFee, histNet } from '@/lib/i18n/history';
+import { dayText } from '@/lib/i18n/notes';
 
 const KIND = {
   payout: { glyph: '↓', cls: 'in' },
@@ -710,7 +711,14 @@ export default function Wallet() {
                 </div>
               </div>
             ) : cryptoOn && dod?.multi ? (
-              <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} allOrders={dod?.orders} />
+              <>
+                {dod?.event && (
+                  <p className="fine" style={{ margin: '0 0 12px', padding: '10px 12px', borderRadius: 12, border: '1px solid #e8b84a', background: 'rgba(232,184,74,.08)' }}>
+                    {t('wal.evBanner', { n: dod.event.perUsd, p: dod.event.price, d: dayText(dod.event.endsAt, lang) })}
+                  </p>
+                )}
+                <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} allOrders={dod?.orders} />
+              </>
             ) : cryptoOn ? (
               <div>
                 {dod?.multi && <CoinPicker value={payCoin} onChange={setPayCoin} disabled={busy} />}
