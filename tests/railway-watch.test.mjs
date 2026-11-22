@@ -2,7 +2,7 @@
 // A file that no pattern lists would never redeploy, so this test walks the real tree and checks each file:
 //   api only  = app/api/, lib/server/                      -> api patterns match, web patterns do not
 //   web only  = the rest of app/, components/, public/     -> web patterns match, api patterns do not
-//   both      = shared lib/, middleware.js, build files    -> both match
+//   both      = shared lib/, proxy.js, build files    -> both match
 // No database needed.
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,7 +47,7 @@ function walk(dir, out = []) {
   return out;
 }
 
-const ROOT_FILES = ['middleware.js', 'instrumentation.js', 'next.config.mjs', 'jsconfig.json', 'package.json', 'package-lock.json', 'Dockerfile'];
+const ROOT_FILES = ['proxy.js', 'instrumentation.js', 'next.config.mjs', 'jsconfig.json', 'package.json', 'package-lock.json', 'Dockerfile'];
 const files = [
   ...['app', 'components', 'lib', 'public', 'scripts'].flatMap((d) => walk(join(ROOT, d))),
   ...ROOT_FILES.filter((f) => existsSync(join(ROOT, f))),

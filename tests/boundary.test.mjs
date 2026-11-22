@@ -1,7 +1,7 @@
 // The web pages and the API can run as two services, so the code must keep one clean line between them (no database needed):
 //   web   = components/, app/ except app/api/
 //   api   = app/api/, lib/server/
-//   shared = the rest of lib/, middleware.js (both sides load these)
+//   shared = the rest of lib/, proxy.js (both sides load these)
 // instrumentation.js is left out: it is the startup file that warms the pages and starts the API jobs, and step 3 splits it by role.
 // A page reads data through lib/site-api.js (HTTP), never by importing the API code.
 import test from 'node:test';
@@ -24,7 +24,7 @@ function walk(dir, out = []) {
 }
 
 const files = [...walk(join(ROOT, 'app')), ...walk(join(ROOT, 'components')), ...walk(join(ROOT, 'lib'))].map((f) => posix(relative(ROOT, f)));
-files.push('middleware.js');
+files.push('proxy.js');
 
 const strip = (s) => s.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`])\/\/.*$/gm, '$1');
 
@@ -68,7 +68,7 @@ test('the API code never imports web files', () => {
   assert.deepEqual(bad('api', 'web'), []);
 });
 
-test('shared files (lib/*, middleware.js) never import the API code or web files', () => {
+test('shared files (lib/*, proxy.js) never import the API code or web files', () => {
   assert.deepEqual(bad('shared', 'api'), []);
   assert.deepEqual(bad('shared', 'web'), []);
 });

@@ -1,14 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { middleware, config } from '@/middleware';
+import { proxy, config } from '@/proxy';
 import { clearCounters, LIMITS, isTool } from '@/lib/rate-mem';
 
 const BROWSER = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36';
 const call = (url, { ip = '203.0.113.7', ua = BROWSER, method = 'GET' } = {}) => {
   const headers = { 'x-forwarded-for': ip };
   if (ua) headers['user-agent'] = ua;
-  return middleware(new NextRequest(`https://x.test${url}`, { method, headers }));
+  return proxy(new NextRequest(`https://x.test${url}`, { method, headers }));
 };
 
 test('the API is behind the middleware, so the limits cover every route', () => {
@@ -46,6 +46,6 @@ test('one address sending far too many requests is answered with 429, another ad
 
 test('a call with no readable address is not limited', () => {
   clearCounters();
-  const req = () => middleware(new NextRequest('https://x.test/api/prices', { headers: { 'user-agent': BROWSER } }));
+  const req = () => proxy(new NextRequest('https://x.test/api/prices', { headers: { 'user-agent': BROWSER } }));
   for (let i = 0; i < LIMITS.read + 5; i += 1) assert.equal(req().headers.get('x-middleware-next'), '1');
 });
