@@ -209,7 +209,7 @@ function Actions({ order, show, onCancel, expired = false }) {
 }
 
 // `busy`: a coin change is under way (the last order stays on screen, dimmed). `canSwitch`: this order can be remade in another coin.
-export function PaySheet({ order, show, busy = false, canSwitch = false, onClose, onCancel, onSwitch }) {
+export function PaySheet({ order, show, busy = false, ended = false, canSwitch = false, onClose, onCancel, onSwitch }) {
   const t = useT();
   const ref = useRef(null);
   const startY = useRef(null);
@@ -218,7 +218,7 @@ export function PaySheet({ order, show, busy = false, canSwitch = false, onClose
   const [dragY, setDragY] = useState(0);
   const [target, setTarget] = useState(null); // the coin just tapped: the highlight moves at once, before the new order arrives
   const left = useLeft(order.expiresAt);
-  const expired = left === 0; // timed out: no address, amount or pay buttons (the header says Expired); the coin tabs and Cancel stay
+  const expired = left === 0 || ended; // timed out: no address, amount or pay buttons (the header says Expired); the coin tabs and Cancel stay
   const a = PAY_ASSETS[order.asset || 'btc'] || PAY_ASSETS.btc;
   const coin = target || { asset: order.asset || 'btc', net: order.network || a.nets[0] };
 
@@ -299,8 +299,8 @@ export function PaySheet({ order, show, busy = false, canSwitch = false, onClose
             {left !== null && (
               <div style={{ textAlign: 'end', flexShrink: 0 }}>
                 <small className="mute" style={{ display: 'block' }}>{t('pay.expiresLabel')}</small>
-                <b style={{ fontSize: 28, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: left === 0 ? 'var(--red)' : left < 60 ? 'var(--gold)' : undefined }}>
-                  {left === 0 ? t('pay.expired') : fmtTime(left)}
+                <b style={{ fontSize: 28, lineHeight: 1.1, fontVariantNumeric: 'tabular-nums', color: expired ? 'var(--red)' : left < 60 ? 'var(--gold)' : undefined }}>
+                  {expired ? t('pay.expired') : fmtTime(left)}
                 </b>
               </div>
             )}
