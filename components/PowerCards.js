@@ -6,7 +6,7 @@ import RigArt, { rigFor } from '@/components/RigArt';
 import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
-import { SMART, smartBand, smartPlan } from '@/lib/smart';
+import { SMART, smartBand } from '@/lib/smart';
 import { triggerHaptic } from '@/lib/haptics';
 import { useT } from '@/components/I18nProvider';
 
@@ -177,45 +177,25 @@ function Ticks({ tiers, at, tier, label, onPick }) {
 
 const stop = (e) => e.stopPropagation();
 
-// The plan length as one slim bar. A gold highlight glides to the picked length. With sub (the profit of that term), the picked length swaps
-// between its days and its profit every 2.6 s, and a tap on it swaps at once. Picking another length starts again on days. CSS: .tbar.
-function TermBar({ terms, term, setTerm, sub }) {
+// The plan length as one slim bar. A gold highlight glides to the picked length. CSS: .tbar.
+function TermBar({ terms, term, setTerm }) {
   const t = useT();
-  const [alt, setAlt] = useState(false);
-  const swap = !!sub;
-  useEffect(() => {
-    if (!swap) return undefined;
-    const id = setInterval(() => setAlt((a) => !a), 2600);
-    return () => clearInterval(id);
-  }, [swap]);
   return (
     <div className="tbar" role="group" aria-label={t('calc.term')} style={{ '--n': terms.length, '--i': Math.max(0, terms.indexOf(term)) }}>
       <i className="tb-hl" aria-hidden="true" />
-      {terms.map((d) => {
-        const on = term === d;
-        return (
-          <button
-            key={d}
-            type="button"
-            aria-pressed={on}
-            onClick={() => {
-              triggerHaptic('selection');
-              if (on && swap) setAlt((a) => !a);
-              else {
-                setTerm(d);
-                setAlt(false);
-              }
-            }}
-          >
-            <span className="tb-win">
-              <span className="tb-rl" style={on && swap && alt ? { transform: 'translateY(-20px)' } : undefined}>
-                <span>{t('calc.days', { d })}</span>
-                {swap && <span>{sub(d)}</span>}
-              </span>
-            </span>
-          </button>
-        );
-      })}
+      {terms.map((d) => (
+        <button
+          key={d}
+          type="button"
+          aria-pressed={term === d}
+          onClick={() => {
+            triggerHaptic('selection');
+            setTerm(d);
+          }}
+        >
+          {t('calc.days', { d })}
+        </button>
+      ))}
     </div>
   );
 }
@@ -292,12 +272,11 @@ function RangeNum({ low, mid, high, label }) {
 }
 
 // budget is the text in the amount box, bNum the budget it means; spos is the slider position (see lib/tiers.js).
-export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, within, onAmount, onAmountBlur, onSlide, onBuy }) {
+export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy }) {
   const t = useT();
   const tier = tierOf(SMART_TIERS, bNum);
   const level = SMART_TIERS.indexOf(tier) + 1;
   const band = smartBand(plan); // profit range for the term (lib/smart.js)
-  const profitOf = (d) => smartBand(smartPlan(bNum, d, table))?.mid ?? 0; // the middle profit of each term, for its chip
   useTierBuzz(tier.id);
   return (
     <div className="card pcard">
@@ -352,7 +331,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
           label={(x) => t('pc.tickUsd', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => onSlide(posFromBudget(t.from))}
         />
-        <TermBar terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
+        <TermBar terms={SMART.terms} term={term} setTerm={setTerm} />
         {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd((bNum + band.mid) / plan.days) })}</div>}
       </div>
       {within && <div className="tcan">{t('pc.within')}</div>}
