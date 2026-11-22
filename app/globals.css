@@ -554,13 +554,15 @@ input::placeholder { color: var(--ph); }
 .rv-list .rv-card { flex: none; }
 @media (min-width: 720px) { .rv-row { margin: 0; padding: 0 0 4px; } .rv-list { grid-template-columns: 1fr 1fr; } }
 .rate .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
-.rate-stars { display: flex; gap: 2px; margin: 8px 0 0; }
+.rate-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.rate-top h3 { margin: 0; }
+.rate-stars { display: flex; gap: 2px; margin: 4px 0 0; }
 .rate-stars button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .rate-stars svg { width: 30px; height: 30px; fill: var(--outline); }
 .rate-stars button.on svg { fill: var(--gold); }
 .rate-act { display: flex; gap: 8px; margin-top: 12px; }
 .rate-act .btn { flex: 1; }
-.rate-skip { display: block; margin: 4px 0 0; padding: 8px 0; border: 0; background: none; color: var(--mute); font: inherit; font-size: 12px; cursor: pointer; }
+.rate-skip { flex: none; margin: 0; padding: 6px 0 6px 8px; border: 0; background: none; color: var(--mute); font: inherit; font-size: 13px; cursor: pointer; }
 .lp-foot { margin: 28px 0 0; text-align: center; color: var(--mute); font-size: 12px; line-height: 16px; }
 @media (min-width: 720px) {
   .lp { padding-left: 32px; padding-right: 32px; }
