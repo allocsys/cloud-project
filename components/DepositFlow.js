@@ -13,7 +13,14 @@ import { useWallet } from '@/components/WalletProvider';
 import { useT } from '@/components/I18nProvider';
 
 const CHIPS = [30, 100, 500, 1000];
-const SLIDER_MAX = 1000;
+const SLIDER_MAX = 250000;
+const SPOS = 1000; // slider positions: the scale is logarithmic so $30 to $250,000 stays easy to set
+const toPos = (v, lo, hi) => (hi > lo ? Math.round((SPOS * Math.log(v / lo)) / Math.log(hi / lo)) : SPOS);
+const fromPos = (p, lo, hi) => {
+  const v = lo * Math.pow(hi / lo, p / SPOS);
+  const s = v < 1000 ? 1 : v < 10000 ? 10 : v < 100000 ? 100 : 1000;
+  return Math.min(hi, Math.max(lo, Math.round(v / s) * s));
+};
 const ENVS = [['tg', 'dep.envTg'], ['site', 'dep.envSite'], ['pwa', 'dep.envPwa']];
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 // Site and app: skip USDT on TON (no jetton send over TON Connect). Telegram shows every network.
@@ -191,8 +198,10 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     <button type="button" className="btn ghost" aria-pressed={qr} onClick={() => setQr(!qr)}>{dt('dep.scan')}</button>
   );
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
-  const smax = Math.max(SLIDER_MAX, minDep);
-  const sv = Math.min(Math.max(parseFloat(amt) || minDep, minDep), smax);
+  const slo = Math.max(minDep, 1);
+  const smax = Math.max(SLIDER_MAX, slo);
+  const sv = Math.min(Math.max(parseFloat(amt) || slo, slo), smax);
+  const spos = toPos(sv, slo, smax);
   const chips = CHIPS.filter((v) => v >= minDep);
 
   return (
@@ -226,13 +235,13 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
               type="range"
               className="dfrange"
               aria-label={dt('wal.depUsd')}
-              min={minDep}
-              max={smax}
+              min={0}
+              max={SPOS}
               step={1}
-              value={sv}
-              style={{ '--f': smax > minDep ? (sv - minDep) / (smax - minDep) : 1 }}
+              value={spos}
+              style={{ '--f': spos / SPOS }}
               onChange={(e) => {
-                setAmt(e.target.value);
+                setAmt(String(fromPos(Number(e.target.value), slo, smax)));
                 if (err) setErr('');
               }}
             />
