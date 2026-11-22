@@ -7,7 +7,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { formatUsd } from '@/lib/useMined';
 import Field from '@/components/Field';
 import { Qr } from '@/components/Qr';
-import { CoinPicker, PayInfo, useExpired } from '@/components/PayCoin';
+import { CoinPicker, Countdown, PayInfo, useExpired } from '@/components/PayCoin';
 import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
 import { useWallet } from '@/components/WalletProvider';
 import { useT } from '@/components/I18nProvider';
@@ -301,6 +301,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
             </div>
             {phase === 'checking' ? null : expired ? expiredBlock : (
               <div className="dfcol">
+                <Countdown at={order.expiresAt} />
                 {connected && <p className="fine" style={{ margin: 0 }}>{`${dt('dep.connected')} \u00b7 ${short}`}</p>}
                 {connected || env !== 'pwa' ? (
                   <ConnectBtn big order={order} show={show} onFail={() => {}} payLabel={dt('dep.pay', { n: `$${formatUsd(order.usd)}` })} />
