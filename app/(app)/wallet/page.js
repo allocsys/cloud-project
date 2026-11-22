@@ -29,7 +29,7 @@ const KIND = {
   withdrawal: { glyph: '↑', cls: 'out' },
 };
 
-const STATUS = { pending: 'wal.stPending', approved: 'wal.stApproved', sent: 'wal.stSent', failed: 'wal.stFailed', rejected: 'wal.stRejected' };
+const STATUS = { pending: 'wal.stPending', approved: 'wal.stApproved', sent: 'wal.stSent', failed: 'wal.stFailed', rejected: 'wal.stRejected', expired: 'pay.expired' };
 
 const FILTERS = [['all', 'wal.fAll'], ['payout', 'wal.fPayouts'], ['withdrawal', 'wal.withdraw'], ['deposit', 'wal.fDeposits']];
 
