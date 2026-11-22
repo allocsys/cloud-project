@@ -538,7 +538,7 @@ function FirstBonusCard({ fb, busy, run }) {
   const [d, setD] = useState(() => fbDraft(s));
   useEffect(() => setD(fbDraft(JSON.parse(key))), [key]);
   return (
-    <Fold inner title="First-buy bonus" sub={s.enabled ? `On · ${s.pct}%` : 'Off'}>
+    <Fold title="First-buy bonus" sub={s.enabled ? `On · ${s.pct}%` : 'Off'}>
       <div className="row"><span className="mute">Bonus</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
       <div className="adm-2col">
       <Field id="fbp" label="Bonus %" inputMode="decimal" value={d.pct} onChange={(v) => setD({ ...d, pct: v })} />
@@ -639,7 +639,7 @@ function BoostCard({ bs, busy, run }) {
     if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
-    <Fold inner title="Boost tickets" sub={s.enabled ? 'On' : 'Off'}>
+    <Fold title="Boost tickets" sub={s.enabled ? 'On' : 'Off'}>
       <div className="row"><span className="mute">Tickets</span><b>{s.enabled ? 'On' : 'Off'}</b></div>
       {TICKETS.map((t) => {
         const x = pctOf(d.chance[t.id]);
@@ -694,7 +694,7 @@ function EventCard({ ev, boostOn, busy, run }) {
   const t = TICKETS.find((x) => x.id === d.ticket) || TICKETS[1];
   const body = { action: 'event-save', perUsd: d.perUsd, ticket: d.ticket, maxPerUser: d.maxPerUser };
   return (
-    <Fold inner title="Deposit bonus event" sub={live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}>
+    <Fold title="Deposit bonus event" sub={live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}>
       <div className="row"><span className="mute">Event</span><b>{live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}</b></div>
       {!boostOn && <p className="fine" style={{ margin: '8px 0 0', color: 'var(--red)' }}>Boost tickets are off, so no bonus is given. Turn them on in the Boost tickets card.</p>}
       <div className="adm-2col">
@@ -719,23 +719,6 @@ function EventCard({ ev, boostOn, busy, run }) {
       </div>
       <How><p className="fine">While the event is live, each paid deposit gives 1 free ticket for every ${d.perUsd || '?'} (whole steps only: $120 at $50 gives 2), at most 20 tickets per deposit. The tickets are free boosts of the chosen size that start the moment the deposit is credited, drawn at the real chance of that ticket in the Boost tickets card. They show in the user's Activity and notifications. A deposit counts when its payment was started during the event, even if it is paid after the end. The per-user limit starts over with each new event. Start needs boost tickets on; if they are turned off later, no bonus is given.</p></How>
     </Fold>
-  );
-}
-
-// One card for the three bonus settings. The cards inside stay mounted (only hidden), so unsaved drafts survive closing it.
-function BonusesCard({ sub, children }) {
-  const [open, setOpen] = useState(false);
-  return (
-    <div className="card adm-fold" data-open={open}>
-      <button type="button" className="adm-fh" aria-expanded={open} onClick={() => setOpen(!open)}>
-        <span>
-          <span className="adm-ft">Bonuses</span>
-          <small>{sub}</small>
-        </span>
-        <i aria-hidden="true" />
-      </button>
-      <div className="adm-fb" hidden={!open}>{children}</div>
-    </div>
   );
 }
 
@@ -931,11 +914,12 @@ function Login({ onDone, setup }) {
 }
 
 // Section tabs: one scrolling row of pills. The open one slides to the middle. items: [key, label, badge?].
-// Five groups on the top row (always shown); the open group's sections show on a second row. Badges add up inside a group.
+// Six groups on the top row (always shown); the open group's sections show on a second row. Badges add up inside a group.
 const GROUPS = [
   ['home', 'Overview', ['overview']],
   ['people', 'People', ['users', 'referrals', 'boosts', 'send']],
   ['money', 'Money', ['orders', 'deposits', 'withdrawals', 'refunds', 'gateway']],
+  ['bonuses', 'Bonuses', ['bonuses']],
   ['mining', 'Mining', ['halls', 'smart', 'guard']],
   ['system', 'System', ['database', 'settings']],
 ];
@@ -1846,7 +1830,7 @@ export default function Admin() {
           setTab(k);
           window.scrollTo({ top: 0 });
         }}
-        items={[['overview', 'Overview'], ['users', 'Users', stats.kycPending], ['orders', 'Orders', counts.orders?.open], ['deposits', 'Deposits', counts.deposits?.open], ['withdrawals', 'Withdrawals', counts.withdrawals?.open], ['refunds', 'Refunds', counts.refunds?.open], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['database', 'Database'], ['settings', 'Settings']]}
+        items={[['overview', 'Overview'], ['users', 'Users', stats.kycPending], ['orders', 'Orders', counts.orders?.open], ['deposits', 'Deposits', counts.deposits?.open], ['withdrawals', 'Withdrawals', counts.withdrawals?.open], ['refunds', 'Refunds', counts.refunds?.open], ['boosts', 'Boosts', (data.boosts || []).length], ['halls', 'Halls'], ['smart', 'Smart'], ['guard', 'Guard'], ['referrals', 'Referrals'], ['send', 'Send'], ['gateway', 'Gateway', gwN], ['bonuses', 'Bonuses'], ['database', 'Database'], ['settings', 'Settings']]}
       />
 
       {tab === 'boosts' && (
@@ -1885,6 +1869,14 @@ export default function Admin() {
         </div>
       )}
 
+      {tab === 'bonuses' && (
+        <div className="adm-stack">
+          <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
+          <BoostCard bs={data.boost} busy={busy} run={run} />
+          <EventCard ev={data.event} boostOn={!!data.boost?.enabled} busy={busy} run={run} />
+        </div>
+      )}
+
       {tab === 'guard' && (
         <div className="adm-stack">
           <GuardCard guard={data.guard} busy={busy} run={run} />
@@ -1914,11 +1906,6 @@ export default function Admin() {
             </div>
             <p className="fine" style={{ margin: '8px 0 0' }}>Mock is made-up numbers. Real is what the halls report to /api/telemetry; with none, the charts say no data. Applies to every user at once.</p>
           </Fold>
-          <BonusesCard sub={`First-buy ${data.firstBonus?.enabled ? 'on' : 'off'} · Tickets ${(data.boost || BOOST_DEFAULTS).enabled ? 'on' : 'off'} · Event ${data.event?.enabled && Date.now() <= data.event.endsAt ? 'live' : 'off'}`}>
-            <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
-            <BoostCard bs={data.boost} busy={busy} run={run} />
-            <EventCard ev={data.event} boostOn={!!data.boost?.enabled} busy={busy} run={run} />
-          </BonusesCard>
           <MinDepositCard value={data.minDeposit} busy={busy} run={run} />
           <MinWithdrawCard value={data.minWithdraw} busy={busy} run={run} />
           <SignupLimitCard value={data.signupLimit} busy={busy} run={run} />
