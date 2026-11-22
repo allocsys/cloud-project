@@ -697,24 +697,17 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
 html[data-sp="off"] .dcl .dc-s { color: inherit; }
 html[data-sp="off"] .dcl .dc-s::after { display: none; }
 
-/* Landing splash (components/Splash.js): a soft gold sphere. Only transforms animate. */
+/* Landing splash (components/Splash.js): dots assemble into the logo over a turning gold globe (canvas). */
 .splash { position: fixed; top: 0; left: 0; width: 100%; height: 100%; height: 100dvh; z-index: 100; background: var(--bg); background: color-mix(in srgb, var(--bg) 55%, transparent); -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px); transition: opacity 0.5s ease, transform 0.5s ease; }
 .sp-out { opacity: 0; transform: scale(1.04); pointer-events: none; }
 .splash ~ .lp { filter: blur(12px); transition: filter 0.5s ease; }
 .splash.sp-out ~ .lp { filter: blur(0); }
 html[data-sp="off"] .splash { display: none; }
 html[data-sp="off"] .splash ~ .lp { filter: none; transition: none; }
-.sp-orb { position: fixed; top: calc(50vh - 72px); top: calc(50dvh - 72px); left: calc(50vw - 60px); width: 120px; height: 120px; margin: 0; border-radius: 50%; overflow: hidden; isolation: isolate; background: radial-gradient(circle at 50% 55%, #2B1B02, #0B0F1A 75%); box-shadow: 0 0 36px rgba(var(--gold-rgb), 0.22); animation: sp-breathe 2.8s ease-in-out infinite; }
-.sp-orb i { position: absolute; top: -25%; left: -25%; right: -25%; bottom: -25%; border-radius: 50%; }
-.sp-orb i:nth-child(1) { background: radial-gradient(circle at 32% 30%, #FFB84D 0, transparent 52%); animation: sp-spin 5s linear infinite; }
-.sp-orb i:nth-child(2) { background: radial-gradient(circle at 70% 42%, #F5A524 0, transparent 50%); animation: sp-spin 7s linear infinite reverse; }
-.sp-orb i:nth-child(3) { background: radial-gradient(circle at 48% 76%, #C77F0A 0, transparent 55%); animation: sp-spin 9s linear infinite; }
-.sp-orb::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; border-radius: 50%; background: radial-gradient(circle at 35% 26%, rgba(255, 255, 255, 0.3), transparent 42%); }
+.sp-orb { position: fixed; top: calc(50vh - 72px); top: calc(50dvh - 72px); left: calc(50vw - 60px); width: 120px; height: 120px; margin: 0; display: block; }
 .sp-name { position: fixed; top: calc(50vh + 76px); top: calc(50dvh + 76px); left: 0; right: 0; margin: 0; text-align: center; color: var(--mute); font-size: 13px; line-height: 16px; font-weight: 500; letter-spacing: 3px; text-transform: uppercase; }
 .sp-track { position: fixed; top: calc(50vh + 108px); top: calc(50dvh + 108px); left: calc(50vw - 48px); width: 96px; height: 3px; border-radius: 2px; overflow: hidden; background: var(--track); }
 .sp-bar { width: 100%; height: 100%; border-radius: 2px; background: var(--gold); transform: scaleX(0.2); transform-origin: left center; transition: transform 0.4s ease; }
-@keyframes sp-spin { to { transform: rotate(360deg); } }
-@keyframes sp-breathe { 50% { transform: scale(1.08); } }
 
 /* Top bar of the info pages (components/SiteTop.js) */
 .site-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; max-width: 960px; min-height: 56px; margin: 0 auto; padding: max(8px, env(safe-area-inset-top, 0px)) 20px 0; }
