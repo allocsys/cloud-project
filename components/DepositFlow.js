@@ -47,7 +47,7 @@ const ENV_ICONS = [
 
 const linkBtn = { background: 'none', border: 0, padding: '10px 0 0', margin: 0, font: 'inherit', fontSize: 13, color: '#9aa6c2', textDecoration: 'underline', cursor: 'pointer', alignSelf: 'center' };
 
-export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel, orders }) {
+export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel, orders, allOrders }) {
   const dt = useT();
   const w = useWallet();
   const [env, setEnv] = useState('site');
@@ -74,10 +74,15 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
 
   const cur = (orders || []).find((o) => o.address && !gone.has(o.id)) || null;
   if (cur) last.current = cur;
-  const order = cur || (busy ? last.current : null);
+  // The order on screen left the open list without being paid or cancelled here: it timed out. Keep it on screen as Expired until the person
+  // leaves. A paid or held order is still in the full list, so it closes as before. 60 s covers a clock a little behind the server's.
+  const lastO = last.current;
+  const ended = !cur && !busy && !!lastO && !gone.has(lastO.id) && !(allOrders || []).some((o) => o.id === lastO.id) && Date.parse(lastO.expiresAt) <= Date.now() + 60000;
+  const order = cur || (busy || ended ? lastO : null);
   const others = (orders || []).filter((o) => o.url && !gone.has(o.id));
   const oid = order?.id;
-  const expired = useExpired(order?.expiresAt); // timed out: no pay buttons, only Expired, the coin tabs (a new order) and Cancel
+  const expiredByTime = useExpired(order?.expiresAt);
+  const expired = expiredByTime || ended; // timed out: no pay buttons, only Expired, the coin tabs (a new order) and Cancel
 
   // A new order: a manual coin goes straight to the manual screen; otherwise the device chips pulse for a moment, then the detected one is pressed.
   useEffect(() => {
@@ -144,12 +149,15 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     setBusy(true);
     try {
       await post('/api/orders/cancel', { id: prev.id });
-      setGone((s) => new Set(s).add(prev.id));
     } catch (e) {
-      show(e.status ? e.message : dt('common.noConnection'));
-      setBusy(false);
-      return;
+      // A timed-out order is already closed on the server: the cancel is refused, and that is fine.
+      if (!expired) {
+        show(e.status ? e.message : dt('common.noConnection'));
+        setBusy(false);
+        return;
+      }
     }
+    setGone((s) => new Set(s).add(prev.id));
     await create(prev.usd, nextCoin);
   }
 
@@ -160,7 +168,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
     setManual(false);
     setQr(false);
     setStage(to);
-    onCancel(id);
+    onCancel(id, expired);
   }
 
   function back() {
