@@ -50,6 +50,10 @@
 .minitabs.adm-filter button[aria-pressed=true] { background: var(--gold-c); border-color: transparent; color: var(--on-gold-c); }
 .adm-tool { display: flex; align-items: center; justify-content: space-between; gap: 8px; font-size: 13px; }
 .card.adm-fold::before { display: none; }
+.adm-sub { border-top: 1px solid var(--line); }
+.adm-sub .adm-fh { border-radius: 0; padding: 10px 0; }
+.adm-sub .adm-fb { padding: 0 0 14px; }
+.adm-fold.adm-sub[data-open=false] .adm-fh i { transform: rotate(45deg); }
 
 /* User card: money tiles, small details grid, grouped action buttons */
 .adm-tiles { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 2px; }
