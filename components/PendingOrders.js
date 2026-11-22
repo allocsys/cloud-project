@@ -21,14 +21,14 @@ function useOpenOrders(poll) {
     if (!n || !poll) return undefined;
     return everyVisible(() => quiet().catch(() => {}), 5000);
   }, [n, poll]);
-  return { open, refresh, multi: !!data?.multi };
+  return { open, all: data?.orders || [], refresh, multi: !!data?.multi };
 }
 
 // `show` is the page's toast function. `poll` off: the page checks the orders itself (Plans).
 // A page can open the sheet of a new order by sending the window event 'vtx-pay-open' with { id } (PendingCards waits for that order to appear).
 export function PendingCards({ show, poll = true }) {
   const t = useT();
-  const { open, refresh, multi } = useOpenOrders(poll);
+  const { open, all, refresh, multi } = useOpenOrders(poll);
   const [openId, setOpenId] = useState(null); // the order whose sheet is open
   const [want, setWant] = useState(null); // an order to open as soon as it appears in the list
   const [busy, setBusy] = useState(false); // a coin change is under way
@@ -36,7 +36,11 @@ export function PendingCards({ show, poll = true }) {
   const last = useRef(null); // the last order shown, kept while a coin change is busy so nothing flickers
   const found = openId ? open.find((o) => o.id === openId) || null : null;
   if (found) last.current = found;
-  const shown = found || (busy && openId ? last.current : null);
+  // The open order left the list without being paid or cancelled here: it timed out. Keep the sheet open as Expired until the person closes it.
+  // A paid or held order is still in the full list, so the sheet closes as before. 60 s covers a clock a little behind the server's.
+  const lastO = last.current;
+  const ended = !!openId && !found && !busy && !want && !!lastO && lastO.id === openId && !all.some((o) => o.id === openId) && Date.parse(lastO.expiresAt) <= Date.now() + 60000;
+  const shown = found || (busy && openId ? lastO : null) || (ended ? lastO : null);
 
   useEffect(() => {
     const on = (e) => {
@@ -72,12 +76,13 @@ export function PendingCards({ show, poll = true }) {
   }, [next, open]);
   // The order is gone (paid, expired, cancelled): close the sheet.
   useEffect(() => {
-    if (openId && !want && !busy && !open.some((o) => o.id === openId)) setOpenId(null);
-  }, [openId, want, busy, open]);
+    if (openId && !want && !busy && !ended && !open.some((o) => o.id === openId)) setOpenId(null);
+  }, [openId, want, busy, ended, open]);
 
   async function cancelOrder(id) {
     triggerHaptic('light');
     setOpenId(null);
+    if (ended) return; // already closed on the server: nothing to cancel
     try {
       await post('/api/orders/cancel', { id });
     } catch (e) {
@@ -93,7 +98,11 @@ export function PendingCards({ show, poll = true }) {
     setBusy(true);
     let made = null;
     try {
-      await post('/api/orders/cancel', { id: o.id });
+      try {
+        await post('/api/orders/cancel', { id: o.id });
+      } catch (e) {
+        if (!ended) throw e; // a timed-out order is already closed: the refusal is fine
+      }
       const r = await post('/api/plans/buy', { ...o.buy, pay: 'crypto', asset: c.asset, network: c.net }, uid());
       await refresh().catch(() => {});
       if (r?.order?.id) {
@@ -127,6 +136,7 @@ export function PendingCards({ show, poll = true }) {
           order={shown}
           show={show}
           busy={busy}
+          ended={ended}
           canSwitch={multi && !!shown.buy}
           onClose={() => setOpenId(null)}
           onCancel={() => cancelOrder(shown.id)}
