@@ -443,18 +443,6 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
       )}
       {notice && <p className="fine" role="status">{notice}</p>}
       {!view && !notice && signup && ref && !refOpen && <p className="fine">{t('auth.inviteUsed', { code: ref })}{offer > 0 ? ` ${t('auth.rebate', { n: offer })}` : ''}</p>}
-      {!view && signup && (
-        <p className="fine" style={{ margin: '14px 0 4px', textAlign: 'center' }}>
-          {fill(t('auth.agree'), {
-            terms: (
-              <Link href={pagePath('/terms', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.terms')}</Link>
-            ),
-            privacy: (
-              <Link href={pagePath('/privacy', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.privacy')}</Link>
-            ),
-          })}
-        </p>
-      )}
 
       {twoStep ? (
         <div className="pills">
@@ -475,6 +463,19 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
           {tgBusy ? t('auth.connecting') : t('auth.telegram')}
         </button>
+      )}
+
+      {!view && signup && (
+        <p className="fine" style={{ margin: '14px 0 0', textAlign: 'center' }}>
+          {fill(t('auth.agree'), {
+            terms: (
+              <Link href={pagePath('/terms', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.terms')}</Link>
+            ),
+            privacy: (
+              <Link href={pagePath('/privacy', lang)} onClick={onLeave} style={{ color: 'var(--gold2)' }}>{t('auth.privacy')}</Link>
+            ),
+          })}
+        </p>
       )}
     </form>
   );
