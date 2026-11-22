@@ -24,6 +24,13 @@ import { CoinTabs } from '@/components/PaySheet';
 import { PendingCards } from '@/components/PendingOrders';
 import { DEFAULT_PAY } from '@/lib/pay-coins';
 
+// Icons for the three Plans tabs (outline, 24 grid).
+const TAB_ICON = {
+  buy: 'M6 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 19m-2 0a2 2 0 1 0 4 0a2 2 0 1 0 -4 0M17 17h-11v-14h-2M6 5l14 1l-1 7h-13',
+  boost: 'M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11',
+  mine: 'M5 5m0 1a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v12a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1zM9 9h6v6h-6zM3 10h2M3 14h2M10 3v2M14 3v2M21 10h-2M21 14h-2M10 21v-2M14 21v-2',
+};
+
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 
 
@@ -357,10 +364,18 @@ export default function Plans() {
     <>
       <PageHead title={t('nav.plans')} icon="plans" />
 
-      <div className="tabs" role="group" aria-label={t('plans.aria')}>
-        <button aria-pressed={view === 'buy'} onClick={() => setTab('buy')}>{t('plans.buy')}</button>
-        <button aria-pressed={view === 'boost'} onClick={() => setTab('boost')}>{t('boost.title')}{bd?.free > 0 ? ` · ${bd.free}` : ''}</button>
-        <button aria-pressed={view === 'mine'} onClick={() => setTab('mine')}>{t('plans.myMiners')}{md ? ` · ${list.length}` : ''}</button>
+      <div className="ptabs" role="group" aria-label={t('plans.aria')}>
+        {[
+          ['buy', t('plans.buy'), 0],
+          ['boost', t('boost.title'), bd?.free > 0 ? bd.free : 0],
+          ['mine', t('plans.myMiners'), md ? list.length : 0],
+        ].map(([k, label, n]) => (
+          <button key={k} type="button" aria-pressed={view === k} aria-label={n ? `${label} · ${n}` : label} onClick={() => setTab(k)}>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d={TAB_ICON[k]} /></svg>
+            <span>{label}</span>
+            {n > 0 && <b>{n}</b>}
+          </button>
+        ))}
       </div>
 
       {view === 'buy' && <PendingCards show={show} poll={false} />}
