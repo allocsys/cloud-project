@@ -386,19 +386,6 @@ export default function Dashboard() {
           )}
         </div>
 
-        {split.length > 0 && (
-          <div className="card">
-            <div className="cardhead">
-              <h3>{t('dash.split')}</h3>
-              <div className="minitabs" role="group" aria-label={t('dash.splitBy')}>
-                <button aria-pressed={by === 'hall'} onClick={() => setBy('hall')}>{t('dash.hall')}</button>
-                <button aria-pressed={by === 'plan'} onClick={() => setBy('plan')}>{t('dash.plan')}</button>
-              </div>
-            </div>
-            <Split key={by} rows={split} />
-          </div>
-        )}
-
         {dash.hasMiners && (
           <div className="card">
             <div className="cardhead">
@@ -495,6 +482,19 @@ export default function Dashboard() {
             {actOpen && (
               <Link href="/wallet" className="mute" style={{ display: 'block', textAlign: 'center', fontSize: '12px', padding: '12px 0 4px' }}>{t('dash.seeAll')}</Link>
             )}
+          </div>
+        )}
+
+        {split.length > 0 && (
+          <div className="card">
+            <div className="cardhead">
+              <h3>{t('dash.split')}</h3>
+              <div className="minitabs" role="group" aria-label={t('dash.splitBy')}>
+                <button aria-pressed={by === 'hall'} onClick={() => setBy('hall')}>{t('dash.hall')}</button>
+                <button aria-pressed={by === 'plan'} onClick={() => setBy('plan')}>{t('dash.plan')}</button>
+              </div>
+            </div>
+            <Split key={by} rows={split} />
           </div>
         )}
 
