@@ -3,7 +3,6 @@
 // null when no event runs (then nothing shows). Same look on both: a gold outline, a gift icon, a short line.
 import Link from 'next/link';
 import { useLang } from '@/components/I18nProvider';
-import { AuthButton } from '@/components/AuthSheet';
 import { dayText } from '@/lib/i18n/notes';
 
 const GOLD = '#F5A524';
@@ -29,7 +28,7 @@ export function HomeEvent({ event }) {
   );
 }
 
-// Landing page: a slim strip above the header. Sign up for visitors, Deposit for signed-in users.
+// Landing page: a slim strip above the header. Signed-in users also get a Deposit link.
 export function LandingEvent({ event, signedIn }) {
   const { t, lang } = useLang();
   if (!event) return null;
@@ -38,11 +37,7 @@ export function LandingEvent({ event, signedIn }) {
     <div role="note" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', padding: '8px 12px', borderRadius: 12, border: '1px solid #e8b84a', background: 'rgba(232,184,74,.12)' }}>
       <Gift />
       <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4 }}>{t('ev.landing', { d: dayText(event.endsAt, lang) })}</span>
-      {signedIn ? (
-        <Link href="/wallet?tab=deposit" style={link}>{t('wal.deposit')}</Link>
-      ) : (
-        <AuthButton mode="signup" style={link}>{t('ev.signup')}</AuthButton>
-      )}
+      {signedIn && <Link href="/wallet?tab=deposit" style={link}>{t('wal.deposit')}</Link>}
     </div>
   );
 }
