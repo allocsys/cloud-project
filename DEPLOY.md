@@ -41,8 +41,8 @@ Tickers must run on one service only: the API. Never run a second `all` service 
 
 Watch patterns (Railway redeploys a service only when these files change):
 
-- **web:** `app/(app)`, `app/(plain)`, `app/(site)`, `app/status`, `app/healthz`, `app/icons`, `app/*.js`, `app/*.css`, `components`, `public`, shared `lib/*.js` and `lib/i18n`, `middleware.js`, `instrumentation.js`, build files.
-- **api:** `app/api`, `lib/server`, shared `lib/*.js` and `lib/i18n`, `middleware.js`, `instrumentation.js`, build files.
+- **web:** `app/(app)`, `app/(plain)`, `app/(site)`, `app/status`, `app/healthz`, `app/icons`, `app/*.js`, `app/*.css`, `components`, `public`, shared `lib/*.js` and `lib/i18n`, `proxy.js`, `instrumentation.js`, build files.
+- **api:** `app/api`, `lib/server`, shared `lib/*.js` and `lib/i18n`, `proxy.js`, `instrumentation.js`, build files.
 - Build files: `next.config.mjs`, `jsconfig.json`, `package.json`, `package-lock.json`, `Dockerfile`, `scripts`.
 - If a push is skipped by mistake, redeploy by hand.
 

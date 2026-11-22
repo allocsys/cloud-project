@@ -13,7 +13,7 @@
       "/app/*.css",
       "/components/**",
       "/public/**",
-      "/middleware.js",
+      "/proxy.js",
       "/instrumentation.js",
       "/lib/*.js",
       "/lib/i18n/**",

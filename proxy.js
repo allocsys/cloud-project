@@ -32,7 +32,7 @@ function gate(req, pathname) {
   return null;
 }
 
-export function middleware(req) {
+export function proxy(req) {
   const { pathname } = req.nextUrl;
   const blocked = gate(req, pathname);
   if (blocked) return blocked;

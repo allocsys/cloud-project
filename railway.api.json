@@ -6,7 +6,7 @@
       "/lib/server/**",
       "/lib/*.js",
       "/lib/i18n/**",
-      "/middleware.js",
+      "/proxy.js",
       "/instrumentation.js",
       "/next.config.mjs",
       "/jsconfig.json",

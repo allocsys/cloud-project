@@ -2,14 +2,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { NextRequest } from 'next/server';
-import { middleware } from '@/middleware';
+import { proxy } from '@/proxy';
 import { addressOf, clearCounters } from '@/lib/rate-mem';
 import { edgeAddress, edgeFree } from '@/lib/edge';
 
 const BROWSER = 'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 Chrome/120 Mobile Safari/537.36';
 const SECRET = 'edge-secret-for-tests-0123456789';
 const call = (url, extra = {}) =>
-  middleware(new NextRequest(`https://x.test${url}`, { headers: { 'x-forwarded-for': '203.0.113.7', 'user-agent': BROWSER, ...extra } }));
+  proxy(new NextRequest(`https://x.test${url}`, { headers: { 'x-forwarded-for': '203.0.113.7', 'user-agent': BROWSER, ...extra } }));
 const passes = (res) => res.headers.get('x-middleware-next') === '1';
 
 test('no secret set: the guard is off', () => {

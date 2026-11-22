@@ -5,11 +5,11 @@ import { DEFAULT_LANG, LANGS, LANG_COOKIE } from '@/lib/i18n/langs';
 import { LANG_CODES, DEFAULT_LANG as DEFAULT, LANG_COOKIE as COOKIE, PUBLIC_PAGES, pagePath, stripLang } from '@/lib/i18n/codes';
 import { langAlternates } from '@/lib/seo';
 import { SITE_URL } from '@/lib/site';
-import { middleware, config } from '@/middleware';
+import { proxy, config } from '@/proxy';
 import sitemap from '@/app/sitemap';
 import robots from '@/app/robots';
 
-const call = (url) => middleware(new NextRequest(`https://x.test${url}`));
+const call = (url) => proxy(new NextRequest(`https://x.test${url}`));
 
 test('the light language list matches the registry', () => {
   assert.deepEqual(LANG_CODES, Object.keys(LANGS));
@@ -71,7 +71,7 @@ test('middleware: /ar addresses are real routes in Arabic and remember it', () =
 });
 
 test('middleware: a visitor who already has the language cookie gets no new Set-Cookie', () => {
-  const withCookie = (url, lang) => middleware(new NextRequest(`https://x.test${url}`, { headers: { cookie: `${LANG_COOKIE}=${lang}` } }));
+  const withCookie = (url, lang) => proxy(new NextRequest(`https://x.test${url}`, { headers: { cookie: `${LANG_COOKIE}=${lang}` } }));
   const same = withCookie('/fa/terms', 'fa');
   assert.equal(same.headers.get('x-middleware-next'), '1');
   assert.equal(same.headers.get('set-cookie'), null);
