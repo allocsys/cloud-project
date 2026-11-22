@@ -8,6 +8,8 @@ import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import HoldButton from '@/components/HoldButton';
 import { useT } from '@/components/I18nProvider';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_PROMO } from '@/lib/placeholder';
 
 const whole = (n) => n.toLocaleString('en-US');
 const usd = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -112,12 +114,14 @@ function BoostArt() {
 export default function BoostPromo({ signedIn = false }) {
   const t = useT();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
-  const b = cat?.boost;
+  // No answer yet (a first visit): the card draws itself with placeholder data in the loading look, then collapses if boost is off.
+  const wait = useWaiting(!cat);
+  const b = cat ? cat.boost : wait ? PH_PROMO : null;
   if (!b) return null;
   const same = b.tickets.every((t) => t.chance === b.tickets[0].chance); // one chance for all: say it once, in the footnote
 
   return (
-    <div className="card boost-promo" style={{ marginTop: 14 }}>
+    <div className={`card boost-promo${cat ? '' : ' ld'}`} style={{ marginTop: 14 }}>
       <h3>{t('boost.title')}</h3>
       <p className="mute" style={{ fontSize: '13px', margin: '4px 0 0' }}>{t('boost.sub', { h: b.hours })}</p>
       <BoostArt />

@@ -5,6 +5,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useApi } from '@/lib/api';
 import { fill, useT } from '@/components/I18nProvider';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_WINNERS } from '@/lib/placeholder';
 
 const whole = (n) => n.toLocaleString('en-US');
 
@@ -20,7 +22,9 @@ export default function WinnersBar() {
   const { data } = useApi('/api/boost/winners', { ttl: 30000 });
   const ref = useRef(null);
   const [seen, setSeen] = useState(true);
-  const list = data?.winners || [];
+  // No answer yet (a first visit): placeholder winners in the loading look, still; the bar collapses if the answer is empty.
+  const wait = useWaiting(!data);
+  const list = data ? data.winners || [] : wait ? PH_WINNERS.map((w) => ({ ...w, at: Date.now() })) : [];
   const has = list.length > 0;
   useEffect(() => {
     const el = ref.current;
@@ -38,7 +42,7 @@ export default function WinnersBar() {
   ));
 
   return (
-    <div ref={ref} className={`lp-marq lp-win${seen ? '' : ' off'}`} aria-label="Latest boost winners">
+    <div ref={ref} className={`lp-marq lp-win${seen && data ? '' : ' off'}${data ? '' : ' ld'}`} aria-label="Latest boost winners">
       <div className="lp-marq-in">
         <div className="lp-marq-g">{items}</div>
         <div className="lp-marq-g lp-marq-dup" aria-hidden="true">

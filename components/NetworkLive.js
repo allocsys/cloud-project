@@ -9,6 +9,8 @@ import CountUp from '@/components/CountUp';
 import { everyVisible } from '@/lib/visible';
 import { waiting, good, bad } from '@/lib/backoff';
 import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
+import { useWaiting } from '@/components/Skeleton';
+import { PH_NET } from '@/lib/placeholder';
 
 const REFRESH = 60000;
 const EH = (d) => (d * 2 ** 32) / 600 / 1e18; // hashes per second: difficulty x 2^32 per block, one block every 600 s
@@ -22,6 +24,7 @@ export default function NetworkLive() {
   const t = useT();
   const [d, setD] = useState(null);
   const [seen, setSeen] = useState(false);
+  const [loaded, setLoaded] = useState(false); // the first answer came (live or not)
   const ref = useRef(null);
 
   useEffect(() => {
@@ -39,7 +42,10 @@ export default function NetworkLive() {
           return r.json();
         })
         .then((j) => {
-          if (on && j) setD(j.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null);
+          if (on && j) {
+            setLoaded(true);
+            setD(j.live ? { btc: j.btc, diff: j.difficulty, miners: j.miners } : null);
+          }
         })
         .catch(() => bad('/api/network'));
     };
@@ -54,7 +60,7 @@ export default function NetworkLive() {
   const has = !!d;
   useEffect(() => {
     const el = ref.current;
-    if (!el || seen) return undefined;
+    if (!el || seen || !has) return undefined;
     if (typeof IntersectionObserver === 'undefined') {
       setSeen(true);
       return undefined;
@@ -64,21 +70,25 @@ export default function NetworkLive() {
     return () => io.disconnect();
   }, [has, seen]);
 
-  if (!d) return null;
+  // No answer yet: the strip draws itself with placeholder numbers in the loading look, and collapses if there is no live reading.
+  const wait = useWaiting(!loaded);
+  const v = d || (wait ? PH_NET : null);
+  if (!v) return null;
   const cells = [
-    { k: 'price', n: <Num seen={seen} value={d.btc} pre="$" /> },
-    { k: 'hash', n: <Num seen={seen} value={EH(d.diff)} suf=" EH/s" /> },
-    { k: 'diff', n: <Num seen={seen} value={d.diff / 1e12} dec={2} suf=" T" /> },
-    { k: 'miners', n: <Num seen={seen} value={minersCount(d.miners)} /> },
+    { k: 'price', n: <Num seen={seen} value={v.btc} pre="$" /> },
+    { k: 'hash', n: <Num seen={seen} value={EH(v.diff)} suf=" EH/s" /> },
+    { k: 'diff', n: <Num seen={seen} value={v.diff / 1e12} dec={2} suf=" T" /> },
+    { k: 'miners', n: <Num seen={seen} value={minersCount(v.miners)} /> },
     { k: 'paid', n: <Num seen={seen} value={PAID_BTC} dec={2} suf=" BTC" /> },
     { k: 'up', n: <Num seen={seen} value={UPTIME_PCT} dec={2} suf="%" /> },
   ];
   return (
-    <div ref={ref} className="nl" aria-label={t('netlive.title')}>
+    <div ref={ref} className={`nl${d ? '' : ' ld'}`} aria-label={t('netlive.title')}>
       <style>{`
         .nl{border:1px solid rgba(232,184,74,.3);border-radius:14px;padding:12px 14px;margin:6px 0}
         .nl-h{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--mute);margin-bottom:10px}
         .nl-dot{width:8px;height:8px;border-radius:50%;background:#7fd8a0;box-shadow:0 0 0 0 rgba(127,216,160,.6);animation:nlPulse 1.8s infinite}
+        .nl.ld .nl-dot{background:var(--s4);box-shadow:none;animation:none}
         .nl-g{display:grid;grid-template-columns:repeat(3,1fr);gap:12px 8px}
         .nl-c{text-align:center;animation:nlIn .6s ease both}
         .nl-n{font-size:17px;font-weight:700;color:var(--gold2);white-space:nowrap}
