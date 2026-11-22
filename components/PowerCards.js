@@ -177,26 +177,45 @@ function Ticks({ tiers, at, tier, label, onPick }) {
 
 const stop = (e) => e.stopPropagation();
 
-// sub (optional) gives a second line for each chip, e.g. the profit of that term.
-function TermChips({ terms, term, setTerm, sub }) {
+// The plan length as one slim bar. A gold highlight glides to the picked length. With sub (the profit of that term), the picked length swaps
+// between its days and its profit every 2.6 s, and a tap on it swaps at once. Picking another length starts again on days. CSS: .tbar.
+function TermBar({ terms, term, setTerm, sub }) {
   const t = useT();
+  const [alt, setAlt] = useState(false);
+  const swap = !!sub;
+  useEffect(() => {
+    if (!swap) return undefined;
+    const id = setInterval(() => setAlt((a) => !a), 2600);
+    return () => clearInterval(id);
+  }, [swap]);
   return (
-    <div className="terms" role="group" aria-label={t('calc.term')}>
-      {terms.map((d) => (
-        <button
-          key={d}
-          type="button"
-          className={sub ? 'two' : undefined}
-          aria-pressed={term === d}
-          onClick={() => {
-            triggerHaptic('selection');
-            setTerm(d);
-          }}
-        >
-          {t('calc.days', { d })}
-          {sub && <small>{sub(d)}</small>}
-        </button>
-      ))}
+    <div className="tbar" role="group" aria-label={t('calc.term')} style={{ '--n': terms.length, '--i': Math.max(0, terms.indexOf(term)) }}>
+      <i className="tb-hl" aria-hidden="true" />
+      {terms.map((d) => {
+        const on = term === d;
+        return (
+          <button
+            key={d}
+            type="button"
+            aria-pressed={on}
+            onClick={() => {
+              triggerHaptic('selection');
+              if (on && swap) setAlt((a) => !a);
+              else {
+                setTerm(d);
+                setAlt(false);
+              }
+            }}
+          >
+            <span className="tb-win">
+              <span className="tb-rl" style={on && swap && alt ? { transform: 'translateY(-20px)' } : undefined}>
+                <span>{t('calc.days', { d })}</span>
+                {swap && <span>{sub(d)}</span>}
+              </span>
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
@@ -237,7 +256,7 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
           label={(x) => t('pc.tickTh', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => setPos(posFromTh(t.from))}
         />
-        <TermChips terms={CUSTOM.terms} term={term} setTerm={setTerm} />
+        <TermBar terms={CUSTOM.terms} term={term} setTerm={setTerm} />
       </div>
       <div className="prow">
         <div>
@@ -333,7 +352,7 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, table, with
           label={(x) => t('pc.tickUsd', { tier: tierName(t, x), from: x.from })}
           onPick={(t) => onSlide(posFromBudget(t.from))}
         />
-        <TermChips terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
+        <TermBar terms={SMART.terms} term={term} setTerm={setTerm} sub={(d) => `$${fmtUsd(profitOf(d))}`} />
         {band && <div className="gnote">{t('pc.perDayNote', { n: fmtUsd((bNum + band.mid) / plan.days) })}</div>}
       </div>
       {within && <div className="tcan">{t('pc.within')}</div>}
