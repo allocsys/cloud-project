@@ -1,7 +1,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createBase58check } from '@scure/base';
-import { sha256 } from '@noble/hashes/sha256';
+import { sha256 } from '@noble/hashes/sha2.js';
 import { normalizeXpub, deriveBtcAddress } from '../src/chains/btc.js';
 
 // BIP84 test vector: account 0 of the seed "abandon ... about".
