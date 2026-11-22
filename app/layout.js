@@ -21,6 +21,10 @@ const sansAr = Cairo({ subsets: ['arabic', 'latin'], weight: ['400', '500'], dis
 // from complaining about the change. The pages themselves render in the same language, so nothing flashes.
 const LANG_SCRIPT = `try{var m=location.pathname.match(/^\\/(fa|ar|fi|sv|ru)(\\/|$)/),c=document.cookie.match(/(?:^|; )vtx-lang=([^;]*)/),l=(m&&m[1])||(c&&decodeURIComponent(c[1]))||'en';if(!/^(en|fa|ar|fi|sv|ru)$/.test(l))l='en';var d=document.documentElement;d.lang=l;d.dir=(l==='fa'||l==='ar')?'rtl':'ltr'}catch(e){}`;
 
+// After the first visit in a session the welcome screen is skipped: this marks the page before the first paint so the
+// server-rendered splash never shows (components/Splash.js sets the same flag; globals.css hides it).
+const SPLASH_SCRIPT = `try{if(sessionStorage.getItem('vtx-splash')==='1')document.documentElement.dataset.sp='off'}catch(e){}`;
+
 export function generateMetadata() {
   return {
     metadataBase: new URL(SITE_URL),
@@ -70,6 +74,7 @@ export default function RootLayout({ children }) {
       <head>
         <meta name="google-site-verification" content="VTweauBk1nakCwugb3GgdpLxHkkq3dZrezBS7kfbt7Q" />
         <script dangerouslySetInnerHTML={{ __html: LANG_SCRIPT }} />
+        <script dangerouslySetInnerHTML={{ __html: SPLASH_SCRIPT }} />
         <script
           dangerouslySetInnerHTML={{
             __html: `try{var m=localStorage.getItem('vtx-theme'),l=m==='light'||(m==='system'&&matchMedia('(prefers-color-scheme: light)').matches),d=document.documentElement;d.dataset.theme=l?'light':'dark';d.style.colorScheme=l?'only light':'dark'}catch(e){}`,
