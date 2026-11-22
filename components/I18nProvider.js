@@ -1,7 +1,7 @@
 'use client';
 import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
 import { DEFAULT_LANG, LANG_META, LANG_COOKIE } from '@/lib/i18n/meta';
-import { setClientMessages, translateClient } from '@/lib/i18n/client';
+import { setClientMessages, translateClient, translateWith } from '@/lib/i18n/client';
 import { PUBLIC_PAGES, pagePath, stripLang } from '@/lib/i18n/codes';
 
 const fallback = { lang: DEFAULT_LANG, dir: 'ltr', t: (key, vars) => translateClient(DEFAULT_LANG, key, vars) };
@@ -23,7 +23,7 @@ export default function I18nProvider({ lang, messages, children }) {
   // server this module state would be shared across requests. Idempotent, so calling it on every
   // render is safe and keeps the messages in place from the first paint.
   if (typeof window !== 'undefined') setClientMessages(lang, messages);
-  const value = useMemo(() => ({ lang, dir: LANG_META[lang]?.dir || 'ltr', t: (key, vars) => translateClient(lang, key, vars) }), [lang, messages]);
+  const value = useMemo(() => ({ lang, dir: LANG_META[lang]?.dir || 'ltr', t: (key, vars) => translateWith(messages, key, vars) }), [lang, messages]);
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }
 
