@@ -701,6 +701,8 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
 .sp-out { opacity: 0; transform: scale(1.04); pointer-events: none; }
 .splash ~ .lp { filter: blur(12px); transition: filter 0.5s ease; }
 .splash.sp-out ~ .lp { filter: blur(0); }
+html[data-sp="off"] .splash { display: none; }
+html[data-sp="off"] .splash ~ .lp { filter: none; transition: none; }
 .sp-orb { position: fixed; top: calc(50vh - 72px); top: calc(50dvh - 72px); left: calc(50vw - 60px); width: 120px; height: 120px; margin: 0; border-radius: 50%; overflow: hidden; isolation: isolate; background: radial-gradient(circle at 50% 55%, #2B1B02, #0B0F1A 75%); box-shadow: 0 0 36px rgba(var(--gold-rgb), 0.22); animation: sp-breathe 2.8s ease-in-out infinite; }
 .sp-orb i { position: absolute; top: -25%; left: -25%; right: -25%; bottom: -25%; border-radius: 50%; }
 .sp-orb i:nth-child(1) { background: radial-gradient(circle at 32% 30%, #FFB84D 0, transparent 52%); animation: sp-spin 5s linear infinite; }
