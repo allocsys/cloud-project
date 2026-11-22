@@ -289,10 +289,11 @@ export default function Review() {
             <input id="rvq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={uq} onChange={(e) => setUq(e.target.value)} />
             <label htmlFor="rvq">Search users</label>
           </div>
-          <div className="minitabs adm-filter" role="group" aria-label="Filter users">
-            {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals'], ['flag', 'Flagged']].map(([k, t]) => (
-              <button key={k} aria-pressed={ufil === k} onClick={() => setUfil(k)}>{t}</button>
-            ))}
+          <div className="field" style={{ marginTop: 12 }}>
+            <select id="rvf" value={ufil} onChange={(e) => setUfil(e.target.value)}>
+              {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals'], ['flag', 'Flagged']].map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </select>
+            <label htmlFor="rvf">Show</label>
           </div>
           <span className="mute">{lu.shown} user{lu.shown === 1 ? '' : 's'}</span>
           {!lu.ready && <p className="empty" style={{ textAlign: 'center' }}>Loading…</p>}
