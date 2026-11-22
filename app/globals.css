@@ -789,6 +789,19 @@ html[data-sp="off"] .splash ~ .lp { filter: none; transition: none; }
 .authform p { margin: 0 0 16px; font-size: 14px; }
 .authform p.fine { margin: 0 0 12px; font-size: 12px; }
 .authform .btn.ghost { margin-top: 8px; }
+.authform .pills { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; margin-top: 12px; }
+.authform .pill { height: 30px; padding: 0 12px; border: 0; border-radius: 15px; background: rgba(var(--gold-rgb), 0.12); color: var(--gold); font-size: 13px; font-weight: 500; white-space: nowrap; cursor: pointer; }
+.authform .pill:active { background: rgba(var(--gold-rgb), 0.22); }
+.echip { display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-top: 16px; padding-block: 6px; padding-inline: 16px 6px; border: 1px solid var(--outline); border-radius: 12px; font-size: 14px; animation: rise 0.2s ease; }
+.echip span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.echip button { flex: none; min-height: 36px; padding: 0 12px; border: 0; border-radius: 18px; background: none; color: var(--gold); font-size: 13px; font-weight: 500; cursor: pointer; }
+.echip + .field { margin-top: 12px; }
+.field.flipin { animation: flipin 0.2s ease backwards; }
+.field.flipout { transform: perspective(600px) rotateX(90deg); opacity: 0; transition: transform 0.18s, opacity 0.18s; }
+@keyframes flipin { from { transform: perspective(600px) rotateX(90deg); opacity: 0; } to { transform: perspective(600px) rotateX(0); opacity: 1; } }
+.capwrap { max-height: 130px; overflow: hidden; transition: max-height 0.35s ease, opacity 0.35s ease; }
+.capwrap.gone { max-height: 0; opacity: 0; }
+@media (prefers-reduced-motion: reduce) { .field.flipin { animation: none; } .field.flipout, .capwrap { transition: none; } }
 button.lp-signin { border: 0; background: none; font: inherit; font-size: 14px; font-weight: 500; cursor: pointer; }
 
 .pwrap { position: relative; }
