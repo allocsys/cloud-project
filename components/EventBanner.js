@@ -49,16 +49,14 @@ export function HomeEvent({ event }) {
   );
 }
 
-// Landing page: a slim strip above the header. Signed-in users also get a Deposit link.
-export function LandingEvent({ event, signedIn }) {
+// Landing page: a slim strip above the header. Text only, no button.
+export function LandingEvent({ event }) {
   const { t, lang } = useLang();
   if (!event) return null;
-  const link = { flex: 'none', fontSize: 12, fontWeight: 500, color: GOLD, background: 'none', border: 0, padding: 0, cursor: 'pointer' };
   return (
     <div role="note" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', padding: '8px 12px', borderRadius: 12, border: '1px solid #e8b84a', background: 'rgba(232,184,74,.12)' }}>
       <Gift />
       <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4 }}>{t('ev.landing', { d: dayText(event.endsAt, lang) })}</span>
-      {signedIn && <Link href="/wallet?tab=deposit" style={link}>{t('wal.deposit')}</Link>}
     </div>
   );
 }
