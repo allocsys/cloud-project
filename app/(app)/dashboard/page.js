@@ -13,6 +13,7 @@ import { useApi } from '@/lib/api';
 import { triggerHaptic } from '@/lib/haptics';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
+import { HomeEvent } from '@/components/EventBanner';
 import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
@@ -265,6 +266,7 @@ export default function Dashboard() {
             <button type="button" className="btn" onClick={() => { triggerHaptic('selection'); closePaid(); }}>{t('dash.paidOk')}</button>
           </div>
         )}
+        <HomeEvent event={live?.event} />
         <div className="crlwrap">
           <div className="crl" ref={railRef} onScroll={onRail}>
             <div className="card hero">

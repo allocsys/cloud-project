@@ -23,6 +23,7 @@ import SocialLinks from '@/components/SocialLinks';
 import Reviews from '@/components/Reviews';
 import Farm from '@/components/Farm';
 import { SITE_URL } from '@/lib/site';
+import { LandingEvent } from '@/components/EventBanner';
 
 export async function generateMetadata() {
   const t = await getT();
@@ -78,7 +79,7 @@ export default async function Home() {
   const messages = await getMessages(lang);
   // From the API (/api/site/landing): the admin's demo switch (Settings > Demo account; without a database the demo is off), the real reviews the
   // admin added (Settings > Reviews; none = no section) and the farm videos (Settings > Our farm videos; none = the note only).
-  const { showDemo: demoOn, reviews, farm } = await siteData('/api/site/landing', { showDemo: false, reviews: [], farm: [] });
+  const { showDemo: demoOn, reviews, farm, event } = await siteData('/api/site/landing', { showDemo: false, reviews: [], farm: [], event: null });
   const foot = { color: 'inherit', textDecoration: 'underline' };
 
   const WHY = [
@@ -123,6 +124,7 @@ export default async function Home() {
       <Splash />
       <main className="lp">
       <div className="lp-in">
+        <LandingEvent event={event} signedIn={signedIn} />
         <header className="lp-top">
           <Link href="/" className="lp-brand" aria-label="Vertexhash">
             <img src="/logo.svg" alt="" width="36" height="36" />

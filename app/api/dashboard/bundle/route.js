@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { getDashboardBundle } from '@/lib/server/bundle';
 import { userId, unauthorized } from '@/lib/server/auth';
 import { guarded } from '@/lib/server/shed';
+import { liveEvent } from '@/lib/server/event';
 
 export const dynamic = 'force-dynamic';
 export const GET = guarded(GET_);
@@ -11,5 +12,6 @@ export const GET = guarded(GET_);
 async function GET_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
-  return NextResponse.json(await getDashboardBundle(id), { headers: { 'Cache-Control': 'private, no-store' } });
+  const [bundle, event] = await Promise.all([getDashboardBundle(id), liveEvent().catch(() => null)]); // event = the running deposit bonus, or null
+  return NextResponse.json({ ...bundle, event }, { headers: { 'Cache-Control': 'private, no-store' } });
 }
