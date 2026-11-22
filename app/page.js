@@ -124,7 +124,7 @@ export default async function Home() {
       <Splash />
       <main className="lp">
       <div className="lp-in">
-        <LandingEvent event={event} signedIn={signedIn} />
+        <LandingEvent event={event} />
         <header className="lp-top">
           <Link href="/" className="lp-brand" aria-label="Vertexhash">
             <img src="/logo.svg" alt="" width="36" height="36" />
