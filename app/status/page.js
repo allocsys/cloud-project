@@ -1,4 +1,5 @@
 import BackLink from '@/components/BackLink';
+import SiteTop from '@/components/SiteTop';
 import { getLang, getT, getMessages } from '@/lib/i18n/server';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
@@ -54,6 +55,7 @@ export default async function Status() {
   const sent = proof && proof.count > 0 ? proof : null;
   return (
     <I18nProvider lang={lang} messages={messages}>
+    <SiteTop lang={lang} />
     <section id="auth">
       <div className="authbox" style={{ textAlign: 'start', maxWidth: '560px' }}>
         <style>{CSS}</style>
