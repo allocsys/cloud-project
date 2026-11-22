@@ -81,7 +81,7 @@ function copyText(text) {
 
 // Time left on an open payment, as m:ss (h:mm:ss from an hour up). `at` is the invoice's expiry. It ticks once a second, only while the
 // tab is visible, and stops by itself at zero. Digits are fixed width, so the line does not jitter.
-function Countdown({ at }) {
+export function Countdown({ at }) {
   const t = useT();
   const end = at ? Date.parse(at) : NaN;
   const [now, setNow] = useState(() => Date.now());
