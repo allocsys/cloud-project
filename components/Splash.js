@@ -13,10 +13,10 @@ import { telegramReady } from '@/lib/telegram';
 // After a sign-out on purpose (vtx-out) this stays off until the person signs in again.
 // After the first visit in a session the welcome screen is skipped altogether (a head script in the root layout hides it before the first paint
 // on a reload or a language change; <html data-sp="off"> does that), and the scrambling headings stay plain (components/Decrypt.js).
-const FIRST = 1100;
+const FIRST = 2400;
 const REPEAT = 250;
-const CAP = 2500;
-const AUTO = 1700; // a little longer while the account check runs
+const CAP = 3500;
+const AUTO = 2600; // a little longer while the account check runs
 const CHECK = 4000; // the check gives up after this
 const WAIT = 1500; // how long to wait for the Telegram script (it loads after the page)
 
@@ -118,7 +118,7 @@ function startOrb(c) {
   };
   const draw = () => {
     const T = (Date.now() - t0) / 1000;
-    const t = T % CYC;
+    const t = (T * 1.7) % CYC; // the logo phases run 1.7x faster than the globe turns
     const rot = T * 0.7;
     const cr = Math.cos(rot);
     const sr = Math.sin(rot);
