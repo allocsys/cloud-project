@@ -658,6 +658,11 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
 @media all {
   .rv { transition: opacity 0.6s cubic-bezier(0.2, 0, 0, 1), transform 0.6s cubic-bezier(0.2, 0, 0, 1); }
   .rv-hide { opacity: 0; transform: translateY(24px); }
+  .lp-hero > * { animation: lp-rise 0.7s cubic-bezier(0.2, 0, 0, 1) both; }
+  .lp-hero > :nth-child(2) { animation-delay: 0.08s; }
+  .lp-hero > :nth-child(3) { animation-delay: 0.16s; }
+  .lp-hero > :nth-child(4) { animation-delay: 0.24s; }
+  .lp-hero > :nth-child(5) { animation-delay: 0.32s; }
   .lp-marq { overflow: hidden; }
   .lp-marq-in { width: max-content; animation: lp-marq 30s linear infinite; }
   .lp-marq-dup { display: flex; }
@@ -667,6 +672,7 @@ html[dir='rtl'] .hold-f { transform-origin: right center; }
 @media (hover: hover) {
   .lp-card:hover { transform: translateY(-3px); }
 }
+@keyframes lp-rise { from { opacity: 0; transform: translateY(20px); } }
 @keyframes lp-marq { to { transform: translateX(-50%); } }
 
 /* Landing: block chain steps (components/ChainSteps.js) */
