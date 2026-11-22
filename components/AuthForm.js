@@ -36,6 +36,26 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
   const [capOn, setCapOn] = useState(false); // the bot check is switched on (components/Captcha.js)
   const [capToken, setCapToken] = useState('');
   const [capKey, setCapKey] = useState(0); // a new number mounts the check again, for a fresh one after each attempt
+  const [capHide, setCapHide] = useState(false); // the check is solved: its box folds away (it stays mounted, so it can renew an expired token)
+  const [step, setStep] = useState('email'); // sign-in only: 'email' first, then the same box turns into the password
+  const [flip, setFlip] = useState(''); // 'out' while the email box turns away; 'in' for the box that turns in
+  const twoStep = !view && !signup;
+
+  useEffect(() => {
+    if (!capToken) {
+      setCapHide(false);
+      return undefined;
+    }
+    const tm = setTimeout(() => setCapHide(true), 900);
+    return () => clearTimeout(tm);
+  }, [capToken]);
+
+  // After each step change put the cursor in the box that turned in.
+  useEffect(() => {
+    if (!twoStep || !flip) return;
+    const el = document.getElementById(step === 'pass' ? 'pw' : 'em');
+    if (el) el.focus();
+  }, [step, flip, twoStep]);
 
   // Telegram's script may load after the page does, so look a few times.
   useEffect(() => {
@@ -78,6 +98,27 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
   async function submit(e) {
     e.preventDefault();
     if (notice) return onDone('/plans');
+    if (twoStep && step === 'email') {
+      if (!/^\S+@\S+\.\S+$/.test(email.trim())) {
+        triggerHaptic('error');
+        setErrors({ email: t('auth.errEmail') });
+        document.getElementById('em')?.focus();
+        return;
+      }
+      if (capOn && !capToken) {
+        triggerHaptic('error');
+        setErrors({ form: t('auth.errCaptcha') });
+        return;
+      }
+      triggerHaptic('selection');
+      setErrors({});
+      setFlip('out');
+      setTimeout(() => {
+        setStep('pass');
+        setFlip('in');
+      }, 180);
+      return;
+    }
     const next = {};
     if (view !== 'reset' && !/^\S+@\S+\.\S+$/.test(email.trim())) next.email = t('auth.errEmail');
     if (view !== 'forgot' && password.length < 8) next.password = t('auth.errPassword');
@@ -145,12 +186,18 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         setTimeout(() => document.getElementById('tc')?.focus(), 0);
         return;
       }
+      if (err.field === 'email') {
+        setStep('email');
+        setFlip('in');
+      }
       setErrors(err.field === 'email' || err.field === 'password' ? { [err.field]: err.message } : { form: err.message });
     }
   }
 
   function handleSwap() {
     triggerHaptic('selection');
+    setStep('email');
+    setFlip('');
     setNeedCode(false);
     setCode('');
     if (view) {
@@ -163,12 +210,28 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
 
   function handleForgot() {
     triggerHaptic('selection');
+    setStep('email');
+    setFlip('');
     setNeedCode(false);
     setCode('');
     setView('forgot');
     setSent(false);
     setPassword('');
     setErrors({});
+  }
+
+  function handleChange() {
+    triggerHaptic('selection');
+    setPassword('');
+    setShow(false);
+    setNeedCode(false);
+    setCode('');
+    setErrors({});
+    setFlip('out');
+    setTimeout(() => {
+      setStep('email');
+      setFlip('in');
+    }, 180);
   }
 
   async function handleTelegram() {
@@ -218,8 +281,15 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
       <h3 id="auth-t">{title}</h3>
       <p className="mute">{sub}</p>
 
-      {view !== 'reset' && (
-        <Field id="em" label={t('auth.email')} error={errors.email}>
+      {twoStep && step === 'pass' && (
+        <div className="echip">
+          <span>{email.trim()}</span>
+          <button type="button" onClick={handleChange}>{t('auth.change')}</button>
+        </div>
+      )}
+
+      {view !== 'reset' && !(twoStep && step === 'pass') && (
+        <Field id="em" label={t('auth.email')} error={errors.email} className={twoStep && flip ? `flip${flip}` : undefined}>
           <input
             id="em"
             type="email"
@@ -240,12 +310,12 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         </Field>
       )}
 
-      {view !== 'forgot' && (
+      {view !== 'forgot' && !(twoStep && step === 'email') && (
         <Field
           id="pw"
           label={view === 'reset' ? t('auth.newPassword') : t('auth.password')}
           error={errors.password}
-          className="pw"
+          className={`pw${twoStep && flip ? ` flip${flip}` : ''}`}
           side={
             <button
               type="button"
@@ -301,18 +371,20 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
 
       {!view && signup && (
         <>
-          <button
-            type="button"
-            className="swap"
-            aria-expanded={refOpen}
-            aria-controls="rc"
-            onClick={() => {
-              triggerHaptic('selection');
-              setRefOpen(!refOpen);
-            }}
-          >
-            {t('auth.refToggle')}
-          </button>
+          <div className="pills">
+            <button
+              type="button"
+              className="pill"
+              aria-expanded={refOpen}
+              aria-controls="rc"
+              onClick={() => {
+                triggerHaptic('selection');
+                setRefOpen(!refOpen);
+              }}
+            >
+              {t('auth.refToggle')}
+            </button>
+          </div>
           {refOpen && (
             <Field id="rc" label={t('auth.refLabel')}>
               <input
@@ -331,7 +403,11 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         </>
       )}
 
-      {view !== 'reset' && !notice && <Captcha key={capKey} onActive={setCapOn} onToken={setCapToken} />}
+      {view !== 'reset' && !notice && (
+        <div className={`capwrap${capHide ? ' gone' : ''}`} aria-hidden={capHide || undefined}>
+          <Captcha key={capKey} onActive={setCapOn} onToken={setCapToken} />
+        </div>
+      )}
 
       {errors.form && <div className="ferr" role="alert">{errors.form}</div>}
 
@@ -348,7 +424,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
               : t('auth.sendLink')
             : view === 'reset'
               ? t('auth.setNew')
-              : notice
+              : notice || (twoStep && step === 'email')
                 ? t('common.continue')
                 : signup
                   ? t('auth.createAccount')
@@ -380,15 +456,20 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         </p>
       )}
 
-      {!view && !signup && (
-        <button className="swap" type="button" onClick={handleForgot}>
-          {t('auth.forgot')}
+      {twoStep ? (
+        <div className="pills">
+          <button className="pill" type="button" onClick={handleForgot}>{t('auth.forgot')}</button>
+          <button className="pill" type="button" onClick={handleSwap}>{t('auth.createAccount')}</button>
+        </div>
+      ) : view ? (
+        <button className="swap" type="button" onClick={handleSwap}>
+          {t('auth.swapBack')}
         </button>
+      ) : (
+        <div className="pills">
+          <button className="pill" type="button" onClick={handleSwap}>{t('auth.swapSignin')}</button>
+        </div>
       )}
-
-      <button className="swap" type="button" onClick={handleSwap}>
-        {view ? t('auth.swapBack') : signup ? t('auth.swapSignin') : t('auth.swapSignup')}
-      </button>
 
       {!view && tg && (
         <button className="btn ghost" type="button" onClick={handleTelegram} disabled={tgBusy}>
