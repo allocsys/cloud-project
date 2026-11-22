@@ -260,12 +260,12 @@ export default function Wallet() {
     }
   }
 
-  async function cancelDep(id) {
+  async function cancelDep(id, quiet = false) {
     triggerHaptic('light');
     try {
       await post('/api/orders/cancel', { id });
     } catch (e) {
-      show(e.status ? e.message : t('common.noConnection'));
+      if (!quiet) show(e.status ? e.message : t('common.noConnection')); // quiet: the order already timed out, so the server refuses and that is fine
     }
     refreshDod().catch(() => {});
   }
@@ -710,7 +710,7 @@ export default function Wallet() {
                 </div>
               </div>
             ) : cryptoOn && dod?.multi ? (
-              <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} />
+              <DepositFlow minDep={minDep} ready={ready} show={show} refreshDod={refreshDod} onCancel={cancelDep} orders={depPending} allOrders={dod?.orders} />
             ) : cryptoOn ? (
               <div>
                 {dod?.multi && <CoinPicker value={payCoin} onChange={setPayCoin} disabled={busy} />}
