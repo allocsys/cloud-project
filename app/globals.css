@@ -1185,7 +1185,7 @@ main {
   transition: background 0.2s;
 }
 
-.tabs button { flex: 1; min-height: 36px; font-size: 13px; }
+.tabs button { flex: 1; min-height: 44px; font-size: 13px; }
 .minitabs button { min-height: 32px; padding: 0 14px; font-size: 12px; }
 
 .tabs button + button,
