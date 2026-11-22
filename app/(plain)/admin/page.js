@@ -674,6 +674,54 @@ function BoostCard({ bs, busy, run }) {
   );
 }
 
+// Deposit bonus event: while it runs, each paid top-up earns free boost tickets (one for every N dollars) that start at once. Rules in lib/event.js,
+// storage and the hand-out in lib/server/event.js. Start begins a new event now; Stop ends it. Changed numbers apply to deposits credited after saving.
+const evDraft = (v) => ({ perUsd: String(v.perUsd), ticket: v.ticket, maxPerUser: String(v.maxPerUser || 0), days: '3' });
+const evWhen = (ms) => new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
+function EventCard({ ev, boostOn, busy, run }) {
+  const s = ev || { enabled: false, perUsd: 50, ticket: 't10', maxPerUser: 0, startAt: 0, endsAt: 0 };
+  const key = JSON.stringify(s);
+  const [d, setD] = useState(() => evDraft(s));
+  const [edited, setEdited] = useState(false); // typed and not saved yet: a reload must not wipe it
+  useEffect(() => {
+    if (!edited) setD((x) => ({ ...evDraft(JSON.parse(key)), days: x.days }));
+  }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
+  const type = (k, v) => {
+    setEdited(true);
+    setD((x) => ({ ...x, [k]: v }));
+  };
+  const live = s.enabled && Date.now() <= s.endsAt;
+  const t = TICKETS.find((x) => x.id === d.ticket) || TICKETS[1];
+  const body = { action: 'event-save', perUsd: d.perUsd, ticket: d.ticket, maxPerUser: d.maxPerUser };
+  return (
+    <Fold title="Deposit bonus event" sub={live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}>
+      <div className="row"><span className="mute">Event</span><b>{live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}</b></div>
+      {!boostOn && <p className="fine" style={{ margin: '8px 0 0', color: 'var(--red)' }}>Boost tickets are off, so no bonus is given. Turn them on in the Boost tickets card.</p>}
+      <div className="adm-2col">
+        <Field id="evp" label="Dollars per ticket" inputMode="decimal" value={d.perUsd} onChange={(v) => type('perUsd', v)} />
+        <Pick id="evt" label="Ticket given" value={d.ticket} onChange={(v) => type('ticket', v)}>
+          {TICKETS.map((x) => <option key={x.id} value={x.id}>${x.price} ticket</option>)}
+        </Pick>
+      </div>
+      <div className="adm-2col">
+        <Field id="evd" label="Run for (days)" inputMode="decimal" value={d.days} onChange={(v) => type('days', v)} />
+        <Field id="evm" label="Max tickets per user (0 = no limit)" inputMode="numeric" value={d.maxPerUser} onChange={(v) => type('maxPerUser', v)} />
+      </div>
+      <p className="fine" style={{ margin: '8px 0 0' }}>Every ${d.perUsd || '?'} deposited gives 1 free ${t.price} ticket. Each one can win a prize of ${t.prize.toLocaleString('en-US')}.</p>
+      {edited && <p className="fine" style={{ margin: '8px 0 0' }}>You have unsaved changes. Tap Save.</p>}
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={async () => { if (await run(body, 'Event settings saved')) setEdited(false); }}>Save</button>
+        {live ? (
+          <button className="btn" disabled={busy} onClick={async () => { if (await ask('Stop the deposit bonus event now?', { ok: 'Stop', danger: true })) run({ action: 'event-save', stop: true }, 'Event stopped'); }}>Stop event</button>
+        ) : (
+          <button className="btn" disabled={busy || !boostOn} onClick={async () => { if (await run({ ...body, start: true, days: d.days }, 'Event started')) setEdited(false); }}>Start event</button>
+        )}
+      </div>
+      <How><p className="fine">While the event is live, each paid deposit gives 1 free ticket for every ${d.perUsd || '?'} (whole steps only: $120 at $50 gives 2), at most 20 tickets per deposit. The tickets are free boosts of the chosen size that start the moment the deposit is credited, drawn at the real chance of that ticket in the Boost tickets card. They show in the user's Activity and notifications. A deposit counts when its payment was started during the event, even if it is paid after the end. The per-user limit starts over with each new event. Start needs boost tickets on; if they are turned off later, no bonus is given.</p></How>
+    </Fold>
+  );
+}
+
 // A card that stays closed until tapped: the title and a one-line summary show, the body opens below. Drafts live in the parent, so closing keeps them.
 function Fold({ title, sub, pill, start, children }) {
   const [open, setOpen] = useState(!!start);
@@ -1850,6 +1898,7 @@ export default function Admin() {
           </Fold>
           <FirstBonusCard fb={data.firstBonus} busy={busy} run={run} />
           <BoostCard bs={data.boost} busy={busy} run={run} />
+          <EventCard ev={data.event} boostOn={!!data.boost?.enabled} busy={busy} run={run} />
           <MinDepositCard value={data.minDeposit} busy={busy} run={run} />
           <MinWithdrawCard value={data.minWithdraw} busy={busy} run={run} />
           <SignupLimitCard value={data.signupLimit} busy={busy} run={run} />
