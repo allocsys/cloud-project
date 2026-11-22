@@ -130,10 +130,8 @@ export default function Splash() {
         if (ref.current) ref.current.classList.add('sp-out');
         window.__vtxSplash = 'off';
         window.dispatchEvent(new Event('vtx-splash-done'));
-        t2 = setTimeout(() => {
-          document.documentElement.dataset.sp = 'off';
-          setGone(true);
-        }, 600);
+        // data-sp=off is for repeat visits only (set above and by the head script): it turns the Decrypt text plain at once.
+        t2 = setTimeout(() => setGone(true), 600);
       }, wait);
     });
     return () => {
