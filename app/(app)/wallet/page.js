@@ -167,6 +167,13 @@ export default function Wallet() {
   const wdRef = useRef(null); // the latest withdraw(), called by the poll below
   const prices = pd?.prices;
   const [tab, setTab] = useState('withdraw');
+  useEffect(() => {
+    // /wallet?tab=deposit (the deposit bonus banners) opens the Deposit tab
+    if (new URLSearchParams(window.location.search).get('tab') === 'deposit') {
+      setTab('deposit');
+      setUnit('coin');
+    }
+  }, []);
   const [asset, setAsset] = useState('btc');
   const [net, setNet] = useState('btc');
   const [unit, setUnit] = useState('usd');
