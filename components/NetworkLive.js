@@ -2,6 +2,7 @@
 // The live strip on the landing page, above the Why section: Bitcoin price, network hash power and difficulty, read from
 // /api/network (the live market the payouts follow). Real numbers only: with no live reading nothing shows.
 // Motion: a pulsing live dot, the numbers count up once when the strip scrolls into view, and a new reading fades in.
+// The real numbers are always on screen; scrolling the strip into view only plays the count-up.
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import CountUp from '@/components/CountUp';
@@ -12,9 +13,9 @@ import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
 const REFRESH = 60000;
 const EH = (d) => (d * 2 ** 32) / 600 / 1e18; // hashes per second: difficulty x 2^32 per block, one block every 600 s
 
-function Num({ value, dec = 0, pre = '', suf = '' }) {
+function Num({ value, dec = 0, pre = '', suf = '', seen }) {
   const text = (v) => `${pre}${v.toLocaleString('en-US', { minimumFractionDigits: dec, maximumFractionDigits: dec })}${suf}`;
-  return <CountUp value={value} format={text} ms={1400} />;
+  return seen ? <CountUp value={value} format={text} ms={1400} /> : text(value);
 }
 
 export default function NetworkLive() {
@@ -65,12 +66,12 @@ export default function NetworkLive() {
 
   if (!d) return null;
   const cells = [
-    { k: 'price', n: <Num value={d.btc} pre="$" /> },
-    { k: 'hash', n: <Num value={EH(d.diff)} suf=" EH/s" /> },
-    { k: 'diff', n: <Num value={d.diff / 1e12} dec={2} suf=" T" /> },
-    { k: 'miners', n: <Num value={minersCount(d.miners)} /> },
-    { k: 'paid', n: <Num value={PAID_BTC} dec={2} suf=" BTC" /> },
-    { k: 'up', n: <Num value={UPTIME_PCT} dec={2} suf="%" /> },
+    { k: 'price', n: <Num seen={seen} value={d.btc} pre="$" /> },
+    { k: 'hash', n: <Num seen={seen} value={EH(d.diff)} suf=" EH/s" /> },
+    { k: 'diff', n: <Num seen={seen} value={d.diff / 1e12} dec={2} suf=" T" /> },
+    { k: 'miners', n: <Num seen={seen} value={minersCount(d.miners)} /> },
+    { k: 'paid', n: <Num seen={seen} value={PAID_BTC} dec={2} suf=" BTC" /> },
+    { k: 'up', n: <Num seen={seen} value={UPTIME_PCT} dec={2} suf="%" /> },
   ];
   return (
     <div ref={ref} className="nl" aria-label={t('netlive.title')}>
@@ -92,7 +93,7 @@ export default function NetworkLive() {
       <div className="nl-g">
         {cells.map((c, i) => (
           <div className="nl-c" key={c.k} style={{ animationDelay: `${i * 120}ms` }}>
-            <div className="nl-n">{seen ? c.n : '\u2014'}</div>
+            <div className="nl-n">{c.n}</div>
             <div className="nl-l">{t(`netlive.${c.k}`)}</div>
           </div>
         ))}
