@@ -110,6 +110,23 @@ function Countdown({ at }) {
   );
 }
 
+// True once the invoice's expiry has passed. Flips by itself at that moment (one timer, no polling) and again when the tab comes back.
+export function useExpired(at) {
+  const end = at ? Date.parse(at) : NaN;
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!Number.isFinite(end)) return undefined;
+    const sync = () => setNow(Date.now());
+    const id = end > Date.now() ? setTimeout(sync, Math.min(end - Date.now() + 50, 2 ** 31 - 1)) : 0;
+    document.addEventListener('visibilitychange', sync);
+    return () => {
+      if (id) clearTimeout(id);
+      document.removeEventListener('visibilitychange', sync);
+    };
+  }, [end]);
+  return Number.isFinite(end) && end <= now;
+}
+
 // An open gateway payment: send exactly this amount, to this address, on this network.
 // `show` is the page's toast function; it says the text was copied.
 // `slim` drops More (Copy amount, QR, Trust link): the deposit flow shows Copy address and Copy amount itself.
@@ -149,6 +166,15 @@ export function PayInfo({ order, show, slim = false }) {
     setFailed(true);
     setMore(true);
   };
+  const expired = useExpired(order.expiresAt);
+  // Timed out: no address, amount or pay buttons, only the red Expired line (the caller keeps its coin tabs and Cancel).
+  if (expired) {
+    return (
+      <div style={{ marginTop: 6 }}>
+        <Countdown at={order.expiresAt} />
+      </div>
+    );
+  }
   return (
     <div style={{ marginTop: 6 }}>
       <Countdown at={order.expiresAt} />

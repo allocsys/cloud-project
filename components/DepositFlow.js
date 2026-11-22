@@ -7,7 +7,7 @@ import { triggerHaptic } from '@/lib/haptics';
 import { formatUsd } from '@/lib/useMined';
 import Field from '@/components/Field';
 import { Qr } from '@/components/Qr';
-import { CoinPicker, PayInfo } from '@/components/PayCoin';
+import { CoinPicker, PayInfo, useExpired } from '@/components/PayCoin';
 import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
 import { useWallet } from '@/components/WalletProvider';
 import { useT } from '@/components/I18nProvider';
@@ -77,6 +77,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const order = cur || (busy ? last.current : null);
   const others = (orders || []).filter((o) => o.url && !gone.has(o.id));
   const oid = order?.id;
+  const expired = useExpired(order?.expiresAt); // timed out: no pay buttons, only Expired, the coin tabs (a new order) and Cancel
 
   // A new order: a manual coin goes straight to the manual screen; otherwise the device chips pulse for a moment, then the detected one is pressed.
   useEffect(() => {
@@ -197,6 +198,12 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
   const scanBtn = (
     <button type="button" className="btn ghost" aria-pressed={qr} onClick={() => setQr(!qr)}>{dt('dep.scan')}</button>
   );
+  const expiredBlock = order && (
+    <div className="dfcol">
+      <p className="fine" role="alert" style={{ margin: 0, color: 'var(--red)' }}>{dt('pay.expired')}</p>
+      <button type="button" className="btn ghost" onClick={() => leave(order.id)}>{dt('wal.depCancel')}</button>
+    </div>
+  );
   const short = acct ? `${acct.slice(0, 6)}\u2026${acct.slice(-4)}` : '';
   const slo = Math.max(minDep, 1);
   const smax = Math.max(SLIDER_MAX, slo);
@@ -284,7 +291,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
                 <span>{dt((ENVS.find(([id]) => id === env) || ENVS[1])[1])}</span>
               </span>
             </div>
-            {phase === 'checking' ? null : (
+            {phase === 'checking' ? null : expired ? expiredBlock : (
               <div className="dfcol">
                 {connected && <p className="fine" style={{ margin: 0 }}>{`${dt('dep.connected')} \u00b7 ${short}`}</p>}
                 {connected || env !== 'pwa' ? (
@@ -295,7 +302,7 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
                 <button type="button" style={linkBtn} onClick={() => setManual('link')}>{dt('dep.manual')}</button>
               </div>
             )}
-            {qr && <Qr value={order.uri || order.address} />}
+            {qr && !expired && <Qr value={order.uri || order.address} />}
           </div>
         )}
 
@@ -304,9 +311,13 @@ export default function DepositFlow({ minDep, ready, show, refreshDod, onCancel,
             <CoinPicker skipNets={tg ? undefined : SITE_SKIP} value={{ asset: order.asset || 'btc', net: order.network }} onChange={switchCoin} disabled={busy} />
             <PayInfo order={order} show={show} slim />
             <div className="dfcol" style={{ marginTop: 10 }}>
-              {canOpen && openBtn}
-              <button type="button" className="btn ghost" onClick={() => { copyText(order.address); show(dt('wal.copied')); }}>{dt('wal.copy')}</button>
-              <button type="button" className="btn ghost" onClick={() => { copyText(String(order.amount)); show(dt('wal.copied')); }}>{dt('pay.copyAmt')}</button>
+              {!expired && canOpen && openBtn}
+              {!expired && (
+                <>
+                  <button type="button" className="btn ghost" onClick={() => { copyText(order.address); show(dt('wal.copied')); }}>{dt('wal.copy')}</button>
+                  <button type="button" className="btn ghost" onClick={() => { copyText(String(order.amount)); show(dt('wal.copied')); }}>{dt('pay.copyAmt')}</button>
+                </>
+              )}
               <button type="button" className="btn ghost" onClick={() => leave(order.id)}>{dt('wal.depCancel')}</button>
             </div>
           </div>
