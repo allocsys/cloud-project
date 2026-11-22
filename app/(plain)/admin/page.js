@@ -2000,15 +2000,13 @@ export default function Admin() {
             <input id="usq" type="search" autoComplete="off" autoCapitalize="none" spellCheck="false" placeholder=" " value={uq} onChange={(e) => setUq(e.target.value)} />
             <label htmlFor="usq">Search users</label>
           </div>
-          <div className="minitabs adm-filter" role="group" aria-label="Filter users">
-            {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals'], ['flag', 'Flagged']].map(([k, t]) => (
-              <button key={k} aria-pressed={ufil === k} onClick={() => setUfil(k)}>{t}</button>
-            ))}
-          </div>
-          <div className="minitabs adm-filter" role="group" aria-label="Sort users">
-            {[['new', 'New'], ['bal', 'Balance'], ['miners', 'Miners'], ['seen', 'Seen'], ['kyc', 'KYC']].map(([k, t]) => (
-              <button key={k} aria-pressed={usort === k} onClick={() => setUsort(k)}>{t}</button>
-            ))}
+          <div className="adm-2col">
+            <Pick id="usf" label="Show" value={ufil} onChange={setUfil}>
+              {[['all', 'All'], ['blocked', 'Blocked'], ['frozen', 'Paused'], ['unver', 'Unverified'], ['wd', 'Withdrawals'], ['flag', 'Flagged']].map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </Pick>
+            <Pick id="uss" label="Sort" value={usort} onChange={setUsort}>
+              {[['new', 'New'], ['bal', 'Balance'], ['miners', 'Miners'], ['seen', 'Seen'], ['kyc', 'KYC']].map(([k, t]) => <option key={k} value={k}>{t}</option>)}
+            </Pick>
           </div>
           {shownUsers.length > 0 && (
             <div className="adm-tool">
