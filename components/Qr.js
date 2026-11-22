@@ -19,7 +19,7 @@ export function Qr({ value }) {
   const box = qr.size + pad * 2;
   return (
     <div style={{ width: 144, height: 144, margin: '10px 0 0' }}>
-      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} width="144" height="144" role="img" aria-label={t('wal.qr')} shapeRendering="crispEdges">
+      <svg viewBox={`${-pad} ${-pad} ${box} ${box}`} width="144" height="144" role="img" aria-label={t('qr.alt')} shapeRendering="crispEdges">
         <rect x={-pad} y={-pad} width={box} height={box} fill="#fff" />
         <path d={qr.d} fill="#0b0a08" />
       </svg>
