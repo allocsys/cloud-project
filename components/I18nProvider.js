@@ -1,13 +1,24 @@
 'use client';
-import { Fragment, createContext, useContext, useMemo } from 'react';
+import { Fragment, createContext, useContext, useEffect, useLayoutEffect, useMemo } from 'react';
 import { DEFAULT_LANG, LANG_META, LANG_COOKIE } from '@/lib/i18n/meta';
 import { setClientMessages, translateClient } from '@/lib/i18n/client';
 import { PUBLIC_PAGES, pagePath, stripLang } from '@/lib/i18n/codes';
 
 const fallback = { lang: DEFAULT_LANG, dir: 'ltr', t: (key, vars) => translateClient(DEFAULT_LANG, key, vars) };
 const Ctx = createContext(fallback);
+// Runs before the browser paints (on the server it is a plain effect, which never runs there).
+const useBeforePaint = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 export default function I18nProvider({ lang, messages, children }) {
+  // The server renders <html lang="en" dir="ltr"> and a script in the head corrects it before the first paint (app/layout.js).
+  // If React redoes the page on the client it writes the server's values back, which dropped Persian and Arabic to ltr after a
+  // second. Setting them here, before paint, from the language this page really renders in, puts them back every time.
+  useBeforePaint(() => {
+    const el = document.documentElement;
+    const dir = LANG_META[lang]?.dir || 'ltr';
+    if (el.lang !== lang) el.lang = lang;
+    if (el.dir !== dir) el.dir = dir;
+  }, [lang]);
   // Register the messages for error translation outside React (lib/api.js). Client only: on the
   // server this module state would be shared across requests. Idempotent, so calling it on every
   // render is safe and keeps the messages in place from the first paint.
