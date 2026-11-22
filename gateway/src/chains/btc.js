@@ -3,8 +3,8 @@
 // native segwit (bc1q...) address at <account>/0/i, which any wallet built from the same seed can spend.
 import { HDKey } from '@scure/bip32';
 import { bech32, createBase58check } from '@scure/base';
-import { sha256 } from '@noble/hashes/sha256';
-import { ripemd160 } from '@noble/hashes/ripemd160';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { ripemd160 } from '@noble/hashes/legacy.js';
 
 const b58c = createBase58check(sha256);
 
