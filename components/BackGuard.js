@@ -1,6 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { usePathname } from 'next/navigation';
+import { useT } from '@/components/I18nProvider';
 
 const HOME = '/dashboard';
 
@@ -13,6 +14,7 @@ const HOME = '/dashboard';
 // under the current screen is added on the person's first tap (pointerup / key press),
 // not on load.
 export default function BackGuard() {
+  const t = useT();
   const path = usePathname();
   const pathRef = useRef(path);
   const guarded = useRef(false);
@@ -59,7 +61,7 @@ export default function BackGuard() {
 
   return (
     <div id="exit-toast" className={hint ? 'on' : undefined} role="status" aria-live="polite">
-      Press back again to exit
+      {t('nav.backExit')}
     </div>
   );
 }
