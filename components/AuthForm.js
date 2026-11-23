@@ -170,8 +170,8 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         if (signup && !view) localStorage.removeItem('vtx-ref');
       } catch {}
       triggerHaptic('success');
-      if (!view && signup && res?.ref === 'invalid') {
-        setNotice(t('auth.createdInvalid', { code: ref }));
+      if (!view && signup && (res?.ref === 'invalid' || res?.ref === 'full')) {
+        setNotice(t(res.ref === 'full' ? 'auth.createdFull' : 'auth.createdInvalid', { code: ref }));
         setLoading(false);
         return;
       }
@@ -246,8 +246,8 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
         localStorage.removeItem('vtx-ref');
       } catch {}
       triggerHaptic('success');
-      if (res?.ref === 'invalid') {
-        setNotice(t('auth.createdInvalid', { code: ref }));
+      if (res?.ref === 'invalid' || res?.ref === 'full') {
+        setNotice(t(res.ref === 'full' ? 'auth.createdFull' : 'auth.createdInvalid', { code: ref }));
         setTgBusy(false);
         return;
       }
