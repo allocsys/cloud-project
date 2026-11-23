@@ -10,6 +10,7 @@ const auth = await import('@/lib/server/auth');
 const boost = await import('@/lib/server/boost');
 const { availableIn } = await import('@/lib/server/wallet');
 const { act } = await import('@/lib/server/admin');
+const { addLot } = await import('@/lib/deposit-hold');
 
 const run = `b${Date.now().toString(36)}`;
 const PW = 'correct horse 1';
@@ -80,6 +81,18 @@ test('not enough balance and unknown tickets are refused', async () => {
   assert.equal((await boost.buyBoost({ ticket: 't1' }, { userId: id })).status, 409);
   assert.equal((await boost.buyBoost({ ticket: 't7' }, { userId: id })).status, 400);
   assert.equal((await getUser(id)).boosts, undefined);
+});
+
+test('a fresh deposit with no plan (still in its hold) can pay for a ticket', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('hold');
+  await withUser(id, (u) => {
+    u.deposited = 1;
+    addLot(u, 1);
+  });
+  const r = await boost.buyBoost({ ticket: 't10' }, { userId: id });
+  assert.equal(r.ok, true);
+  assert.equal((await boost.getBoosts(id)).running.length, 1);
 });
 
 test('boosts run side by side up to the cap of each ticket', async () => {
