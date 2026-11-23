@@ -400,7 +400,7 @@ export default function BoostCard({ show, loading = false }) {
         data.tickets.map((tk) => (
           <div className="row" key={tk.id}>
             <div>
-              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s
+              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s{tk.coin ? ` · ${tk.coin}` : ''}
               <small style={{ display: 'block' }}>{t('bst.always', { pay: usd(tk.pay), chance: tk.chance, prize: whole(tk.prize) })}</small>
             </div>
           </div>
