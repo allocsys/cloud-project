@@ -189,6 +189,20 @@ export default function Review() {
     };
   }, [hist, state, lv]);
 
+  // The tab row slides away while scrolling down and comes back on any scroll up (same rule as the admin screen).
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      const nav = document.querySelector('.adm-nav');
+      if (nav) nav.setAttribute('data-hide', y > last && y > 120 ? 'true' : 'false');
+      last = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   async function refresh() {
     setSpin(true);
     await load();
@@ -236,7 +250,7 @@ export default function Review() {
       <div className="adm-nav" role="navigation" aria-label="Review sections">
         <div className="adm-tabs" role="group">
           {TABS.map(([k, l]) => (
-            <button key={k} aria-pressed={tab === k} onClick={() => { setTab(k); setFlt('open'); window.scrollTo({ top: 0 }); }}>
+            <button key={k} aria-pressed={tab === k} onClick={() => { setTab(k); setFlt('open'); window.scrollTo({ top: 0 }); document.querySelector('.adm-nav')?.setAttribute('data-hide', 'false'); }}>
               {l}
               {badge[k] > 0 && <b>{badge[k]}</b>}
             </button>
