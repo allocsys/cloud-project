@@ -18,6 +18,7 @@ import { dailyCosts, fmtCost } from '@/lib/fees';
 import { liveDaily } from '@/lib/market';
 import { SMART, smartPlan, smartBand } from '@/lib/smart';
 import { applyFirstBonus, bonusText } from '@/lib/first-bonus';
+import { runningNow } from '@/lib/boost';
 import { fill, useLang } from '@/components/I18nProvider';
 import { pagePath } from '@/lib/i18n/codes';
 import { CoinTabs } from '@/components/PaySheet';
@@ -415,6 +416,8 @@ export default function Plans() {
           onAmountBlur={onAmountBlur}
           onSlide={onSlide}
           onBuy={() => selectPlan({ id: 'smart' })}
+          boosts={runningNow(bd)}
+          onBoosts={() => setTab('boost')}
         />
       )}
       <AsicsCard

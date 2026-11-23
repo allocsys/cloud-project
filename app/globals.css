@@ -1659,6 +1659,11 @@ html[dir='rtl'] .tb-hl { transform: translateX(calc(var(--i) * -100%)); }
 .pcard .phead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .pcard .phead b { font-size: 17px; line-height: 24px; font-weight: 500; }
 .pcard .phead span { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--gold2); text-align: right; }
+/* Running boosts: a pill under the title whose dot blinks. It keeps blinking with reduce motion on (owner's choice, 24 Nov). */
+.pcard .bpillrow { display: flex; margin-top: 6px; }
+.pcard .bpill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border: 1px solid var(--gold2); border-radius: 12px; background: none; color: var(--gold2); font: inherit; font-size: 12px; line-height: 16px; font-weight: 500; cursor: pointer; }
+.pcard .bpill i { width: 7px; height: 7px; border-radius: 50%; background: currentColor; animation: bpillBlink 1.4s ease-in-out infinite; }
+@keyframes bpillBlink { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
 .pcard .stage { margin-top: 8px; animation: stagein 0.35s cubic-bezier(0.2, 0, 0, 1); }
 .pcard .stage .art { margin-bottom: 0; }
 .pcard .stage .art svg { height: 112px; }

@@ -113,3 +113,11 @@ test('real winners take their places and sample ones fill only what is missing, 
   const order = (r) => pickWinners({ real: real(12), mock: [], rand: r }).map((w) => w.name).join();
   assert.notEqual(order(() => 0), order(() => 0.99), 'the order follows the random numbers');
 });
+
+test('runningNow counts the boosts that have not ended yet', async () => {
+  const { runningNow } = await import('@/lib/boost');
+  const now = 1_000_000;
+  assert.equal(runningNow(null, now), 0);
+  assert.equal(runningNow({ running: [] }, now), 0);
+  assert.equal(runningNow({ running: [{ endsAt: now + 1 }, { endsAt: now + 5000 }, { endsAt: now }, { endsAt: now - 1 }] }, now), 2);
+});
