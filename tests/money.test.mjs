@@ -141,7 +141,7 @@ test('an account with no plan can bring in 3 friends; buying a plan lifts the li
   const rs = await many(5, (i) => sign(`lf${i}`));
   assert.ok(rs.every((r) => r.ok));
   assert.equal(rs.filter((r) => r.ref === 'applied').length, FREE_INVITES);
-  assert.equal(rs.filter((r) => r.ref === 'invalid').length, 2);
+  assert.equal(rs.filter((r) => r.ref === 'full').length, 2);
   assert.equal((await publicCode(code)).valid, false);
   for (let i = 0; i < 3; i += 1) assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
   assert.equal((await publicCode(code)).valid, true);
