@@ -347,15 +347,6 @@ export default function BoostCard({ show, loading = false }) {
           {b.win ? <b style={{ color: 'var(--green)' }}>{t('bst.won', { n: whole(b.prize) })}</b> : <b className="v">{t('bst.noPrize', { n: usd(b.pay) })}</b>}
         </div>
       ))}
-      {data.enabled &&
-        data.tickets.map((tk) => (
-          <div className="row" key={tk.id}>
-            <div>
-              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s
-              <small style={{ display: 'block' }}>{t('bst.always', { pay: usd(tk.pay), chance: tk.chance, prize: whole(tk.prize) })}</small>
-            </div>
-          </div>
-        ))}
       {data.enabled && (
         <div
           ref={btnRef}
@@ -405,6 +396,15 @@ export default function BoostCard({ show, loading = false }) {
             })}
         </div>
       )}
+      {data.enabled &&
+        data.tickets.map((tk) => (
+          <div className="row" key={tk.id}>
+            <div>
+              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s
+              <small style={{ display: 'block' }}>{t('bst.always', { pay: usd(tk.pay), chance: tk.chance, prize: whole(tk.prize) })}</small>
+            </div>
+          </div>
+        ))}
       <p className="fine" style={{ margin: '12px 0 0' }}>{t('bst.fine')}</p>
     </div>
   );
