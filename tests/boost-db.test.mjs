@@ -292,3 +292,73 @@ test('a ticket key replayed after the cleanup still buys once', async () => {
   assert.equal((await getUser(id)).boosts.length, 1);
   assert.equal((await ledgerRows(id, 'spend')).length, 1);
 });
+
+test('qty buys several tickets in one request: own id and draw each, one ledger row each, one history line and one notification', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('qty');
+  await credit(id, 1);
+  const had = await balance(id);
+  const r = await boost.buyBoost({ ticket: 't10', qty: 3 }, { userId: id });
+  assert.equal(r.ok, true);
+  assert.equal(r.qty, 3);
+  assert.equal(r.boosts.length, 3);
+  assert.equal(new Set(r.boosts.map((b) => b.id)).size, 3, 'each has its own id');
+  assert.equal(r.boost.id, r.boosts[0].id, 'boost stays the first one');
+  assert.ok(r.boosts.every((b) => !('win' in b)), 'no draw shown while running');
+  const u = await getUser(id);
+  assert.equal(u.boosts.length, 3);
+  assert.equal(u.history.filter((h) => h.kind === 'boost-buy').length, 1);
+  assert.equal(u.history[0].label, 'Boost ticket x3 \u00b7 $30');
+  assert.equal(u.history[0].amount, '-$30');
+  assert.equal(u.notifications.filter((n) => n.title === 'Boost started').length, 1);
+  const spend = await ledgerRows(id, 'spend');
+  assert.equal(spend.length, 3);
+  assert.ok(spend.every((s) => Number(s.usd) === 10));
+  assert.ok(Math.abs(had - (await balance(id)) - r.spentBtc) < 1e-7, 'the balance fell by the whole amount');
+  assert.equal((await boost.getBoosts(id)).tickets.find((t) => t.id === 't10').active, 3);
+  const one = await boost.buyBoost({ ticket: 't10' }, { userId: id });
+  assert.equal(one.qty, 1, 'no qty is one ticket');
+  assert.equal(one.boosts.length, 1);
+  assert.equal((await getUser(id)).history[0].label, 'Boost ticket \u00b7 $10', 'one ticket keeps the old line');
+});
+
+test('qty respects the running limit and the balance for the whole amount, and a bad qty is refused', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('qtycap');
+  await credit(id, 1);
+  assert.equal((await boost.buyBoost({ ticket: 't1', qty: 5 }, { userId: id })).ok, true);
+  assert.equal((await boost.buyBoost({ ticket: 't1', qty: 3 }, { userId: id })).ok, true);
+  const over = await boost.buyBoost({ ticket: 't1', qty: 3 }, { userId: id });
+  assert.equal(over.status, 409, '8 running + 3 is over the cap of 10');
+  assert.equal((await boost.getBoosts(id)).running.length, 8, 'nothing was bought');
+  assert.equal((await ledgerRows(id, 'spend')).length, 8);
+  assert.equal((await boost.buyBoost({ ticket: 't1', qty: 2 }, { userId: id })).ok, true, 'exactly to the cap');
+  for (const bad of [0, 6, 1.5, -1, 'x']) assert.equal((await boost.buyBoost({ ticket: 't1', qty: bad }, { userId: id })).status, 400, `qty ${bad}`);
+  const poor = await account('qtypoor');
+  assert.equal((await boost.buyBoost({ ticket: 't1', qty: 3 }, { userId: poor })).status, 409);
+  assert.equal((await getUser(poor)).boosts, undefined);
+});
+
+test('a double tap on a bubble with the same key buys the whole amount once', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('qtyidem');
+  await credit(id, 1);
+  const [a, b] = await Promise.all([boost.buyBoost({ ticket: 't1', qty: 3 }, { userId: id, key: 'q1' }), boost.buyBoost({ ticket: 't1', qty: 3 }, { userId: id, key: 'q1' })]);
+  assert.equal(a.ok, true);
+  assert.equal(b.ok, true);
+  assert.deepEqual(a.boosts.map((x) => x.id), b.boosts.map((x) => x.id));
+  assert.equal((await getUser(id)).boosts.length, 3);
+  assert.equal((await ledgerRows(id, 'spend')).length, 3);
+});
+
+test('a free ticket is always one, whatever qty says', async () => {
+  assert.equal((await chances()).ok, true);
+  const id = await account('qtyfree');
+  await withUser(id, (u) => {
+    u.freeTickets = 3;
+  });
+  const r = await boost.buyBoost({ free: true, qty: 5 }, { userId: id });
+  assert.equal(r.ok, true);
+  assert.equal((await getUser(id)).boosts.length, 1);
+  assert.equal((await boost.getBoosts(id)).free, 2);
+});

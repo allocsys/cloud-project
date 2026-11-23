@@ -15,7 +15,7 @@ async function GET_(req) {
   return NextResponse.json(await getBoosts(id), { headers: { 'Cache-Control': 'private, no-store' } });
 }
 
-// Body: { ticket: 't1' | 't10' | 't100' }. Same Idempotency-Key twice returns the first result instead of buying twice.
+// Body: { ticket: 't1' | 't10' | 't100', qty?: 1 to 5 (default 1) } or { free: true }. Same Idempotency-Key twice returns the first result instead of buying twice.
 async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
