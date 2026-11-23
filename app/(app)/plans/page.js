@@ -371,7 +371,7 @@ export default function Plans() {
           ['boost', t('boost.title'), bd?.free > 0 ? bd.free : 0],
           ['mine', t('plans.myMiners'), md ? list.length : 0],
         ].map(([k, label, n]) => (
-          <button key={k} type="button" aria-pressed={view === k} aria-label={n ? `${label} · ${n}` : label} onClick={() => setTab(k)}>
+          <button key={k} type="button" className={k === 'boost' && runningNow(bd) > 0 ? 'live' : undefined} aria-pressed={view === k} aria-label={n ? `${label} · ${n}` : label} onClick={() => setTab(k)}>
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d={TAB_ICON[k]} /></svg>
             <span>{label}</span>
             {n > 0 && <b>{n}</b>}
@@ -416,8 +416,6 @@ export default function Plans() {
           onAmountBlur={onAmountBlur}
           onSlide={onSlide}
           onBuy={() => selectPlan({ id: 'smart' })}
-          boosts={runningNow(bd)}
-          onBoosts={() => setTab('boost')}
         />
       )}
       <AsicsCard
