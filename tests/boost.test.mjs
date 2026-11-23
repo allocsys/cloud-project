@@ -1,7 +1,7 @@
 // Boost tickets, the pure part: ticket numbers, the margin, settings clean-up, the draw threshold and what finished boosts add to a balance.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { BOOST, TICKETS, ticketOf, normalizeBoost, shownOf, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay, WINNERS, maskId, mockWinners, pickWinners } from '@/lib/boost';
+import { BOOST, TICKETS, ticketOf, normalizeBoost, shownOf, floatedShown, marginOf, activeCount, drawWins, boostResultUsd, boostBtcOf, boostPay, WINNERS, maskId, mockWinners, pickWinners } from '@/lib/boost';
 
 test('the tickets pay th x 0.021 USD per TH/s per day for two hours', () => {
   assert.deepEqual(TICKETS.map((t) => [t.id, t.price, t.th, t.pay, t.prize, t.max]), [
@@ -24,9 +24,26 @@ test('the margin follows the chance: 29% at the default 5%, negative when the ch
 
 test('settings fall back to the defaults and keep valid values', () => {
   const none = { t1: null, t10: null, t100: null };
-  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none });
-  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 }, shown: none });
-  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none });
+  const fl = { on: false, ref: null, band: 25 };
+  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl });
+  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 }, shown: none, float: fl });
+  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl });
+  assert.deepEqual(normalizeBoost({ float: { on: true, ref: '1e14', band: 150 } }).float, { on: true, ref: 1e14, band: 25 });
+});
+
+test('the floating shown chance follows difficulty inside the band and never touches the real chance', () => {
+  const D = 1e14;
+  const cfg = normalizeBoost({ chance: { t1: 5, t10: 5, t100: 5 }, shown: { t1: 0.8, t10: null, t100: null }, float: { on: true, ref: D, band: 25 } });
+  assert.equal(floatedShown(cfg, 't1', D), 0.8, 'same difficulty: the base');
+  assert.equal(floatedShown(cfg, 't1', D * 1.1), 0.73, 'a stronger network shows a lower chance');
+  assert.equal(floatedShown(cfg, 't1', D * 0.9), 0.89, 'a weaker one shows a higher chance');
+  assert.equal(floatedShown(cfg, 't1', D * 10), 0.6, 'never below the band');
+  assert.equal(floatedShown(cfg, 't1', D / 10), 1, 'never above the band');
+  assert.equal(floatedShown(cfg, 't10', D * 1.1), 4.55, 'with no shown value the real one is the base');
+  assert.equal(floatedShown(cfg, 't1', null), 0.8, 'no difficulty reading: the base');
+  assert.equal(floatedShown({ ...cfg, float: { ...cfg.float, on: false } }, 't1', D * 1.1), 0.8, 'off: the base');
+  assert.equal(floatedShown({ ...cfg, float: { ...cfg.float, ref: null } }, 't1', D * 1.1), 0.8, 'not calibrated: the base');
+  assert.deepEqual(cfg.chance, { t1: 5, t10: 5, t100: 5 });
 });
 
 test('the shown chance is its own number; empty or invalid means the real one is shown', () => {

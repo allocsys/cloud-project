@@ -7,7 +7,7 @@ import { guardSettings } from '@/lib/server/guard';
 import { refreshPricing, pricingGross } from '@/lib/server/pricing';
 import { boostSettings } from '@/lib/server/boost';
 import { minWithdraw } from '@/lib/server/flags';
-import { BOOST, TICKETS, boostOn, shownOf } from '@/lib/boost';
+import { BOOST, TICKETS, boostOn, floatedShown } from '@/lib/boost';
 import { guarded } from '@/lib/server/shed';
 
 export const dynamic = 'force-dynamic';
@@ -37,7 +37,7 @@ async function GET_() {
       pauseRule: guard.mode,
       minWithdraw: minWd,
       boost: boostOn(bcfg)
-        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: shownOf(bcfg, t.id) })) }
+        ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: floatedShown(bcfg, t.id, live?.difficulty) })) }
         : null,
     },
     { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
