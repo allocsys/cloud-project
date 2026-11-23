@@ -60,7 +60,8 @@ function parseQuery() {
     if (t && m) init = { reset: { token: t, email: m } };
     else if (r || mode === 'signup' || a === 'signup') init = { signup: true };
     else if (a) init = {};
-    if (a || t || m || r || mode) window.history.replaceState(null, '', '/');
+    // Keep the hash: Telegram hands the Mini App its launch data (initData) there, and its script reads it after this runs.
+    if (a || t || m || r || mode) window.history.replaceState(null, '', `/${window.location.hash}`);
     return init;
   } catch {
     return null;
