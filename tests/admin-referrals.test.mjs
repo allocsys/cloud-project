@@ -8,7 +8,7 @@ const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
 const referrals = await import('@/lib/server/referrals');
-const { adminRefList, overview } = await import('@/lib/server/admin');
+const { adminRefList, overview, act } = await import('@/lib/server/admin');
 
 const run = `ar${Date.now().toString(36)}`;
 const email = (n) => `${n}-${run}@test.dev`;
@@ -63,4 +63,54 @@ test('the admin reader cuts pages inside the limits and knows only its two lists
   assert.ok((await adminRefList('friends', { offset: -5, limit: 100000 })).rows.length <= 200);
   assert.ok((await adminRefList('tickets', {})).rows.length <= 20);
   assert.equal(adminRefList('orders', {}), null);
+});
+
+test('a sign-up whose invite code did not link is listed, and the admin can raise the limit and link with tickets', async () => {
+  const inv = email('capinv');
+  assert.ok((await auth.signup({ email: inv, password: PW })).ok);
+  const code = (await getUser(inv)).refCode;
+  for (const n of ['cf1', 'cf2', 'cf3']) assert.equal((await auth.signup({ email: email(n), password: PW, ref: code })).ref, 'applied');
+  const late = email('cf4');
+  const wrong = email('cf5');
+  assert.equal((await auth.signup({ email: late, password: PW, ref: code })).ref, 'full');
+  assert.equal((await auth.signup({ email: wrong, password: PW, ref: 'VTX-NOPE' })).ref, 'invalid');
+
+  // Both misses are listed, newest first, with the reason and (for a full inviter) who to link to.
+  const list = await adminRefList('invitefails', { limit: 200 });
+  const ours = list.rows.filter((r) => r.id === late || r.id === wrong);
+  assert.deepEqual(ours.map((r) => r.id), [wrong, late]);
+  assert.deepEqual([ours[0].why, ours[0].inviter, ours[0].linked], ['unknown', '', false]);
+  assert.deepEqual([ours[1].why, ours[1].inviter, ours[1].code, ours[1].linked], ['full', inv, code, false]);
+  assert.ok(list.all >= 2 && list.shown === list.all);
+
+  // The limit: a bad number is refused, a good one lets more friends in, an empty one goes back to the default.
+  const cap = (v) => act({ action: 'user', userId: inv, op: 'invite-cap', cap: v });
+  assert.equal((await cap('abc')).status, 422);
+  assert.equal((await cap(0)).status, 422);
+  assert.ok((await cap(5)).ok);
+  assert.equal((await getUser(inv)).inviteCap, 5);
+  assert.equal((await auth.signup({ email: email('cf6'), password: PW, ref: code })).ref, 'applied');
+  assert.equal((await referrals.publicCode(code)).valid, true, 'one invite is still free');
+  assert.equal((await auth.signup({ email: email('cf7'), password: PW, ref: code })).ref, 'applied');
+  assert.equal((await referrals.publicCode(code)).valid, false, 'five invited, the limit is 5');
+  assert.ok((await cap('')).ok);
+  assert.equal((await getUser(inv)).inviteCap, undefined);
+
+  // Linking by hand: with the tick box both sides get one free ticket, without it nobody does.
+  const before = (await getUser(inv)).freeTickets || 0;
+  assert.ok((await act({ action: 'user', userId: wrong, op: 'ref-set', inviter: inv })).ok);
+  assert.ok(!(await getUser(wrong)).freeTickets);
+  assert.equal((await getUser(inv)).freeTickets || 0, before);
+  assert.ok((await act({ action: 'user', userId: late, op: 'ref-set', inviter: inv, tickets: true })).ok);
+  const friend = await getUser(late);
+  assert.equal(friend.refBy, inv);
+  assert.equal(friend.freeTickets, 1);
+  assert.ok(friend.notifications.some((n) => n.code === 'giftTicket'));
+  const owner = await getUser(inv);
+  assert.equal(owner.freeTickets, before + 1);
+  assert.ok(owner.notifications.some((n) => n.code === 'invTicket'));
+
+  // A linked account stays in the list, marked linked, so the admin does not link it twice.
+  const after = (await adminRefList('invitefails', { limit: 200 })).rows.filter((r) => r.id === late || r.id === wrong);
+  assert.ok(after.every((r) => r.linked));
 });
