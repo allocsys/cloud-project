@@ -272,7 +272,7 @@ function RangeNum({ low, mid, high, label }) {
 }
 
 // budget is the text in the amount box, bNum the budget it means; spos is the slider position (see lib/tiers.js).
-export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy }) {
+export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onAmount, onAmountBlur, onSlide, onBuy, boosts = 0, onBoosts }) {
   const t = useT();
   const tier = tierOf(SMART_TIERS, bNum);
   const level = SMART_TIERS.indexOf(tier) + 1;
@@ -281,6 +281,14 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
   return (
     <div className="card pcard">
       <div className="phead"><b>{t('dash.smart')}</b><span>{tierName(t, tier)} · {t('pc.bestDaily')}</span></div>
+      {boosts > 0 && (
+        <div className="bpillrow">
+          <button type="button" className="bpill" onClick={onBoosts}>
+            <i aria-hidden="true" />
+            {t('boost.live', { n: boosts })}
+          </button>
+        </div>
+      )}
       <div className="stage" key={tier.id}>
         <SmartArt level={level} />
       </div>
