@@ -1557,6 +1557,9 @@ export default function Admin() {
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
   const [upw, setUpw] = useState({ id: null, text: '' }); // new password being typed (one user at a time)
   const [uinv, setUinv] = useState({ id: null, text: '' }); // inviter being set (one user at a time)
+  const [uinvTick, setUinvTick] = useState(false); // give a free ticket to both when the inviter is set
+  const [fixTick, setFixTick] = useState(false); // the same tick box on the Invite problems card
+  const [fixCap, setFixCap] = useState('10'); // new invite limit typed on the Invite problems card
   const [umsg, setUmsg] = useState({ id: null, title: '', body: '' }); // message to one user being written
   const [ugift, setUgift] = useState({ id: null, kind: 'miner', th: '5', days: '30', count: '1' }); // gift being set up
   const [usm, setUsm] = useState(false); // select mode on the user list
@@ -1608,6 +1611,7 @@ export default function Admin() {
   const lu = useAdminList('/api/admin', 'users', ufil, tab === 'users', lv, `sort=${usort}&q=${encodeURIComponent(uqd)}`);
   const lfr = useAdminList('/api/admin', 'friends', 'all', tab === 'referrals', lv);
   const ltk = useAdminList('/api/admin', 'tickets', 'all', tab === 'referrals', lv);
+  const lim = useAdminList('/api/admin', 'invitefails', 'all', tab === 'referrals', lv);
   const shownUsers = lu.rows;
   const [toast, show] = useToast();
 
@@ -2212,6 +2216,10 @@ export default function Admin() {
                     <div className="adm-form">
                       <Field id="uinv" label="Inviter (email, id or invite code)" autoComplete="off" maxLength={120} value={uinv.text} onChange={(v) => setUinv({ ...uinv, text: v })} />
                       <p className="fine" style={{ margin: '4px 0 0' }}>Rewards follow the new inviter from now on.</p>
+                      <label className="fine" style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 0' }}>
+                        <input type="checkbox" checked={uinvTick} onChange={(e) => setUinvTick(e.target.checked)} />
+                        Give each a free ticket
+                      </label>
                       <div className="adm-actions">
                         <button className="btn ghost" onClick={() => setUinv({ id: null, text: '' })}>Cancel</button>
                         <button
@@ -2219,7 +2227,10 @@ export default function Admin() {
                           disabled={busy || !uinv.text.trim()}
                           onClick={async () => {
                             if (!(await ask(`Set the inviter of ${u.id} to ${uinv.text.trim()}?`, { ok: 'Set' }))) return;
-                            if (await run({ action: 'user', userId: u.id, op: 'ref-set', inviter: uinv.text }, 'Inviter set')) setUinv({ id: null, text: '' });
+                            if (await run({ action: 'user', userId: u.id, op: 'ref-set', inviter: uinv.text, tickets: uinvTick }, 'Inviter set')) {
+                              setUinv({ id: null, text: '' });
+                              setUinvTick(false);
+                            }
                           }}
                         >
                           Set
@@ -2611,6 +2622,44 @@ export default function Admin() {
               <Field id="tfp" label="Hash power (TH/s)" inputMode="decimal" value={th} onChange={(v) => setTf({ ...tf, th: v })} />
               <div style={{ height: 12 }} />
               <button className="btn" disabled={busy || !code} onClick={() => run({ action: 'ref-test', code, th: Number(String(th).replace(',', '.')), days: 90 }, (r) => `Created ${r.friend}`)}>Create test friend</button>
+            </div>
+
+            <div className="card">
+              <h3>Invite problems · {lim.shown}</h3>
+              <label className="fine" style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '0 0 4px' }}>
+                <input type="checkbox" checked={fixTick} onChange={(e) => setFixTick(e.target.checked)} />
+                Give each a free ticket
+              </label>
+              <Field id="fxc" label="New limit" inputMode="numeric" value={fixCap} onChange={setFixCap} />
+              {lim.ready && !lim.err && lim.rows.length === 0 && <p className="empty" style={{ paddingTop: 8 }}>No invite problems.</p>}
+              {lim.rows.map((x) => (
+                <div className="row" key={`${x.id}${x.at}`}>
+                  <div>
+                    {x.id}
+                    <small>{x.code} · {x.why === 'full' ? 'limit reached' : x.why === 'unknown' ? 'code not found' : 'already linked'} · {when(x.at)}{x.linked ? ' · linked' : ''}</small>
+                  </div>
+                  <div style={{ display: 'flex', gap: 6 }}>
+                    {x.inviter && !x.linked && (
+                      <button
+                        className="btn"
+                        disabled={busy}
+                        onClick={async () => {
+                          if (!(await ask(`Link ${x.id} to ${x.inviter}?`, { ok: 'Link' }))) return;
+                          run({ action: 'user', userId: x.id, op: 'ref-set', inviter: x.inviter, tickets: fixTick }, 'Linked');
+                        }}
+                      >
+                        Link
+                      </button>
+                    )}
+                    {x.why === 'full' && x.inviter && (
+                      <button className="btn ghost" disabled={busy} onClick={() => run({ action: 'user', userId: x.inviter, op: 'invite-cap', cap: fixCap }, 'Limit raised')}>
+                        Raise limit
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+              <ListMore l={lim} />
             </div>
 
             <div className="card">
