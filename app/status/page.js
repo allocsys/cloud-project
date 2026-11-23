@@ -13,6 +13,8 @@ import { NETWORK_MOCK as MOCK, minersText } from '@/lib/status-mock';
 // real numbers before launch, then drop `robots` below.
 const TOP = ['net', 'diff', 'miners', 'up'];
 const LINES = ['paid', 'last'];
+// The "Withdrawals sent" block stays hidden until there are at least this many sent withdrawals.
+const MIN_PROOF = 15;
 const DASH = '\u2014';
 
 const card = { border: '1px solid rgba(232, 184, 74, 0.3)', borderRadius: '12px', padding: '12px' };
@@ -52,7 +54,7 @@ export default async function Status() {
   const d = site.difficulty;
   const values = { ...MOCK, miners: minersText(site.miners), net: d ? hashText(d) : DASH, diff: d ? diffText(d) : DASH, last: t('status.lastVal') };
   const proof = site.proof;
-  const sent = proof && proof.count > 0 ? proof : null;
+  const sent = proof && proof.count >= MIN_PROOF ? proof : null;
   return (
     <I18nProvider lang={lang} messages={messages}>
     <SiteTop lang={lang} />
@@ -79,10 +81,10 @@ export default async function Status() {
           ))}
         </div>
 
-        <h2 style={{ fontSize: '16px', margin: '22px 0 6px' }}>{t('status.proofT')}</h2>
-        <p className="mute" style={{ margin: '0 0 10px' }}>{t('status.proofIntro')}</p>
-        {sent ? (
+        {sent && (
           <>
+            <h2 style={{ fontSize: '16px', margin: '22px 0 6px' }}>{t('status.proofT')}</h2>
+            <p className="mute" style={{ margin: '0 0 10px' }}>{t('status.proofIntro')}</p>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px' }}>
               <div className="st-c" style={{ ...card, '--i': 6 }}>
                 <p style={num}><bdi dir="ltr">{sent.btc.toFixed(4)} BTC</bdi></p>
@@ -109,8 +111,6 @@ export default async function Status() {
               ))}
             </div>
           </>
-        ) : (
-          <p className="mute">{t('status.proofNone')}</p>
         )}
 
         <div style={{ height: '14px' }} />
