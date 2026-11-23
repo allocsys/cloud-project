@@ -1,6 +1,6 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { fmtTh, fmtUsd } from '@/lib/data';
+import { fmtTh, fmtUsd, fmtBtcUsd } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { SMART_BUDGETS, SMART_TABLE } from '@/lib/smart';
 import { smartHallFor } from '@/lib/smart-halls';
@@ -2066,7 +2066,7 @@ export default function Admin() {
               <button type="button" className="adm-fh" aria-expanded={openU === u.id} onClick={() => (usm ? setUsel((s) => (s.includes(u.id) ? s.filter((x) => x !== u.id) : [...s, u.id])) : setOpenU(openU === u.id ? null : u.id))}>
                 <span>
                   <span className="adm-ft">{u.tg ? `@${u.tg}` : u.id}</span>
-                  <small>{u.available.toFixed(8)} BTC · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}{u.flags.length ? ' · flagged' : ''}{usm && usel.includes(u.id) ? ' · picked' : ''}</small>
+                  <small>{u.available.toFixed(8)} BTC · {fmtBtcUsd(u.available, u.rate)} · {u.miners.length} miner{u.miners.length === 1 ? '' : 's'}{u.blocked ? ' · blocked' : ''}{u.frozen ? ' · withdrawals paused' : ''}{u.flags.length ? ' · flagged' : ''}{usm && usel.includes(u.id) ? ' · picked' : ''}</small>
                 </span>
                 {u.kyc.status !== 'none' && <Pill tone={u.kyc.status === 'verified' ? 'ok' : 'warn'}>{KYC[u.kyc.status] || u.kyc.status}</Pill>}
                 <i aria-hidden="true" />
@@ -2074,23 +2074,23 @@ export default function Admin() {
               {openU === u.id && (
               <div className="adm-fb">
               <div className="adm-tiles">
-                <div><small>Balance</small><b>{u.available.toFixed(8)}<span>BTC</span></b></div>
-                <div><small>Earned</small><b>{u.earned.toFixed(8)}<span>BTC</span></b></div>
-                <div><small>Deposited</small><b>{u.deposited.toFixed(8)}<span>BTC</span></b></div>
-                <div><small>Withdrawn</small><b>{u.withdrawn.toFixed(5)}<span>BTC</span></b></div>
+                <div><small>Balance</small><b>{u.available.toFixed(8)}<span>BTC</span></b><em>{fmtBtcUsd(u.available, u.rate)}</em></div>
+                <div><small>Earned</small><b>{u.earned.toFixed(8)}<span>BTC</span></b><em>{fmtBtcUsd(u.earned, u.rate)}</em></div>
+                <div><small>Deposited</small><b>{u.deposited.toFixed(8)}<span>BTC</span></b><em>{fmtBtcUsd(u.deposited, u.rate)}</em></div>
+                <div><small>Withdrawn</small><b>{u.withdrawn.toFixed(5)}<span>BTC</span></b><em>{fmtBtcUsd(u.withdrawn, u.rate)}</em></div>
               </div>
               <div className="adm-kv">
                 {u.tg && <div><small>ID</small><b>{u.id}</b></div>}
                 <div><small>Joined</small><b>{when(u.joined) || '-'}</b></div>
                 <div><small>Last sign-in</small><b>{when(u.lastIn) || '-'}</b></div>
                 <div><small>Invited by</small><b>{u.refBy || '-'}</b></div>
-                <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b></div>
+                <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b><em>{fmtBtcUsd(u.reward, u.rate)}</em></div>
                 <div><small>Boosts</small><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
                 <div><small>Open orders · withdrawals</small><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
                 <div><small>Status</small><b style={u.blocked ? { color: 'var(--red)' } : undefined}>{u.blocked ? `Blocked ${when(u.blocked)}` : 'Active'}</b></div>
                 <div><small>Two-factor</small><b>{u.twofa ? 'On' : 'Off'}</b></div>
                 <div><small>Withdrawals</small><b style={u.frozen ? { color: 'var(--red)' } : undefined}>{u.frozen ? `Paused ${when(u.frozen)}` : 'Open'}</b></div>
-                {u.adjust !== 0 && <div><small>Changed by admin</small><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b></div>}
+                {u.adjust !== 0 && <div><small>Changed by admin</small><b>{u.adjust > 0 ? '+' : ''}{u.adjust.toFixed(8)} BTC</b><em>{u.adjust > 0 ? '+' : u.adjust < 0 ? '-' : ''}{fmtBtcUsd(Math.abs(u.adjust), u.rate)}</em></div>}
               </div>
               {u.flags.length > 0 && <div className="row"><span className="mute">Flags</span><b style={{ color: 'var(--gold)', textAlign: 'right' }}>{u.flags.join(' · ')}</b></div>}
               {adj.id === u.id ? (
