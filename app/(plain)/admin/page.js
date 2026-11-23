@@ -626,8 +626,12 @@ function BoostCard({ bs, busy, run }) {
   const key = JSON.stringify(s);
   const [d, setD] = useState(() => bcDraft(s));
   const [edited, setEdited] = useState(false); // typed and not saved yet: a reload (Turn on, Turn off) must not wipe it
+  const [fb, setFb] = useState(String(s.float?.band ?? 25));
   useEffect(() => {
-    if (!edited) setD(bcDraft(JSON.parse(key)));
+    if (!edited) {
+      setD(bcDraft(JSON.parse(key)));
+      setFb(String(JSON.parse(key).float?.band ?? 25));
+    }
   }, [key]); // eslint-disable-line react-hooks/exhaustive-deps
   const type = (kind, id, v) => {
     setEdited(true);
@@ -636,7 +640,7 @@ function BoostCard({ bs, busy, run }) {
   const losing = TICKETS.filter((t) => String(d.chance[t.id]).trim() !== '' && marginOf(t, pctOf(d.chance[t.id])) < 0);
   const save = async () => {
     if (losing.length && !(await ask(`The $${losing.map((t) => t.price).join(', $')} ticket would lose money at this chance. Save anyway?`, { ok: 'Save', danger: true }))) return;
-    if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
+    if (await run({ action: 'boost-settings', chance: d.chance, shown: d.shown, float: { band: fb }, confirm: losing.length > 0 }, 'Boost tickets saved')) setEdited(false);
   };
   return (
     <Fold title="Boost tickets" sub={s.enabled ? 'On' : 'Off'}>
@@ -662,6 +666,14 @@ function BoostCard({ bs, busy, run }) {
           </div>
         );
       })}
+      <div className="row"><span className="mute">Shown chance follows network</span><b>{s.float?.on ? (s.float.ref ? 'On' : 'On, not calibrated') : 'Off'}</b></div>
+      <Field id="bfb" label="Float band % (most the shown chance may move)" inputMode="decimal" value={fb} onChange={(v) => { setFb(v); setEdited(true); }} />
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-settings', float: { on: !s.float?.on, band: fb } }, s.float?.on ? 'Shown chance is fixed' : 'Shown chance follows the network')}>
+          {s.float?.on ? 'Float off' : 'Float on'}
+        </button>
+        <button className="btn" disabled={busy || !s.float?.on} onClick={() => run({ action: 'boost-settings', float: { on: true, band: fb, recalibrate: true } }, 'Float recalibrated to today')}>Recalibrate</button>
+      </div>
       {edited && <p className="fine" style={{ margin: '8px 0 0' }}>You have unsaved changes. Tap Save.</p>}
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save</button>
@@ -669,7 +681,7 @@ function BoostCard({ bs, busy, run }) {
           {s.enabled ? 'Turn off' : 'Turn on'}
         </button>
       </div>
-      <How><p className="fine">Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p></How>
+      <How><p className="fine">Each purchase is its own boost of {BOOST.hours} hours with its own draw, made at purchase and shown when the boost ends. The boost pay (flat ${BOOST.rate} per TH/s per day) and any prize go to the balance at the end. Margin = 1 - (boost pay + real chance x prize) / price, so it moves with the real chance and is not typed. The real chance decides the draw; the shown chance is what users see on the cards (empty = the real one). Float on: the shown chance moves with Bitcoin network difficulty (stronger network, lower number), starting at its base today and never further than the band either way; it is display only, the draw never uses it. Recalibrate makes today the new starting point. A new chance applies to tickets bought after saving; a running boost keeps the chances it was bought with. Off hides the tickets and refuses new purchases; running boosts still finish and pay.</p></How>
     </Fold>
   );
 }
