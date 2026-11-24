@@ -17,7 +17,7 @@ const DAY = 86_400_000;
 const today = () => Math.floor(Date.now() / DAY);
 
 async function account(name) {
-  const e = `${name}-${run}@test.dev`;
+  const e = `${name}-${run}@test.dev`.toLowerCase(); // signup lowercases emails
   assert.ok((await auth.signup({ email: e, password: PW })).ok);
   return e;
 }
