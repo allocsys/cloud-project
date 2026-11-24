@@ -674,6 +674,13 @@ function BoostCard({ bs, busy, run }) {
         </button>
         <button className="btn" disabled={busy || !s.float?.on} onClick={() => run({ action: 'boost-settings', float: { on: true, band: fb, recalibrate: true } }, 'Float recalibrated to today')}>Recalibrate</button>
       </div>
+      <div className="row"><span className="mute">Auto buy (users can switch it on)</span><b>{s.auto?.on ? 'On' : 'Off'}</b></div>
+      <div className="adm-actions">
+        <button className="btn" disabled={busy} onClick={() => run({ action: 'boost-settings', auto: { on: !s.auto?.on } }, s.auto?.on ? 'Auto buy is off' : 'Auto buy is on')}>
+          {s.auto?.on ? 'Auto buy off' : 'Auto buy on'}
+        </button>
+      </div>
+      <p className="fine" style={{ margin: '4px 0 0' }}>Auto buy lets a user have 1 to 5 $1 tickets bought for them once a day from their balance, each user at their own random time of the UTC day. While it is off nothing is bought, and users do not see the option; their settings are kept.</p>
       {edited && <p className="fine" style={{ margin: '8px 0 0' }}>You have unsaved changes. Tap Save.</p>}
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={save}>Save</button>
