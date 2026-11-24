@@ -129,6 +129,8 @@ export default function BoostCard({ show, loading = false }) {
   const btnRef = useRef(null);
   const [btnSeen, setBtnSeen] = useState(true); // the free ticket pulse pauses while the buttons are off-screen
   const [seen, setSeen] = useState(true); // the dial animations pause while it is off-screen
+  const [aq, setAq] = useState(null); // tickets a day picked for auto buy (null = the saved amount)
+  const [autoBusy, setAutoBusy] = useState(false);
 
   useEffect(() => {
     if (data?.now) skew.current = data.now - Date.now();
@@ -184,6 +186,23 @@ export default function BoostCard({ show, loading = false }) {
       setFan(null);
       setOut(false);
     }, 320);
+  }
+
+  // Auto buy: turns it on with `qty` $1 tickets a day, or off (server: lib/server/boost.js setAutoBoost). Picking another amount while it is on saves it at once.
+  async function saveAuto(on, qty) {
+    if (autoBusy) return;
+    setAutoBusy(true);
+    try {
+      await post('/api/boost/auto', { on, qty });
+      await refresh().catch(() => {});
+      triggerHaptic('success');
+      show(t(on ? 'bst.autoSaved' : 'bst.autoStopped'));
+    } catch (e) {
+      triggerHaptic('error');
+      show(e.status ? e.message : t('common.noConnection'));
+    } finally {
+      setAutoBusy(false);
+    }
   }
 
   // A held free ticket: one tap, nothing to pay, no bubbles.
@@ -291,6 +310,9 @@ export default function BoostCard({ show, loading = false }) {
   const nextIn = next ? (Math.ceil((next.endsAt - now) / 60000) <= 1 ? t('bst.underLow') : left(t, next.endsAt - now)) : '';
 
   const finished = (data.finished || []).slice(0, 3);
+  const au = data.enabled && data.auto?.available ? data.auto : null; // auto buy, shown only while the admin has it on
+  const t1 = data.tickets.find((x) => x.id === 't1');
+  const pickQ = aq ?? au?.qty ?? 1;
   const fanTk = fan ? data.tickets.find((x) => x.id === fan.id) : null;
   return (
     <div className={ph ? 'card ld' : 'card'} aria-busy={ph || undefined}>
@@ -405,6 +427,36 @@ export default function BoostCard({ show, loading = false }) {
             </div>
           </div>
         ))}
+      {au && t1 && (
+        <div style={{ marginTop: 12 }}>
+          <div className="row">
+            <div>
+              <b>{t('bst.auto')}</b>
+              <small style={{ display: 'block' }}>{t(au.on ? 'bst.autoSubOn' : 'bst.autoSub', { n: pickQ, p: whole(t1.price), t: whole(t1.price * pickQ) })}</small>
+            </div>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: `repeat(${au.max}, 1fr)`, gap: 8, marginTop: 8 }}>
+            {Array.from({ length: au.max }, (_, i) => i + 1).map((q) => (
+              <button
+                key={q}
+                type="button"
+                className={q === pickQ ? 'btn' : 'swap'}
+                style={{ margin: 0, padding: 0, minHeight: 44 }}
+                disabled={autoBusy}
+                onClick={() => {
+                  setAq(q);
+                  if (au.on) saveAuto(true, q);
+                }}
+              >
+                {q}
+              </button>
+            ))}
+          </div>
+          <button type="button" className={au.on ? 'swap' : 'btn'} style={{ width: '100%', margin: '8px 0 0', minHeight: 44 }} disabled={autoBusy} onClick={() => saveAuto(!au.on, pickQ)}>
+            {au.on ? t('bst.autoTurnOff') : t('bst.autoTurnOn')}
+          </button>
+        </div>
+      )}
       <p className="fine" style={{ margin: '12px 0 0' }}>{t('bst.fine')}</p>
     </div>
   );

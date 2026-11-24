@@ -13,6 +13,12 @@ test('an app backup made before the fold still fits the one baseline', () => {
   assert.equal(schemaOk(['001_init'], OLD), true);
 });
 
+test('steps after the baseline do not stop a folded backup', () => {
+  assert.equal(schemaOk(['001_init', '002_auto_boost_idx'], OLD), true);
+  assert.equal(schemaOk(['001_init', '002_auto_boost_idx'], ['001_init']), true);
+  assert.equal(schemaOk(['001_init', '002_auto_boost_idx'], [...OLD, '006_other']), false);
+});
+
 test('anything else is refused', () => {
   assert.equal(schemaOk(['001_init'], [...OLD, '006_other']), false);
   assert.equal(schemaOk(['001_init'], []), false);

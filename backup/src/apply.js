@@ -12,11 +12,12 @@ const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].s
 const CHUNK_ROWS = 500;
 
 // The app's earlier migration steps were folded into '001_init'. A backup made before that lists them; its tables are the same, so it still fits.
-// Only the app database ends up with ['001_init'] alone, so the gateway database is not affected. Never add to this list.
+// Steps added after the fold may sit on top of the baseline in the app database; they never change the tables a folded backup lists.
+// Never add to this list.
 const FOLDED = ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'];
 export function schemaOk(ids, fileIds) {
   if (JSON.stringify(ids) === JSON.stringify(fileIds)) return true;
-  return ids.length === 1 && ids[0] === FOLDED[0] && fileIds.length > 0 && fileIds.every((x) => FOLDED.includes(x));
+  return ids[0] === FOLDED[0] && ids.slice(1).every((x) => !FOLDED.includes(x)) && fileIds.length > 0 && fileIds.every((x) => FOLDED.includes(x));
 }
 
 export function parse(buf) {
