@@ -940,14 +940,27 @@ function Tabs({ items, value, onPick }) {
   const info = Object.fromEntries(items.map(([k, l, n]) => [k, [l, n || 0]]));
   const group = GROUPS.find((g) => g[2].includes(value)) || GROUPS[0];
   const count = (g) => g[2].reduce((s, k) => s + (info[k]?.[1] || 0), 0);
+  const [hide, setHide] = useState(false); // hidden while scrolling down, back as soon as the page scrolls up
   useEffect(() => {
     box.current?.querySelectorAll('.adm-tabs').forEach((b) => {
       const el = b.querySelector('[aria-pressed=true]');
       if (el) b.scrollTo({ left: el.offsetLeft - (b.clientWidth - el.offsetWidth) / 2, behavior: 'smooth' });
     });
+    setHide(false);
   }, [value]);
+  useEffect(() => {
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (Math.abs(y - last) < 6) return;
+      setHide(y > last && y > 120);
+      last = y;
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
   return (
-    <div className="adm-nav" role="navigation" aria-label="Admin sections" ref={box}>
+    <div className="adm-nav" role="navigation" aria-label="Admin sections" ref={box} data-hide={hide ? 'true' : undefined}>
       <div className="adm-tabs" role="group" aria-label="Groups">
         {GROUPS.map((g) => (
           <button key={g[0]} aria-pressed={group[0] === g[0]} onClick={() => group[0] !== g[0] && onPick(g[2][0])}>
@@ -2228,7 +2241,7 @@ export default function Admin() {
                     <div className="adm-form">
                       <Field id="uinv" label="Inviter (email, id or invite code)" autoComplete="off" maxLength={120} value={uinv.text} onChange={(v) => setUinv({ ...uinv, text: v })} />
                       <p className="fine" style={{ margin: '4px 0 0' }}>Rewards follow the new inviter from now on.</p>
-                      <label className="fine" style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 0' }}>
+                      <label className="fine adm-tick" style={{ display: 'flex', gap: 8, alignItems: 'center', margin: '6px 0 0' }}>
                         <input type="checkbox" checked={uinvTick} onChange={(e) => setUinvTick(e.target.checked)} />
                         Give each a free ticket
                       </label>
