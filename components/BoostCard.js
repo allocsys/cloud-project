@@ -418,15 +418,6 @@ export default function BoostCard({ show, loading = false }) {
             })}
         </div>
       )}
-      {data.enabled &&
-        data.tickets.map((tk) => (
-          <div className="row" key={tk.id}>
-            <div>
-              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s{tk.coin ? ` · ${tk.coin}` : ''}
-              <small style={{ display: 'block' }}>{t('bst.always', { pay: usd(tk.pay), chance: tk.chance, prize: whole(tk.prize) })}</small>
-            </div>
-          </div>
-        ))}
       {au && t1 && (
         <div style={{ marginTop: 12 }}>
           <div className="row">
@@ -457,6 +448,15 @@ export default function BoostCard({ show, loading = false }) {
           </button>
         </div>
       )}
+      {data.enabled &&
+        data.tickets.map((tk) => (
+          <div className="row" key={tk.id}>
+            <div>
+              <b>${whole(tk.price)}</b> · {whole(tk.th)} TH/s{tk.coin ? ` · ${tk.coin}` : ''}
+              <small style={{ display: 'block' }}>{t('bst.always', { pay: usd(tk.pay), chance: tk.chance, prize: whole(tk.prize) })}</small>
+            </div>
+          </div>
+        ))}
       <p className="fine" style={{ margin: '12px 0 0' }}>{t('bst.fine')}</p>
     </div>
   );
