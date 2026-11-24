@@ -25,9 +25,12 @@ test('the margin follows the chance: 29% at the default 5%, negative when the ch
 test('settings fall back to the defaults and keep valid values', () => {
   const none = { t1: null, t10: null, t100: null };
   const fl = { on: false, ref: null, band: 25 };
-  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl });
-  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 }, shown: none, float: fl });
-  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl });
+  const au = { on: false };
+  assert.deepEqual(normalizeBoost(undefined), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl, auto: au });
+  assert.deepEqual(normalizeBoost({ enabled: true, chance: { t1: 3.456, t10: '7', t100: -1 } }), { enabled: true, chance: { t1: 3.46, t10: 7, t100: 5 }, shown: none, float: fl, auto: au });
+  assert.deepEqual(normalizeBoost({ enabled: 'yes', chance: { t1: 101, t10: '', t100: 'x' } }), { enabled: false, chance: { t1: 5, t10: 5, t100: 5 }, shown: none, float: fl, auto: au });
+  assert.deepEqual(normalizeBoost({ auto: { on: true } }).auto, { on: true });
+  assert.deepEqual(normalizeBoost({ auto: { on: 'yes' } }).auto, { on: false });
   assert.deepEqual(normalizeBoost({ float: { on: true, ref: '1e14', band: 150 } }).float, { on: true, ref: 1e14, band: 25 });
 });
 
