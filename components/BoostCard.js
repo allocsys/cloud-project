@@ -131,6 +131,9 @@ export default function BoostCard({ show, loading = false }) {
   const [seen, setSeen] = useState(true); // the dial animations pause while it is off-screen
   const [aq, setAq] = useState(null); // tickets a day picked for auto buy (null = the saved amount)
   const [autoBusy, setAutoBusy] = useState(false);
+  const autoRef = useRef(null);
+  const [autoSeen, setAutoSeen] = useState(true); // the auto buy ring pauses while its button is off-screen
+  const autoOn = !!(data?.enabled && data?.auto?.available && data?.auto?.on);
 
   useEffect(() => {
     if (data?.now) skew.current = data.now - Date.now();
@@ -174,6 +177,13 @@ export default function BoostCard({ show, loading = false }) {
     io.observe(el);
     return () => io.disconnect();
   }, [freeN > 0, data?.enabled]);
+  useEffect(() => {
+    const el = autoRef.current;
+    if (!el || typeof IntersectionObserver === 'undefined') return undefined;
+    const io = new IntersectionObserver(([e]) => setAutoSeen(e.isIntersecting));
+    io.observe(el);
+    return () => io.disconnect();
+  }, [autoOn]);
 
   if (!data) return null;
 
@@ -443,9 +453,13 @@ export default function BoostCard({ show, loading = false }) {
               </button>
             ))}
           </div>
-          <button type="button" className={au.on ? 'swap' : 'btn'} style={{ width: '100%', margin: '8px 0 0', minHeight: 44 }} disabled={autoBusy} onClick={() => saveAuto(!au.on, pickQ)}>
-            {au.on ? t('bst.autoTurnOff') : t('bst.autoTurnOn')}
-          </button>
+          <div ref={autoRef} className={autoSeen ? undefined : 'auto-off'} style={{ position: 'relative', margin: '8px 0 0' }}>
+            <style>{'@keyframes autoRipple{0%{transform:scale(1);opacity:.7}100%{transform:scale(1.05,1.45);opacity:0}}.auto-ring{position:absolute;inset:0;border:1.5px solid var(--gold);border-radius:999px;pointer-events:none}.auto-ring::after{content:"";position:absolute;inset:-1.5px;border:1.5px solid var(--gold);border-radius:inherit;animation:autoRipple 1.8s ease-out infinite}.auto-off .auto-ring::after{animation-play-state:paused}'}</style>
+            <button type="button" className={au.on ? 'swap' : 'btn'} style={{ width: '100%', margin: 0, minHeight: 44 }} disabled={autoBusy} onClick={() => saveAuto(!au.on, pickQ)}>
+              {au.on ? t('bst.autoTurnOff') : t('bst.autoTurnOn')}
+            </button>
+            {au.on && <i className="auto-ring" aria-hidden="true" />}
+          </div>
         </div>
       )}
       {data.enabled &&
