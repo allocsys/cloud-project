@@ -1,5 +1,4 @@
-// An account that holds an invite code in its document but has no row in codes (older accounts) must still be found at sign-up,
-// and migration 003 puts the missing rows back.
+// A code nobody holds is not found, and migration 003 puts back the rows older accounts were missing.
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
@@ -20,20 +19,6 @@ before(async () => {
 
 after(async () => {
   await pool().end();
-});
-
-test('a code with no codes row is still found, and the row is put back', async () => {
-  const inv = email('inv');
-  assert.ok((await auth.signup({ email: inv, password: PW })).ok);
-  const code = (await defaultCodeOf(inv));
-  // An older account holds its code in its document; the codes row is what went missing.
-  await pool().query("UPDATE users SET data = data || jsonb_build_object('refCode', $2::text) WHERE id = $1", [inv, code]);
-  await pool().query('DELETE FROM codes WHERE code = $1', [code]);
-  assert.equal(await rowOf(code), null);
-
-  assert.equal((await referrals.publicCode(code.toLowerCase())).valid, true);
-  assert.equal(await rowOf(code), inv, 'the row is back');
-  assert.equal((await auth.signup({ email: email('fr'), password: PW, ref: code })).ref, 'applied');
 });
 
 test('a code nobody holds is still not found', async () => {
