@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vertexhash</title>
+<style>
+html,body{margin:0;height:100%;background:#0B0F1A;color:#fff;font-family:system-ui,sans-serif}
+body{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:20px;text-align:center}
+p{margin:0;font-size:18px}
+button{font:inherit;color:#fff;background:#2563eb;border:0;border-radius:12px;padding:12px 28px}
+</style>
+</head>
+<body>
+<p id="m">No connection</p>
+<button id="b" type="button">Retry</button>
+<script>
+var T={
+  en:['No connection','Retry'],
+  fa:['اتصال برقرار نیست','تلاش دوباره'],
+  ar:['لا يوجد اتصال','إعادة المحاولة'],
+  fi:['Ei yhteyttä','Yritä uudelleen'],
+  ru:['Нет связи','Повторить'],
+  sv:['Ingen anslutning','Försök igen']
+};
+var l=(navigator.language||'en').slice(0,2);
+var t=T[l]||T.en;
+document.documentElement.lang=T[l]?l:'en';
+document.documentElement.dir=(l==='fa'||l==='ar')?'rtl':'ltr';
+document.getElementById('m').textContent=t[0];
+document.getElementById('b').textContent=t[1];
+document.getElementById('b').onclick=function(){location.href='https://vertexhash.com/dashboard'};
+</script>
+</body>
+</html>

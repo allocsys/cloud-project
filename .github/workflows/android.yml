@@ -1,0 +1,121 @@
+name: Android app
+
+# Builds the Android shell for vertexhash.com (Capacitor, loads the live site).
+# The android/ project is generated here, not stored in git.
+# Always: debug APK (install on a phone to test). Also: release APK + AAB.
+# Release files are signed only when the keystore secrets exist (see below).
+# Download from the run page: Artifacts.
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android.yml'
+  pull_request:
+    paths:
+      - 'android-app/**'
+      - '.github/workflows/android.yml'
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build apk and aab
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: android-app
+    env:
+      SITE_URL: https://vertexhash.com
+      # Optional secrets for signing. Without them the release files stay unsigned.
+      KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+      KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+      KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+      KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Install Capacitor
+        run: npm install --no-audit --no-fund
+
+      - name: Generate the Android project
+        run: npx cap add android
+
+      - name: App icon from the site
+        run: |
+          mkdir -p /tmp/icons
+          if curl -fsSL "$SITE_URL/icons/512" -o /tmp/icons/icon.png && curl -fsSL "$SITE_URL/icons/maskable" -o /tmp/icons/maskable.png; then
+            for d in mdpi hdpi xhdpi xxhdpi xxxhdpi; do
+              dir="android/app/src/main/res/mipmap-$d"
+              cp /tmp/icons/icon.png "$dir/ic_launcher.png"
+              cp /tmp/icons/icon.png "$dir/ic_launcher_round.png"
+              cp /tmp/icons/maskable.png "$dir/ic_launcher_foreground.png"
+            done
+            printf '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#0B0F1A</color>\n</resources>\n' > android/app/src/main/res/values/ic_launcher_background.xml
+          else
+            echo "::warning::Could not download the icons from $SITE_URL, using the default icon"
+          fi
+
+      - name: Version from the run number
+        run: |
+          sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          grep -E "versionCode|versionName" android/app/build.gradle
+
+      - name: Build
+        working-directory: android-app/android
+        run: ./gradlew assembleDebug assembleRelease bundleRelease --no-daemon --stacktrace
+
+      - name: Collect files
+        run: |
+          mkdir -p out
+          cp android/app/build/outputs/apk/debug/app-debug.apk out/vertexhash-debug.apk
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/release-unsigned.apk
+          cp android/app/build/outputs/bundle/release/app-release.aab out/release-unsigned.aab
+
+      - name: Sign release files (only when keystore secrets exist)
+        if: env.KEYSTORE_B64 != ''
+        run: |
+          set -e
+          BT=$(ls -d "$ANDROID_HOME"/build-tools/* | sort -V | tail -1)
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          KP="${KEY_PASS:-$KEYSTORE_PASS}"
+          export KEYSTORE_PASS KP
+          "$BT/zipalign" -p -f 4 out/release-unsigned.apk out/aligned.apk
+          "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$KEYSTORE_ALIAS" \
+            --ks-pass env:KEYSTORE_PASS --key-pass env:KP \
+            --out out/vertexhash-release.apk out/aligned.apk
+          jarsigner -keystore "$RUNNER_TEMP/release.jks" -storepass:env KEYSTORE_PASS -keypass:env KP \
+            -signedjar out/vertexhash-release.aab out/release-unsigned.aab "$KEYSTORE_ALIAS"
+          "$BT/apksigner" verify out/vertexhash-release.apk
+          rm -f out/aligned.apk out/release-unsigned.apk out/release-unsigned.aab "$RUNNER_TEMP/release.jks"
+
+      - name: Upload debug APK
+        uses: actions/upload-artifact@v5
+        with:
+          name: vertexhash-debug-apk
+          path: android-app/out/vertexhash-debug.apk
+          if-no-files-found: error
+
+      - name: Upload release files
+        uses: actions/upload-artifact@v5
+        with:
+          name: vertexhash-release
+          path: |
+            android-app/out/vertexhash-release.apk
+            android-app/out/vertexhash-release.aab
+            android-app/out/release-unsigned.apk
+            android-app/out/release-unsigned.aab
+          if-no-files-found: error
