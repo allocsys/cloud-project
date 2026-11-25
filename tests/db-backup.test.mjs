@@ -110,13 +110,16 @@ test('a backup made before the migrations were folded into one is still accepted
   const b = await makeBackup();
   const lines = unpack(b.buf);
   const head = JSON.parse(lines[0]);
-  assert.deepEqual(head.schema, ['001_init', '002_auto_boost_idx', '003_backfill_codes', '004_codes_columns', '005_codes_only'], 'the database holds the baseline and the steps after it');
-  const old = pack([
-    JSON.stringify({ ...head, schema: ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'] }),
-    ...lines.slice(1),
-  ]);
-  assert.equal((await inspectBackup(old)).ok, true);
-  assert.equal((await restoreBackup(old, 'RESTORE')).ok, true);
+  assert.deepEqual(head.schema, ['001_init'], 'the database holds the baseline');
+  // The first fold (20 steps) and the second (the 4 that followed) both left a list that is still accepted.
+  for (const schema of [
+    ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'],
+    ['001_init', '002_auto_boost_idx', '003_backfill_codes', '004_codes_columns', '005_codes_only'],
+  ]) {
+    const old = pack([JSON.stringify({ ...head, schema }), ...lines.slice(1)]);
+    assert.equal((await inspectBackup(old)).ok, true, schema.join());
+    assert.equal((await restoreBackup(old, 'RESTORE')).ok, true, schema.join());
+  }
   // Steps that were never part of the baseline are still refused.
   const other = pack([JSON.stringify({ ...head, schema: ['001_init', '006_other'] }), ...lines.slice(1)]);
   assert.equal((await inspectBackup(other)).ok, false);
