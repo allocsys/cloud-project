@@ -11,10 +11,10 @@ const quote = (s) => `"${String(s).replace(/"/g, '""')}"`;
 const same = (a, b) => JSON.stringify([...a].sort()) === JSON.stringify([...b].sort());
 const CHUNK_ROWS = 500;
 
-// The app's earlier migration steps were folded into '001_init'. A backup made before that lists them; its tables are the same, so it still fits.
-// Steps added after the fold may sit on top of the baseline in the app database; they never change the tables a folded backup lists.
-// Never add to this list.
-const FOLDED = ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx'];
+// The app's earlier migration steps were folded into '001_init' (twice: 20 steps, then the 4 that followed). A backup made before a fold lists
+// them; its tables are the same, so it still fits. Steps added after the fold may sit on top of the baseline in the app database; they never
+// change the tables a folded backup lists. Keep in step with FOLDED_IDS in lib/server/migrations.js: only add ids of folded steps.
+const FOLDED = ['001_init', '002_boost_win_idx', '003_ticket_net_idx', '004_refund_requests', '005_bot_link_idx', '002_auto_boost_idx', '003_backfill_codes', '004_codes_columns', '005_codes_only'];
 export function schemaOk(ids, fileIds) {
   if (JSON.stringify(ids) === JSON.stringify(fileIds)) return true;
   return ids[0] === FOLDED[0] && ids.slice(1).every((x) => !FOLDED.includes(x)) && fileIds.length > 0 && fileIds.every((x) => FOLDED.includes(x));
