@@ -1,0 +1,17 @@
+{
+  "appId": "com.vertexhash.app",
+  "appName": "Vertexhash",
+  "webDir": "www",
+  "backgroundColor": "#0B0F1A",
+  "server": {
+    "url": "https://vertexhash.com/dashboard",
+    "androidScheme": "https",
+    "cleartext": false,
+    "errorPath": "offline.html",
+    "allowNavigation": ["vertexhash.com", "*.vertexhash.com"]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "backgroundColor": "#0B0F1A"
+  }
+}
