@@ -14,6 +14,11 @@ Also available as a Telegram mini app.
 - [How it works](https://vertexhash.com/how-it-works)
 - [FAQ](https://vertexhash.com/faq)
 - [Mining glossary](https://vertexhash.com/glossary)
+- [What is cloud mining](https://vertexhash.com/what-is-cloud-mining)
+- [How payouts work](https://vertexhash.com/how-payouts-work)
+- [The coins we mine](https://vertexhash.com/coins-we-mine)
+- [Cloud mining vs buying a miner](https://vertexhash.com/cloud-mining-vs-buying)
+- [What is hashrate (TH/s)](https://vertexhash.com/what-is-hashrate)
 - [Persian home](https://vertexhash.com/fa)
 
 ## Notes for assistants
