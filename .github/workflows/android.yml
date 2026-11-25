@@ -5,6 +5,8 @@ name: Android app
 # Always: debug APK (install on a phone to test). Also: release APK + AAB.
 # Release files are signed only when the keystore secrets exist (see below).
 # Download from the run page: Artifacts.
+# A signed build on main is also published as a GitHub release (tag app-v<versionCode>): the app file, a patch from the
+# previous release and manifest.json. The site (/api/app-update) reads that, and the app updates itself from it.
 
 on:
   workflow_dispatch:
@@ -27,6 +29,8 @@ jobs:
     name: build apk and aab
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: android-app
@@ -52,6 +56,17 @@ jobs:
 
       - name: Generate the Android project
         run: npx cap add android
+
+      - name: Add the updater (plugin, install permission, file paths)
+        run: |
+          set -e
+          d=android/app/src/main/java/com/vertexhash/app
+          test -f "$d/MainActivity.java"
+          cp native/*.java "$d/"
+          m=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <application#' "$m"
+          grep -q REQUEST_INSTALL_PACKAGES "$m"
+          printf '<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml
 
       - name: App icon from the site
         run: |
@@ -119,3 +134,22 @@ jobs:
             android-app/out/release-unsigned.apk
             android-app/out/release-unsigned.aab
           if-no-files-found: error
+
+      - name: Publish the release (signed builds on main only)
+        if: env.KEYSTORE_B64 != '' && github.event_name != 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -e
+          N=${{ github.run_number }}
+          sudo apt-get install -y -qq bsdiff
+          PREV=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 30 --json tagName,isDraft,isPrerelease --jq '[.[] | select((.isDraft|not) and (.isPrerelease|not) and (.tagName|test("^app-v[0-9]+$")))][0].tagName // empty')
+          ARGS=""
+          if [ -n "$PREV" ]; then
+            mkdir -p prev
+            if gh release download "$PREV" --repo "$GITHUB_REPOSITORY" --pattern 'vertexhash-*.apk' --dir prev && ls prev/vertexhash-*.apk >/dev/null 2>&1; then
+              ARGS="--prev-apk $(ls prev/vertexhash-*.apk | head -1) --prev-code ${PREV#app-v}"
+            fi
+          fi
+          python3 tools/release.py make --code "$N" --apk out/vertexhash-release.apk --out release $ARGS
+          gh release create "app-v$N" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "App 1.0.$N" --notes "Android app 1.0.$N"
