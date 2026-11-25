@@ -4,7 +4,7 @@ import { DEFAULT_LANG } from '@/lib/i18n/langs';
 import { pageUrl } from '@/lib/seo';
 
 // The pages anyone can open without signing in. Static: the addresses come from the language list alone.
-const PAGES = ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/about', '/refunds', '/status'];
+const PAGES = ['/', '/terms', '/privacy', '/faq', '/how-it-works', '/glossary', '/what-is-cloud-mining', '/how-payouts-work', '/coins-we-mine', '/cloud-mining-vs-buying', '/what-is-hashrate', '/about', '/refunds', '/status'];
 
 // One entry per page and language; each lists the address in every language (hreflang).
 export default function sitemap() {
