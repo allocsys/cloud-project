@@ -3,10 +3,12 @@ package com.vertexhash.app;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.provider.Settings;
 import androidx.core.content.FileProvider;
+import androidx.core.content.pm.PackageInfoCompat;
 import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
@@ -41,8 +43,8 @@ public class AppUpdaterPlugin extends Plugin {
     public void info(PluginCall call) {
         try {
             Context ctx = getContext();
-            PackageInfo pi = ctx.getPackageManager().getPackageInfo(ctx.getPackageName(), 0);
-            long code = Build.VERSION.SDK_INT >= 28 ? pi.getLongVersionCode() : pi.versionCode;
+            PackageInfo pi = packageInfo(ctx);
+            long code = PackageInfoCompat.getLongVersionCode(pi);
             JSObject o = new JSObject();
             o.put("code", code);
             o.put("name", pi.versionName);
@@ -152,6 +154,14 @@ public class AppUpdaterPlugin extends Plugin {
         } catch (Exception e) {
             call.reject("install failed");
         }
+    }
+
+    // The old call is only used below Android 13, where the new one does not exist.
+    @SuppressWarnings("deprecation")
+    private static PackageInfo packageInfo(Context ctx) throws PackageManager.NameNotFoundException {
+        PackageManager pm = ctx.getPackageManager();
+        if (Build.VERSION.SDK_INT >= 33) return pm.getPackageInfo(ctx.getPackageName(), PackageManager.PackageInfoFlags.of(0));
+        return pm.getPackageInfo(ctx.getPackageName(), 0);
     }
 
     private File updatesDir() {
