@@ -86,10 +86,16 @@ jobs:
             echo "::warning::Could not download the icons from $SITE_URL, using the default icon"
           fi
 
-      - name: Version from the run number
+      - name: Version (code = run number, name = 1.0.<releases so far>, first = 1.0.0)
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
+          set -e
+          COUNT=$(gh release list --repo "$GITHUB_REPOSITORY" --limit 200 --json tagName --jq '[.[] | select(.tagName | test("^app-v[0-9]+$"))] | length')
+          NAME="1.0.$COUNT"
+          echo "VERSION_NAME=$NAME" >> "$GITHUB_ENV"
           sed -i -E "s/versionCode [0-9]+/versionCode ${{ github.run_number }}/" android/app/build.gradle
-          sed -i -E "s/versionName \"[^\"]*\"/versionName \"1.0.${{ github.run_number }}\"/" android/app/build.gradle
+          sed -i -E "s/versionName \"[^\"]*\"/versionName \"$NAME\"/" android/app/build.gradle
           grep -E "versionCode|versionName" android/app/build.gradle
 
       - name: Build
@@ -154,5 +160,5 @@ jobs:
               ARGS="--prev-apk $(ls prev/vertexhash-*.apk | head -1) --prev-code ${PREV#app-v}"
             fi
           fi
-          python3 tools/release.py make --code "$N" --apk out/vertexhash-release.apk --out release $ARGS
-          gh release create "app-v$N" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "App 1.0.$N" --notes "Android app 1.0.$N"
+          python3 tools/release.py make --code "$N" --name "$VERSION_NAME" --apk out/vertexhash-release.apk --out release $ARGS
+          gh release create "app-v$N" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "App $VERSION_NAME" --notes "Android app $VERSION_NAME"
