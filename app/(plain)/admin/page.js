@@ -1587,6 +1587,7 @@ export default function Admin() {
   const [usort, setUsort] = useState('new'); // user list order
   const [ufil, setUfil] = useState('all'); // user list filter
   const [uhist, setUhist] = useState(null); // user whose activity rows are open
+  const [urate, setUrate] = useState(null); // user whose rating is open
   const [unote, setUnote] = useState({ id: null, text: '' }); // private note being edited (one user at a time)
   const [upw, setUpw] = useState({ id: null, text: '' }); // new password being typed (one user at a time)
   const [uinv, setUinv] = useState({ id: null, text: '' }); // inviter being set (one user at a time)
@@ -2174,6 +2175,24 @@ export default function Admin() {
               )}
 
               {u.id !== 'demo' && <UserWallets id={u.id} />}
+              {u.id !== 'demo' && (
+                <div className="adm-grid" style={{ gridTemplateColumns: '1fr' }}>
+                  <button className="swap" style={SM} onClick={() => setUrate(urate === u.id ? null : u.id)}>
+                    {urate === u.id ? 'Hide rating' : `Show rating${u.rating ? ` · ${'\u2605'.repeat(u.rating.stars)}` : ''}`}
+                  </button>
+                </div>
+              )}
+              {u.id !== 'demo' && urate === u.id && (u.rating ? (
+                <div className="row adm-m">
+                  <div>
+                    {'\u2605'.repeat(u.rating.stars)} · {when(u.rating.at)}
+                    <small>{u.rating.comment || 'No comment'}</small>
+                  </div>
+                  <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Delete this rating from ${u.id}? They will be asked again.`, { ok: 'Delete', danger: true }).then((yes) => yes && run({ action: 'rating-clear', userId: u.id }, 'Rating deleted'))}>Delete</button>
+                </div>
+              ) : (
+                <p className="empty" style={{ paddingTop: 8 }}>No rating yet.</p>
+              ))}
               {u.id !== 'demo' && (
                 <>
                   {uhist === u.id && hist.id !== u.id && <p className="empty" style={{ paddingTop: 8 }}>Loading…</p>}
