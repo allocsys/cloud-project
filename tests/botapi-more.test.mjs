@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, tx, withUser, createUser, saveUser, getUser } = await import('@/lib/server/db');
+const { pool, tx, withUser, createUser, saveUser, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { signBody } = await import('@/lib/server/botnotify');
 const { serve, earningsFor, referralsFor } = await import('@/lib/server/botapi');
@@ -75,7 +75,7 @@ test('/referrals: the default code, no friends yet, VIP 0', async () => {
   const r = await call(referralsFor, { tg_id: n });
   assert.equal(r.status, 200);
   assert.equal(r.json.ok, true);
-  assert.equal(r.json.code, (await getUser(id)).refCode);
+  assert.equal(r.json.code, (await defaultCodeOf(id)));
   assert.match(r.json.code, /^VTX-/);
   assert.equal(r.json.friends, 0);
   assert.equal(r.json.active, 0);
@@ -88,7 +88,7 @@ test('/referrals: a friend who signed up counts as a friend, not yet active', as
   const fr = tgId(6);
   await mk(`tg:${inv}`);
   await mk(`tg:${fr}`);
-  const code = (await getUser(`tg:${inv}`)).refCode;
+  const code = (await defaultCodeOf(`tg:${inv}`));
   const linked = await withUser(`tg:${fr}`, (f, c) => applyLink(c, f, code));
   assert.equal(linked.ok, true);
   const r = await call(referralsFor, { tg_id: inv });

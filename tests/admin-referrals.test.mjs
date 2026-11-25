@@ -3,7 +3,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -26,7 +26,7 @@ after(async () => {
 test('friends come a page at a time, newest first, each once, with exact counts', async () => {
   assert.ok((await auth.signup({ email: email('inv'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('inv'), SMALL)).ok); // a plan lifts the invite limit
-  const code = (await getUser(email('inv'))).refCode;
+  const code = (await defaultCodeOf(email('inv')));
   const names = ['a', 'b', 'c'];
   for (const n of names) {
     assert.equal((await auth.signup({ email: email(n), password: PW, ref: code })).ref, 'applied');
@@ -68,7 +68,7 @@ test('the admin reader cuts pages inside the limits and knows only its two lists
 test('a sign-up whose invite code did not link is listed, and the admin can raise the limit and link with tickets', async () => {
   const inv = email('capinv');
   assert.ok((await auth.signup({ email: inv, password: PW })).ok);
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
   for (const n of ['cf1', 'cf2', 'cf3']) assert.equal((await auth.signup({ email: email(n), password: PW, ref: code })).ref, 'applied');
   const late = email('cf4');
   const wrong = email('cf5');

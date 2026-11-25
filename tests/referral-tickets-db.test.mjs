@@ -4,7 +4,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const referrals = await import('@/lib/server/referrals');
@@ -24,7 +24,7 @@ async function account(name, ip, ref = '') {
   assert.ok((await auth.signup({ email: e, password: PW, ref }, ip)).ok);
   return e;
 }
-const codeOf = async (id) => (await getUser(id)).refCode;
+const codeOf = async (id) => (await defaultCodeOf(id));
 const on = () => act({ action: 'boost-settings', enabled: true, chance: { t1: 0, t10: 0, t100: 0 } });
 
 before(async () => {

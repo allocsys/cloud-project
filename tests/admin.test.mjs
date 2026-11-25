@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { halls as defaultHalls } from '@/lib/data';
 
-const { pool, q, tx, createUser, withUser } = await import('@/lib/server/db');
+const { pool, q, tx, createUser, withUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { act, overview, adminUsers, adminUserHistory, flaggedUsers, FLAG, BULK_MAX } = await import('@/lib/server/admin');
 
@@ -481,7 +481,7 @@ test('admin can set a new password, and set or remove the inviter', async () => 
   assert.equal(await refBy(), null);
   assert.equal(await column(), null);
   assert.equal((await act({ action: 'user', userId: id, op: 'ref-clear' })).status, 409);
-  const code = await withUser(inv, (u) => u.refCode);
+  const code = await defaultCodeOf(inv);
   assert.ok(code);
   assert.ok((await ref({ inviter: code.toLowerCase() })).ok);
   assert.equal(await refBy(), inv);

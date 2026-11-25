@@ -4,7 +4,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, getUser, withUser } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -44,7 +44,7 @@ test('a wiped demo account is empty: no miners, activity, notifications, withdra
   assert.equal(u.history.length, 0);
   assert.equal(u.notifications.length, 0);
   assert.equal(u.withdrawn, 0);
-  assert.equal(u.refCode, 'VTX-7K2M', 'keeps its invite code');
+  assert.equal(await defaultCodeOf('demo'), 'VTX-7K2M', 'keeps its invite code');
   assert.equal(await avail(), 0);
 });
 

@@ -5,7 +5,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
-const { pool, q, getUser, withUser } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -67,7 +67,7 @@ test('closing erases the sign-in data, frees the email and keeps the books under
   await q('INSERT INTO orders (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [ord.id, id, ord.status, ord.at, orderData(ord.id, ord.status)]);
   await q('INSERT INTO withdrawals (id, user_id, status, at, data, idem_key) VALUES ($1, $2, $3, $4, $5::jsonb, NULL)', [`wd_${run}_k`, id, 'sent', Date.now(), JSON.stringify({ id: `wd_${run}_k`, address: 'bc1qtest' })]);
   await q("INSERT INTO ledger (user_id, kind, btc, usd, ref) VALUES ($1, 'spend', 0.001, 10, 'test')", [id]);
-  const code = (await getUser(id)).refCode;
+  const code = (await defaultCodeOf(id));
 
   const r = await close(id);
   assert.ok(r.ok, r.error);
@@ -168,7 +168,7 @@ test('with two-factor on, a code is needed, and a recovery code works once', asy
 
 test('closing a friend does not change what the inviter earned, and the list calls them a closed account', async () => {
   const inv = await account('inv');
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
   const fr = await account('friend', { ref: code });
   await credit(fr, 0.02);
   await buy(fr);
@@ -188,12 +188,12 @@ test('closing a friend does not change what the inviter earned, and the list cal
   assert.equal(list.length, 1);
   assert.equal(list[0].who, 'Closed account');
   assert.match(list[0].id, /^closed:/);
-  assert.equal((await getUser(inv)).refCode, code);
+  assert.equal((await defaultCodeOf(inv)), code);
 });
 
 test('closing an inviter keeps their friends linked and the closed code stops working', async () => {
   const inv = await account('inv2');
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
   const fr = await account('fr2', { ref: code });
   assert.equal((await getUser(fr)).refBy, inv);
 
