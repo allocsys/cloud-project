@@ -40,3 +40,7 @@ test('every mock review is valid, has a unique id, and none carries a link', () 
     assert.equal(m.url, '');
   }
 });
+
+test('"Not now" hides the box for 14 days', () => {
+  assert.equal(ASK_AGAIN_MS, 14 * 86400000);
+});
