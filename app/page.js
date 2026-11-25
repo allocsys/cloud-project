@@ -22,6 +22,7 @@ import { menuLinks, plansHref } from '@/lib/menu-links';
 import SocialLinks from '@/components/SocialLinks';
 import Reviews from '@/components/Reviews';
 import Farm from '@/components/Farm';
+import GuideLinks from '@/components/GuideLinks';
 import { SITE_URL } from '@/lib/site';
 import { LandingEvent } from '@/components/EventBanner';
 
@@ -211,6 +212,15 @@ export default async function Home() {
             <div className="lp-note">
               <h3 id="know">{t('landing.know.t')}</h3>
               <p>{t('landing.know.d')}</p>
+            </div>
+          </Reveal>
+        </section>
+
+        <section className="lp-sec" aria-labelledby="guides">
+          <Reveal>
+            <div className="lp-note">
+              <h3 id="guides">{t('gd.title')}</h3>
+              <GuideLinks t={t} lang={lang} />
             </div>
           </Reveal>
         </section>
