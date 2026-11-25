@@ -54,9 +54,10 @@ export default function RateUs({ style }) {
     <div className="card rate" style={{ padding: '12px 14px', ...style }}>
       <div className="rate-top">
         <h3>{t('rate.title')}</h3>
+        {data.reward && <span className="rate-chip">{t('rate.reward')}</span>}
         <button type="button" className="rate-skip" disabled={busy} onClick={later}>{t('rate.later')}</button>
       </div>
-      <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 2 }}>{t('rate.sub')}{data.reward ? ` ${t('rate.reward')}` : ''}</small>
+      <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 2 }}>{t('rate.sub')}</small>
       <div className="rate-stars" role="group" aria-label={t('rate.title')}>
         {[1, 2, 3, 4, 5].map((n) => (
           <button key={n} type="button" className={n <= stars ? 'on' : ''} aria-pressed={n === stars} aria-label={t('rev.stars', { n })} onClick={() => setStars(n)}>
