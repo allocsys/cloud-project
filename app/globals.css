@@ -556,6 +556,7 @@ input::placeholder { color: var(--ph); }
 .rate .btn { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; }
 .rate-top { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
 .rate-top h3 { margin: 0; }
+.rate-chip { flex: none; margin-left: auto; margin-right: 4px; padding: 3px 8px; border-radius: 999px; background: rgba(var(--gold-rgb), 0.16); color: var(--gold); font-size: 12px; line-height: 16px; white-space: nowrap; }
 .rate-stars { display: flex; gap: 2px; margin: 4px 0 0; }
 .rate-stars button { width: 44px; height: 44px; display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; -webkit-tap-highlight-color: transparent; }
 .rate-stars svg { width: 30px; height: 30px; fill: var(--outline); }
