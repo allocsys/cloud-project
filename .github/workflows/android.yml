@@ -2,8 +2,9 @@ name: Android app
 
 # Builds the Android shell for vertexhash.com (Capacitor, loads the live site).
 # The android/ project is generated here, not stored in git.
-# Always: debug APK (install on a phone to test). Also: release APK + AAB.
-# Release files are signed only when the keystore secrets exist (see below).
+# Always: release APK, signed only when the keystore secrets exist (see below); without them it stays unsigned.
+# Debug APK (install on a phone to test): only on pull requests, or when there are no signing secrets.
+# No AAB yet (only needed for the Play Store).
 # Download from the run page: Artifacts.
 # A signed build on main is also published as a GitHub release (tag app-v<versionCode>): the app file, a patch from the
 # previous release and manifest.json. The site (/api/app-update) reads that, and the app updates itself from it.
@@ -50,6 +51,8 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
+          cache: gradle
+          cache-dependency-path: android-app/package.json
 
       - name: Install Capacitor
         run: npm install --no-audit --no-fund
@@ -91,14 +94,18 @@ jobs:
 
       - name: Build
         working-directory: android-app/android
-        run: ./gradlew assembleDebug assembleRelease bundleRelease --no-daemon --stacktrace
+        run: |
+          TASKS="assembleRelease"
+          if [ "${{ github.event_name }}" = "pull_request" ] || [ -z "$KEYSTORE_B64" ]; then TASKS="assembleDebug $TASKS"; fi
+          ./gradlew $TASKS --no-daemon --stacktrace
 
       - name: Collect files
         run: |
           mkdir -p out
-          cp android/app/build/outputs/apk/debug/app-debug.apk out/vertexhash-debug.apk
-          cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/release-unsigned.apk
-          cp android/app/build/outputs/bundle/release/app-release.aab out/release-unsigned.aab
+          if [ -f android/app/build/outputs/apk/debug/app-debug.apk ]; then
+            cp android/app/build/outputs/apk/debug/app-debug.apk out/vertexhash-debug.apk
+          fi
+          cp android/app/build/outputs/apk/release/app-release-unsigned.apk out/vertexhash-release.apk
 
       - name: Sign release files (only when keystore secrets exist)
         if: env.KEYSTORE_B64 != ''
@@ -108,16 +115,16 @@ jobs:
           echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/release.jks"
           KP="${KEY_PASS:-$KEYSTORE_PASS}"
           export KEYSTORE_PASS KP
-          "$BT/zipalign" -p -f 4 out/release-unsigned.apk out/aligned.apk
+          "$BT/zipalign" -p -f 4 out/vertexhash-release.apk out/aligned.apk
           "$BT/apksigner" sign --ks "$RUNNER_TEMP/release.jks" --ks-key-alias "$KEYSTORE_ALIAS" \
             --ks-pass env:KEYSTORE_PASS --key-pass env:KP \
-            --out out/vertexhash-release.apk out/aligned.apk
-          jarsigner -keystore "$RUNNER_TEMP/release.jks" -storepass:env KEYSTORE_PASS -keypass:env KP \
-            -signedjar out/vertexhash-release.aab out/release-unsigned.aab "$KEYSTORE_ALIAS"
-          "$BT/apksigner" verify out/vertexhash-release.apk
-          rm -f out/aligned.apk out/release-unsigned.apk out/release-unsigned.aab "$RUNNER_TEMP/release.jks"
+            --out out/signed.apk out/aligned.apk
+          "$BT/apksigner" verify out/signed.apk
+          mv -f out/signed.apk out/vertexhash-release.apk
+          rm -f out/aligned.apk "$RUNNER_TEMP/release.jks"
 
       - name: Upload debug APK
+        if: hashFiles('android-app/out/vertexhash-debug.apk') != ''
         uses: actions/upload-artifact@v5
         with:
           name: vertexhash-debug-apk
@@ -128,11 +135,7 @@ jobs:
         uses: actions/upload-artifact@v5
         with:
           name: vertexhash-release
-          path: |
-            android-app/out/vertexhash-release.apk
-            android-app/out/vertexhash-release.aab
-            android-app/out/release-unsigned.apk
-            android-app/out/release-unsigned.aab
+          path: android-app/out/vertexhash-release.apk
           if-no-files-found: error
 
       - name: Publish the release (signed builds on main only)
