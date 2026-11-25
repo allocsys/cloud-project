@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 
@@ -27,5 +27,5 @@ after(async () => {
 
 test('a new account gets a VTX- code', async () => {
   const inv = await account('new1');
-  assert.match((await getUser(inv)).refCode, /^VTX-[A-Z2-9]{4}$/);
+  assert.match((await defaultCodeOf(inv)), /^VTX-[A-Z2-9]{4}$/);
 });

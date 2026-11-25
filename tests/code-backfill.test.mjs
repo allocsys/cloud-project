@@ -3,7 +3,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const { MIGRATIONS } = await import('@/lib/server/migrations');
 const auth = await import('@/lib/server/auth');
@@ -25,7 +25,9 @@ after(async () => {
 test('a code with no codes row is still found, and the row is put back', async () => {
   const inv = email('inv');
   assert.ok((await auth.signup({ email: inv, password: PW })).ok);
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
+  // An older account holds its code in its document; the codes row is what went missing.
+  await pool().query("UPDATE users SET data = data || jsonb_build_object('refCode', $2::text) WHERE id = $1", [inv, code]);
   await pool().query('DELETE FROM codes WHERE code = $1', [code]);
   assert.equal(await rowOf(code), null);
 
@@ -42,7 +44,9 @@ test('a code nobody holds is still not found', async () => {
 test('migration 003 adds the missing rows and leaves existing ones alone', async () => {
   const inv = email('mig');
   assert.ok((await auth.signup({ email: inv, password: PW })).ok);
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
+  // An older account holds its code in its document; the codes row is what went missing.
+  await pool().query("UPDATE users SET data = data || jsonb_build_object('refCode', $2::text) WHERE id = $1", [inv, code]);
   await pool().query('DELETE FROM codes WHERE code = $1', [code]);
   const step = MIGRATIONS.find((m) => m.id === '003_backfill_codes');
   assert.ok(step);

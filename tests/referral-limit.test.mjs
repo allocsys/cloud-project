@@ -3,7 +3,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -32,7 +32,7 @@ async function friend(name, code) {
 test('over the monthly limit: never by default, from the first month with room when the admin says so', async () => {
   assert.ok((await auth.signup({ email: email('inv'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('inv'), SMALL)).ok); // a plan lifts the invite limit
-  const code = (await getUser(email('inv'))).refCode;
+  const code = (await defaultCodeOf(email('inv')));
   assert.equal((await referrals.saveSettings({ monthlyLimit: 1, vip: [{ minSpendUsd: 1000000, minFriends: 100000, firstPct: 4, dailyPct: 1.5, capPct: 6, monthlyLimit: 1, ticketsPerMonth: 0 }] })).ok, true); // an unreachable VIP level with the same limit
   assert.equal(referrals.settings().overLimit, 'never');
 
@@ -77,7 +77,7 @@ test('two friends buying at once over the limit: only one is rewarded, the other
   assert.equal((await referrals.saveSettings({ monthlyLimit: 1, overLimit: 'never' })).ok, true);
   assert.ok((await auth.signup({ email: email('invc'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('invc'), SMALL)).ok); // a plan lifts the invite limit
-  const code = (await getUser(email('invc'))).refCode;
+  const code = (await defaultCodeOf(email('invc')));
   assert.equal((await auth.signup({ email: email('c1'), password: PW, ref: code })).ref, 'applied');
   assert.equal((await auth.signup({ email: email('c2'), password: PW, ref: code })).ref, 'applied');
   const [g1, g2] = await Promise.all([miners.grantPlan(email('c1'), SMALL), miners.grantPlan(email('c2'), SMALL)]);

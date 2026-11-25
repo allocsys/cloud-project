@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, getUser, friendsOf } = await import('@/lib/server/db');
+const { pool, q, getUser, friendsOf, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -25,7 +25,7 @@ test('slim friend load gives the same referral numbers as full accounts', async 
   const inviter = email('inv');
   assert.ok((await auth.signup({ email: inviter, password: PW })).ok);
   assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
-  const code = (await getUser(inviter)).refCode;
+  const code = (await defaultCodeOf(inviter));
   const friends = [email('f1'), email('f2'), email('f3')];
   for (const f of friends) assert.equal((await auth.signup({ email: f, password: PW, ref: code })).ref, 'applied');
   // Two friends buy (rewarded), one stays pending.
@@ -58,7 +58,7 @@ test('slim friend load gives the same referral numbers as full accounts', async 
 test('friendsOf returns only the inviter\'s friends, newest first', async () => {
   const inviter = email('inv2');
   assert.ok((await auth.signup({ email: inviter, password: PW })).ok);
-  const code = (await getUser(inviter)).refCode;
+  const code = (await defaultCodeOf(inviter));
   const f1 = email('g1');
   const f2 = email('g2');
   assert.equal((await auth.signup({ email: f1, password: PW, ref: code })).ref, 'applied');

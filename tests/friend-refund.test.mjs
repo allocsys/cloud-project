@@ -4,7 +4,7 @@
 import { test, before, after, mock } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, withUser, getUser } = await import('@/lib/server/db');
+const { pool, withUser, getUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -46,7 +46,7 @@ async function buy(id) {
 // Inviter and friend, the friend with a paid first miner and no money left over.
 async function pair(name) {
   const inv = await account(`${name}-inv`);
-  const fr = await account(`${name}-fr`, { ref: (await getUser(inv)).refCode });
+  const fr = await account(`${name}-fr`, { ref: (await defaultCodeOf(inv)) });
   await credit(fr, 0.02);
   const serial = await buy(fr);
   await empty(fr);
@@ -152,7 +152,7 @@ const at = async (ms, fn) => {
 // The friend then uses next month's friend slot, not the slot of the month of the purchase.
 test('a purchase on the last day of a month starts the reward next month and uses next month\'s slot', async () => {
   const inv = await account('mon-inv');
-  const code = (await getUser(inv)).refCode;
+  const code = (await defaultCodeOf(inv));
   const mk = async (name) => {
     const fr = await account(`mon-${name}`, { ref: code });
     await credit(fr, 0.02);

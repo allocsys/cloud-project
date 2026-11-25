@@ -20,8 +20,10 @@ const S = { ...referrals.DEFAULTS };
 // An inviter with one friend who spent $1000 in one miner paying $100 a day. First reward 3% = $30, daily share 1% = $1 a day.
 const ctxWith = (market) => ({
   id: 'inv@test.dev',
-  u: { id: 'inv@test.dev', refCode: 'VTX-TEST', refCodes: [], contracts: [] },
+  u: { id: 'inv@test.dev', contracts: [] },
+  codes: [{ code: 'VTX-TEST', name: 'Default', rebate: 0, default: true, at: 1 }],
   inviter: null,
+  inviterCodes: [],
   S,
   market,
   friends: [{ id: 'fr@test.dev', refAt: T, refRewardAt: T, refFirstUsd: 1000, contracts: [{ plan: 'Plan', price: 1000, dailyUsd: 100, days: 90, startedAt: T }] }],

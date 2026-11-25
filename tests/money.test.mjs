@@ -2,7 +2,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, q, getUser, withUser, pruneIdem } = await import('@/lib/server/db');
+const { pool, q, getUser, withUser, pruneIdem, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -118,7 +118,7 @@ test('serial numbers stay unique across accounts buying at once', async () => {
 test('two friends buying at once are both counted and get unique miners', async () => {
   const inviter = await account('inv');
   assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
-  const code = (await getUser(inviter)).refCode;
+  const code = (await defaultCodeOf(inviter));
   assert.ok(code);
   const friends = [email('fr1'), email('fr2')];
   for (const f of friends) assert.equal((await auth.signup({ email: f, password: PW, ref: code })).ref, 'applied');
@@ -135,7 +135,7 @@ test('two friends buying at once are both counted and get unique miners', async 
 
 test('an account with no plan can bring in 3 friends; buying a plan lifts the limit', async () => {
   const inviter = await account('lim');
-  const code = (await getUser(inviter)).refCode;
+  const code = (await defaultCodeOf(inviter));
   const sign = (n) => auth.signup({ email: email(n), password: PW, ref: code });
   // Five sign-ups at once: exactly FREE_INVITES are linked, the rest still get an account but no link.
   const rs = await many(5, (i) => sign(`lf${i}`));
@@ -166,7 +166,7 @@ test('a buy key replayed after the cleanup still buys once', async () => {
 test('a link made while a purchase waits on the lock still gives the gift', async () => {
   const inviter = await account('lk-inv');
   assert.ok((await miners.grantPlan(inviter, SMALL)).ok);
-  const code = (await getUser(inviter)).refCode;
+  const code = (await defaultCodeOf(inviter));
   assert.ok(code);
   const friend = email('lk-fr');
   assert.ok((await auth.signup({ email: friend, password: PW })).ok); // no code yet

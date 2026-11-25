@@ -3,7 +3,7 @@
 import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 
-const { pool, getUser } = await import('@/lib/server/db');
+const { pool, getUser, defaultCodeOf, codesOfUsers } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const miners = await import('@/lib/server/miners');
@@ -141,12 +141,12 @@ test('a friend keeps the rates of the level the inviter had when the reward star
   const inv = await getUser(email('inv'));
   assert.equal(referrals.vipOf(inv, 0).level, 0, 'the inviter starts at VIP 0 (own spend is below the table)');
 
-  const f1 = await friend('f1', inv.refCode);
+  const f1 = await friend('f1', await defaultCodeOf(email('inv')));
   assert.equal(f1.refRates.vip, 0);
   assert.equal(f1.refRates.firstPct, referrals.settings().firstPct, 'locked at the plain rates');
   assert.equal((await getUser(email('inv'))).vipSeen, 1, 'the first active friend lifts the inviter');
 
-  const f2 = await friend('f2', inv.refCode);
+  const f2 = await friend('f2', await defaultCodeOf(email('inv')));
   assert.equal(f2.refRates.vip, 1);
   assert.equal(f2.refRates.firstPct, ROW.firstPct);
   assert.equal(f2.refRates.dailyPct, ROW.dailyPct);
@@ -211,8 +211,8 @@ test('each level sets its own smallest first purchase for a friend', () => {
 
 test('rates of a later-month friend and of an older friend are locked once', async () => {
   const set = (id, sql) => pool().query(`UPDATE users SET data = ${sql} WHERE id = $1`, [id]);
-  await friend('f3', (await getUser(email('inv'))).refCode);
-  await friend('f4', (await getUser(email('inv'))).refCode);
+  await friend('f3', (await defaultCodeOf(email('inv'))));
+  await friend('f4', (await defaultCodeOf(email('inv'))));
   // f3 looks like an older friend (no saved rates), f4 like a friend held for a later month (rates pending).
   await set(email('f3'), "data - 'refRates'");
   await set(email('f4'), "(data - 'refRates') || '{\"refRatesPending\": true}'::jsonb");
@@ -314,7 +314,7 @@ test('two servers locking the same inviter at once stamp the same rates and noti
   assert.ok((await auth.signup({ email: email('lockinv'), password: PW })).ok);
   assert.ok((await miners.grantPlan(email('lockinv'), SMALL)).ok);
   const invId = email('lockinv');
-  const code = (await getUser(invId)).refCode;
+  const code = (await defaultCodeOf(invId));
   await friend('lockf1', code);
   await friend('lockf2', code);
   // Both friends look unlocked again: one with a start note waiting, one held for a later month.
@@ -341,7 +341,7 @@ test('a user can have maxCodes codes in total, Default included', async () => {
   const rs = await Promise.all(['one', 'two', 'three', 'four', 'five'].map((name) => referrals.createCode(id, { name, rebate: 0 })));
   assert.equal(rs.filter((r) => r.ok).length, 4, JSON.stringify(rs));
   assert.equal(rs.filter((r) => !r.ok).length, 1, JSON.stringify(rs));
-  assert.equal((await getUser(id)).refCodes.length, 4);
+  assert.equal(((await codesOfUsers([id])).get(id) || []).filter((k) => !k.default).length, 4);
   assert.equal((await referrals.createCode(id, { name: 'six', rebate: 0 })).ok, false, 'a fifth named code is refused');
-  assert.equal((await getUser(id)).refCodes.length, 4);
+  assert.equal(((await codesOfUsers([id])).get(id) || []).filter((k) => !k.default).length, 4);
 });
