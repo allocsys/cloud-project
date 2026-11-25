@@ -1,4 +1,5 @@
 import BackLink from '@/components/BackLink';
+import GuideLinks from '@/components/GuideLinks';
 import { langFromSegment, staticLangParams, tForLang } from '@/lib/i18n/server';
 import { langAlternates } from '@/lib/seo';
 import { faqAnswer, faqList, faqVars } from '@/lib/faq';
@@ -80,6 +81,8 @@ export default async function Faq({ params }) {
             ))}
           </div>
         ))}
+        <h2 style={h2}>{t('gd.title')}</h2>
+        <GuideLinks t={t} lang={lang} />
         <div style={{ height: '14px' }} />
         <BackLink />
       </div>
