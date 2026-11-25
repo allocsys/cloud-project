@@ -54,6 +54,7 @@ export default function RateUs({ style }) {
     <div className="card rate" style={{ padding: '12px 14px', ...style }}>
       <div className="rate-top">
         <h3>{t('rate.title')}</h3>
+        {data.reward && <span className="rate-chip">{t('rate.reward')}</span>}
         <button type="button" className="rate-skip" disabled={busy} onClick={later}>{t('rate.later')}</button>
       </div>
       <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 2 }}>{t('rate.sub')}{data.reward ? ` ${t('rate.reward')}` : ''}</small>
