@@ -476,6 +476,7 @@ function ReviewsCard({ reviews, users, reviewUrl, busy, run }) {
           {u.rating.comment && (
             <button className="btn ghost" disabled={busy} onClick={() => setD({ ...REVIEW_EMPTY, stars: String(u.rating.stars), text: u.rating.comment, source: 'Vertexhash app' })}>Use</button>
           )}
+          <button className="btn ghost danger" disabled={busy} onClick={() => ask(`Delete this rating from ${u.id}? They will be asked again.`, { ok: 'Delete', danger: true }).then((yes) => yes && run({ action: 'rating-clear', userId: u.id }, 'Rating deleted'))}>Delete</button>
         </div>
       ))}
       <How><p className="fine">The section shows on the landing page as soon as there is one review, and is hidden with none. The average rating appears from 5 reviews. A review that is too long is refused, not cut. A link makes the source name tappable. "Use" copies a private rating into the form: ask the user first, because they were told it stays private.</p></How>
