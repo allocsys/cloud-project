@@ -334,7 +334,7 @@ export default function Review() {
                     {u.tg && <div><small>ID</small><b>{u.id}</b></div>}
                     <div><small>Joined</small><b>{when(u.joined) || '-'}</b></div>
                     <div><small>Last sign-in</small><b>{when(u.lastIn) || '-'}</b></div>
-                    <div><small>Invited by</small><b>{u.refBy || '-'}</b></div>
+                    <div><small>Invited by</small><b>{u.refByName || u.refBy || '-'}</b></div>
                     <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b><em>{fmtBtcUsd(u.reward, u.rate)}</em></div>
                     <div><small>Boosts</small><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
                     <div><small>Open orders · withdrawals</small><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>

@@ -2121,7 +2121,7 @@ export default function Admin() {
                 {u.tg && <div><small>ID</small><b>{u.id}</b></div>}
                 <div><small>Joined</small><b>{when(u.joined) || '-'}</b></div>
                 <div><small>Last sign-in</small><b>{when(u.lastIn) || '-'}</b></div>
-                <div><small>Invited by</small><b>{u.refBy || '-'}</b></div>
+                <div><small>Invited by</small><b>{u.refByName || u.refBy || '-'}</b></div>
                 <div><small>Friends invited</small><b>{u.invited} · {u.reward.toFixed(8)} BTC</b><em>{fmtBtcUsd(u.reward, u.rate)}</em></div>
                 <div><small>Boosts</small><b>{u.boostsRunning} running · {u.boostWins} won</b></div>
                 <div><small>Open orders · withdrawals</small><b>{u.ordersOpen} · {u.withdrawalsOpen}</b></div>
@@ -2687,7 +2687,7 @@ export default function Admin() {
               {lim.rows.map((x) => (
                 <div className="row" key={`${x.id}${x.at}`}>
                   <div>
-                    {x.id}
+                    {x.name || x.id}
                     <small>{x.code} · {x.why === 'full' ? 'limit reached' : x.why === 'unknown' ? 'code not found' : 'already linked'} · {when(x.at)}{x.linked ? ' · linked' : ''}</small>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
@@ -2696,7 +2696,7 @@ export default function Admin() {
                         className="btn"
                         disabled={busy}
                         onClick={async () => {
-                          if (!(await ask(`Link ${x.id} to ${x.inviter}?`, { ok: 'Link' }))) return;
+                          if (!(await ask(`Link ${x.name || x.id} to ${x.inviterName || x.inviter}?`, { ok: 'Link' }))) return;
                           run({ action: 'user', userId: x.id, op: 'ref-set', inviter: x.inviter, tickets: fixTick }, 'Linked');
                         }}
                       >
@@ -2732,8 +2732,8 @@ export default function Admin() {
               {lfr.rows.map((l) => (
                 <div className="row" key={l.id}>
                   <div>
-                    {l.id}
-                    <small>by {l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.ticket ? ' · free ticket' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
+                    {l.name || l.id}
+                    <small>by {l.inviterName || l.inviter} · spent ${fmtUsd(l.spendUsd)}{l.gift ? ' · gift given' : ''}{l.ticket ? ' · free ticket' : ''}{l.rebate > 0 ? ` · ${l.rebate}% rebate` : ''}</small>
                   </div>
                   <div style={{ textAlign: 'right' }}>
                     <b>${l.rewardUsd.toFixed(2)}</b>
