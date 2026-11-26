@@ -1606,6 +1606,7 @@ html[dir='rtl'] .tb-hl { transform: translateX(calc(var(--i) * -100%)); }
 .hero .bar { background: var(--ov-l); }
 .payout .bar { margin-top: 8px; }
 .payout .bar i { animation: none; transition: transform 1s linear; }
+[dir='rtl'] .payout .bar i, [dir='rtl'] .card > .bar.goalbar i { transform-origin: right; }
 
 /* Stat tiles with sparklines */
 .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
