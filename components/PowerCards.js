@@ -2,6 +2,7 @@
 // The two cards on the Buy tab: ASICs (fixed hash power) and Smart Mining. Each is one slider with its tiers marked along it;
 // every tier has its own animation, and the picture swaps with a short fade when the slider crosses into a new tier.
 import { useEffect, useRef, useState } from 'react';
+import { useChanged } from '@/components/Enter';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
@@ -206,10 +207,11 @@ export function AsicsCard({ pos, setPos, term, setTerm, plan, daily, hall, withi
   const tier = tierOf(ASIC_TIERS, plan.th);
   const rig = rigFor(tier.id);
   useTierBuzz(tier.id);
+  const swap = useChanged(tier.id);
   return (
     <div className="card pcard">
       <div className="phead"><b>ASICs</b><span>{tierName(t, tier)} · {fmtTh(plan.th)} TH/s</span></div>
-      <div className="stage" key={tier.id}>
+      <div className={`stage${swap ? ' swap' : ''}`} key={tier.id}>
         <RigArt kind={rig.kind} units={rig.units} speed={rig.speed} id={`asic-${tier.id}`} />
       </div>
       <div className="slide">
@@ -278,10 +280,11 @@ export function SmartCard({ budget, bNum, spos, term, setTerm, plan, within, onA
   const level = SMART_TIERS.indexOf(tier) + 1;
   const band = smartBand(plan); // profit range for the term (lib/smart.js)
   useTierBuzz(tier.id);
+  const swap = useChanged(tier.id);
   return (
     <div className="card pcard">
       <div className="phead"><b>{t('dash.smart')}</b><span>{tierName(t, tier)} · {t('pc.bestDaily')}</span></div>
-      <div className="stage" key={tier.id}>
+      <div className={`stage${swap ? ' swap' : ''}`} key={tier.id}>
         <SmartArt level={level} />
       </div>
       <div className="slide">
