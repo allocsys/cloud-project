@@ -6,8 +6,9 @@ import { useEffect, useState } from 'react';
 // Once any data has been seen, the saved copy fills the screen at once (lib/api.js) and none of this is needed.
 
 // True while `pending` holds, but only for `ms`: if the answer never comes, the screen falls back to what it showed before
-// instead of shimmering for ever.
-export function useWaiting(pending, ms = 6000) {
+// instead of shimmering for ever. The default is a little over the 15 s a request may take (lib/api.js), so a slow answer on a
+// first start still lands in the skeleton instead of a sample screen that jumps when it arrives.
+export function useWaiting(pending, ms = 16000) {
   const [late, setLate] = useState(false);
   useEffect(() => {
     if (!pending) {

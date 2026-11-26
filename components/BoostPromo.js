@@ -115,7 +115,7 @@ export default function BoostPromo({ signedIn = false }) {
   const t = useT();
   const { data: cat } = useApi('/api/plans', { ttl: 60000 });
   // No answer yet (a first visit): the card draws itself with placeholder data in the loading look, then collapses if boost is off.
-  const wait = useWaiting(!cat);
+  const wait = useWaiting(!cat, 6000);
   const b = cat ? cat.boost : wait ? PH_PROMO : null;
   if (!b) return null;
   const same = b.tickets.every((t) => t.chance === b.tickets[0].chance); // one chance for all: say it once, in the footnote
