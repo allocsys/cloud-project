@@ -41,7 +41,7 @@ export function PayoutCountdown({ t }) {
     <div className="payout">
       <div><span>{t('dash.nextPayout')}</span><b>{pay.text}</b></div>
       <div className="bar" role="progressbar" aria-label={t('dash.payoutAria')} aria-valuenow={Math.round(pay.pct)} aria-valuemin={0} aria-valuemax={100}>
-        <i style={{ width: `${pay.pct}%` }} />
+        <i style={{ transform: `scaleX(${Math.min(100, Math.max(0, pay.pct)) / 100})` }} />
       </div>
     </div>
   );
@@ -61,11 +61,11 @@ export function HeroMined({ totalBtc, dailyUsd, asOf, week }) {
   return (
     <>
       <div className="big">
-        <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}><CountUp value={mined} format={formatBtc} /></span>
+        <span style={{ transition: 'color 0.2s', color: pulse ? 'var(--text)' : 'var(--gold2)' }}><CountUp value={mined} format={formatBtc} delay={350} /></span>
         <small>BTC</small>
       </div>
       <div className="hsub">
-        <span className="mute">≈ $<CountUp value={mined} format={(v) => formatUsd(v * BTC_USD)} /></span>
+        <span className="mute">≈ $<CountUp value={mined} format={(v) => formatUsd(v * BTC_USD)} delay={350} /></span>
         {week}
       </div>
     </>
@@ -94,7 +94,7 @@ export function GoalProgress({ wd, dailyUsd, btc, minUsd = MIN_WITHDRAW_USD, arm
         <span>{goal === minBtc ? t('dash.minWd') : t('dash.milestone')}</span>
       </div>
       <div className="bar goalbar" role="progressbar" aria-label={t('dash.goalAria')} aria-valuenow={Math.round(goalPct)} aria-valuemin={0} aria-valuemax={100}>
-        <i style={{ width: `${armed ? goalPct : 0}%` }} />
+        <i style={{ transform: `scaleX(${armed ? goalPct / 100 : 0})` }} />
       </div>
       <small className="mute" style={{ fontSize: '12px', display: 'block', marginTop: 6 }}>
         {t('dash.goalLine', { a: formatBtc(avail, 5), g: formatBtc(goal, 5), usd: formatUsd(toGo * btc) })}

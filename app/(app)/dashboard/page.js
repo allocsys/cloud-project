@@ -40,7 +40,7 @@ function Split({ rows }) {
   const [sel, setSel] = useState(null);
   const [on, setOn] = useState(false);
   useEffect(() => {
-    const t = setTimeout(() => setOn(true), 60);
+    const t = setTimeout(() => setOn(true), 450);
     return () => clearTimeout(t);
   }, []);
   const total = rows.reduce((s, r) => s + r.usd, 0) || 1;
@@ -165,7 +165,7 @@ export default function Dashboard() {
 
   // Lets the goal bar grow from empty once the page is on screen.
   useEffect(() => {
-    const t = setTimeout(() => setArmed(true), 60);
+    const t = setTimeout(() => setArmed(true), 450);
     return () => clearTimeout(t);
   }, []);
 
@@ -353,7 +353,7 @@ export default function Dashboard() {
                 </div>
                 <div className={`meter ${online.length ? '' : 'off'}`} aria-hidden="true">
                   {Array.from({ length: 14 }).map((_, i) => (
-                    <i key={i} style={{ animationDelay: `${(i * 0.13) % 1.4}s`, animationDuration: `${1 + (i % 4) * 0.2}s` }} />
+                    <i key={i} style={{ animationDelay: `${0.6 + ((i * 0.13) % 1.4)}s`, animationDuration: `${1 + (i % 4) * 0.2}s` }} />
                   ))}
                 </div>
                 <div className="ticker">
