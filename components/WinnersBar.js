@@ -23,7 +23,7 @@ export default function WinnersBar() {
   const ref = useRef(null);
   const [seen, setSeen] = useState(true);
   // No answer yet (a first visit): placeholder winners in the loading look, still; the bar collapses if the answer is empty.
-  const wait = useWaiting(!data);
+  const wait = useWaiting(!data, 6000);
   const list = data ? data.winners || [] : wait ? PH_WINNERS.map((w) => ({ ...w, at: Date.now() })) : [];
   const has = list.length > 0;
   useEffect(() => {
