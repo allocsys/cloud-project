@@ -1,9 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { EnterCtx } from '@/lib/enter';
+import { EnterCtx } from '@/components/Enter';
 
 // A template remounts on every navigation, so the page entrance animation replays per route.
-// It also hands each screen one marker per navigation (lib/enter.js), so a screen that mounts twice does not fade in twice.
+// It also hands each screen one marker per navigation (components/Enter.js), so a screen that mounts twice does not fade in twice.
 export default function Template({ children }) {
   const [marker] = useState(() => ({ played: false }));
   return (
