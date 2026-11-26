@@ -6,6 +6,7 @@ import AssistantLazy from '@/components/AssistantLazy';
 import WalletProvider from '@/components/WalletProvider';
 import { PendingStrip } from '@/components/PendingOrders';
 import MaintenanceStrip from '@/components/MaintenanceStrip';
+import LostStrip from '@/components/LostStrip';
 import AppUpdate from '@/components/AppUpdate';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
@@ -31,6 +32,7 @@ export default async function AppLayout({ children }) {
           <Nav />
           <main>
             <MaintenanceStrip />
+            <LostStrip />
             <AppUpdate />
             <PendingStrip />
             {children}
