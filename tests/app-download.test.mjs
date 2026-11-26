@@ -29,6 +29,13 @@ test('a release in the bucket is downloaded through our own link', () => {
   assert.equal(answerFor(v, 9).apk.url, `${DOWNLOAD_URL}?tag=app-v12&file=vertexhash-12.apk`);
 });
 
+test('a signed link can name the saved file', () => {
+  const c = { endpoint: 'https://s3.amazonaws.com', bucket: 'b', keyId: 'k', secret: 's', region: 'auto' };
+  const url = presignGet(c, 'app-v21/vertexhash-21.apk', 600, new Date('2026-11-26T00:00:00.000Z'), 'vertexhash-1.0.1.apk');
+  assert.ok(url.includes('&response-content-disposition=attachment%3B%20filename%3D%22vertexhash-1.0.1.apk%22&X-Amz-Signature='), url);
+  assert.ok(!presignGet(c, 'x.apk').includes('response-content-disposition'));
+});
+
 test('only the exact download path skips the edge check', () => {
   assert.ok(edgeFree('/api/download'));
   assert.ok(!edgeFree('/api/download/x'));
