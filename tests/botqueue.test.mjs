@@ -187,7 +187,7 @@ test('a news job puts the message in every account in batches', async () => {
 
 test('send to one: an account id or a Telegram number; plain errors otherwise', async () => {
   await stopAny();
-  assert.equal((await bq.sendOne('tg:1', { cfg: CFG, opts })).status, 404);
+  assert.equal((await bq.sendOne(`tg:9${Date.now()}${seq++}`, { cfg: CFG, opts })).status, 404);
   assert.equal((await bq.sendOne('', { cfg: CFG, opts })).status, 404);
   const mail = await mk(`mail${Date.now()}${seq++}@x.test`, { notifications: [notice('friend')] });
   assert.equal((await bq.sendOne(mail, { cfg: CFG, opts })).status, 422, 'not a Telegram account');
