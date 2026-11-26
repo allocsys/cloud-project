@@ -267,7 +267,7 @@ export default function Referrals() {
                   </div>
                 </div>
               ))}
-              {canAdd && rd && !locked && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>{t('ref.new')}</button>}
+              {canAdd && !locked && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>{t('ref.new')}</button>}
             </div>
 
           {referral.rebate && (
