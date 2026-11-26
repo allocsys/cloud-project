@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import AppDownload from '@/components/AppDownload';
 import Calculator from '@/components/Calculator';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
@@ -75,6 +76,7 @@ const ICONS = {
 export default async function Home() {
   const jar = await cookies();
   const signedIn = jar.has(SESSION_COOKIE);
+  const android = /android/i.test((await headers()).get('user-agent') || '');
   const t = await getT();
   const lang = await getLang();
   const messages = await getMessages(lang);
@@ -144,6 +146,7 @@ export default async function Home() {
               label={t('landing.menu')}
               links={menuLinks(t, lang, signedIn)}
               contact={t('landing.contact')}
+              app={<AppDownload menu initial={android} />}
             >
               <SocialLinks className="lp-social lm-soc" />
             </LandingMenu>

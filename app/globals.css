@@ -2194,3 +2194,6 @@ a.stat:active { background: var(--s3); }
 .set-copy { width: 40px; height: 40px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: rgba(var(--gold-rgb), 0.08); color: var(--gold); cursor: pointer; }
 .set-copy:active { background: rgba(var(--gold-rgb), 0.18); }
 .set-copy svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }
+
+/* Android app download (Settings row) */
+.row .app-dl-s { display: inline-flex; align-items: center; text-decoration: none; }

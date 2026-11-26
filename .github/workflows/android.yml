@@ -8,6 +8,7 @@ name: Android app
 # Download from the run page: Artifacts.
 # A signed build on main is also published as a GitHub release (tag app-v<versionCode>): the app file, a patch from the
 # previous release and manifest.json. The site (/api/app-update) reads that, and the app updates itself from it.
+# With the APK_S3_* secrets the same files also go to the Railway bucket (latest.json last); downloads then come from there.
 
 on:
   workflow_dispatch:
@@ -42,6 +43,13 @@ jobs:
       KEYSTORE_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
       KEYSTORE_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
       KEY_PASS: ${{ secrets.ANDROID_KEY_PASSWORD }}
+      # The Railway bucket for the app files (optional until set).
+      ENDPOINT: ${{ secrets.APK_S3_ENDPOINT }}
+      BUCKET: ${{ secrets.APK_S3_BUCKET }}
+      AWS_ACCESS_KEY_ID: ${{ secrets.APK_S3_KEY_ID }}
+      AWS_SECRET_ACCESS_KEY: ${{ secrets.APK_S3_SECRET }}
+      AWS_DEFAULT_REGION: ${{ secrets.APK_S3_REGION || 'auto' }}
+      AWS_REQUEST_CHECKSUM_CALCULATION: when_required
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -162,3 +170,15 @@ jobs:
           fi
           python3 tools/release.py make --code "$N" --name "$VERSION_NAME" --apk out/vertexhash-release.apk --out release $ARGS
           gh release create "app-v$N" release/* --repo "$GITHUB_REPOSITORY" --target "$GITHUB_SHA" --title "App $VERSION_NAME" --notes "Android app $VERSION_NAME"
+
+      - name: Upload to the bucket (only when the bucket secrets exist)
+        if: env.KEYSTORE_B64 != '' && env.AWS_ACCESS_KEY_ID != '' && github.event_name != 'pull_request'
+        run: |
+          set -e
+          TAG=app-v${{ github.run_number }}
+          aws configure set default.s3.addressing_style virtual
+          up() { aws s3 cp "$1" "s3://$BUCKET/$2" --endpoint-url "$ENDPOINT" --only-show-errors; }
+          for f in release/*.apk release/*.vxp; do
+            if [ -f "$f" ]; then up "$f" "$TAG/$(basename "$f")"; fi
+          done
+          up release/manifest.json latest.json
