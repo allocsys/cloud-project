@@ -19,6 +19,7 @@ import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_BUNDLE } from '@/lib/placeholder';
+import { useEnterOnce } from '@/lib/enter';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -118,6 +119,7 @@ function HeroChart({ rows }) {
 
 export default function Dashboard() {
   const { t, lang } = useLang();
+  const enter = useEnterOnce();
   // One call for the per-user data (miners, dashboard, wallet, referrals, notifications):
   // five requests that each loaded the same account document are now one (lib/server/bundle.js).
   // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
@@ -256,7 +258,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className={ph ? 'grid rise ld' : 'grid rise'} aria-busy={ph || undefined}>
+      <div className={`grid${enter ? ' rise' : ''}${ph ? ' ld' : ''}`} aria-busy={ph || undefined}>
         {paid && (
           <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>
