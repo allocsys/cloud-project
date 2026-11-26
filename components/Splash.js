@@ -186,12 +186,21 @@ function startOrb(c) {
     g.globalAlpha = 1;
   };
   draw();
-  hideNativeSplash(); // in the app: the native globe fades out, this one is already on screen
+  // In the app: the native globe fades out once this one is really painted (two frames), so the page behind never shows.
+  let f1 = 0;
+  let f2 = 0;
+  f1 = requestAnimationFrame(() => {
+    f2 = requestAnimationFrame(hideNativeSplash);
+  });
   const timer = setInterval(draw, 33);
-  return () => clearInterval(timer);
+  return () => {
+    clearInterval(timer);
+    cancelAnimationFrame(f1);
+    cancelAnimationFrame(f2);
+  };
 }
 
-export default function Splash() {
+export default function Splash({ app = false }) {
   const ref = useRef(null);
   const bar = useRef(null);
   const orb = useRef(null);
@@ -301,7 +310,7 @@ export default function Splash() {
 
   if (gone) return null;
   return (
-    <div className="splash" ref={ref} aria-hidden="true">
+    <div className={app ? 'splash sp-app' : 'splash'} ref={ref} aria-hidden="true">
       <noscript>
         <style>{'.splash{display:none}'}</style>
       </noscript>
