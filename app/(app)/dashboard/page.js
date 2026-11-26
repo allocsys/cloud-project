@@ -209,7 +209,7 @@ export default function Dashboard() {
   const latest = history[0];
   // Balance that can pay for a plan, in USD at the live rate. The Reinvest card shows once it covers a plan.
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * btc : 0;
-  const rein = smartPick([], balUsd, cat ? cat.halls : undefined);
+  const rein = live && cat ? smartPick([], balUsd, cat.halls) : null; // drawn once, when both answers are in
 
   // "Payout received": yesterday's earnings, shown once after the 00:00 UTC payout until closed. The closing day is kept on this device.
   const [paySeen, setPaySeen] = useState(null);
