@@ -193,12 +193,21 @@ export function clearApiCache() {
 
 // Ends the session (clears the cookie) and forgets the cached data. Always resolves.
 // It also leaves a note (vtx-out) so the home screen's automatic Telegram sign-in stays off until the person signs in on purpose.
+// In the Android app the phone is forgotten first (components/PushSetup.js), so the next account on it does not get this one's notices.
 export function signOut() {
+  let phone = null;
+  try {
+    phone = JSON.parse(localStorage.getItem('vtx-push') || 'null')?.t || null;
+    localStorage.removeItem('vtx-push');
+  } catch {}
   clearApiCache();
   try {
     localStorage.setItem('vtx-out', '1');
   } catch {}
-  return fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {});
+  const drop = phone
+    ? fetch('/api/push', { method: 'DELETE', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ token: phone }), keepalive: true }).catch(() => {})
+    : Promise.resolve();
+  return drop.then(() => fetch('/api/auth/logout', { method: 'POST', keepalive: true }).catch(() => {}));
 }
 
 // Call when someone signs in on purpose: the automatic sign-in may work again.

@@ -8,6 +8,7 @@ import { PendingStrip } from '@/components/PendingOrders';
 import MaintenanceStrip from '@/components/MaintenanceStrip';
 import LostStrip from '@/components/LostStrip';
 import AppUpdate from '@/components/AppUpdate';
+import PushSetup from '@/components/PushSetup';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { getLang, getT, getMessages } from '@/lib/i18n/server';
@@ -34,6 +35,7 @@ export default async function AppLayout({ children }) {
             <MaintenanceStrip />
             <LostStrip />
             <AppUpdate />
+            <PushSetup />
             <PendingStrip />
             {children}
           </main>

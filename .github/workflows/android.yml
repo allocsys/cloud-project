@@ -50,6 +50,8 @@ jobs:
       AWS_SECRET_ACCESS_KEY: ${{ secrets.APK_S3_SECRET }}
       AWS_DEFAULT_REGION: ${{ secrets.APK_S3_REGION || 'auto' }}
       AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+      # Firebase google-services.json as base64 (optional). With it the app gets phone notices (components/PushSetup.js).
+      GOOGLE_SERVICES_B64: ${{ secrets.GOOGLE_SERVICES_JSON_BASE64 }}
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v7
@@ -65,6 +67,11 @@ jobs:
       - name: Install Capacitor
         run: npm install --no-audit --no-fund
 
+      # Without the Firebase file the plugin is left out: registering would fail with no Firebase app.
+      - name: Phone notices plugin (only when the Firebase file exists)
+        if: env.GOOGLE_SERVICES_B64 != ''
+        run: npm install --no-audit --no-fund --no-save @capacitor/push-notifications@^7
+
       - name: Generate the Android project
         run: npx cap add android
 
@@ -78,6 +85,19 @@ jobs:
           sed -i 's#<application#<uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />\n    <application#' "$m"
           grep -q REQUEST_INSTALL_PACKAGES "$m"
           printf '<?xml version="1.0" encoding="utf-8"?>\n<paths xmlns:android="http://schemas.android.com/apk/res/android">\n    <external-path name="my_images" path="." />\n    <cache-path name="my_cache_images" path="." />\n</paths>\n' > android/app/src/main/res/xml/file_paths.xml
+
+      - name: Phone notices (Firebase file, small white icon)
+        if: env.GOOGLE_SERVICES_B64 != ''
+        run: |
+          set -e
+          echo "$GOOGLE_SERVICES_B64" | base64 -d > android/app/google-services.json
+          node -e "JSON.parse(require('fs').readFileSync('android/app/google-services.json','utf8'))"
+          mkdir -p android/app/src/main/res/drawable
+          cp native/ic_stat_vtx.xml android/app/src/main/res/drawable/
+          m=android/app/src/main/AndroidManifest.xml
+          sed -i 's#</application>#    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_vtx" />\n        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/ic_launcher_background" />\n    </application>#' "$m"
+          grep -q default_notification_icon "$m"
+          grep -q "google-services" android/app/build.gradle
 
       - name: App icon from the site
         run: |
