@@ -1666,7 +1666,9 @@ html[dir='rtl'] .tb-hl { transform: translateX(calc(var(--i) * -100%)); }
 .pcard .phead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
 .pcard .phead b { font-size: 17px; line-height: 24px; font-weight: 500; }
 .pcard .phead span { font-size: 12px; line-height: 16px; font-weight: 500; color: var(--gold2); text-align: right; }
-.pcard .stage { margin-top: 8px; animation: stagein 0.35s cubic-bezier(0.2, 0, 0, 1); }
+.pcard .stage { margin-top: 8px; }
+/* Fades only when the tier changes (components/Enter.js useChanged), not when the screen mounts. */
+.pcard .stage.swap { animation: stagein 0.35s cubic-bezier(0.2, 0, 0, 1); }
 .pcard .stage .art { margin-bottom: 0; }
 .pcard .stage .art svg { height: 112px; }
 .pcard .slide { margin-top: 6px; }
