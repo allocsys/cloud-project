@@ -325,7 +325,7 @@ export default function Wallet() {
   const available = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) : 0;
   // The Reinvest card shows once the balance covers a plan, and suggests the biggest one it can pay for.
   const balUsd = available * btcUsd;
-  const rein = ready ? smartPick([], balUsd, cat ? cat.halls : undefined) : null;
+  const rein = ready && cat ? smartPick([], balUsd, cat.halls) : null; // drawn once, when both answers are in
   const A = ASSETS[asset];
   const N = NETWORKS[net];
   const price = priceOf(asset, prices);
@@ -541,21 +541,6 @@ export default function Wallet() {
           <span className="mute eyebrow">{t('wal.avail')}</span>
           <WalletBalance wd={wd} dailyUsd={dailyUsd} btcUsd={btcUsd} liveRef={liveAvailable} t={t} />
         </div>
-
-        <PendingCards show={show} />
-
-        {rein && (
-          <Link href={reinvestHref(rein)} className="card rein">
-            <div>
-              <b>{reinvestTitle(rein, t)}</b>
-              <small>
-                {t('dash.reinLine', { price: formatUsd(rein.plan.price), days: rein.plan.days, daily: rein.plan.daily })}
-                {rein.left >= 1 ? ` · ${t('dash.left', { n: formatUsd(rein.left) })}` : ''}
-              </small>
-            </div>
-            <span className="rgo">{t('dash.review')}</span>
-          </Link>
-        )}
 
         <div className="grid wal">
           <div className="card wcard">
@@ -831,7 +816,7 @@ export default function Wallet() {
                 }}
               >
                 <h3>{t('wal.activity')}</h3>
-                <span className="mute">{ready && sameFilter ? (wd.historyTotal ?? history.length) : ''}</span>
+                <span className="mute" style={{ minWidth: '3ch', textAlign: 'end' }}>{ready && sameFilter ? (wd.historyTotal ?? history.length) : ''}</span>
                 <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 9l6 6 6-6" /></svg>
               </button>
             </div>
@@ -869,6 +854,22 @@ export default function Wallet() {
             )}
           </div>
         </div>
+
+        {/* Blocks that arrive after the data sit below the form, so nothing the person is using moves. */}
+        <PendingCards show={show} />
+
+        {rein && (
+          <Link href={reinvestHref(rein)} className="card rein">
+            <div>
+              <b>{reinvestTitle(rein, t)}</b>
+              <small>
+                {t('dash.reinLine', { price: formatUsd(rein.plan.price), days: rein.plan.days, daily: rein.plan.daily })}
+                {rein.left >= 1 ? ` · ${t('dash.left', { n: formatUsd(rein.left) })}` : ''}
+              </small>
+            </div>
+            <span className="rgo">{t('dash.review')}</span>
+          </Link>
+        )}
       </div>
       {!tf && tgWait && !showCode && (
         <div role="dialog" aria-modal="true" aria-labelledby="tgt" style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, zIndex: 60, background: 'rgba(0,0,0,.6)', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 20 }}>

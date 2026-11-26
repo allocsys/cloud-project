@@ -19,6 +19,7 @@ import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_BUNDLE } from '@/lib/placeholder';
+import { useEnterOnce } from '@/components/Enter';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
@@ -118,6 +119,7 @@ function HeroChart({ rows }) {
 
 export default function Dashboard() {
   const { t, lang } = useLang();
+  const enter = useEnterOnce();
   // One call for the per-user data (miners, dashboard, wallet, referrals, notifications):
   // five requests that each loaded the same account document are now one (lib/server/bundle.js).
   // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
@@ -209,7 +211,7 @@ export default function Dashboard() {
   const latest = history[0];
   // Balance that can pay for a plan, in USD at the live rate. The Reinvest card shows once it covers a plan.
   const balUsd = wd ? Math.max(0, wd.earned - wd.withdrawn - (wd.spent || 0)) * btc : 0;
-  const rein = smartPick([], balUsd, cat ? cat.halls : undefined);
+  const rein = live && cat ? smartPick([], balUsd, cat.halls) : null; // drawn once, when both answers are in
 
   // "Payout received": yesterday's earnings, shown once after the 00:00 UTC payout until closed. The closing day is kept on this device.
   const [paySeen, setPaySeen] = useState(null);
@@ -256,7 +258,7 @@ export default function Dashboard() {
           </Link>
         </div>
       </div>
-      <div className={ph ? 'grid rise ld' : 'grid rise'} aria-busy={ph || undefined}>
+      <div className={`grid${enter ? ' rise' : ''}${ph ? ' ld' : ''}`} aria-busy={ph || undefined}>
         {paid && (
           <div className="card" role="status" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px' }}>
             <div>

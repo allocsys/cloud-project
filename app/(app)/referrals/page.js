@@ -42,9 +42,11 @@ function useSeen() {
 
 import { useWaiting } from '@/components/Skeleton';
 import { PH_REF, PH_VIP } from '@/lib/placeholder';
+import { useEnterOnce } from '@/components/Enter';
 
 export default function Referrals() {
   const t = useT();
+  const enter = useEnterOnce();
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
   const [stepsRef, stepsSeen] = useSeen();
@@ -182,7 +184,7 @@ export default function Referrals() {
     <>
       <style>{'.rhero{position:relative;overflow:hidden}.rshine{position:absolute;top:0;bottom:0;left:0;width:45%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.1),transparent);animation:rShine 8s ease-in-out infinite}@keyframes rShine{0%,55%{transform:translateX(-130%) skewX(-18deg)}100%{transform:translateX(330%) skewX(-18deg)}}.steps3 .sico{position:relative}.steps3 .sico::after{content:"";position:absolute;top:0;right:0;bottom:0;left:0;border-radius:inherit;border:1.5px solid var(--gold2);opacity:0;animation:rPing 4.5s ease-out infinite}.steps3 .st:nth-child(2) .sico::after{animation-delay:1.5s}.steps3 .st:nth-child(3) .sico::after{animation-delay:3s}@keyframes rPing{0%{transform:scale(.9);opacity:.7}30%,100%{transform:scale(1.6);opacity:0}}.rpause .rshine,.rpause .sico::after{animation-play-state:paused}'}</style>
       <PageHead title={t('nav.invite')} icon="invite" />
-      <div className={waitRd ? 'grid rise ld' : 'grid rise'} aria-busy={waitRd || undefined}>
+      <div className={`grid${enter ? ' rise' : ''}${waitRd ? ' ld' : ''}`} aria-busy={waitRd || undefined}>
         <div ref={heroRef} className={`card hero rhero${heroSeen ? '' : ' rpause'}`}>
           <i className="rshine" aria-hidden="true" />
           <span className="mute eyebrow">{t('ref.earnings')}</span>
@@ -267,7 +269,7 @@ export default function Referrals() {
                   </div>
                 </div>
               ))}
-              {canAdd && rd && !locked && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>{t('ref.new')}</button>}
+              {canAdd && !locked && <button className="btn ghost" type="button" style={{ marginTop: 12 }} onClick={openNew}>{t('ref.new')}</button>}
             </div>
 
           {referral.rebate && (

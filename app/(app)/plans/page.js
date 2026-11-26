@@ -1,6 +1,6 @@
 'use client';
 import PageHead from '@/components/PageHead';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { REFUND_HOURS } from '@/lib/rules';
@@ -283,8 +283,8 @@ export default function Plans() {
     return () => window.removeEventListener('pageshow', back);
   }, []);
 
-  // Coming back from a miner page, or from the Boost card on the landing page: reopen on that tab.
-  useEffect(() => {
+  // Coming back from a miner page, or from the Boost card on the landing page: reopen on that tab (before the first paint, so Buy plans never flashes).
+  useLayoutEffect(() => {
     try {
       const t = sessionStorage.getItem('vtx-plans-tab');
       if (t === 'mine' || t === 'boost') {
