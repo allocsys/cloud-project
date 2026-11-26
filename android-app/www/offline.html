@@ -30,6 +30,7 @@ document.documentElement.dir=(l==='fa'||l==='ar')?'rtl':'ltr';
 document.getElementById('m').textContent=t[0];
 document.getElementById('b').textContent=t[1];
 document.getElementById('b').onclick=function(){location.href='https://vertexhash.com/dashboard'};
+try{Capacitor.Plugins.NativeSplash.hide()}catch(e){}
 </script>
 </body>
 </html>
