@@ -9,7 +9,7 @@ import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
 import { serviceTier, serviceLine, serviceProgress } from '@/lib/service-fee';
-import { useApi, post } from '@/lib/api';
+import { useApi, post, revalidate, seedApi } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
@@ -137,7 +137,30 @@ export default function Wallet() {
   // dashboard, so Available here and the dashboard goal agree and Max never exceeds what the server will accept.
   // It ticks inside WalletBalance (components/LiveNumbers.js) and mirrors the live figure into liveAvailable.
   const liveAvailable = useRef(0);
-  const { data: md } = useApi('/api/miners', { ttl: 10000 });
+  // One call brings miners, the first page of history, the deposit orders and the account; they fill the single addresses below,
+  // which only start asking for themselves if that one call fails. The saved copies show meanwhile.
+  const [go, setGo] = useState(false);
+  useEffect(() => {
+    let live = true;
+    revalidate('/api/wallet/bundle', { shared: true }).then(
+      (e) => {
+        if (!live) return;
+        const b = e.data;
+        if (b) {
+          seedApi('/api/miners', b.miners);
+          seedApi('/api/wallet?limit=20&kind=all', b.wallet);
+          seedApi('/api/orders?kind=deposit', b.orders);
+          seedApi('/api/auth/me', b.me);
+        }
+        setGo(true);
+      },
+      () => live && setGo(true)
+    );
+    return () => {
+      live = false;
+    };
+  }, []);
+  const { data: md } = useApi('/api/miners', { ttl: 10000, enabled: go });
   const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
   // Until the first wallet response arrives the balance shows a dash (never sample data); static prices fill in for prices.
@@ -147,10 +170,10 @@ export default function Wallet() {
   const [filter, setFilter] = useState('all');
   const [limit, setLimit] = useState(20);
   // keepStale: a bigger page size keeps the rows on screen while the longer list loads; a new filter does not (sameFilter below).
-  const { data: wd, dataUrl: wdUrl, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000, keepStale: true });
+  const { data: wd, dataUrl: wdUrl, mutate, refresh } = useApi(`/api/wallet?limit=${limit}&kind=${filter}`, { ttl: 10000, keepStale: true, enabled: go });
   const sameFilter = wdUrl.endsWith(`&kind=${filter}`); // the data on hand is for the filter that is selected
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
-  const { data: me } = useApi('/api/auth/me', { ttl: 60000 });
+  const { data: me } = useApi('/api/auth/me', { ttl: 60000, enabled: go });
   const tf = !!me?.twofa; // two-factor on: a withdrawal needs the code
   const [code, setCode] = useState('');
   const [tgWait, setTgWait] = useState(false); // the code went to Telegram: waiting for the Accept tap (accounts with no two-factor and no verified email)
@@ -187,7 +210,7 @@ export default function Wallet() {
   const [toast, show] = useToast();
   const [heroRef, heroSeen] = useSeen();
   // Deposit through the crypto provider (a hosted payment page), when it is switched on. The open top-up orders come with the same answer.
-  const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000 });
+  const { data: dod, refresh: refreshDod } = useApi('/api/orders?kind=deposit', { ttl: 10000, enabled: go });
   const cryptoOn = !!dod?.crypto;
   const minDep = dod?.min ?? MIN_DEPOSIT_USD; // the admin's minimum; the shown text waits for this answer
   const depPending = (dod?.orders || []).filter((o) => o.status === 'pending');
