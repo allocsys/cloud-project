@@ -146,6 +146,7 @@ export default async function Home() {
               label={t('landing.menu')}
               links={menuLinks(t, lang, signedIn)}
               contact={t('landing.contact')}
+              app={<AppDownload menu initial={android} />}
             >
               <SocialLinks className="lp-social lm-soc" />
             </LandingMenu>
@@ -166,7 +167,6 @@ export default async function Home() {
             <p className="lp-sub">
               <Decrypt text={t('landing.sub')} delay={1500} pace={0.5} />
             </p>
-            <AppDownload initial={android} />
           </div>
         </section>
 
