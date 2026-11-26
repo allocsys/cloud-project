@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
-import { post, useApi } from '@/lib/api';
+import { post, useApi, useBundle } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import RigArt, { rigFor } from '@/components/RigArt';
