@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { REFUND_HOURS } from '@/lib/rules';
-import { useApi, post, revalidate } from '@/lib/api';
+import { useApi, post, revalidate, useBundle } from '@/lib/api';
 import { everyVisible } from '@/lib/visible';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
@@ -54,6 +54,13 @@ import { PH_MINERS } from '@/lib/placeholder';
 export default function Plans() {
   const { t, lang } = useLang();
   // Catalogue and miners come from the cached API: instant from cache, refreshed quietly.
+  // One call brings miners, balances, plan orders and boost tickets; the single addresses below are filled from it (see useBundle).
+  useBundle('/api/bundle/plans', ['/api/miners', '/api/wallet', '/api/orders', '/api/boost'], (b) => [
+    ['/api/miners', b.miners],
+    ['/api/wallet', b.wallet],
+    ['/api/orders', b.orders],
+    ['/api/boost', b.boost],
+  ]);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const { data: md, refresh } = useApi('/api/miners', { ttl: 10000 });
   const { data: wd } = useApi('/api/wallet', { ttl: 10000 });
