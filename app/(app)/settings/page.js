@@ -6,7 +6,7 @@ import { triggerHaptic } from '@/components/haptics';
 import { signOut, useApi, useBundle } from '@/components/api';
 import { useT, useLang } from '@/components/I18nProvider';
 import { LANG_META } from '@/lib/i18n/meta';
-import { useAppVersion } from '@/lib/app-version';
+import { useAppVersion } from '@/components/app-version';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_ME } from '@/components/placeholder';
 import { LevelBadge, NavRow } from '@/components/SettingsKit';
