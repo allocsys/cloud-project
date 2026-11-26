@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Makes the files of one app release (used by .github/workflows/android.yml, also runnable by hand).
 
-  release.py make --code N --apk SIGNED.apk --out DIR [--prev-apk OLD.apk --prev-code M]
+  release.py make --code N [--name 1.0.X] --apk SIGNED.apk --out DIR [--prev-apk OLD.apk --prev-code M]
     DIR/vertexhash-N.apk   the signed app
     DIR/patch-M-N.vxp      the difference from the previous release (only when it is worth it and checked)
     DIR/manifest.json      what the site's /api/app-update reads (hashes, sizes)
@@ -123,7 +123,7 @@ def make(args):
     shutil.copyfile(args.apk, apk)
     man = {
         'versionCode': code,
-        'versionName': f'1.0.{code}',
+        'versionName': args.name or f'1.0.{code}',
         'apk': {'name': os.path.basename(apk), 'size': os.path.getsize(apk), 'sha256': sha256(apk)},
     }
     if args.prev_apk and args.prev_code and 0 < args.prev_code < code:
@@ -147,6 +147,7 @@ if __name__ == '__main__':
     sub = ap.add_subparsers(dest='cmd', required=True)
     m = sub.add_parser('make')
     m.add_argument('--code', type=int, required=True)
+    m.add_argument('--name')
     m.add_argument('--apk', required=True)
     m.add_argument('--out', required=True)
     m.add_argument('--prev-apk')
