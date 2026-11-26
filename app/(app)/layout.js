@@ -9,6 +9,7 @@ import MaintenanceStrip from '@/components/MaintenanceStrip';
 import LostStrip from '@/components/LostStrip';
 import AppUpdate from '@/components/AppUpdate';
 import PushSetup from '@/components/PushSetup';
+import AppSplash from '@/components/AppSplash';
 import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { getLang, getT, getMessages } from '@/lib/i18n/server';
@@ -28,6 +29,7 @@ export default async function AppLayout({ children }) {
   const messages = await getMessages(lang);
   return (
     <I18nProvider lang={lang} messages={messages}>
+      <AppSplash />
       <div id="app">
         <WalletProvider>
           <Nav />
