@@ -18,6 +18,13 @@ function gate(req, pathname) {
   // The web service reads /api/site/* directly (not through the Worker) with its service secret.
   if (api && edgeOn() && !edgeFree(pathname) && !fromEdge(req.headers) && !(pathname.startsWith('/api/site/') && fromSvc(req.headers))) return NextResponse.json({ ok: false, error: 'Forbidden.' }, { status: 403, headers: { 'Cache-Control': 'no-store' } });
   if (api && (MACHINE.includes(pathname) || pathname.startsWith('/api/bot/'))) return null; // bot calls are signed; an unsigned one costs one cheap check
+  // The app download is public and comes straight to Railway (one proxy hop, so the address is the last x-forwarded-for entry,
+  // which a caller cannot fake). It has its own, tighter limit; browsers and the app's downloader are both welcome.
+  if (pathname === '/api/download' && !fromEdge(req.headers)) {
+    const from = addressOf(req.headers, 1);
+    if (from && over(`dl:${from}`, LIMITS.download)) return NextResponse.json({ ok: false, error: 'Too many requests. Try again in a minute.' }, { status: 429, headers: { 'Cache-Control': 'no-store', 'Retry-After': '60' } });
+    return null;
+  }
   const ip = addressOf(req.headers);
   const ua = req.headers.get('user-agent') || '';
   const deny = (status, text) =>

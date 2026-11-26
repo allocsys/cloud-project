@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { cookies } from 'next/headers';
+import { cookies, headers } from 'next/headers';
+import AppDownload from '@/components/AppDownload';
 import Calculator from '@/components/Calculator';
 import BoostPromo from '@/components/BoostPromo';
 import Decrypt from '@/components/Decrypt';
@@ -75,6 +76,7 @@ const ICONS = {
 export default async function Home() {
   const jar = await cookies();
   const signedIn = jar.has(SESSION_COOKIE);
+  const android = /android/i.test((await headers()).get('user-agent') || '');
   const t = await getT();
   const lang = await getLang();
   const messages = await getMessages(lang);
@@ -164,6 +166,7 @@ export default async function Home() {
             <p className="lp-sub">
               <Decrypt text={t('landing.sub')} delay={1500} pace={0.5} />
             </p>
+            <AppDownload initial={android} />
           </div>
         </section>
 

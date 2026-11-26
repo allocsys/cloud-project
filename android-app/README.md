@@ -17,3 +17,10 @@ The app updates itself (Android only installs the new file when it is signed wit
 Secrets (repo Settings > Secrets > Actions): `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEY_ALIAS`, `ANDROID_KEYSTORE_PASSWORD`, optional `ANDROID_KEY_PASSWORD`. Keep the keystore safe: losing it means nobody can update the app.
 
 Check a patch by hand: `python3 tools/release.py make --code 12 --apk new.apk --out rel --prev-apk old.apk --prev-code 11` (needs the `bsdiff` tool).
+
+## Download bucket
+
+Each signed release also goes to the Railway bucket `app-files` (`latest.json` is written last). Add these GitHub repository
+secrets, from the bucket's Credentials tab: `APK_S3_ENDPOINT`, `APK_S3_BUCKET`, `APK_S3_KEY_ID`, `APK_S3_SECRET`, `APK_S3_REGION`.
+The API has the same five variables as references to the bucket. Downloads go through `/api/download` on the API's Railway
+address (`lib/app-download.js`), not through Cloudflare. While the bucket is empty, they redirect to GitHub.
