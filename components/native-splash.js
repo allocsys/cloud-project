@@ -16,3 +16,19 @@ export function hideNativeSplash() {
     if (p && p.hide) Promise.resolve(p.hide()).catch(() => {});
   } catch {}
 }
+
+// Same, but only once the page's own animation has been painted (two frames, plus a short wait for the blur layer). The native
+// globe fades over 350 ms; if it starts before the page has painted, the dashboard shows through for a moment.
+// A timer is the fallback when frames do not run (page in the background).
+export function hideNativeSplashPainted() {
+  let done = false;
+  const go = () => {
+    if (done) return;
+    done = true;
+    hideNativeSplash();
+  };
+  try {
+    requestAnimationFrame(() => requestAnimationFrame(() => setTimeout(go, 120)));
+  } catch {}
+  setTimeout(go, 700);
+}
