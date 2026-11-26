@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearApiCache } from '@/components/api';
 import { telegramReady } from '@/lib/telegram';
+import { hideNativeSplash } from '@/components/native-splash';
 
 // Welcome screen for the landing page. The server renders it visible, so it covers the very first paint (no flash of
 // plain text). While it shows, the page does real work: fonts, the logo and the window load event are awaited, and
@@ -119,10 +120,12 @@ function startOrb(c) {
   const draw = () => {
     const T = (Date.now() - t0) / 1000;
     const t = (T * 1.7) % CYC; // the logo phases run 1.7x faster than the globe turns
-    const rot = T * 0.7;
+    // The globe turns by the wall clock, so the Android app's start screen (SphereView.java) is at the same angle.
+    const clock = Date.now() / 1000;
+    const rot = (clock * 0.7) % (Math.PI * 2);
     const cr = Math.cos(rot);
     const sr = Math.sin(rot);
-    const scan = (T * 1.1) % (Math.PI * 2);
+    const scan = (clock * 1.1) % (Math.PI * 2);
     const fade = 1 - io((t - 6.4) / 0.7);
     const disc = io((t - 1.6) / 1.8) * fade;
     const glow = Math.max(0, 1 - Math.abs(t - 3.7) / 0.7) * fade;
@@ -183,6 +186,7 @@ function startOrb(c) {
     g.globalAlpha = 1;
   };
   draw();
+  hideNativeSplash(); // in the app: the native globe fades out, this one is already on screen
   const timer = setInterval(draw, 33);
   return () => clearInterval(timer);
 }
