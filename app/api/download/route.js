@@ -20,5 +20,7 @@ export async function GET(req) {
   }
   const v = await latestApp();
   if (!v) return fail(503, 'Try again in a minute.');
-  return to(v.bucket && c ? presignGet(c, `${v.tag}/${v.apk.name}`) : releaseUrl(v.tag, v.apk.name));
+  // Saved as vertexhash-1.0.1.apk (the version name), not the build number in the bucket.
+  const saveAs = /^[0-9A-Za-z._-]{1,20}$/.test(v.name || '') ? `vertexhash-${v.name}.apk` : null;
+  return to(v.bucket && c ? presignGet(c, `${v.tag}/${v.apk.name}`, 600, new Date(), saveAs) : releaseUrl(v.tag, v.apk.name));
 }
