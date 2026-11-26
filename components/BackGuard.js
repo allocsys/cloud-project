@@ -6,7 +6,7 @@ import { useT } from '@/components/I18nProvider';
 const HOME = '/dashboard';
 
 // Android back button.
-// - Detail screens opened from a list (lib/nav.js) add a history entry, so back goes one step.
+// - Detail screens opened from a list (components/nav.js) add a history entry, so back goes one step.
 // - Tab screens replace their entry, so back from any tab lands on Earnings.
 // - On Earnings, back asks once more, then closes the app.
 //

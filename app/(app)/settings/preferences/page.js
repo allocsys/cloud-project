@@ -1,10 +1,10 @@
 'use client';
 import { useEffect, useState } from 'react';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { LangToggle } from '@/components/LangSwitch';
 import { useT } from '@/components/I18nProvider';
-import { applyTheme, readTheme } from '@/lib/theme';
+import { applyTheme, readTheme } from '@/components/theme';
 import { SubHead } from '@/components/SettingsKit';
 import AppDownload from '@/components/AppDownload';
 

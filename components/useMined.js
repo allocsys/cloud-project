@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { BTC_USD } from '@/lib/data';
-import { everyVisible } from '@/lib/visible';
+import { everyVisible } from '@/components/visible';
 
 export { BTC_USD };
 

@@ -1,7 +1,7 @@
 'use client';
 import Link from 'next/link';
-import { markDrill } from '@/lib/nav';
-import { useApi } from '@/lib/api';
+import { markDrill } from '@/components/nav';
+import { useApi } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 import WalletPill from '@/components/WalletPill';
 

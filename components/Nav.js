@@ -1,8 +1,8 @@
 'use client';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { triggerHaptic } from '@/lib/haptics';
-import { signOut } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { signOut } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 import MarkIcon from '@/components/MarkIcon';
 

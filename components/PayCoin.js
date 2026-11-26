@@ -2,7 +2,7 @@
 // Pay screens for our own gateway checkout: the coin picker, and the open payment (exact amount, address, copy, QR).
 import { useEffect, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { fill, useT } from '@/components/I18nProvider';
 import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
 import { useWallet } from '@/components/WalletProvider';

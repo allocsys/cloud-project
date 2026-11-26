@@ -9,7 +9,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useRef, use
 import dynamic from 'next/dynamic';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/components/I18nProvider';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 
 // The form only renders when the sheet opens, so it stays out of first load until then.
 const AuthForm = dynamic(() => import('@/components/AuthForm'), { loading: () => null });

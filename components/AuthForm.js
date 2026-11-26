@@ -5,8 +5,8 @@ import Field from '@/components/Field';
 import Captcha from '@/components/Captcha';
 import { fill, useLang } from '@/components/I18nProvider';
 import { pagePath } from '@/lib/i18n/codes';
-import { triggerHaptic } from '@/lib/haptics';
-import { post, clearApiCache, clearOut, signOut, useApi } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { post, clearApiCache, clearOut, signOut, useApi } from '@/components/api';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
 
 // The sign-in form that lives inside the sheet (components/AuthSheet.js): sign in, sign up, forgot and reset password,

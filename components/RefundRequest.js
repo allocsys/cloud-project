@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
-import { useApi, post } from '@/lib/api';
+import { useApi, post } from '@/components/api';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 import { REASONS, AGAIN, NOTE_MAX } from '@/lib/refund-rules';
 

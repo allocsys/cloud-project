@@ -3,12 +3,12 @@ import { useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls } from '@/lib/data';
-import { formatBtc, formatUsd } from '@/lib/useMined';
-import { post, useApi, useBundle } from '@/lib/api';
+import { formatBtc, formatUsd } from '@/components/useMined';
+import { post, useApi, useBundle } from '@/components/api';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import RigArt, { rigFor } from '@/components/RigArt';
-import { drillBack } from '@/lib/nav';
+import { drillBack } from '@/components/nav';
 import { bonusText } from '@/lib/first-bonus';
 import Spark from '@/components/Spark';
 import { useT } from '@/components/I18nProvider';
@@ -45,7 +45,7 @@ function Back({ title }) {
 }
 
 import { useWaiting } from '@/components/Skeleton';
-import { PH_MINER, PH_MINER_DET } from '@/lib/placeholder';
+import { PH_MINER, PH_MINER_DET } from '@/components/placeholder';
 
 export default function ContractPage() {
   const { serial } = useParams();
@@ -67,7 +67,7 @@ export default function ContractPage() {
   const { data: detLive } = useApi(detUrl, { ttl: 10000 });
   const waitMd = useWaiting(!md);
   const waitDet = useWaiting(!detLive);
-  // Until the first answers arrive the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  // Until the first answers arrive the page draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const phMd = !found && !md && waitMd;
   const phDet = !detLive && waitDet;
   const c = found || (phMd ? PH_MINER : undefined);

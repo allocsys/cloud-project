@@ -7,7 +7,7 @@
 // Tonkeeper with the request, sendTon() asks it for one transfer. EVM invoices use WalletConnect with SafePal: Telegram.WebApp.openLink
 // opens SafePal's https link with the request, and again after a transfer request to bring the wallet forward (tested 21 Nov). The site and the PWA keep WalletConnect.
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useApi } from '@/lib/api';
+import { useApi } from '@/components/api';
 import { telegramReady } from '@/lib/telegram';
 import { WC_CHAINS } from '@/lib/wc-tx';
 

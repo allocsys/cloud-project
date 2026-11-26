@@ -20,7 +20,7 @@ Route handlers in `app/api/*`, logic in `lib/server/*`, storage in `lib/server/d
 | `GET /api/kyc` | `{ status: 'none' \| 'pending' \| 'verified', submittedAt, rejectedAt }` | `no-store`; browser copy |
 | `POST /api/kyc` | multipart: `name`, `dob` (YYYY-MM-DD), `country`, `doc`, photos `front` and `selfie` (images, max 12 MB each); header `Idempotency-Key`; 409 if already submitted | `no-store` |
 
-Why the app stays fast: screens render from the cached copy (`lib/api.js`) immediately and refresh quietly.
+Why the app stays fast: screens render from the cached copy (`components/api.js`) immediately and refresh quietly.
 Quote previews are computed in the browser from the cached prices (`lib/assets.js`, shared with the server), so typing
 never waits on the network. Buying a plan and withdrawing update the screen first and roll back if the server says no.
 The server recomputes everything on submit and is the authority.

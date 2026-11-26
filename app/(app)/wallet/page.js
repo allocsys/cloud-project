@@ -3,16 +3,16 @@ import PageHead from '@/components/PageHead';
 import { PendingCards } from '@/components/PendingOrders';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
-import { formatBtc, formatUsd } from '@/lib/useMined';
+import { formatBtc, formatUsd } from '@/components/useMined';
 import { WalletBalance } from '@/components/LiveNumbers';
 import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
 import { serviceTier, serviceLine, serviceProgress } from '@/lib/service-fee';
-import { useApi, post, useBundle } from '@/lib/api';
+import { useApi, post, useBundle } from '@/components/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import Field from '@/components/Field';
 import { fill, useLang, useT } from '@/components/I18nProvider';
 import { CoinPicker, PayInfo } from '@/components/PayCoin';
@@ -129,7 +129,7 @@ function UnitSwitch({ sym, unit, onUnit }) {
   );
 }
 
-import { PH_HISTORY } from '@/lib/placeholder';
+import { PH_HISTORY } from '@/components/placeholder';
 
 export default function Wallet() {
   const { t, lang } = useLang();
@@ -346,7 +346,7 @@ export default function Wallet() {
   // Another filter is loading: the rows on hand stay on screen, dimmed, instead of flashing placeholders (and the swap needs no second fade).
   const stale = !!wd && !sameFilter;
   const shown = stale ? wd.history : history;
-  // History opened before its first answer: three placeholder rows in the loading look (lib/placeholder.js, .ld).
+  // History opened before its first answer: three placeholder rows in the loading look (components/placeholder.js, .ld).
   const loadingRows = shown.length === 0 && !(ready && sameFilter);
 
   // The minimum is the admin's dollar amount (from /api/plans) worth of coin, shown in whatever unit the person is typing in.

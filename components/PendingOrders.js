@@ -4,11 +4,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { useApi, post } from '@/lib/api';
+import { useApi, post } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 import { PayBar, PaySheet } from '@/components/PaySheet';
-import { triggerHaptic } from '@/lib/haptics';
-import { everyVisible } from '@/lib/visible';
+import { triggerHaptic } from '@/components/haptics';
+import { everyVisible } from '@/components/visible';
 
 const uid = () => (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random()}`);
 

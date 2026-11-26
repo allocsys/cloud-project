@@ -3,12 +3,12 @@
 // copy buttons, cancel). CoinTabs is the one-row coin picker (a second row of networks for USDT) used here and in the plan sheet.
 import { useEffect, useRef, useState } from 'react';
 import { PAY_ASSETS, PAY_NETS } from '@/lib/pay-coins';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 import { ConnectBtn, Spin, connectKind, tryOpen } from '@/components/ConnectPay';
 import { useWallet } from '@/components/WalletProvider';
 import { Qr } from '@/components/Qr';
-import { useSheetBack } from '@/lib/nav';
+import { useSheetBack } from '@/components/nav';
 import { fmtUsd } from '@/lib/data';
 
 function copyText(text) {

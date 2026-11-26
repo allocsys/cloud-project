@@ -5,7 +5,7 @@
 // useNow, plus a pulse effect); the wallet once a second. Now each leaf owns its own
 // timer and the pages only re-render when their data changes.
 import { useEffect, useState } from 'react';
-import { useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { useAccrued, useNow, formatBtc, formatUsd, BTC_USD } from '@/components/useMined';
 import CountUp from '@/components/CountUp';
 import { MIN_WITHDRAW_USD } from '@/lib/data';
 

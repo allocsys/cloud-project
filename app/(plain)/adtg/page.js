@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { fmtTh, fmtBtcUsd } from '@/lib/data';
 import MarkIcon from '@/components/MarkIcon';
-import useAdminList from '@/lib/use-admin-list';
+import useAdminList from '@/components/use-admin-list';
 
 async function call(method, url, body) {
   const r = await fetch(url, {

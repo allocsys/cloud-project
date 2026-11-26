@@ -6,11 +6,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import CountUp from '@/components/CountUp';
-import { everyVisible } from '@/lib/visible';
+import { everyVisible } from '@/components/visible';
 import { waiting, good, bad } from '@/lib/backoff';
 import { minersCount, PAID_BTC, UPTIME_PCT } from '@/lib/status-mock';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_NET } from '@/lib/placeholder';
+import { PH_NET } from '@/components/placeholder';
 
 const REFRESH = 60000;
 const EH = (d) => (d * 2 ** 32) / 600 / 1e18; // hashes per second: difficulty x 2^32 per block, one block every 600 s

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect } from 'react';
-import { applyTheme, readTheme } from '@/lib/theme';
+import { applyTheme, readTheme } from '@/components/theme';
 
 // Applies the saved theme on load and follows the system setting when the choice is Auto.
 export default function ThemeSync() {

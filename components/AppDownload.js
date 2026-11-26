@@ -3,7 +3,7 @@
 // When the Google Play / App Store links are set in lib/app-download.js, the menu item opens a short list instead of downloading at once.
 import { useEffect, useState } from 'react';
 import { DOWNLOAD_URL, GOOGLE_PLAY_URL, APP_STORE_URL } from '@/lib/app-download';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 
 const inApp = () => !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.Plugins?.AppUpdater);

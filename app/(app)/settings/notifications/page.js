@@ -2,12 +2,12 @@
 import { useEffect, useRef, useState } from 'react';
 import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
-import { post, useApi } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { post, useApi } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 import { SOCIALS } from '@/lib/site';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_ME } from '@/lib/placeholder';
+import { PH_ME } from '@/components/placeholder';
 import { SubHead, Switch } from '@/components/SettingsKit';
 
 export default function NotificationSettings() {
@@ -17,7 +17,7 @@ export default function NotificationSettings() {
   const alerts = sd?.alerts || account.alerts;
   const { data: meLive, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
   const waitMe = useWaiting(!meLive);
-  // Until the account answers, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  // Until the account answers, the page draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const me = meLive || (waitMe ? PH_ME : undefined);
   // Telegram bot link (email accounts): bl = the bot link with a one-time code (valid 10 minutes) while the person is in Telegram.
   const [bl, setBl] = useState(null);

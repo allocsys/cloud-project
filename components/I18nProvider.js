@@ -19,7 +19,7 @@ export default function I18nProvider({ lang, messages, children }) {
     if (el.lang !== lang) el.lang = lang;
     if (el.dir !== dir) el.dir = dir;
   }, [lang]);
-  // Register the messages for error translation outside React (lib/api.js). Client only: on the
+  // Register the messages for error translation outside React (components/api.js). Client only: on the
   // server this module state would be shared across requests. Idempotent, so calling it on every
   // render is safe and keeps the messages in place from the first paint.
   if (typeof window !== 'undefined') setClientMessages(lang, messages);

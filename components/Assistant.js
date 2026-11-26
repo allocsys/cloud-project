@@ -1,7 +1,7 @@
 'use client';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { post } from '@/lib/api';
-import { triggerHaptic } from '@/lib/haptics';
+import { post } from '@/components/api';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 
 // Ask Vertexhash: a floating button that opens a chat sheet. Answers come from POST /api/assistant, which only

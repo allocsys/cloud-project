@@ -6,7 +6,7 @@
 import { useEffect, useRef } from 'react';
 import { useAuthSheet } from '@/components/AuthSheet';
 import { useT } from '@/components/I18nProvider';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 
 const HEX = '0123456789abcdef';
 const HOLD_MS = 700;

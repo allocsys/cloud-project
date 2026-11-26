@@ -4,14 +4,14 @@ import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { halls, CUSTOM, customPlan, thFromPos, fmtTh, fmtUsd, BTC_USD, MIN_WITHDRAW_USD } from '@/lib/data';
 import { REFUND_HOURS } from '@/lib/rules';
-import { useApi, post, revalidate, useBundle } from '@/lib/api';
-import { everyVisible } from '@/lib/visible';
+import { useApi, post, revalidate, useBundle } from '@/components/api';
+import { everyVisible } from '@/components/visible';
 import RigArt, { rigFor } from '@/components/RigArt';
 import { AsicsCard, SmartCard } from '@/components/PowerCards';
 import BoostCard from '@/components/BoostCard';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
-import { markDrill, useSheetBack } from '@/lib/nav';
+import { triggerHaptic } from '@/components/haptics';
+import { markDrill, useSheetBack } from '@/components/nav';
 import { posFromTh, SLIDER_SIZES } from '@/lib/reinvest';
 import { budgetFromPos, posFromBudget } from '@/lib/tiers';
 import { dailyCosts, fmtCost } from '@/lib/fees';
@@ -49,7 +49,7 @@ const afterPop = () =>
   });
 
 import { useWaiting } from '@/components/Skeleton';
-import { PH_MINERS } from '@/lib/placeholder';
+import { PH_MINERS } from '@/components/placeholder';
 
 export default function Plans() {
   const { t, lang } = useLang();

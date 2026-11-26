@@ -1,7 +1,7 @@
 'use client';
 // Rate us card on the Earnings screen, under the goal card (see lib/rating.js). Slim: title and Later on one line, one small text line, the stars.
 import { useState } from 'react';
-import { useApi, post } from '@/lib/api';
+import { useApi, post } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 import Field from '@/components/Field';
 
