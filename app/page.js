@@ -19,7 +19,7 @@ import I18nProvider from '@/components/I18nProvider';
 import CookieNotice from '@/components/CookieNotice';
 import { langAlternates } from '@/lib/seo';
 import { pagePath } from '@/lib/i18n/codes';
-import { menuLinks, plansHref } from '@/lib/menu-links';
+import { menuLinks, plansHref } from '@/components/menu-links';
 import SocialLinks from '@/components/SocialLinks';
 import Reviews from '@/components/Reviews';
 import Farm from '@/components/Farm';

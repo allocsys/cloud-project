@@ -4,12 +4,12 @@
 // miner picture (BoostArt): CSS transform and opacity only, no timers, paused while off screen. It animates for everyone (owner's choice).
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { useApi } from '@/lib/api';
-import { triggerHaptic } from '@/lib/haptics';
+import { useApi } from '@/components/api';
+import { triggerHaptic } from '@/components/haptics';
 import HoldButton from '@/components/HoldButton';
 import { useT } from '@/components/I18nProvider';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_PROMO } from '@/lib/placeholder';
+import { PH_PROMO } from '@/components/placeholder';
 
 const whole = (n) => n.toLocaleString('en-US');
 const usd = (n) => n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });

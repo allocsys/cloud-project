@@ -3,7 +3,7 @@ import LandingMenu from '@/components/LandingMenu';
 import { LangToggle } from '@/components/LangSwitch';
 import SocialLinks from '@/components/SocialLinks';
 import { tForLang } from '@/lib/i18n/server';
-import { menuLinks } from '@/lib/menu-links';
+import { menuLinks } from '@/components/menu-links';
 
 // The top bar of the info pages (Terms, Privacy, About, FAQ and the rest): the brand takes you home, plus the language and the same menu as the landing page.
 // Static: the language comes from the page's address, never from a cookie.

@@ -1,8 +1,8 @@
 'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { triggerHaptic } from '@/lib/haptics';
-import { signOut } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { signOut } from '@/components/api';
 
 // Opens the demo account. Any real session is dropped first, so the demo never opens inside someone's account.
 export default function DemoButton({ className = 'btn ghost', children }) {

@@ -6,11 +6,11 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import RigArt, { rigFor } from '@/components/RigArt';
-import { useApi } from '@/lib/api';
+import { useApi } from '@/components/api';
 import { BTC_USD } from '@/lib/data';
 import { SMART, smartEstimate } from '@/lib/smart';
 import { budgetFromPos, posFromBudget } from '@/lib/tiers';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import HoldButton from '@/components/HoldButton';
 import { fill, useLang } from '@/components/I18nProvider';
 import { pagePath } from '@/lib/i18n/codes';

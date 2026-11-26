@@ -3,7 +3,7 @@
 // skeleton; this line says why, and a tap (or the connection coming back) fetches again. Gone at the first good answer.
 // Maintenance has its own bar (MaintenanceStrip), so this one stays quiet then.
 import { useEffect } from 'react';
-import { useLost, useMaintenance, retryNow } from '@/lib/api';
+import { useLost, useMaintenance, retryNow } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
 
 export default function LostStrip() {

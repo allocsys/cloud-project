@@ -7,7 +7,7 @@
 import { useRef, useState } from 'react';
 import { useT } from '@/components/I18nProvider';
 import { useWallet } from '@/components/WalletProvider';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { tonTx } from '@/lib/ton-tx';
 import { evmTx } from '@/lib/wc-tx';
 

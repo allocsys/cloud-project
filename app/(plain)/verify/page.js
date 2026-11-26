@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useT } from '@/components/I18nProvider';
-import { triggerHaptic } from '@/lib/haptics';
-import { post, clearApiCache } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { post, clearApiCache } from '@/components/api';
 import MarkIcon from '@/components/MarkIcon';
 
 // Opened from the link in the verification email: /verify?token=...&email=...

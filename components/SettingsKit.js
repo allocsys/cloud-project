@@ -2,8 +2,8 @@
 // Shared pieces of the Settings menu and its sub-pages.
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { drillBack, markDrill } from '@/lib/nav';
-import { triggerHaptic } from '@/lib/haptics';
+import { drillBack, markDrill } from '@/components/nav';
+import { triggerHaptic } from '@/components/haptics';
 import { securityLevel } from '@/lib/security-level';
 import { useT } from '@/components/I18nProvider';
 

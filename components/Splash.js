@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { clearApiCache } from '@/lib/api';
+import { clearApiCache } from '@/components/api';
 import { telegramReady } from '@/lib/telegram';
 
 // Welcome screen for the landing page. The server renders it visible, so it covers the very first paint (no flash of

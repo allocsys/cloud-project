@@ -3,9 +3,9 @@
 // its full maintenance page, which brings the person back by itself. At most one reload per 2 minutes per tab: if the app is up again but
 // still says maintenance, this slim bar shows instead and checks /api/health once a minute. No quick retries, no heavy requests.
 import { useEffect, useState } from 'react';
-import { useMaintenance, markUp } from '@/lib/api';
+import { useMaintenance, markUp } from '@/components/api';
 import { useT } from '@/components/I18nProvider';
-import { everyVisible } from '@/lib/visible';
+import { everyVisible } from '@/components/visible';
 
 const KEY = 'vtx-maint-reload';
 const GAP = 120000;

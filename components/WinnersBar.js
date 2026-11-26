@@ -3,10 +3,10 @@
 // time only; empty while boost tickets are off, then nothing shows). Motion is one CSS transform on the strip, paused while off screen.
 // There is no timer and no reduced-motion rule (owner's choice).
 import { useEffect, useRef, useState } from 'react';
-import { useApi } from '@/lib/api';
+import { useApi } from '@/components/api';
 import { fill, useT } from '@/components/I18nProvider';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_WINNERS } from '@/lib/placeholder';
+import { PH_WINNERS } from '@/components/placeholder';
 
 const whole = (n) => n.toLocaleString('en-US');
 

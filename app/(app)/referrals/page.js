@@ -3,11 +3,11 @@ import PageHead from '@/components/PageHead';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { referral as seed } from '@/lib/data';
-import { useApi, post } from '@/lib/api';
+import { useApi, post } from '@/components/api';
 import Field from '@/components/Field';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
-import { useSheetBack } from '@/lib/nav';
+import { triggerHaptic } from '@/components/haptics';
+import { useSheetBack } from '@/components/nav';
 import { useT } from '@/components/I18nProvider';
 
 const ICONS = {
@@ -41,7 +41,7 @@ function useSeen() {
 }
 
 import { useWaiting } from '@/components/Skeleton';
-import { PH_REF, PH_VIP } from '@/lib/placeholder';
+import { PH_REF, PH_VIP } from '@/components/placeholder';
 import { useEnterOnce } from '@/components/Enter';
 
 export default function Referrals() {
@@ -53,7 +53,7 @@ export default function Referrals() {
   const [sheet, setSheet] = useState(null);
   const { data: rd, mutate } = useApi('/api/referrals', { ttl: 30000 });
   const waitRd = useWaiting(!rd);
-  // Until the first answer, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  // Until the first answer, the page draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const referral = rd || (waitRd ? PH_REF : seed);
   const [name, setName] = useState('');
   const [pct, setPct] = useState(10);

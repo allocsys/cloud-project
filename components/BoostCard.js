@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import { useApi, post, revalidate } from '@/lib/api';
-import { triggerHaptic } from '@/lib/haptics';
+import { useApi, post, revalidate } from '@/components/api';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
-import { PH_BOOST } from '@/lib/placeholder';
+import { PH_BOOST } from '@/components/placeholder';
 import { BUY_QTY } from '@/lib/boost';
 
 // Boost tickets on the Plans page: a ticket starts a 2 hour boost of extra hashrate with a prize draw. Rules in lib/boost.js, server in
@@ -111,7 +111,7 @@ const rim = (r, a1, a2) => `M${xy(pt(r, a1))}A${r} ${r} 0 0 1 ${xy(pt(r, a2))}`;
 export default function BoostCard({ show, loading = false }) {
   const t = useT();
   const { data: answer, refresh } = useApi('/api/boost', { ttl: 10000 });
-  // While the first answer is on its way the card draws itself with placeholder tickets in the loading look (lib/placeholder.js, .ld).
+  // While the first answer is on its way the card draws itself with placeholder tickets in the loading look (components/placeholder.js, .ld).
   const ph = !answer && loading;
   const data = answer || (ph ? PH_BOOST : undefined);
   const [now, setNow] = useState(() => Date.now());

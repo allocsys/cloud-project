@@ -2,9 +2,9 @@
 // Deposit flow of our own gateway checkout: 1 amount, 2 coin, 3 connect the wallet (auto coins) or pay manually (the other coins).
 // The screen comes from state: no open order = amount or coin (stage), an order = connect, the manual flag = manual. The coin comes from the order.
 import { useEffect, useRef, useState } from 'react';
-import { post } from '@/lib/api';
-import { triggerHaptic } from '@/lib/haptics';
-import { formatUsd } from '@/lib/useMined';
+import { post } from '@/components/api';
+import { triggerHaptic } from '@/components/haptics';
+import { formatUsd } from '@/components/useMined';
 import Field from '@/components/Field';
 import { Qr } from '@/components/Qr';
 import { CoinPicker, Countdown, PayInfo, useExpired } from '@/components/PayCoin';

@@ -7,7 +7,7 @@ import { hallRates, MAINT_PER_TH_DAY } from '@/lib/fees';
 import { SMART } from '@/lib/smart';
 import { REFUND_HOURS, UP_RATIO, SERVICE_TIERS } from '@/lib/rules';
 import { BOOST } from '@/lib/boost';
-import { useApi } from '@/lib/api';
+import { useApi } from '@/components/api';
 
 const h2 = { fontSize: '16px', margin: '22px 0 6px' };
 const row = { display: 'flex', justifyContent: 'space-between', gap: '12px', padding: '6px 0', fontSize: '13.5px' };

@@ -7,7 +7,7 @@ import { smartHallFor } from '@/lib/smart-halls';
 import { BOOST, TICKETS, BOOST_DEFAULTS, marginOf } from '@/lib/boost';
 import { trimAmount } from '@/lib/pay-coins';
 import MarkIcon from '@/components/MarkIcon';
-import useAdminList from '@/lib/use-admin-list';
+import useAdminList from '@/components/use-admin-list';
 
 // Email from the support address (admin action 'email-send'). mode 'test' goes to an address typed in; mode 'one' goes to a user ID whose email is verified.
 function EmailCard({ run, ask, busy }) {

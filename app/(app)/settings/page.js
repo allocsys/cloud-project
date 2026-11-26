@@ -2,13 +2,13 @@
 import PageHead from '@/components/PageHead';
 import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
-import { triggerHaptic } from '@/lib/haptics';
-import { signOut, useApi, useBundle } from '@/lib/api';
+import { triggerHaptic } from '@/components/haptics';
+import { signOut, useApi, useBundle } from '@/components/api';
 import { useT, useLang } from '@/components/I18nProvider';
 import { LANG_META } from '@/lib/i18n/meta';
 import { useAppVersion } from '@/lib/app-version';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_ME } from '@/lib/placeholder';
+import { PH_ME } from '@/components/placeholder';
 import { LevelBadge, NavRow } from '@/components/SettingsKit';
 
 const KYC = {
@@ -33,7 +33,7 @@ export default function Settings() {
   const kyc = KYC[kd ? kd.status : account.kyc] || KYC.none;
   const { data: meLive, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
   const waitMe = useWaiting(!meLive);
-  // Until the account answers, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  // Until the account answers, the page draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const me = meLive || (waitMe ? PH_ME : undefined);
   const version = useAppVersion();
 

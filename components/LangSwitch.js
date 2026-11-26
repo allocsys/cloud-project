@@ -2,7 +2,7 @@
 // Language dropdown: a button that opens an in-page menu (same pattern as LandingMenu).
 // A native <select> opens the OS picker on phones, so the menu is built from plain buttons.
 import { useEffect, useRef, useState } from 'react';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { LANG_META } from '@/lib/i18n/meta';
 import { useLang } from '@/components/I18nProvider';
 

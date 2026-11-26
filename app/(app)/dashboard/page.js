@@ -3,14 +3,14 @@ import { HeadIcon } from '@/components/PageHead';
 import WalletPill from '@/components/WalletPill';
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import { markDrill } from '@/lib/nav';
+import { markDrill } from '@/components/nav';
 import Spark from '@/components/Spark';
-import { useMinedFeed, formatBtc, formatUsd, BTC_USD } from '@/lib/useMined';
+import { useMinedFeed, formatBtc, formatUsd, BTC_USD } from '@/components/useMined';
 import { Ago, PayoutCountdown, HeroMined, GoalProgress } from '@/components/LiveNumbers';
 import { notifications, halls } from '@/lib/data';
 import RigArt, { rigFor } from '@/components/RigArt';
-import { useApi } from '@/lib/api';
-import { triggerHaptic } from '@/lib/haptics';
+import { useApi } from '@/components/api';
+import { triggerHaptic } from '@/components/haptics';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { useT, useLang } from '@/components/I18nProvider';
 import { HomeEvent } from '@/components/EventBanner';
@@ -18,7 +18,7 @@ import { histLabel, histDate } from '@/lib/i18n/history';
 import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
 import { useWaiting } from '@/components/Skeleton';
-import { PH_BUNDLE } from '@/lib/placeholder';
+import { PH_BUNDLE } from '@/components/placeholder';
 import { useEnterOnce } from '@/components/Enter';
 
 // Shown until the server answers the first time.
@@ -125,7 +125,7 @@ export default function Dashboard() {
   // The catalogue and the prices stay separate: they are edge-cached and polled on their own rhythm.
   const { data: live } = useApi('/api/dashboard/bundle', { ttl: 10000, poll: 60000 });
   const waitBundle = useWaiting(!live);
-  // While the first answer is on its way the screen draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
+  // While the first answer is on its way the screen draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const ph = !live && waitBundle;
   const bundle = live || (ph ? PH_BUNDLE : undefined);
   const md = bundle?.miners;

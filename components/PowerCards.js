@@ -7,7 +7,7 @@ import { ASIC_TIERS, SMART_TIERS, tierOf, posFromBudget } from '@/lib/tiers';
 import { posFromTh } from '@/lib/reinvest';
 import { fmtTh, fmtUsd, CUSTOM } from '@/lib/data';
 import { SMART, smartBand } from '@/lib/smart';
-import { triggerHaptic } from '@/lib/haptics';
+import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 
 const tierName = (t, tier) => t(`tier.${tier.id}`);
