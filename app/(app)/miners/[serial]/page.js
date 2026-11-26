@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { contracts, halls } from '@/lib/data';
 import { formatBtc, formatUsd } from '@/lib/useMined';
-import { post, useApi } from '@/lib/api';
+import { post, useApi, useBundle } from '@/lib/api';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
 import RigArt, { rigFor } from '@/components/RigArt';
@@ -53,13 +53,18 @@ export default function ContractPage() {
   const [all, setAll] = useState(false);
   const [coinAll, setCoinAll] = useState(false);
   const [pick, setPick] = useState(null); // the tapped bar: { k: 'd' | 'u', i }
+  const detUrl = `/api/miners/${encodeURIComponent(serial)}`;
+  useBundle(`/api/bundle/miner?serial=${encodeURIComponent(serial)}`, ['/api/miners', detUrl], (b) => [
+    ['/api/miners', b.miners],
+    [detUrl, b.detail],
+  ]);
   const { data: md, mutate: mutateMiners } = useApi('/api/miners', { ttl: 10000 });
   const [toast, show] = useToast();
   const [renewBusy, setRenewBusy] = useState(false);
   const { data: cat } = useApi('/api/plans', { ttl: 20000 });
   const found = (md ? md.contracts : contracts).find((x) => x.serial === serial);
   // The finished payout days and what they came to in BTC, from the server (each day at its own market).
-  const { data: detLive } = useApi(`/api/miners/${encodeURIComponent(serial)}`, { ttl: 10000 });
+  const { data: detLive } = useApi(detUrl, { ttl: 10000 });
   const waitMd = useWaiting(!md);
   const waitDet = useWaiting(!detLive);
   // Until the first answers arrive the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
