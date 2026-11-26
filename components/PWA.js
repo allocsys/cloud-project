@@ -7,8 +7,8 @@ import { hideNativeSplash } from '@/components/native-splash';
 export default function PWA() {
   useEffect(() => {
     // In the Android app a native globe covers the page until it is ready. The welcome screen's own globe says so
-    // (components/Splash.js); a page without a welcome screen says so here.
-    if (!document.querySelector('.splash') || document.documentElement.dataset.sp === 'off') hideNativeSplash();
+    // (components/Splash.js, also over the signed-in pages via components/AppSplash.js); a page without one says so here.
+    if ((!document.querySelector('.splash') && !window.__vtxAppSplash) || document.documentElement.dataset.sp === 'off') hideNativeSplash();
   }, []);
 
   useEffect(() => {
