@@ -2176,3 +2176,21 @@ a.stat:active { background: var(--s3); }
 .mrow .mt b { font-size: 15px; line-height: 20px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .mrow .mt em { font-style: normal; font-size: 13px; line-height: 18px; color: var(--green); }
 .mrow .mdot { flex: none; width: 9px; height: 9px; border-radius: 50%; background: var(--green); }
+
+/* Settings menu */
+.set-t { font-weight: 500; font-size: 13.5px; }
+.set-nav { color: var(--text); text-decoration: none; min-height: 48px; -webkit-tap-highlight-color: transparent; }
+.set-nav:first-child { border-top: 0; }
+.set-nav:active { background: var(--ov); }
+.set-v { display: flex; align-items: center; gap: 8px; min-width: 0; color: var(--mute); font-size: 12px; white-space: nowrap; }
+.set-v svg { width: 18px; height: 18px; flex: none; stroke: var(--mute); fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+[dir=rtl] .set-v svg { transform: scaleX(-1); }
+.set-who { display: flex; align-items: center; gap: 12px; }
+.set-av { width: 48px; height: 48px; flex: none; display: grid; place-items: center; border-radius: 50%; font-size: 20px; font-weight: 600; color: var(--gold); border: 1px solid rgba(var(--gold-rgb), 0.4); background: linear-gradient(145deg, rgba(var(--gold-rgb), 0.28), rgba(var(--gold-rgb), 0.06)); }
+.set-name { flex: 1; min-width: 0; }
+.set-name b, .set-name small { display: block; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; text-align: start; }
+.set-name b { font-size: 15px; font-weight: 600; }
+.set-name small { margin-top: 2px; color: var(--mute); font-size: 12px; }
+.set-copy { width: 40px; height: 40px; flex: none; display: grid; place-items: center; padding: 0; border: 0; border-radius: 12px; background: rgba(var(--gold-rgb), 0.08); color: var(--gold); cursor: pointer; }
+.set-copy:active { background: rgba(var(--gold-rgb), 0.18); }
+.set-copy svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linejoin: round; }

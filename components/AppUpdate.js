@@ -3,6 +3,7 @@
 // The site says if a newer version exists (/api/app-update, remembered 3 hours), the plugin downloads it (a stopped download
 // goes on from where it stopped; when a small patch fits, only the patch is downloaded) and opens the Android installer.
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { useT } from '@/components/I18nProvider';
 
 const KEY = 'vtx-upd';
@@ -18,7 +19,14 @@ const plugin = () => {
   }
 };
 
-export default function AppUpdate() {
+// The About page shows the bar itself (always: also after it was closed), so the app-wide one steps aside there.
+export default function AppUpdate({ always = false }) {
+  const path = usePathname();
+  if (!always && path === '/settings/about') return null;
+  return <UpdateBar always={always} />;
+}
+
+function UpdateBar({ always }) {
   const t = useT();
   const [info, setInfo] = useState(null);
   const [st, setSt] = useState('new'); // new, busy, ready, allow, fail
@@ -94,7 +102,7 @@ export default function AppUpdate() {
       const p = plugin();
       if (!p) return;
       try {
-        if (sessionStorage.getItem(HIDE)) return;
+        if (!always && sessionStorage.getItem(HIDE)) return;
       } catch {}
       let have;
       try {
@@ -140,7 +148,7 @@ export default function AppUpdate() {
       stop();
       document.removeEventListener('visibilitychange', onShow);
     };
-  }, [watch]);
+  }, [watch, always]);
 
   if (!info || hidden) return null;
   const busy = st === 'busy';
@@ -156,7 +164,7 @@ export default function AppUpdate() {
             {btn}
           </button>
         )}
-        {!busy && (
+        {!busy && !always && (
           <button
             type="button"
             aria-label={t('common.close')}
