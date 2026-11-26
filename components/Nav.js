@@ -27,7 +27,7 @@ export default function Nav() {
 
   function onNavClick(href) {
     if (path !== href) {
-      triggerHaptic('selection');
+      triggerHaptic(href === '/plans' ? 'navmain' : 'nav');
     }
   }
 
