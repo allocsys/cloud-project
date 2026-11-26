@@ -590,7 +590,7 @@ export default function Wallet() {
                   max={sMax}
                   step={0.01}
                   value={sVal}
-                  style={{ '--f': sMax > sMin ? (sVal - sMin) / (sMax - sMin) : 1 }}
+                  style={{ '--f': sMax > sMin ? (sVal - sMin) / (sMax - sMin) : 0 }}
                   onChange={(e) => {
                     setAmount(parseFloat(e.target.value).toFixed(2));
                     if (errors.amount) setErrors({ ...errors, amount: undefined });
