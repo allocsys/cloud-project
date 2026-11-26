@@ -71,7 +71,7 @@ export default function NetworkLive() {
   }, [has, seen]);
 
   // No answer yet: the strip draws itself with placeholder numbers in the loading look, and collapses if there is no live reading.
-  const wait = useWaiting(!loaded);
+  const wait = useWaiting(!loaded, 6000);
   const v = d || (wait ? PH_NET : null);
   if (!v) return null;
   const cells = [
