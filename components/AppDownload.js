@@ -45,7 +45,10 @@ export default function AppDownload({ initial = false, row = false, menu = false
     if (!apk) return null;
     return (
       <div className="row">
-        <div className="set-t">{t('app.android')}</div>
+        <div>
+          <div className="set-t">{t('app.android')}</div>
+          <small>{t('app.warn')}</small>
+        </div>
         <a className="btn ghost app-dl-s" href={apk.url} onClick={(e) => open(e, apk.url)}>{t('app.download')}</a>
       </div>
     );
