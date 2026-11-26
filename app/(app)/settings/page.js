@@ -3,7 +3,7 @@ import PageHead from '@/components/PageHead';
 import { account } from '@/lib/data';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
-import { signOut, useApi } from '@/lib/api';
+import { signOut, useApi, useBundle } from '@/lib/api';
 import { useT, useLang } from '@/components/I18nProvider';
 import { LANG_META } from '@/lib/i18n/meta';
 import { useAppVersion } from '@/lib/app-version';
@@ -21,6 +21,11 @@ export default function Settings() {
   const t = useT();
   const { lang } = useLang();
   const [toast, show] = useToast();
+  useBundle('/api/bundle/settings', ['/api/settings', '/api/kyc', '/api/auth/me'], (b) => [
+    ['/api/settings', b.settings],
+    ['/api/kyc', b.kyc],
+    ['/api/auth/me', b.me],
+  ]);
   const { data: sd } = useApi('/api/settings', { ttl: 0 });
   const alerts = sd?.alerts || account.alerts;
   const alertsOn = ['payouts', 'withdrawals', 'news'].filter((k) => alerts[k]).length;
