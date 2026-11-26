@@ -9,7 +9,7 @@ import { MIN_WITHDRAW_USD, MIN_DEPOSIT_USD } from '@/lib/data';
 import { smartPick, reinvestTitle, reinvestHref } from '@/lib/reinvest';
 import { ASSETS, NETWORKS, SWAP_FEE_PCT, quote, depositQuote, priceOf, floorCoin, validAddress } from '@/lib/assets';
 import { serviceTier, serviceLine, serviceProgress } from '@/lib/service-fee';
-import { useApi, post, revalidate, seedApi } from '@/lib/api';
+import { useApi, post, useBundle } from '@/lib/api';
 import { qrMatrix, qrPath } from '@/lib/qr';
 import { useToast } from '@/components/Toast';
 import { triggerHaptic } from '@/lib/haptics';
@@ -139,27 +139,12 @@ export default function Wallet() {
   const liveAvailable = useRef(0);
   // One call brings miners, the first page of history, the deposit orders and the account; they fill the single addresses below,
   // which only start asking for themselves if that one call fails. The saved copies show meanwhile.
-  const [go, setGo] = useState(false);
-  useEffect(() => {
-    let live = true;
-    revalidate('/api/wallet/bundle', { shared: true }).then(
-      (e) => {
-        if (!live) return;
-        const b = e.data;
-        if (b) {
-          seedApi('/api/miners', b.miners);
-          seedApi('/api/wallet?limit=20&kind=all', b.wallet);
-          seedApi('/api/orders?kind=deposit', b.orders);
-          seedApi('/api/auth/me', b.me);
-        }
-        setGo(true);
-      },
-      () => live && setGo(true)
-    );
-    return () => {
-      live = false;
-    };
-  }, []);
+  const go = useBundle('/api/wallet/bundle', (b) => [
+    ['/api/miners', b.miners],
+    ['/api/wallet?limit=20&kind=all', b.wallet],
+    ['/api/orders?kind=deposit', b.orders],
+    ['/api/auth/me', b.me],
+  ]);
   const { data: md } = useApi('/api/miners', { ttl: 10000, enabled: go });
   const dailyUsd = (md ? md.contracts : []).filter((c) => c.online).reduce((s, c) => s + c.dailyUsd, 0);
   // Prices and the wallet come from the cached API: instant from cache, refreshed quietly.
