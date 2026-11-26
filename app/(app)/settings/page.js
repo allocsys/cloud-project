@@ -90,7 +90,7 @@ export default function Settings() {
             <span>{LANG_META[lang].name}</span>
           </NavRow>
           <NavRow href="/settings/help" title={t('set.help')} />
-          {version && (
+          {version !== null && (
             <NavRow href="/settings/about" title={t('set.about')}>
               <span dir="ltr">{version}</span>
             </NavRow>
