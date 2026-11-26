@@ -1,6 +1,6 @@
 'use client';
 import AppUpdate from '@/components/AppUpdate';
-import { useAppVersion } from '@/lib/app-version';
+import { useAppVersion } from '@/components/app-version';
 import { useT } from '@/components/I18nProvider';
 import { SubHead } from '@/components/SettingsKit';
 

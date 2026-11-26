@@ -6,7 +6,7 @@ import { triggerHaptic } from '@/components/haptics';
 import { signOut, useApi, useBundle } from '@/components/api';
 import { useT, useLang } from '@/components/I18nProvider';
 import { LANG_META } from '@/lib/i18n/meta';
-import { useAppVersion } from '@/lib/app-version';
+import { useAppVersion } from '@/components/app-version';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_ME } from '@/components/placeholder';
 import { LevelBadge, NavRow } from '@/components/SettingsKit';
@@ -90,7 +90,7 @@ export default function Settings() {
             <span>{LANG_META[lang].name}</span>
           </NavRow>
           <NavRow href="/settings/help" title={t('set.help')} />
-          {version && (
+          {version !== null && (
             <NavRow href="/settings/about" title={t('set.about')}>
               <span dir="ltr">{version}</span>
             </NavRow>
