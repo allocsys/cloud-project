@@ -155,6 +155,47 @@ function UpdateBar({ always }) {
   const label = busy ? t('appupd.downloading', { p: pct }) : st === 'fail' ? t('appupd.failed') : st === 'allow' ? t('appupd.allow') : t('appupd.title');
   const act = st === 'ready' || st === 'allow' ? () => install(info.code) : () => start(info);
   const btn = st === 'ready' || st === 'allow' ? t('appupd.install') : st === 'fail' ? t('appupd.retry') : t('appupd.update');
+  const close = () => {
+    try {
+      sessionStorage.setItem(HIDE, '1');
+    } catch {}
+    setHidden(true);
+  };
+  // App-wide: a pop-up over the page, so nothing is pushed down. The About page (always) keeps the bar.
+  if (!always) {
+    return (
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label={label}
+        onClick={(e) => e.target === e.currentTarget && !busy && close()}
+        style={{ position: 'fixed', inset: 0, zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 24, background: 'rgba(0,0,0,.6)' }}
+      >
+        <div style={{ position: 'relative', width: '100%', maxWidth: 340, padding: '28px 20px 20px', border: '1px solid var(--line)', borderRadius: 20, background: 'var(--s2)', textAlign: 'center' }}>
+          {!busy && (
+            <button
+              type="button"
+              aria-label={t('common.close')}
+              onClick={close}
+              style={{ position: 'absolute', top: 6, insetInlineEnd: 6, width: 36, height: 36, border: 0, borderRadius: 18, background: 'transparent', color: 'var(--mute)', fontSize: 20, cursor: 'pointer' }}
+            >
+              ×
+            </button>
+          )}
+          <div style={{ marginBottom: 16, fontSize: 16, fontWeight: 500 }}>{label}</div>
+          {busy ? (
+            <div className="bar">
+              <i style={{ width: `${pct}%`, animation: 'none' }} />
+            </div>
+          ) : (
+            <button type="button" className="btn" onClick={act}>
+              {btn}
+            </button>
+          )}
+        </div>
+      </div>
+    );
+  }
   return (
     <div role="status" style={{ margin: '0 0 12px', padding: '10px 12px', border: '1px solid var(--gold)', borderRadius: 12, fontSize: 14 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
