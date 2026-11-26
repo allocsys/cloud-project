@@ -1,5 +1,6 @@
 // Shown at once when a signed-in page is opened, while the server prepares the next one. The bar and menu stay;
-// only the page area shows soft blocks (.sk, app/globals.css). Each page then draws its own loading look with its saved copy.
+// only the page area shows soft blocks (.sk, app/globals.css). Screens with their own loading.js (Earnings, Wallet, Plans, Invite,
+// Miner, Settings and its Security / Notifications) show their real loading look instead; this one is for the rest.
 export default function Loading() {
   return (
     <div className="grid" aria-busy="true">
