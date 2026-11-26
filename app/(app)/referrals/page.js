@@ -42,7 +42,7 @@ function useSeen() {
 
 import { useWaiting } from '@/components/Skeleton';
 import { PH_REF, PH_VIP } from '@/lib/placeholder';
-import { useEnterOnce } from '@/lib/enter';
+import { useEnterOnce } from '@/components/Enter';
 
 export default function Referrals() {
   const t = useT();
