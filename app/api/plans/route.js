@@ -13,7 +13,7 @@ import { guarded } from '@/lib/server/shed';
 export const dynamic = 'force-dynamic';
 export const GET = guarded(GET_);
 
-// The catalogue is the same for everyone and admins can edit it, so the edge holds it only briefly.
+// The catalogue is the same for everyone and admins can edit it, so the edge holds it only briefly (30 s).
 // `live` is the market the daily estimates are worked out from ({ gross, btc }), or null when there is none.
 // `smart` is the coin Smart Mining is on today and how it pays against the reference ({ coin, ratio }), or null when there is no data.
 // `halls[].net` is already the live-linked rate buyers pay (see lib/pricing.js); `priced` says whether that is in effect
@@ -40,6 +40,6 @@ async function GET_() {
         ? { hours: BOOST.hours, tickets: TICKETS.map((t) => ({ id: t.id, price: t.price, th: t.th, pay: t.pay, prize: t.prize, coin: t.coin, chance: floatedShown(bcfg, t.id, live?.difficulty) })) }
         : null,
     },
-    { headers: { 'Cache-Control': 'public, s-maxage=10, stale-while-revalidate=30' } },
+    { headers: { 'Cache-Control': 'public, s-maxage=30, stale-while-revalidate=60' } },
   );
 }
