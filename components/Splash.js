@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { clearApiCache } from '@/components/api';
 import { telegramReady } from '@/lib/telegram';
-import { hideNativeSplash } from '@/components/native-splash';
+import { hideNativeSplashPainted } from '@/components/native-splash';
 
 // Welcome screen for the landing page. The server renders it visible, so it covers the very first paint (no flash of
 // plain text). While it shows, the page does real work: fonts, the logo and the window load event are awaited, and
@@ -186,7 +186,7 @@ function startOrb(c) {
     g.globalAlpha = 1;
   };
   draw();
-  hideNativeSplash(); // in the app: the native globe fades out, this one is already on screen
+  hideNativeSplashPainted(); // in the app: the native globe fades out once this one is painted on screen
   const timer = setInterval(draw, 33);
   return () => clearInterval(timer);
 }
