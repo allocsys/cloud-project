@@ -49,7 +49,7 @@ export default function Referrals() {
   const [heroRef, heroSeen] = useSeen();
   const [stepsRef, stepsSeen] = useSeen();
   const [sheet, setSheet] = useState(null);
-  const { data: rd, mutate } = useApi('/api/referrals', { ttl: 0 });
+  const { data: rd, mutate } = useApi('/api/referrals', { ttl: 30000 });
   const waitRd = useWaiting(!rd);
   // Until the first answer, the page draws itself with placeholder data in the loading look (lib/placeholder.js, .ld).
   const referral = rd || (waitRd ? PH_REF : seed);

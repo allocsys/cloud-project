@@ -26,7 +26,7 @@ export default function Settings() {
     ['/api/kyc', b.kyc],
     ['/api/auth/me', b.me],
   ]);
-  const { data: sd } = useApi('/api/settings', { ttl: 0 });
+  const { data: sd } = useApi('/api/settings', { ttl: 30000 });
   const alerts = sd?.alerts || account.alerts;
   const alertsOn = ['payouts', 'withdrawals', 'news'].filter((k) => alerts[k]).length;
   const { data: kd } = useApi('/api/kyc', { ttl: 30000 });
