@@ -19,7 +19,7 @@ import RateUs from '@/components/RateUs';
 import { payoutCard } from '@/lib/payout-card';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_BUNDLE } from '@/lib/placeholder';
-import { useEnterOnce } from '@/lib/enter';
+import { useEnterOnce } from '@/components/Enter';
 
 // Shown until the server answers the first time.
 const EMPTY = { hasMiners: false, totalTh: 0, todayBtc: 0, totalBtc: 0, uptime: null, earnings: { week: [], all: [] }, stats: { hash: [], uptime: [] } };
