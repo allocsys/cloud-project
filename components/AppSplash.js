@@ -18,5 +18,5 @@ export default function AppSplash() {
     window.__vtxAppSplash = true; // components/PWA.js: keep the native globe up, the animation will take over
     setOn(true);
   }, []);
-  return on ? <Splash /> : null;
+  return on ? <Splash app /> : null;
 }
