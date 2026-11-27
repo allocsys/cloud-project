@@ -41,7 +41,6 @@ export default function Captcha({ onActive, onToken }) {
       id = window.turnstile.render(box.current, {
         sitekey: key,
         theme: 'dark',
-        appearance: 'interaction-only', // the box stays hidden unless Cloudflare needs a tap
         callback: (t) => onToken(t),
         'expired-callback': () => onToken(''),
         'error-callback': () => onToken(''),
