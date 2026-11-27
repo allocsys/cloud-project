@@ -7,12 +7,19 @@ import { giftBoost, GIFT_TICKET, normalizeBoost } from '@/lib/boost';
 test('settings fall back to the defaults and keep valid values', () => {
   assert.deepEqual(normalizeEvent(undefined), EVENT_DEFAULTS);
   const ev = normalizeEvent({ enabled: true, id: 'ab12', startAt: 1000, endsAt: 2000, perUsd: '25.5', ticket: 't100', maxPerUser: 4 });
-  assert.deepEqual(ev, { enabled: true, id: 'ab12', startAt: 1000, endsAt: 2000, perUsd: 25.5, ticket: 't100', maxPerUser: 4 });
+  assert.deepEqual(ev, { enabled: true, id: 'ab12', startAt: 1000, endsAt: 2000, perUsd: 25.5, ticket: 't100', maxPerUser: 4, name: '' });
   const bad = normalizeEvent({ enabled: 'yes', perUsd: 0, ticket: 'nope', maxPerUser: -3 });
   assert.equal(bad.enabled, false);
   assert.equal(bad.perUsd, EVENT_DEFAULTS.perUsd);
   assert.equal(bad.ticket, EVENT_DEFAULTS.ticket);
   assert.equal(bad.maxPerUser, 0);
+});
+
+test('the occasion name is cleaned up and capped', () => {
+  assert.equal(normalizeEvent({ name: '  Black   Friday ' }).name, 'Black Friday');
+  assert.equal(normalizeEvent({ name: 'x'.repeat(50) }).name.length, EVENT_MAX.name);
+  assert.equal(normalizeEvent({ name: 5 }).name, '');
+  assert.equal(normalizeEvent({}).name, '');
 });
 
 test('an order counts when it was started inside the event', () => {
