@@ -73,7 +73,8 @@ test('a referral code or a bad link shape does not call the app', async () => {
 
 test('wrong or expired code, already linked, too many tries, app down', async () => {
   const cases = [
-    [{ ok: false, status: 403, json: { ok: false } }, 'This Telegram already has an account. Open the app here and tap Add email in Settings.'],
+    [{ ok: false, status: 403, json: { ok: false } }, 'This Telegram cannot be linked.'],
+    [{ ok: false, status: 423, json: { ok: false } }, 'Finish your payment or withdrawal first, then try again.'],
     [{ ok: false, status: 404, json: { ok: false } }, 'Code not valid.'],
     [{ ok: false, status: 409, json: { ok: false } }, 'Already linked to another account.'],
     [{ ok: false, status: 429, json: { ok: false } }, 'Too many tries. Wait a few minutes.'],
@@ -99,8 +100,8 @@ test('Persian chat gets the Persian text', async () => {
   sent.length = 0;
   answer = { ok: false, status: 403, json: { ok: false } };
   await say('/start lnk_abc123');
-  assert.equal(sent[0].text, t('fa', 'linkHas'));
-  assert.ok(sent[0].text.includes('«افزودن ایمیل»'));
+  assert.equal(sent[0].text, t('fa', 'linkNo'));
+  assert.ok(!sent[0].text.includes('«افزودن ایمیل»'));
 });
 
 test('the code is not saved in the bot database', async () => {
@@ -124,5 +125,6 @@ test('the command list has no link or unlink; the link answers exist in en and f
     const names = commandList(lang).map((c) => c.command);
     assert.ok(!names.includes('link') && !names.includes('unlink'));
   }
-  for (const k of ['linkOk', 'linkDone', 'linkHas', 'linkBad', 'linkTaken', 'linkMany']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  for (const k of ['linkOk', 'linkDone', 'linkNo', 'linkPay', 'linkBad', 'linkTaken', 'linkMany']) assert.ok(texts.en[k] && texts.fa[k], `${k} missing`);
+  assert.equal(texts.en.linkHas, undefined);
 });
