@@ -116,15 +116,16 @@ test('maskEmail keeps the first letter and the domain only', () => {
   assert.equal(maskEmail('a@b.co'), 'a***@b.co');
 });
 
-test('a Telegram id that already has its own account is refused (403), the code stays valid, nothing changes', async () => {
+test('a Telegram id that already has its own account asks for a confirmation (428), the code stays valid, nothing changes', async () => {
   const id = await account('g');
   const tg = tgId();
   await tx((c) => createUser(c, `tg:${tg}`));
   const { code } = await botLinkStart(id);
   const r = await botLinkClaim(tg, code);
-  assert.equal(r.status, 403);
+  assert.equal(r.status, 428);
   assert.equal(r.ok, false);
-  assert.equal((await linkFor({ tg_id: tg, code })).status, 403);
+  assert.equal(r.confirm, true);
+  assert.equal((await linkFor({ tg_id: tg, code })).status, 428);
   assert.equal((await getUser(id)).botTg, undefined, 'nothing was linked');
   assert.ok((await getUser(id)).botLink, 'the code was not used up');
   assert.equal((await getUser(`tg:${tg}`)).botTg, undefined, 'the Telegram account is untouched');
@@ -172,7 +173,7 @@ test('a Telegram sign-in racing a link claim leaves one account, not two', async
       assert.equal(signin.ok, true);
       assert.equal(signin.id, id, 'the sign-in opens the linked account, not a new one');
     } else {
-      assert.equal(claim.status, 403, 'the claim loses to the account that was just created');
+      assert.equal(claim.status, 428, 'the claim finds the account that was just created and waits for a confirmation');
       assert.equal(signin.ok, true);
       assert.equal(signin.id, `tg:${tg}`);
     }
