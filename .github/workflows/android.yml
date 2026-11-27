@@ -97,6 +97,8 @@ jobs:
           m=android/app/src/main/AndroidManifest.xml
           sed -i 's#</application>#    <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_vtx" />\n        <meta-data android:name="com.google.firebase.messaging.default_notification_color" android:resource="@color/ic_launcher_background" />\n    </application>#' "$m"
           grep -q default_notification_icon "$m"
+          sed -i 's#<application#<uses-permission android:name="android.permission.POST_NOTIFICATIONS" />\n    <application#' "$m"
+          grep -q POST_NOTIFICATIONS "$m"
           grep -q "google-services" android/app/build.gradle
 
       - name: App icon from the site
