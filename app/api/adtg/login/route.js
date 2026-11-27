@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { clientIp, reserve, giveBack, clearFails } from '@/lib/server/admin';
+import { clientIp, reserve, giveBack, clearFails, slowName, clearName } from '@/lib/server/admin';
 import { REVIEW_COOKIE, REVIEW_MAX_AGE, reviewEnabled, reviewerLogin, reviewSession } from '@/lib/server/reviewers';
 
 export const dynamic = 'force-dynamic';
@@ -21,9 +21,15 @@ export async function POST(req) {
     await giveBack(ip);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
+  const wait = await slowName('review', body?.user);
+  if (wait) {
+    await giveBack(ip);
+    return NextResponse.json({ ok: false, error: `Too many attempts. Try again in ${wait} seconds.` }, { status: 429, headers: { ...NO_STORE, 'Retry-After': String(wait) } });
+  }
   const r = await reviewerLogin(body?.user, body?.pass);
   if (!r) return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
   await clearFails(ip);
+  await clearName('review', body?.user);
   const res = NextResponse.json({ ok: true }, { headers: NO_STORE });
   res.cookies.set(REVIEW_COOKIE, reviewSession(r), {
     httpOnly: true,

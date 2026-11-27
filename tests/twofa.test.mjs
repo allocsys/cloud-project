@@ -6,7 +6,7 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 
 const { NextRequest } = await import('next/server');
-const { pool, tx, createUser, getUser, withUser } = await import('@/lib/server/db');
+const { pool, q, tx, createUser, getUser, withUser } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
 const auth = await import('@/lib/server/auth');
 const totp = await import('@/lib/server/totp');
@@ -242,11 +242,13 @@ test('the sign-in route: asking for a code is free, wrong codes lock the account
   assert.ok((ok.headers.get('set-cookie') || '').includes(`${auth.COOKIE}=`));
   tick();
 
-  for (let i = 0; i < 5; i += 1) {
+  for (let i = 0; i < 8; i += 1) {
+    await q('DELETE FROM throttle WHERE key = $1', [`auth:a:${id}:wait`]); // skip the gradual delay: this test is about the code limit
     const r = await post({ code: wrongOf(code(secret)) }, `10.2.2.${i}`); // a different address each time
     assert.equal(r.status, 401, `wrong code ${i + 1}`);
     assert.equal(r.body.field, 'code');
   }
+  await q('DELETE FROM throttle WHERE key = $1', [`auth:a:${id}:wait`]);
   const locked = await post({ code: code(secret) }, '10.3.3.3'); // the right code, from a new address
   assert.equal(locked.status, 429);
 });
