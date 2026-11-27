@@ -145,17 +145,21 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
     }
 
     setErrors({});
-    // Each check works once: take its token, then ask for a fresh check right away.
+    // Each check works once: send its token. A fresh check is asked for only when the attempt does not finish (renew),
+    // so a good sign-in never shows the box a second time while the request runs.
     const captcha = capToken;
-    if (capOn && view !== 'reset') {
-      setCapToken('');
-      setCapKey((k) => k + 1);
-    }
+    const renew = () => {
+      if (capOn && view !== 'reset') {
+        setCapToken('');
+        setCapKey((k) => k + 1);
+      }
+    };
     setLoading(true);
     try {
       if (view === 'forgot') {
         await post('/api/auth/reset', { email: email.trim(), captcha });
         triggerHaptic('success');
+        renew();
         setSent(true);
         setLoading(false);
         return;
@@ -179,6 +183,7 @@ export default function AuthForm({ init, onDone, onLeave, showDemo = true }) {
     } catch (err) {
       triggerHaptic('error');
       setLoading(false);
+      renew();
       if (err.field === 'code') {
         // The password was right and the account asks for a second step (or the code was wrong).
         setNeedCode(true);
