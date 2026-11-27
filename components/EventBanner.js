@@ -1,6 +1,6 @@
 'use client';
-// The deposit bonus event on Home and on the landing page. `event` = { perUsd, price, endsAt } from lib/server/event.js liveEvent(),
-// null when no event runs (then nothing shows). Same look on both: a gold outline, a gift icon, a short line.
+// The deposit bonus event on Home and on the landing page. `event` = { perUsd, price, endsAt, name } from lib/server/event.js liveEvent(),
+// null when no event runs (then nothing shows). `name` is the occasion typed in Admin (e.g. "Black Friday"), '' = none. Same look on both: a gold outline, a gift icon, a short line.
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useLang } from '@/components/I18nProvider';
@@ -39,7 +39,7 @@ export function HomeEvent({ event }) {
       <Link href="/wallet?tab=deposit" style={{ flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: 8, textDecoration: 'none', color: 'inherit' }}>
         <Gift />
         <span style={{ flex: 1, minWidth: 0, fontSize: 12, lineHeight: 1.35 }}>
-          <b>{t('ev.title')}</b>{' · '}<span className="mute">{t('wal.evBanner', { n: event.perUsd, p: event.price, d: dayText(event.endsAt, lang) })}</span>
+          <b>{event.name || t('ev.title')}</b>{' · '}<span className="mute">{t('wal.evBanner', { n: event.perUsd, p: event.price, d: dayText(event.endsAt, lang) })}</span>
         </span>
       </Link>
       <button type="button" onClick={close} aria-label="Close" style={{ flex: 'none', width: 28, height: 28, display: 'grid', placeItems: 'center', background: 'none', border: 0, padding: 0, cursor: 'pointer', color: 'inherit', opacity: 0.7 }}>
@@ -56,7 +56,7 @@ export function LandingEvent({ event }) {
   return (
     <div role="note" style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '0 0 12px', padding: '8px 12px', borderRadius: 12, border: '1px solid #e8b84a', background: 'rgba(232,184,74,.12)' }}>
       <Gift />
-      <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4 }}>{t('ev.landing', { d: dayText(event.endsAt, lang) })}</span>
+      <span style={{ flex: 1, fontSize: 12, lineHeight: 1.4 }}>{event.name ? <><b>{event.name}</b>{' · '}</> : null}{t('ev.landing', { d: dayText(event.endsAt, lang) })}</span>
     </div>
   );
 }
