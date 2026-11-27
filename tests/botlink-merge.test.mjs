@@ -216,6 +216,7 @@ test('an unfinished withdrawal on the Telegram account stops the merge, nothing 
   await q("UPDATE withdrawals SET status = 'sent' WHERE id = $1", [wid]);
   assert.equal((await botLinkClaim(tg, code, { confirm: true })).ok, true);
   assert.equal((await q('SELECT user_id FROM withdrawals WHERE id = $1', [wid])).rows[0].user_id, email, 'the finished withdrawal follows the money');
+  await q('DELETE FROM withdrawals WHERE id = $1', [wid]); // the files share one database: another test lists sent withdrawals and expects full rows
 });
 
 test('a blocked Telegram account is not merged', async () => {
