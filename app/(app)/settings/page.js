@@ -10,6 +10,7 @@ import { useAppVersion } from '@/components/app-version';
 import { useWaiting } from '@/components/Skeleton';
 import { PH_ME } from '@/components/placeholder';
 import { LevelBadge, NavRow } from '@/components/SettingsKit';
+import AppDownload from '@/components/AppDownload';
 
 const KYC = {
   none: { label: 'set.notVerified', cls: 'warn', cta: 'set.verify' },
@@ -95,6 +96,7 @@ export default function Settings() {
               <span dir="ltr">{version}</span>
             </NavRow>
           )}
+          <AppDownload row />
         </div>
         <button className="btn ghost" type="button" onClick={handleSignOut}>{t('nav.signOut')}</button>
       </div>
