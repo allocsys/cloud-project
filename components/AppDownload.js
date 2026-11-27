@@ -1,12 +1,15 @@
 'use client';
-// App download: for the landing menu (menu) and Settings > Preferences (row). Direct download is for Android browsers only, never inside the app itself.
+// App download: for the landing menu (menu) and the Settings list (row). Direct download is for Android browsers only, never inside the app itself.
 // When the Google Play / App Store links are set in lib/app-download.js, the menu item opens a short list instead of downloading at once.
-import { useEffect, useState } from 'react';
+import { useEffect, useLayoutEffect, useState } from 'react';
 import { DOWNLOAD_URL, GOOGLE_PLAY_URL, APP_STORE_URL } from '@/lib/app-download';
 import { triggerHaptic } from '@/components/haptics';
 import { useT } from '@/components/I18nProvider';
 
 const inApp = () => !!(window.Capacitor?.isNativePlatform?.() || window.Capacitor?.Plugins?.AppUpdater);
+
+// A layout effect runs before the first paint, so the row is there at once and nothing below it jumps (same trick as components/app-version.js).
+const useEarly = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
 
 // Inside Telegram a file cannot be saved, so the link opens in the phone's browser.
 function open(e, url) {
@@ -35,7 +38,7 @@ export default function AppDownload({ initial = false, row = false, menu = false
   const t = useT();
   const [opts, setOpts] = useState(initial ? [{ k: 'apk', url: DOWNLOAD_URL }] : []);
   const [more, setMore] = useState(false);
-  useEffect(() => {
+  useEarly(() => {
     setOpts(options());
   }, []);
   if (!opts.length) return null;
@@ -45,10 +48,7 @@ export default function AppDownload({ initial = false, row = false, menu = false
     if (!apk) return null;
     return (
       <div className="row">
-        <div>
-          <div className="set-t">{t('app.android')}</div>
-          <small>{t('app.warn')}</small>
-        </div>
+        <span className="set-t">{t('app.android')}</span>
         <a className="btn ghost app-dl-s" href={apk.url} onClick={(e) => open(e, apk.url)}>{t('app.download')}</a>
       </div>
     );

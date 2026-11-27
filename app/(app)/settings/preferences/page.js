@@ -6,7 +6,6 @@ import { LangToggle } from '@/components/LangSwitch';
 import { useT } from '@/components/I18nProvider';
 import { applyTheme, readTheme } from '@/components/theme';
 import { SubHead } from '@/components/SettingsKit';
-import AppDownload from '@/components/AppDownload';
 
 export default function Preferences() {
   const t = useT();
@@ -73,7 +72,6 @@ export default function Preferences() {
             <div style={{ fontWeight: 500, fontSize: '13.5px' }}>{t('settings.language')}</div>
             <LangToggle className="set-lang" short />
           </div>
-          <AppDownload row />
           {!inst.standalone && (inst.can || inst.ios) && (
             <div className="row">
               <div>
