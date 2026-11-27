@@ -17,7 +17,7 @@ export default function Security() {
   const t = useT();
   const { lang } = useLang();
   const [toast, show] = useToast();
-  const { data: meLive, refresh: refreshMe } = useApi('/api/auth/me', { ttl: 60000 });
+  const { data: meLive, refresh: refreshMe, quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
   const waitMe = useWaiting(!meLive);
   // Until the account answers, the page draws itself with placeholder data in the loading look (components/placeholder.js, .ld).
   const me = meLive || (waitMe ? PH_ME : undefined);
@@ -52,7 +52,6 @@ export default function Security() {
   const [clErr, setClErr] = useState({});
   const [clBusy, setClBusy] = useState(false);
   // Telegram bot link (email accounts): bl = the bot link with a one-time code (valid 10 minutes) while the person is in Telegram.
-  const { quiet: quietMe } = useApi('/api/auth/me', { ttl: 60000 });
   const [bl, setBl] = useState(null);
   const [blBusy, setBlBusy] = useState(false);
   // While the link is open, check now and then (and on return to this screen) whether the bot took the code.
