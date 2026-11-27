@@ -2036,6 +2036,20 @@ export default function Admin() {
               </div>
             ))}
           </div>
+          <Fold title="Trap hits" sub={data.traps?.total ? `${data.traps.total} hit${data.traps.total === 1 ? '' : 's'}${data.traps.red ? ` · ${data.traps.red} with the fake password` : ''}` : 'None yet'}>
+            {!(data.traps?.rows || []).length && <p className="empty" style={{ paddingTop: 8 }}>Nobody has opened password.txt yet.</p>}
+            {(data.traps?.rows || []).map((t, i) => (
+              <div className="row adm-m" key={`${t.at}-${i}`}>
+                <div>
+                  {t.kind === 'file' ? 'Opened password.txt' : t.kind === 'admin' ? 'Admin sign-in try' : 'App sign-in try'}
+                  {t.fake && <> <Pill tone="bad">fake password</Pill></>}
+                  <small>{t.ip} · {t.ua || 'no browser'}</small>
+                </div>
+                <span className="mute">{when(t.at)}</span>
+              </div>
+            ))}
+            <p className="fine" style={{ margin: '8px 0 0' }}>Latest 50. A file hit is noted once per address per hour. Red means the password from the fake file was typed.</p>
+          </Fold>
         </div>
       )}
 

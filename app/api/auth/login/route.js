@@ -3,6 +3,7 @@ import { readJson } from '@/lib/server/body';
 import { login, setSession, clientIp, reserve, reserveAcct, giveBack, clearFails } from '@/lib/server/auth';
 import { captchaOk } from '@/lib/server/captcha';
 import { guarded } from '@/lib/server/shed';
+import { decoyTry } from '@/lib/server/trap';
 
 export const dynamic = 'force-dynamic';
 export const POST = guarded(POST_);
@@ -19,6 +20,8 @@ async function POST_(req) {
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
   const email = String(body?.email ?? '').trim().toLowerCase().slice(0, 120);
+  // A try with the fake login from password.txt is noted for Admin; the sign-in itself goes on and fails as usual (lib/server/trap.js).
+  await decoyTry('login', email, body?.password, clientIp(req), req.headers.get('user-agent'));
   const key = `l:${clientIp(req)}:${email}`;
   // Every wrong password is also counted per account, from any address, so guessing cannot hide by changing address.
   const acctKey = `a:${email}`;
