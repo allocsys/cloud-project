@@ -23,6 +23,10 @@ async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const b = await body(req);
+  if (typeof b?.error === 'string') {
+    console.error('[push] phone could not register:', b.error.slice(0, 300));
+    return NextResponse.json({ ok: true }, { headers: NO_STORE });
+  }
   const r = await addPhone(id, b?.token, b?.lang);
   return NextResponse.json(r, { status: r.ok ? 200 : 400, headers: NO_STORE });
 }
