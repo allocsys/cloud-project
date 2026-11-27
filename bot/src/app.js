@@ -22,10 +22,13 @@ const MENU_DATA = /^m:([a-z_]{1,8}):(\d{1,9})$/;
 const MENU_ACTIONS = new Set(['menu', 'more', 'bal', 'ear', 'ref', 'faq', 'help', 'lang', 'stop', ...Object.keys(texts).map((l) => `l_${l}`)]);
 // Accept / Deny under a withdrawal code message: w:a:<ref> or w:d:<ref>. ref is the time of that code (sent by the app); the app checks it is the code waiting now.
 const WD_DATA = /^w:([ad]):(\d{10,15})$/;
+// Merge or Cancel under the 'this Telegram already has an account' question: k:y:<link code> or k:n. The code is 3-32 letters and digits, so it fits the 64 byte limit.
+const KEEP_DATA = /^k:(?:y:([A-Za-z0-9]{3,32})|(n))$/;
 
 export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config }) }) {
   const hits = new Map();
   const pending = new Set();
+  const keepBusy = new Set(); // Merge / Cancel taps being answered now (chat:message), so a double tap is ignored
 
   // Per-chat limit: more than chatLimitPerMin messages in a minute are ignored.
   function limited(id, now = Date.now()) {
@@ -114,16 +117,29 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
   const supportView = (lang) => ({ text: t(lang, 'support', { email: config.supportEmail }), rows: [] });
 
   // Links the Telegram id to the email account that made the code (Settings > Connect Telegram). The code is never logged or stored here.
-  // Returns the text to show.
-  async function linkText(lang, userId, code) {
-    const r = await appApi('link', { tg_id: userId, code });
+  // confirm = the person tapped Merge. Returns { text, rows, ask, retry }:
+  // ask = the Telegram already has an account, the app wants a yes first (rows = Merge and Cancel); retry = no good answer, keep the buttons.
+  async function linkView(lang, userId, code, confirm = false) {
+    const r = await appApi('link', { tg_id: userId, code, ...(confirm ? { confirm: true } : {}) });
+    // The app sends the masked email (m***@gmail.com). An older app sends none: say the short text.
+    const mail = r.json && r.json.email;
+    const okMail = typeof mail === 'string' && /^[^\s@]{1,64}@[^\s@]{1,255}$/.test(mail);
     if (r.ok) {
-      // The app sends the masked email (m***@gmail.com). An older app sends none: say the short text.
-      const mail = r.json && r.json.email;
-      return typeof mail === 'string' && /^[^\s@]{1,64}@[^\s@]{1,255}$/.test(mail) ? t(lang, 'linkDone', { email: mail }) : t(lang, 'linkOk');
+      if (r.json.merged === true) return { text: okMail ? t(lang, 'mergeDone', { email: mail }) : t(lang, 'mergeOk'), rows: [] };
+      return { text: okMail ? t(lang, 'linkDone', { email: mail }) : t(lang, 'linkOk'), rows: [] };
     }
-    const key = { 403: 'linkHas', 404: 'linkBad', 409: 'linkTaken', 429: 'linkMany' }[r.status];
-    return t(lang, key || 'busy');
+    if (r.status === 428 && !confirm && r.json && r.json.confirm === true && okMail) {
+      return {
+        text: t(lang, 'mergeAsk', { email: mail }),
+        rows: [
+          [{ text: t(lang, 'b_merge'), callback_data: `k:y:${code}`, style: GREEN }],
+          [{ text: t(lang, 'b_cancel'), callback_data: 'k:n', style: RED }],
+        ],
+        ask: true,
+      };
+    }
+    const key = { 403: 'linkNo', 404: 'linkBad', 409: 'linkTaken', 423: 'linkPay', 429: 'linkMany' }[r.status];
+    return { text: t(lang, key || 'busy'), rows: [], retry: !key };
   }
 
   // ---- Button menu ----
@@ -185,6 +201,31 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     await tg.editMessageText(chatId, mid, text, { reply_markup: { inline_keyboard: [openRow(lang)] } });
   }
 
+  // Merge or Cancel under the merge question. Cancel changes nothing (the link code stays valid until it expires). Merge asks the app again with confirm.
+  // The answer replaces the question. No good answer from the app keeps the buttons so a tap can be tried again.
+  async function handleKeepTap(cb, chatId, mid, code) {
+    if (!Number.isSafeInteger(mid)) return;
+    const key = `${chatId}:${mid}`;
+    if (keepBusy.has(key)) return;
+    keepBusy.add(key);
+    try {
+      const chat = (await q('SELECT lang FROM chats WHERE tg_id = $1', [chatId])).rows[0];
+      const lang = (chat && chat.lang) || 'en';
+      let text = t(lang, 'mergeNo');
+      if (code) {
+        const v = await linkView(lang, cb.from.id, code, true);
+        if (v.retry) {
+          await reply(chatId, v.text);
+          return;
+        }
+        text = v.text;
+      }
+      await tg.editMessageText(chatId, mid, text, { reply_markup: { inline_keyboard: [openRow(lang)] } });
+    } finally {
+      keepBusy.delete(key);
+    }
+  }
+
   async function handleCallback(cb) {
     const msg = cb.message;
     if (!msg || !msg.chat || msg.chat.type !== 'private' || !cb.from || cb.from.is_bot || typeof cb.data !== 'string') return;
@@ -194,6 +235,8 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
     if (limited(id)) return;
     const wd = WD_DATA.exec(cb.data);
     if (wd) return handleWdTap(cb, id, mid, wd[1] === 'a' ? 'accept' : 'deny', Number(wd[2]));
+    const keep = KEEP_DATA.exec(cb.data);
+    if (keep) return handleKeepTap(cb, id, mid, keep[1] || '');
     const d = MENU_DATA.exec(cb.data);
     if (!d || !MENU_ACTIONS.has(d[1]) || !Number.isSafeInteger(mid)) return;
     const act = d[1];
@@ -286,10 +329,17 @@ export function makeBot({ config, tg, queue = null, appApi = makeAppApi({ config
       const lk = LINK_START.exec(code);
       const url = CODE.test(code) ? `${config.appUrl}/login?ref=${encodeURIComponent(code)}` : config.appUrl;
       // Writing /start turns news back on; say so only when it was off.
-      let text = lk ? await linkText(lang, m.from.id, lk[1]) : t(lang, 'start');
+      const lv = lk ? await linkView(lang, m.from.id, lk[1]) : null;
+      let text = lv ? lv.text : t(lang, 'start');
       if (row.news === false) {
         await q('UPDATE chats SET news = true WHERE tg_id = $1', [id]);
         text += '\n' + t(lang, 'newsOn');
+      }
+      // The Telegram already has an account: ask first (Merge / Cancel). The menu comes with the next /start or the Menu button.
+      if (lv && lv.ask) {
+        const asked = await send(id, { text, rows: lv.rows });
+        await reply(id, t(lang, 'kbOn'), kbExtra(lang));
+        return asked;
       }
       const sentMenu = await sendMenu(id, lang, text, url);
       // Puts the Menu button under the chat (it stays until removed). The message that carries it is one emoji, no sentence.
