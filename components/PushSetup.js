@@ -28,7 +28,8 @@ const plugin = () => {
   try {
     const c = window.Capacitor;
     if (!c) {
-      step('no Capacitor');
+      // Only inside the Android app's WebView, not for every web visitor.
+      if (/; wv\)/.test(navigator.userAgent || '')) step('no Capacitor');
       return null;
     }
     if (!c.isNativePlatform?.()) return null;
