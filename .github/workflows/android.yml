@@ -9,6 +9,7 @@ name: Android app
 # A signed build on main is also published as a GitHub release (tag app-v<versionCode>): the app file, a patch from the
 # previous release and manifest.json. The site (/api/app-update) reads that, and the app updates itself from it.
 # With the APK_S3_* secrets the same files also go to the Railway bucket (latest.json last); downloads then come from there.
+# After each upload only the newest 3 app-v<n>/ folders stay in the bucket; older ones are deleted (GitHub releases are not touched).
 
 on:
   workflow_dispatch:
@@ -207,3 +208,17 @@ jobs:
             if [ -f "$f" ]; then up "$f" "$TAG/$(basename "$f")"; fi
           done
           up release/manifest.json latest.json
+
+      # Runs after the upload, so the new version is already there. Only app-v<number>/ folders count; latest.json is never touched.
+      # A failure here must not fail the release, so it only warns.
+      - name: Keep the last 3 versions in the bucket
+        if: env.KEYSTORE_B64 != '' && env.AWS_ACCESS_KEY_ID != '' && github.event_name != 'pull_request'
+        continue-on-error: true
+        run: |
+          set -e
+          aws configure set default.s3.addressing_style virtual
+          OLD=$(aws s3 ls "s3://$BUCKET/" --endpoint-url "$ENDPOINT" | awk '$1=="PRE" && $2 ~ /^app-v[0-9]+\/$/ {gsub(/app-v|\//,"",$2); print $2}' | sort -n | head -n -3)
+          for n in $OLD; do
+            echo "Deleting app-v$n"
+            aws s3 rm "s3://$BUCKET/app-v$n/" --recursive --endpoint-url "$ENDPOINT" --only-show-errors
+          done
