@@ -68,9 +68,12 @@ jobs:
         run: npm install --no-audit --no-fund
 
       # Without the Firebase file the plugin is left out: registering would fail with no Firebase app.
+      # No --no-save: Capacitor finds plugins through package.json, so a --no-save install is skipped (CI copy only, not committed).
       - name: Phone notices plugin (only when the Firebase file exists)
         if: env.GOOGLE_SERVICES_JSON != ''
-        run: npm install --no-audit --no-fund --no-save @capacitor/push-notifications@^7
+        run: |
+          npm install --no-audit --no-fund @capacitor/push-notifications@^7
+          grep -q push-notifications package.json
 
       - name: Generate the Android project
         run: npx cap add android
