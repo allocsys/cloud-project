@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
 import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, reserve, giveBack, clearFails } from '@/lib/server/admin';
+import { decoyTry } from '@/lib/server/trap';
 
 export const dynamic = 'force-dynamic';
 
@@ -22,6 +23,8 @@ export async function POST(req) {
     await giveBack(ip);
     return NextResponse.json({ ok: false, error: 'Invalid request.' }, { status: 400, headers: NO_STORE });
   }
+  // A try with the fake login from password.txt is noted for Admin Overview; the sign-in itself goes on and fails as usual.
+  await decoyTry('admin', body?.user, body?.pass, ip, req.headers.get('user-agent'));
   if (await needsSetup()) {
     const r = await setupAdmin(body?.token, body?.user, body?.pass);
     if (!r.ok) {
