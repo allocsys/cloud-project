@@ -1,6 +1,7 @@
 import { Roboto, Vazirmatn, Cairo } from 'next/font/google';
 import './globals.css';
 import './rtl.css';
+import AppBack from '@/components/AppBack';
 import PWA from '@/components/PWA';
 import Ripple from '@/components/Ripple';
 import ThemeSync from '@/components/ThemeSync';
@@ -91,6 +92,7 @@ export default function RootLayout({ children }) {
         <ThemeSync />
         <TelegramScript />
         <TelegramInit />
+        <AppBack />
       </body>
     </html>
   );
