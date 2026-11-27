@@ -20,6 +20,21 @@ const plugin = () => {
   }
 };
 
+// A phone that cannot register tells the server why (once per app start), so it shows in the server log as '[push] phone could not register'.
+let told = false;
+const report = (e) => {
+  if (told) return;
+  told = true;
+  try {
+    const msg = typeof e === 'string' ? e : e?.error || e?.message || JSON.stringify(e);
+    fetch('/api/push', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ error: String(msg).slice(0, 300) }),
+    }).catch(() => {});
+  } catch {}
+};
+
 const saved = () => {
   try {
     return JSON.parse(localStorage.getItem(PUSH_KEY) || 'null');
@@ -57,6 +72,7 @@ export default function PushSetup() {
         if (r.ok) localStorage.setItem(PUSH_KEY, JSON.stringify({ t: value, lang, at: Date.now() }));
       } catch {}
     });
+    on('registrationError', (e) => report(e));
     on('pushNotificationActionPerformed', ({ notification }) => {
       const url = notification?.data?.url;
       if (typeof url === 'string' && url.startsWith('/') && !url.startsWith('//')) router.push(url);
@@ -67,7 +83,10 @@ export default function PushSetup() {
         let st = (await p.checkPermissions())?.receive;
         if (st === 'prompt' || st === 'prompt-with-rationale') st = (await p.requestPermissions())?.receive;
         if (st === 'granted' && !gone) await p.register();
-      } catch {}
+        else if (st !== 'granted') report('permission ' + st);
+      } catch (e) {
+        report(e);
+      }
     })();
 
     return () => {
