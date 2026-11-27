@@ -33,6 +33,9 @@ function UpdateBar({ always }) {
   const [pct, setPct] = useState(0);
   const [hidden, setHidden] = useState(false);
   const timer = useRef(0);
+  const dead = useRef(false);
+  const [chk, setChk] = useState(''); // manual check on the About page: '', busy, latest, fail
+  const [has, setHas] = useState(false);
 
   const stop = () => {
     clearInterval(timer.current);
@@ -96,38 +99,50 @@ function UpdateBar({ always }) {
     }
   };
 
-  useEffect(() => {
-    let dead = false;
-    const check = async () => {
+  // force = the button on the About page: skips the 3-hour memory and says the result.
+  const check = useCallback(
+    async (force) => {
       const p = plugin();
       if (!p) return;
+      if (force) setChk('busy');
+      const fail = () => {
+        if (force && !dead.current) setChk('fail');
+      };
       try {
-        if (!always && sessionStorage.getItem(HIDE)) return;
+        if (!force && !always && sessionStorage.getItem(HIDE)) return;
       } catch {}
       let have;
       try {
         have = (await p.info()).code;
       } catch {
-        return;
+        return fail();
       }
       let ans = null;
-      try {
-        const c = JSON.parse(localStorage.getItem(KEY) || 'null');
-        if (c && c.have === have && Date.now() - c.at < EVERY) ans = c.ans;
-      } catch {}
+      if (!force) {
+        try {
+          const c = JSON.parse(localStorage.getItem(KEY) || 'null');
+          if (c && c.have === have && Date.now() - c.at < EVERY) ans = c.ans;
+        } catch {}
+      }
       if (!ans) {
         try {
           const r = await fetch(`/api/app-update?code=${have}`, { cache: 'no-store' });
-          if (!r.ok) return;
+          if (!r.ok) return fail();
           ans = await r.json();
           try {
             localStorage.setItem(KEY, JSON.stringify({ at: Date.now(), have, ans }));
           } catch {}
         } catch {
-          return;
+          return fail();
         }
       }
-      if (dead || !ans || !ans.update) return;
+      if (force) await new Promise((res) => setTimeout(res, 600));
+      if (dead.current || !ans) return;
+      if (!ans.update) {
+        if (force) setChk('latest');
+        return;
+      }
+      setChk('');
       setInfo(ans);
       try {
         // A download may already run or be finished (the page was reloaded meanwhile).
@@ -137,19 +152,40 @@ function UpdateBar({ always }) {
           watch(ans.code);
         } else if (s.state === 'ready') setSt('ready');
       } catch {}
-    };
-    check();
+    },
+    [watch, always]
+  );
+
+  useEffect(() => {
+    dead.current = false;
+    setHas(!!plugin());
+    check(false);
     const onShow = () => {
-      if (!document.hidden) check();
+      if (!document.hidden) check(false);
     };
     document.addEventListener('visibilitychange', onShow);
     return () => {
-      dead = true;
+      dead.current = true;
       stop();
       document.removeEventListener('visibilitychange', onShow);
     };
-  }, [watch, always]);
+  }, [check]);
 
+  if (!info && always && has) {
+    const msg = chk === 'latest' ? t('appupd.latest') : chk === 'fail' ? t('appupd.checkfail') : '';
+    return (
+      <div style={{ margin: '0 0 12px', textAlign: 'center' }}>
+        <button type="button" className="btn" disabled={chk === 'busy'} onClick={() => check(true)}>
+          {chk === 'busy' ? t('appupd.checking') : t('appupd.check')}
+        </button>
+        {msg && (
+          <div role="status" style={{ marginTop: 8, fontSize: 14, color: 'var(--mute)' }}>
+            {msg}
+          </div>
+        )}
+      </div>
+    );
+  }
   if (!info || hidden) return null;
   const busy = st === 'busy';
   const label = busy ? t('appupd.downloading', { p: pct }) : st === 'fail' ? t('appupd.failed') : st === 'allow' ? t('appupd.allow') : t('appupd.title');
