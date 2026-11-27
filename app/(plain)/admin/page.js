@@ -696,10 +696,10 @@ function BoostCard({ bs, busy, run }) {
 
 // Deposit bonus event: while it runs, each paid top-up earns free boost tickets (one for every N dollars) that start at once. Rules in lib/event.js,
 // storage and the hand-out in lib/server/event.js. Start begins a new event now; Stop ends it. Changed numbers apply to deposits credited after saving.
-const evDraft = (v) => ({ perUsd: String(v.perUsd), ticket: v.ticket, maxPerUser: String(v.maxPerUser || 0), days: '3' });
+const evDraft = (v) => ({ perUsd: String(v.perUsd), ticket: v.ticket, maxPerUser: String(v.maxPerUser || 0), name: v.name || '', days: '3' });
 const evWhen = (ms) => new Date(ms).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' });
 function EventCard({ ev, boostOn, busy, run }) {
-  const s = ev || { enabled: false, perUsd: 50, ticket: 't10', maxPerUser: 0, startAt: 0, endsAt: 0 };
+  const s = ev || { enabled: false, perUsd: 50, ticket: 't10', maxPerUser: 0, name: '', startAt: 0, endsAt: 0 };
   const key = JSON.stringify(s);
   const [d, setD] = useState(() => evDraft(s));
   const [edited, setEdited] = useState(false); // typed and not saved yet: a reload must not wipe it
@@ -712,11 +712,12 @@ function EventCard({ ev, boostOn, busy, run }) {
   };
   const live = s.enabled && Date.now() <= s.endsAt;
   const t = TICKETS.find((x) => x.id === d.ticket) || TICKETS[1];
-  const body = { action: 'event-save', perUsd: d.perUsd, ticket: d.ticket, maxPerUser: d.maxPerUser };
+  const body = { action: 'event-save', perUsd: d.perUsd, ticket: d.ticket, maxPerUser: d.maxPerUser, name: d.name };
   return (
     <Fold title="Deposit bonus event" sub={live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}>
       <div className="row"><span className="mute">Event</span><b>{live ? `Live until ${evWhen(s.endsAt)} UTC` : 'Off'}</b></div>
       {!boostOn && <p className="fine" style={{ margin: '8px 0 0', color: 'var(--red)' }}>Boost tickets are off, so no bonus is given. Turn them on in the Boost tickets card.</p>}
+      <Field id="evn" label="Occasion name (optional, shown on the banners)" value={d.name} onChange={(v) => type('name', v.slice(0, 30))} />
       <div className="adm-2col">
         <Field id="evp" label="Dollars per ticket" inputMode="decimal" value={d.perUsd} onChange={(v) => type('perUsd', v)} />
         <Pick id="evt" label="Ticket given" value={d.ticket} onChange={(v) => type('ticket', v)}>
@@ -727,7 +728,7 @@ function EventCard({ ev, boostOn, busy, run }) {
         <Field id="evd" label="Run for (days)" inputMode="decimal" value={d.days} onChange={(v) => type('days', v)} />
         <Field id="evm" label="Max tickets per user (0 = no limit)" inputMode="numeric" value={d.maxPerUser} onChange={(v) => type('maxPerUser', v)} />
       </div>
-      <p className="fine" style={{ margin: '8px 0 0' }}>Every ${d.perUsd || '?'} deposited gives 1 free ${t.price} ticket. Each one can win a prize of ${t.prize.toLocaleString('en-US')}.</p>
+      <p className="fine" style={{ margin: '8px 0 0' }}>Every ${d.perUsd || '?'} deposited gives 1 free ${t.price} ticket. Each one can win a prize of ${t.prize.toLocaleString('en-US')}.{d.name.trim() ? ` The banners on Home and the landing page will say "${d.name.trim()}".` : ''}</p>
       {edited && <p className="fine" style={{ margin: '8px 0 0' }}>You have unsaved changes. Tap Save.</p>}
       <div className="adm-actions">
         <button className="btn" disabled={busy} onClick={async () => { if (await run(body, 'Event settings saved')) setEdited(false); }}>Save</button>
