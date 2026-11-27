@@ -19,12 +19,17 @@ async function body(req) {
 }
 
 // POST { token, lang }: this phone gets the account's notices (Android app, components/PushSetup.js). Same token again = no change.
+// POST { error } or { step }: only logged, so a phone that cannot register shows where it stopped.
 async function POST_(req) {
   const id = await userId(req);
   if (!id) return unauthorized();
   const b = await body(req);
   if (typeof b?.error === 'string') {
     console.error('[push] phone could not register:', b.error.slice(0, 300));
+    return NextResponse.json({ ok: true }, { headers: NO_STORE });
+  }
+  if (typeof b?.step === 'string') {
+    console.log('[push] step:', b.step.slice(0, 300));
     return NextResponse.json({ ok: true }, { headers: NO_STORE });
   }
   const r = await addPhone(id, b?.token, b?.lang);
