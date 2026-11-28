@@ -29,7 +29,8 @@ const sums = (list, m, at = now) => {
   return { btc: e.totalBtc, usd: e.totalUsd, week: e.earnings.week.slice(0, 6), pay: payoutDays(list, at, 85000, 30, m), mine: list.map((c) => minerDaily(c, at, m, 85000)) };
 };
 const close = (a, b, path = '') => {
-  if (typeof a === 'number') return assert.ok(Math.abs(a - b) <= 1e-9 * Math.max(1, Math.abs(a)), `${path}: ${a} != ${b}`);
+  // Saved rows are rounded (USD to 8 decimals, the BTC price to cents), so the same day read back may differ by far less than a cent or a satoshi.
+  if (typeof a === 'number') return assert.ok(Math.abs(a - b) <= 1e-7 * Math.abs(a) + 1e-9, `${path}: ${a} != ${b}`);
   if (a && typeof a === 'object') {
     assert.deepEqual(Object.keys(b), Object.keys(a), path);
     for (const k of Object.keys(a)) close(a[k], b[k], `${path}.${k}`);
@@ -94,4 +95,28 @@ test('waiting invite rewards keep a miner open; offline and sample miners are le
   assert.equal(c.logDone, undefined);
   assert.equal(freezeDays(asic({ online: false }), now, m, today - DAY), 0);
   assert.equal(freezeDays(asic({ startedAt: undefined }), now, m, today - DAY), 0);
+});
+
+test('a saved day is kept rounded, so the account document stays small', () => {
+  const m = market();
+  const list = [asic(), smart()];
+  for (const c of list) freezeDays(c, now, m, today - DAY);
+  const fine = (v, d) => Math.round(v * 10 ** d) / 10 ** d === v;
+  for (const c of list) {
+    for (const row of Object.values(c.log)) {
+      assert.ok(fine(row[0], 8) && fine(row[2], 8), `usd ${row}`);
+      assert.ok(fine(row[1], 2), `price ${row}`);
+      if (row[3] !== undefined) assert.ok(fine(row[3], 8), `reserve ${row}`);
+      assert.ok(JSON.stringify(row).length < 60, `row too long: ${JSON.stringify(row)}`);
+    }
+  }
+});
+
+test('a long guarded term saves the same days whether its end is worked out once or per day', () => {
+  const m = market();
+  m.guard = { paused: Object.fromEntries(Array.from({ length: 10 }, (_, k) => [today - (3 + 2 * k) * DAY, ['tx-1']])), smart: {}, manual: {} };
+  const a = asic({ days: 200, startedAt: today - 30 * DAY + 3600000 });
+  const whole = sums([structuredClone(a)], m);
+  freezeDays(a, now, m, today - DAY);
+  close(whole, sums([a], m));
 });
