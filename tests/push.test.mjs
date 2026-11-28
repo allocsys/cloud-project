@@ -92,6 +92,25 @@ test('sending: every phone of every job; dead ones are handed to drop; off = not
   assert.equal(off.sent.length, 0);
 });
 
+test('sending: the limit is shared, so many calls at once never pass it', async () => {
+  const { fetchFn } = fakeFcm();
+  let now = 0;
+  let most = 0;
+  let total = 0;
+  const slow = async (url, init) => {
+    if (url.includes('oauth2')) return fetchFn(url, init);
+    most = Math.max(most, (now += 1));
+    await new Promise((r) => setTimeout(r, 5));
+    now -= 1;
+    total += 1;
+    return new Response('{}', { status: 200 });
+  };
+  const job = (n) => ({ userId: `u${n}`, note: { id: 'n', code: 'welcome' }, phones: [{ t: TOK(n), lang: 'en' }] });
+  await Promise.all([0, 1, 2, 3].map((k) => push.sendPushJobs(Array.from({ length: 12 }, (_, i) => job(k * 12 + i)), { env: ENV, fetchFn: slow })));
+  assert.equal(total, 48);
+  assert.equal(most, push.MAX_SENDS);
+});
+
 test('accounts: a phone moves to the account that signed in last; sign-out forgets it; bad token refused', async () => {
   const a = (await auth.signup({ email: `a-${run}@test.dev`, password: 'correct horse 1' })).id;
   const b = (await auth.signup({ email: `b-${run}@test.dev`, password: 'correct horse 1' })).id;
