@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { login, setSession, clientIp, reserve, reserveAcct, giveBack, clearFails } from '@/lib/server/auth';
+import { login, setSession, clientIp, reserve, slowAcct, undoAcct, clearAcct, giveBack, clearFails } from '@/lib/server/auth';
 import { captchaOk } from '@/lib/server/captcha';
 import { guarded } from '@/lib/server/shed';
 import { decoyTry } from '@/lib/server/trap';
@@ -10,7 +10,7 @@ export const POST = guarded(POST_);
 
 const NO_STORE = { 'Cache-Control': 'no-store' };
 const tooMany = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 15 minutes.' }, { status: 429, headers: NO_STORE });
-const tooManyAcct = () => NextResponse.json({ ok: false, error: 'Too many attempts. Try again in 5 minutes.' }, { status: 429, headers: NO_STORE });
+const slowDown = (s) => NextResponse.json({ ok: false, error: `Too many attempts. Try again in ${s} seconds.` }, { status: 429, headers: { ...NO_STORE, 'Retry-After': String(s) } });
 
 async function POST_(req) {
   let body;
@@ -32,30 +32,32 @@ async function POST_(req) {
     return NextResponse.json({ ok: false, error: 'Check failed. Try again.' }, { status: 400, headers: NO_STORE });
   }
   if (await reserve(key)) return tooMany();
-  if (email && (await reserveAcct(acctKey))) {
-    await giveBack(key);
-    return tooManyAcct();
-  }
   const withCode = !!body?.code;
-  // The code limit answers first: the address and account attempts reserved above were not failures, so give them back.
+  // The code limit answers first: the address attempt reserved above was not a failure, so give it back.
   if (withCode && (await reserve(codeKey))) {
     await giveBack(key);
-    await giveBack(acctKey);
     return tooMany();
+  }
+  const wait = email ? await slowAcct(acctKey) : 0;
+  if (wait) {
+    // Nothing was checked, so nothing counts as a failure.
+    await giveBack(key);
+    if (withCode) await giveBack(codeKey);
+    return slowDown(wait);
   }
   const { status, ...rest } = await login(body);
   if (!rest.ok) {
     // Asking for the code (need2fa) means the password was right: it is not a failed attempt.
     if (rest.need2fa) {
       await giveBack(key);
-      await giveBack(acctKey);
+      await undoAcct(acctKey);
     }
     // The per-account code count is only for wrong codes.
     if (withCode && !(rest.field === 'code' && !rest.need2fa)) await giveBack(codeKey);
     return NextResponse.json(rest, { status, headers: NO_STORE });
   }
   await clearFails(key);
-  await clearFails(acctKey);
+  await clearAcct(acctKey);
   await clearFails(codeKey);
   return await setSession(NextResponse.json(rest, { headers: NO_STORE }), rest.id);
 }

@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { readJson } from '@/lib/server/body';
-import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, reserve, giveBack, clearFails } from '@/lib/server/admin';
+import { COOKIE, MAX_AGE, adminEnabled, needsSetup, setupAdmin, checkLogin, newSession, clientIp, reserve, giveBack, clearFails, slowName, clearName } from '@/lib/server/admin';
 import { decoyTry } from '@/lib/server/trap';
 
 export const dynamic = 'force-dynamic';
@@ -31,8 +31,16 @@ export async function POST(req) {
       if (!r.bad) await giveBack(ip);
       return NextResponse.json({ ok: false, error: r.error }, { status: r.status, headers: NO_STORE });
     }
-  } else if (!(await checkLogin(body?.user, body?.pass))) {
-    return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
+  } else {
+    const wait = await slowName('admin', body?.user);
+    if (wait) {
+      await giveBack(ip);
+      return NextResponse.json({ ok: false, error: `Too many attempts. Try again in ${wait} seconds.` }, { status: 429, headers: { ...NO_STORE, 'Retry-After': String(wait) } });
+    }
+    if (!(await checkLogin(body?.user, body?.pass))) {
+      return NextResponse.json({ ok: false, error: 'Wrong username or password.' }, { status: 401, headers: NO_STORE });
+    }
+    await clearName('admin', body?.user);
   }
   await clearFails(ip);
   const res = NextResponse.json({ ok: true }, { headers: NO_STORE });
