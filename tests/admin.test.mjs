@@ -3,6 +3,7 @@ import { test, before, after } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHmac } from 'node:crypto';
 import { halls as defaultHalls } from '@/lib/data';
+import { ratesOn } from '@/lib/fees';
 
 const { pool, q, tx, createUser, withUser, defaultCodeOf } = await import('@/lib/server/db');
 const { migrate } = await import('@/lib/server/migrate');
@@ -115,6 +116,25 @@ test('catalog-reset drops the halls that were added, even beside a hall save', a
   assert.ok(reset.ok, JSON.stringify(reset));
   assert.ok(saved.ok, JSON.stringify(saved));
   assert.equal(Object.hasOwn((await catalog()).halls, gone2Id), false, 'the reset dropped the hall that was there when it ran');
+});
+
+test('a power edit starts tomorrow, and a reset keeps the rate history', async () => {
+  const today = Math.floor(Date.now() / 86400000) * 86400000;
+  const tx1 = async () => (await catalog()).halls['tx-1'];
+  assert.ok((await act({ action: 'catalog-reset' })).ok);
+  const was = ratesOn(await tx1(), today);
+  const edit = { ...(await tx1()), power: 'Grid, $0.08/kWh' };
+  assert.equal((await act({ action: 'hall-save', id: 'tx-1', hall: { ...edit, power: 'Grid' } })).status, 422, 'unreadable power is refused');
+  assert.ok((await act({ action: 'hall-save', id: 'tx-1', hall: edit })).ok);
+  const saved = await tx1();
+  assert.deepEqual(ratesOn(saved, today), was, 'today keeps the old rates');
+  assert.ok(ratesOn(saved, today + 86400000).elec > was.elec, 'tomorrow has the new ones');
+  assert.equal(saved.rateLog.length, 2);
+  assert.ok((await act({ action: 'hall-save', id: 'tx-1', hall: { ...saved, power: 'Grid, $0.06/kWh' } })).ok);
+  assert.equal((await tx1()).rateLog.length, 2, 'a change still waiting is replaced');
+  assert.ok((await act({ action: 'catalog-reset' })).ok);
+  assert.deepEqual(ratesOn(await tx1(), today), was);
+  assert.equal((await tx1()).rateLog, undefined, 'back to the old rates before they changed: nothing to remember');
 });
 
 test('actions on an unknown user are refused', async () => {
